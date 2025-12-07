@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Win12 Preview Simulator AIM — All-in-One Relic</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="Win12 Preview Simulator AIM — a living, persistent, mythic OS simulator in pure HTML/CSS/JS.">
+  <style>
+    :root {
+      --bg: #0e1218;
+      --bg-2: #0a0d12;
+      --panel: #151b24;
+      --panel-2: #1b2230;
+      --panel-3: #20293a;
+      --text: #e7eefb;
+      --muted: #9aa8b7;
+      --accent: #4f8cff;
+      --accent-2: #8f67ff;
+      --accent-3: #4bc0f0;
+      --ok: #56d364;
+      --warn: #f0c84b;
+      --bad: #ff6b6b;
+      --shadow: rgba(0,0,0,.55);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; color: var(--text);
+      font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(1400px 760px at 10% 15%, rgba(79,140,255,.08), transparent 65%),
+                  radial-gradient(1200px 680px at 90% 85%, rgba(143,103,255,.08), transparent 65%),
+                  linear-gradient(180deg, var(--bg), var(--bg-2) 60%, var(--bg));
+      height: 100vh; overflow: hidden;
+    }
+
+    /* Desktop canvas */
+    #desktop {
+      position: absolute; inset: 0 0 46px 0;
+    }
+
+    /* Taskbar */
+    #taskbar {
+      position: fixed; left: 0; right: 0; bottom: 0; height: 46px;
+      background: rgba(24, 28, 36, .75); backdrop-filter: blur(8px);
+      border-top: 1px solid #253042; display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+      z-index: 999;
+    }
+    .tb-btn {
+      background: var(--panel-2); border: 1px solid #2a3242; color: var(--text);
+      padding: 6px 12px; border-radius: 8px; cursor: pointer; transition: .15s;
+    }
+    .tb-btn:hover { border-color: var(--accent); filter: brightness(1.08); }
+    .tb-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+    /* Start menu */
+    #startMenu {
+      position: absolute; left: 12px; bottom: 56px; width: 360px; max-height: 70vh; overflow: auto;
+      background: rgba(26,31,38,.97); border: 1px solid #2a3242; border-radius: 12px;
+      box-shadow: 0 20px 50px var(--shadow); padding: 12px; display: none; z-index: 998;
+    }
+    #startMenu h3 { margin: 6px 4px 10px; color: var(--muted); font-weight: 600; }
+    .widgets { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    .widget {
+      background: var(--panel-2); border: 1px solid #2a3242; border-radius: 12px; padding: 12px;
+    }
+    .widget .chip { display:inline-block; padding:4px 8px; border-radius:8px; font-size:12px; border:1px solid #2a3242; background: var(--panel-3); color: var(--muted); }
+    .widget h2 { margin: 10px 0 4px; }
+    .widget .muted { color: var(--muted); }
+
+    /* Windows */
+    .window {
+      position: absolute; min-width: 360px; min-height: 240px;
+      background: linear-gradient(180deg, #1a202b, #181d24);
+      border: 1px solid #2a3242; border-radius: 12px;
+      box-shadow: 0 24px 64px var(--shadow);
+    }
+    .titlebar {
+      height: 40px; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 10px; background: linear-gradient(180deg, #202635, #1c2230);
+      border-bottom: 1px solid #2a3242; border-radius: 12px 12px 0 0; cursor: move;
+    }
+    .titlebar .title { font-weight: 600; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+    .titlebar .title .icon { width: 16px; height: 16px; border-radius: 4px; background: var(--accent); opacity: .75; }
+    .titlebar .actions { display: flex; gap: 6px; }
+    .titlebar .actions button {
+      width: 28px; height: 24px; border-radius: 6px; border: 1px solid #2a3242;
+      background: var(--panel); color: var(--text); cursor: pointer;
+    }
+    .win-body { padding: 12px; height: calc(100% - 40px); overflow: auto; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .toolbar button, .toolbar select, .toolbar input[type=color], .toolbar input[type=file] {
+      background: var(--panel-2); color: var(--text); border: 1px solid #2a3242; border-radius: 8px; padding: 6px 10px; cursor: pointer;
+    }
+    .toolbar input[type=text] {
+      background: #151922; color: var(--text); border: 1px solid #2a3242; border-radius: 8px; padding: 6px 10px;
+    }
+
+    /* Explorer */
+    .file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+    .file-tile { background: var(--panel); border: 1px solid #2a3242; border-radius: 10px; padding: 10px; cursor: pointer; }
+    .file-tile .name { font-weight: 600; }
+    .file-tile .meta { font-size: 12px; color: var(--muted); }
+
+    /* Context menu */
+    #ctxMenu {
+      position: absolute; background: var(--panel); border: 1px solid #2a3242; border-radius: 10px; min-width: 200px; display: none; z-index: 9999;
+      box-shadow: 0 16px 40px var(--shadow);
+    }
+    #ctxMenu button { width: 100%; text-align: left; padding: 10px 12px; border: none; background: transparent; color: var(--text); cursor: pointer; }
+    #ctxMenu button:hover { background: var(--panel-3); }
+
+    /* Inputs */
+    input, textarea { background: #151922; border: 1px solid #2a3242; color: var(--text); border-radius: 8px; padding: 8px; width: 100%; }
+    textarea { min-height: 160px; }
+    label { color: var(--muted); font-size: 13px; }
+
+    /* Markdown */
+    .md { line-height: 1.6; }
+    .md h1, .md h2, .md h3 { color: var(--text); margin: 18px 0 10px; }
+    .md h1 { font-size: 28px; } .md h2 { font-size: 22px; } .md h3 { font-size: 18px; }
+    .md p { margin: 10px 0; color: var(--text); }
+    .md a { color: var(--accent); text-decoration: none; } .md a:hover { text-decoration: underline; }
+    .md code { background: #0d1117; border: 1px solid #2a3242; border-radius: 6px; padding: 2px 6px; }
+    pre code { display:block; background:#0d1117; color:#c9d1d9; border:1px solid #2a3242; border-radius: 8px; padding: 12px; overflow:auto; }
+    .md ul, .md ol { margin: 10px 0 10px 20px; }
+
+    /* Sleep overlay */
+    #sleepOverlay {
+      position: absolute; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(2px); display: none; z-index: 9998;
+      align-items: center; justify-content: center; color: var(--muted); font-size: 22px;
+    }
+
+    /* Chips */
+    .chip { display:inline-block; padding:4px 8px; border-radius:8px; font-size:12px; border:1px solid #2a3242; background: var(--panel-3); color: var(--muted); }
+
+    /* Status bar clock */
+    #systemClock { color: var(--muted); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div id="desktop"></div>
+
+  <!-- Start menu (widgets) -->
+  <div id="startMenu">
+    <h3>Widgets</h3>
+    <div class="widgets">
+      <div class="widget">
+        <div class="chip">Clock</div>
+        <h2 id="clockText">--:--</h2>
+        <div id="dateText" class="muted">—</div>
+      </div>
+      <div class="widget">
+        <div class="chip">Quick notes</div>
+        <textarea id="widgetNote" placeholder="Write a quick note..."></textarea>
+        <div style="margin-top:8px; display:flex; gap:8px;">
+          <button class="tb-btn" onclick="saveWidgetNote()">Save note</button>
+          <button class="tb-btn" onclick="openApp('notepad')">Open Notepad</button>
+        </div>
+      </div>
+      <div class="widget">
+        <div class="chip">Recommended features</div>
+        <div id="recommendedList" style="max-height:160px; overflow:auto; margin-top:6px;"></div>
+        <div style="margin-top:8px; display:flex; gap:8px;">
+          <button class="tb-btn" onclick="openApp('reader')">Open reader</button>
+          <button class="tb-btn" onclick="clearRecommended()">Clear</button>
+        </div>
+      </div>
+      <div class="widget">
+        <div class="chip">About (README.md)</div>
+        <p class="muted">Preview your repository README inside the desktop.</p>
+        <button class="tb-btn" onclick="openAboutReadme()">Open About</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Taskbar -->
+  <div id="taskbar">
+    <button class="tb-btn" onclick="toggleStart()">Start</button>
+    <button class="tb-btn" onclick="openExplorer()">My Files</button>
+    <button class="tb-btn" onclick="openApp('notepad')">Notepad</button>
+    <button class="tb-btn" onclick="openApp('paint')">Paint</button>
+    <button class="tb-btn" onclick="openApp('edge')">Edge</button>
+    <button class="tb-btn" onclick="openApp('feedback')">Feedback</button>
+    <button class="tb-btn" onclick="openApp('copilot')">Copilot</button>
+    <button class="tb-btn" onclick="power()">Power</button>
+    <div class="tb-right">
+      <span id="systemClock">--:--</span>
+    </div>
+  </div>
+
+  <!-- Context menu -->
+  <div id="ctxMenu"></div>
+
+  <!-- Sleep overlay -->
+  <div id="sleepOverlay">Sleeping… Press Escape to wake.</div>
+
+  <script>
+    /* ====== Core state, helpers, filesystem ====== */
+    const FS_KEY = 'win12.fs';
+    const NOTE_KEY = 'win12.notes.widget';
+    const RECS_KEY = 'win12.recommended';
+    const FEED_KEY = 'win12.feedback';
+    const z = { top: 10 };
+
+    const handlers = {
+      '.txt': 'notepad',
+      '.md':  'notepad',
+      '.png': 'paint',
+      '.jpg': 'paint',
+      '.jpeg':'paint',
+      '.html':'edge'
+    };
+
+    const fs = {
+      load() { return JSON.parse(localStorage.getItem(FS_KEY) || '[]'); },
+      save(all) { localStorage.setItem(FS_KEY, JSON.stringify(all)); },
+      list() { return this.load(); },
+      add(file) {
+        const files = this.load();
+        files.push({ id: crypto.randomUUID(), ...file, created: Date.now(), updated: Date.now() });
+        this.save(files);
+      },
+      update(id, changes) {
+        const files = this.load().map(f => f.id === id ? { ...f, ...changes, updated: Date.now() } : f);
+        this.save(files);
+      },
+      remove(id) {
+        const files = this.load().filter(f => f.id !== id);
+        this.save(files);
+      },
+      get(id) { return this.load().find(f => f.id === id); }
+    };
+
+    function ext(name) {
+      const i = name.lastIndexOf('.');
+      return i === -1 ? '' : name.slice(i).toLowerCase();
+    }
+    function bytesFromText(text) {
+      return new Blob([text || '']).size;
+    }
+    function bytesFromDataURL(dataURL) {
+      if (!dataURL) return 0;
+      try { return atob(dataURL.split(',')[1]).length; } catch { return 0; }
+    }
+    function sizeOfContent(content) {
+      if (typeof content === 'string') return bytesFromText(content);
+      if (content && content.type === 'dataURL') return bytesFromDataURL(content.data);
+      return 0;
+    }
+    function formatBytes(b) {
+      if (b < 1024) return `${b} B`;
+      if (b < 1024*1024) return `${(b/1024).toFixed(1)} KB`;
+      return `${(b/1024/1024).toFixed(2)} MB`;
+    }
+    function nowClock() {
+      const d = new Date(); const hh = String(d.getHours()).padStart(2, '0'); const mm = String(d.getMinutes()).padStart(2, '0');
+      const date = d.toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'});
+      return { time: `${hh}:${mm}`, date };
+    }
+
+    /* ====== Boot ====== */
+    window.addEventListener('load', () => {
+      bootReadme();
+      startClock();
+      renderRecommendedWidget();
+      const savedNote = localStorage.getItem(NOTE_KEY);
+      if (savedNote) document.getElementById('widgetNote').value = savedNote;
+      // Also set system clock in taskbar
+      const tickTB = () => document.getElementById('systemClock').textContent = nowClock().time;
+      tickTB(); setInterval(tickTB, 1000 * 30);
+    });
+
+    function bootReadme() {
+      const readmeContent = `# Win12 Preview Simulator AIM
+They said it was just a preview. We AIM higher.
+
+This shrine includes:
+- Win11-like windows, taskbar, context menus
+- File Explorer with persistence (LocalStorage)
+- Filetype handlers (.txt, .md, .png, .html)
+- Paint with real tools
+- Notepad, Edge viewer
+- Start widgets: clock, notes, recommendations
+- Feedback hub
+- Copilot (built-in)
+- Power: shutdown / restart / sleep
+
+This system is portable and all-in-one.`;
+      openWindow('Desktop README', 820, 500, (body) => {
+        body.innerHTML = `
+          <div class="chip">Declaration</div>
+          <pre style="white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas;">${readmeContent}</pre>
+          <div class="toolbar">
+            <button onclick="seedDemoFiles()">Seed demo files</button>
+            <button onclick="openExplorer()">Open My Files</button>
+            <button onclick="openAboutReadme()">Open README About</button>
+          </div>
+        `;
+      });
+    }
+
+    /* ====== Window system ====== */
+    function openWindow(title, w=640, h=420, renderBody) {
+      const win = document.createElement('div');
+      win.className = 'window';
+      win.style.width = w + 'px';
+      win.style.height = h + 'px';
+      win.style.left = Math.round(40 + Math.random()*60) + 'px';
+      win.style.top  = Math.round(40 + Math.random()*40) + 'px';
+      win.style.zIndex = ++z.top;
+
+      const tb = document.createElement('div');
+      tb.className = 'titlebar';
+      tb.innerHTML = `<div class="title"><span class="icon"></span>${title}</div>
+        <div class="actions">
+          <button title="Minimize" onclick="minimizeWindow(this)">—</button>
+          <button title="Maximize" onclick="maximizeWindow(this)">□</button>
+          <button title="Close" onclick="closeWindow(this)">✕</button>
+        </div>`;
+      win.appendChild(tb);
+
+      const body = document.createElement('div');
+      body.className = 'win-body';
+      win.appendChild(body);
+
+      document.getElementById('desktop').appendChild(win);
+      dragWindow(win, tb);
+      if (renderBody) renderBody(body);
+      return { win, body };
+    }
+    function bringFront(el) { el.style.zIndex = ++z.top; }
+    function dragWindow(win, bar) {
+      let dx=0, dy=0, dragging=false;
+      bar.addEventListener('mousedown', (e) => {
+        dragging = true; bringFront(win);
+        dx = e.clientX - win.offsetLeft; dy = e.clientY - win.offsetTop;
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const x = e.clientX - dx, y = e.clientY - dy;
+        win.style.left = Math.max(0, Math.min(window.innerWidth - win.offsetWidth, x)) + 'px';
+        win.style.top  = Math.max(0, Math.min(window.innerHeight - 46 - win.offsetHeight, y)) + 'px';
+      });
+      window.addEventListener('mouseup', () => dragging=false);
+      win.addEventListener('mousedown', () => bringFront(win));
+    }
+    function closeWindow(btn) { btn.closest('.window').remove(); }
+    function minimizeWindow(btn) { btn.closest('.window').querySelector('.win-body').style.display='none'; }
+    function maximizeWindow(btn) {
+      const w = btn.closest('.window'), body = w.querySelector('.win-body');
+      if (w.dataset.max === '1') {
+        w.style.left = '40px'; w.style.top='40px'; w.style.width='640px'; w.style.height='420px';
+        w.dataset.max = '0'; body.style.display='block';
+      } else {
+        w.style.left='0'; w.style.top='0'; w.style.width = (window.innerWidth)+'px';
+        w.style.height = (window.innerHeight-46)+'px';
+        w.dataset.max = '1'; body.style.display='block';
+      }
+    }
+
+    /* ====== Start menu & widgets ====== */
+    function toggleStart() {
+      const s = document.getElementById('startMenu');
+      s.style.display = s.style.display === 'block' ? 'none' : 'block';
+    }
+    function startClock() {
+      const tick = () => {
+        const { time, date } = nowClock();
+        document.getElementById('clockText').textContent = time;
+        document.getElementById('dateText').textContent = date;
+      };
+      tick(); setInterval(tick, 1000 * 30);
+    }
+    function saveWidgetNote() {
+      localStorage.setItem(NOTE_KEY, document.getElementById('widgetNote').value);
+    }
+    function renderRecommendedWidget() {
+      const box = document.getElementById('recommendedList'); if (!box) return;
+      const all = JSON.parse(localStorage.getItem(RECS_KEY)||'[]').slice().reverse();
+      box.innerHTML = all.length ? all.map(r => `
+        <div class="file-tile">
+          <div class="name">${r.text}</div>
+          <div class="meta">${new Date(r.at).toLocaleString()}</div>
+        </div>
+      `).join('') : '<div class="meta">No recommendations yet.</div>';
+    }
+    function addRecommended(text) {
+      if (!text) return;
+      const all = JSON.parse(localStorage.getItem(RECS_KEY)||'[]');
+      all.push({ id: crypto.randomUUID(), text, at: Date.now() });
+      localStorage.setItem(RECS_KEY, JSON.stringify(all));
+      renderRecommendedWidget();
+    }
+    function clearRecommended() {
+      localStorage.removeItem(RECS_KEY); renderRecommendedWidget();
+    }
+
+    /* ====== Explorer ====== */
+    function openExplorer() {
+      const { body } = openWindow('My Files', 860, 520, (b) => {
+        b.innerHTML = `
+          <div class="toolbar">
+            <button onclick="newFilePrompt()">New file</button>
+            <input type="file" id="fileImport" accept=".txt,.md,.png,.jpg,.jpeg,.html" />
+            <button onclick="importFile()">Import</button>
+            <button onclick="seedDemoFiles()">Seed demo files</button>
+            <input type="text" id="searchQuery" placeholder="Search filename…" oninput="searchFiles(this.value)">
+          </div>
+          <div id="files" class="file-grid"></div>
+        `;
+        renderFiles();
+        const filesDiv = b.querySelector('#files');
+        filesDiv.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          const tile = e.target.closest('.file-tile');
+          if (!tile) return;
+          showCtx(e.pageX, e.pageY, tile.dataset.id);
+        });
+        filesDiv.addEventListener('dblclick', (e) => {
+          const tile = e.target.closest('.file-tile'); if (!tile) return;
+          openById(tile.dataset.id);
+        });
+      });
+    }
+    function renderFiles(filter='') {
+      const filesDiv = document.querySelector('.window .win-body #files');
+      if (!filesDiv) return;
+      let list = fs.list();
+      if (filter) list = list.filter(f => f.name.toLowerCase().includes(filter.toLowerCase()));
+      filesDiv.innerHTML = list.length ? list.map(f => `
+        <div class="file-tile" data-id="${f.id}">
+          <div class="name">${f.name}</div>
+          <div class="meta">${ext(f.name)} • ${formatBytes(sizeOfContent(f.content))}</div>
+          <div class="meta">Updated: ${new Date(f.updated).toLocaleString()}</div>
+        </div>
+      `).join('') : '<div class="meta">No files. Create one with New file.</div>';
+    }
+    function searchFiles(q){ renderFiles(q); }
+    function newFilePrompt() {
+      const name = prompt('New file name (e.g., note.txt, sketch.png, page.html):');
+      if (!name) return;
+      const extension = ext(name);
+      let content = '';
+      if (extension === '.png' || extension === '.jpg' || extension === '.jpeg') {
+        content = { type:'dataURL', data:'' };
+      } else if (extension === '.html') {
+        content = '<!DOCTYPE html><html><head><title>Page</title></head><body><h1>Hello Win12</h1></body></html>';
+      } else {
+        content = '';
+      }
+      fs.add({ name, content });
+      renderFiles();
+    }
+    function importFile() {
+      const inp = document.getElementById('fileImport');
+      if (!inp.files.length) return;
+      const file = inp.files[0];
+      const reader = new FileReader();
+      reader.onload = () => {
+        let content;
+        const e = ext(file.name);
+        if (e === '.png' || e === '.jpg' || e === '.jpeg') {
+          content = { type:'dataURL', data: reader.result };
+        } else {
+          content = reader.result;
+        }
+        fs.add({ name: file.name, content });
+        renderFiles();
+      };
+      if (/\.png|\.jpg|\.jpeg$/i.test(file.name)) reader.readAsDataURL(file);
+      else reader.readAsText(file);
+    }
+    function showCtx(x, y, id) {
+      const menu = document.getElementById('ctxMenu');
+      menu.innerHTML = `
+        <button onclick="openById('${id}')">Open</button>
+        <button onclick="renameFile('${id}')">Rename</button>
+        <button onclick="duplicateFile('${id}')">Duplicate</button>
+        <button onclick="deleteFile('${id}')">Delete</button>
+        <button onclick="properties('${id}')">Properties</button>
+        <button onclick="openWithPrompt('${id}')">Open with…</button>
+        <button onclick="exportFile('${id}')">Export</button>
+      `;
+      menu.style.left = x + 'px'; menu.style.top = y + 'px';
+      menu.style.display = 'block';
+      setTimeout(() => { window.addEventListener('click', hideCtx, { once: true }); }, 0);
+    }
+    function hideCtx(){ document.getElementById('ctxMenu').style.display='none'; }
+    function renameFile(id) {
+      const f = fs.get(id); if (!f) return;
+      const name = prompt('Rename file:', f.name);
+      if (!name) return;
+      fs.update(id, { name }); renderFiles();
+    }
+    function duplicateFile(id) {
+      const f = fs.get(id); if (!f) return;
+      let name = f.name;
+      const i = name.lastIndexOf('.');
+      const base = i > -1 ? name.slice(0,i) : name;
+      const e = i > -1 ? name.slice(i) : '';
+      const copyName = `${base} copy${e}`;
+      fs.add({ name: copyName, content: f.content });
+      renderFiles();
+    }
+    function deleteFile(id) {
+      if (confirm('Delete this file?')) { fs.remove(id); renderFiles(); }
+    }
+    function properties(id) {
+      const f = fs.get(id); if (!f) return;
+      openWindow('Properties', 460, 300, (b) => {
+        b.innerHTML = `
+          <div class="chip">Meta</div>
+          <p><b>Name:</b> ${f.name}</p>
+          <p><b>Type:</b> ${ext(f.name)||'none'}</p>
+          <p><b>Size:</b> ${formatBytes(sizeOfContent(f.content))}</p>
+          <p><b>Created:</b> ${new Date(f.created).toLocaleString()}</p>
+          <p><b>Updated:</b> ${new Date(f.updated).toLocaleString()}</p>
+        `;
+      });
+    }
+    function exportFile(id) {
+      const f = fs.get(id); if (!f) return;
+      const e = ext(f.name);
+      let blob;
+      if (e === '.png' || e === '.jpg' || e === '.jpeg') {
+        const dataURL = f.content?.data || '';
+        const arr = dataURL.split(','), bstr = atob(arr[1]||''), mime = (arr[0].match(/:(.*?);/)||[])[1]||'image/png';
+        let n = bstr.length; const u8 = new Uint8Array(n);
+        for (let i=0;i<n;i++) u8[i] = bstr.charCodeAt(i);
+        blob = new Blob([u8], { type: mime });
+      } else {
+        blob = new Blob([f.content || ''], { type: 'text/plain' });
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = f.name; a.click();
+      URL.revokeObjectURL(url);
+    }
+    function openById(id) {
+      const f = fs.get(id); if (!f) return;
+      const defaultApp = handlers[ext(f.name)] || 'notepad';
+      openWithApp(f, defaultApp);
+    }
+    function openWithPrompt(id) {
+      const f = fs.get(id); if (!f) return;
+      const choice = prompt('Open with (notepad/paint/edge):', handlers[ext(f.name)]||'notepad');
+      if (!choice) return;
+      openWithApp(f, choice);
+    }
+
+    /* ====== Apps ====== */
+    function openApp(app) {
+      if (app === 'notepad') return openNotepad();
+      if (app === 'paint') return openPaint();
+      if (app === 'edge') return openEdge();
+      if (app === 'feedback') return openFeedback();
+      if (app === 'copilot') return openCopilot();
+      if (app === 'reader') return openReader();
+    }
+    function openWithApp(file, app) {
+      if (app === 'notepad') openNotepad(file);
+      else if (app === 'paint') openPaint(file);
+      else if (app === 'edge') openEdge(file);
+      else alert('Unsupported app: ' + app);
+    }
+
+    /* Notepad */
+    function openNotepad(file=null) {
+      const title = file ? `Notepad — ${file.name}` : 'Notepad';
+      openWindow(title, 680, 440, (b) => {
+        b.innerHTML = `
+          <div class="toolbar">
+            <button onclick="saveNote()">Save</button>
+            <button onclick="saveNoteAs()">Save as…</button>
+          </div>
+          <textarea id="noteArea" placeholder="Type here..."></textarea>
+        `;
+        if (file) b.querySelector('#noteArea').value = (file.content || '');
+        window.saveNote = function() {
+          if (!file) return saveNoteAs();
+          const text = document.querySelector('#noteArea').value;
+          fs.update(file.id, { content: text });
+          alert('Saved to ' + file.name);
+          renderFiles();
+        };
+        window.saveNoteAs = function() {
+          const name = prompt('Save as:', file?.name || 'note.txt');
+          if (!name) return;
+          const text = document.querySelector('#noteArea').value;
+          fs.add({ name, content: text });
+          alert('Saved as ' + name);
+          renderFiles();
+        };
+      });
+    }
+
+    /* Paint */
+    function openPaint(file=null) {
+      const title = file ? `Paint — ${file.name}` : 'Paint';
+      openWindow(title, 820, 560, (b) => {
+        b.innerHTML = `
+          <div class="toolbar">
+            <label>Color <input type="color" id="paintColor" value="#ffffff"></label>
+            <label>Size
+              <select id="paintSize">
+                <option>2</option><option>4</option><option>8</option><option>12</option><option>18</option><option>24</option><option>36</option><option>48</option>
+              </select>
+            </label>
+            <button onclick="paintMode('brush')">Brush</button>
+            <button onclick="paintMode('eraser')">Eraser</button>
+            <button onclick="paintClear()">Clear</button>
+            <button onclick="paintSave()">Save</button>
+            <input type="file" id="paintImport" accept="image/*" />
+            <button onclick="paintImport()">Import</button>
+          </div>
+          <canvas id="paintCanvas" width="760" height="420"></canvas>
+        `;
+        initCanvas(file);
+      });
+
+      function initCanvas(file) {
+        const c = document.getElementById('paintCanvas');
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#141820'; ctx.fillRect(0,0,c.width,c.height);
+        let drawing=false, mode='brush', last=null;
+
+        function coords(e) {
+          const rect = c.getBoundingClientRect();
+          return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        }
+        function draw(e) {
+          if (!drawing) return;
+          const { x, y } = coords(e);
+          const size = parseInt(document.getElementById('paintSize').value, 10);
+          const color = document.getElementById('paintColor').value;
+          ctx.lineCap='round'; ctx.lineJoin='round';
+          ctx.lineWidth=size;
+          if (mode==='eraser') { ctx.strokeStyle = '#141820'; ctx.fillStyle = '#141820'; }
+          else { ctx.strokeStyle = color; ctx.fillStyle = color; }
+          if (last) { ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(x, y); ctx.stroke(); }
+          ctx.beginPath(); ctx.arc(x, y, size/2, 0, Math.PI*2); ctx.fill();
+          last = { x, y };
+        }
+        c.addEventListener('mousedown', (e)=>{ drawing=true; last=null; draw(e); });
+        c.addEventListener('mouseup', ()=>{ drawing=false; last=null; });
+        c.addEventListener('mouseleave', ()=>{ drawing=false; last=null; });
+        c.addEventListener('mousemove', draw);
+
+        window.paintMode = m => mode = m;
+        window.paintClear = () => { ctx.fillStyle = '#141820'; ctx.fillRect(0,0,c.width,c.height); };
+        window.paintSave = () => {
+          const data = c.toDataURL('image/png');
+          if (file) {
+            fs.update(file.id, { content: { type:'dataURL', data } });
+            alert('Saved to ' + file.name);
+          } else {
+            const name = prompt('Save as:', 'sketch.png'); if (!name) return;
+            fs.add({ name, content: { type:'dataURL', data } });
+            alert('Saved as ' + name);
+          }
+          renderFiles();
+        };
+        window.paintImport = () => {
+          const inp = document.getElementById('paintImport');
+          if (!inp.files.length) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            const img = new Image(); img.src = reader.result;
+            img.onload = () => { ctx.drawImage(img, 0, 0, c.width, c.height); };
+          };
+          reader.readAsDataURL(inp.files[0]);
+        };
+
+        if (file && file.content?.type === 'dataURL' && file.content.data) {
+          const img = new Image(); img.src = file.content.data;
+          img.onload = () => ctx.drawImage(img, 0, 0, c.width, c.height);
+        }
+      }
+    }
+
+    /* Edge (HTML preview) */
+    function openEdge(file=null) {
+      const title = file ? `Edge — ${file.name}` : 'Edge';
+      openWindow(title, 860, 560, (b) => {
+        b.innerHTML = `
+          <div class="toolbar">
+            <button onclick="edgeSave()">Save</button>
+            <button onclick="edgeSaveAs()">Save as…</button>
+            <button onclick="edgeRender()">Render</button>
+          </div>
+          <div style="display:flex; gap:10px; height: calc(100% - 42px);">
+            <textarea id="edgeEditor" style="width:50%;" placeholder="Write HTML here..."></textarea>
+            <iframe id="edgeView" style="flex:1; background:white;"></iframe>
+          </div>
+        `;
+        const ed = b.querySelector('#edgeEditor');
+        const vf = b.querySelector('#edgeView');
+        ed.addEventListener('input', () => renderFrame(ed.value, vf));
+        if (file) { ed.value = file.content || ''; renderFrame(ed.value, vf); }
+        window.edgeRender = () => renderFrame(ed.value, vf);
+      });
+      function renderFrame(html, iframe) {
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        iframe.src = url;
+        iframe.onload = () => URL.revokeObjectURL(url);
+      }
+      window.edgeSave = function() {
+        const ed = document.querySelector('#edgeEditor');
+        if (!file) return edgeSaveAs();
+        const text = ed.value;
+        fs.update(file.id, { content: text });
+        alert('Saved to ' + file.name);
+        renderFiles();
+      };
+      window.edgeSaveAs = function() {
+        const ed = document.querySelector('#edgeEditor');
+        const name = prompt('Save as:', file?.name || 'page.html'); if (!name) return;
+        const text = ed.value;
+        fs.add({ name, content: text });
+        alert('Saved as ' + name);
+        renderFiles();
+      };
+    }
+
+    /* Feedback hub */
+    function openFeedback() {
+      openWindow('Feedback hub', 700, 500, (b) => {
+        b.innerHTML = `
+          <div class="toolbar">
+            <button onclick="submitFeedback()">Submit</button>
+            <button onclick="clearFeedback()">Clear all</button>
+          </div>
+          <label>Title</label>
+          <input id="fbTitle" placeholder="Short summary">
+          <label style="margin-top:8px;">Description</label>
+          <textarea id="fbDesc" placeholder="What worked? What needs love?"></textarea>
+          <div style="margin-top:10px;">
+            <div class="chip">Submissions</div>
+            <div id="fbList" style="max-height:220px; overflow:auto; margin-top:8px;"></div>
+          </div>
+        `;
+        renderFeedbackList();
+      });
+      window.submitFeedback = function(){
+        const t = document.getElementById('fbTitle').value.trim();
+        const d = document.getElementById('fbDesc').value.trim();
+        if (!t || !d) return alert('Please fill title and description.');
+        const all = JSON.parse(localStorage.getItem(FEED_KEY)||'[]');
+        all.push({ id: crypto.randomUUID(), title:t, desc:d, at: Date.now() });
+        localStorage.setItem(FEED_KEY, JSON.stringify(all));
+        document.getElementById('fbTitle').value='';
+        document.getElementById('fbDesc').value='';
+        renderFeedbackList();
+      };
+      window.clearFeedback = function(){
+        if (!confirm('Clear all feedback?')) return;
+        localStorage.removeItem(FEED_KEY);
+        renderFeedbackList();
+      };
+    }
+    function renderFeedbackList() {
+      const box = document.getElementById('fbList'); if (!box) return;
+      const all = JSON.parse(localStorage.getItem(FEED_KEY)||'[]').slice().reverse();
+      box.innerHTML = all.length ? all.map(f=>`
+        <div class="file-tile">
+          <div class="name">${f.title}</div>
+          <div class="meta">${new Date(f.at).toLocaleString()}</div>
+          <div>${f.desc}</div>
+        </div>
+      `).join('') : '<div class="meta">Empty.</div>';
+    }
+
+    /* Copilot mini-chat */
+    function openCopilot() {
+      openWindow('Copilot (built‑in)', 720, 520, (b) => {
+        b.innerHTML = `
+          <div class="toolbar">
+            <button onclick="suggestFeature()">Suggest feature</button>
+            <button onclick="openExplorer()">Open My Files</button>
+          </div>
+          <div id="chat" style="height:320px; overflow:auto; background:#151922; padding:10px; border-radius:8px; border:1px solid #2a3242;"></div>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <input id="chatInput" placeholder="Ask or command... (e.g., create note.txt, open paint, power sleep)">
+            <button onclick="sendChat()">Send</button>
+          </div>
+        `;
+        appendChat('system','I live inside Win12 AIM. Ask me to create files, open apps, record recommendations, or power actions.');
+      });
+    }
+    function appendChat(role, text) {
+      const c = document.getElementById('chat'); if (!c) return;
+      const line = document.createElement('div');
+      line.innerHTML = `<div style="margin:6px 0;"><span class="chip">${role}</span> — ${text}</div>`;
+      c.appendChild(line); c.scrollTop = c.scrollHeight;
+    }
+    function sendChat() {
+      const input = document.getElementById('chatInput'); if (!input) return;
+      const msg = input.value.trim(); if (!msg) return;
+      appendChat('you', msg);
+      input.value='';
+      // intents
+      if (/^create\s+.+/i.test(msg)) {
+        const name = msg.replace(/^create\s+/i,'').trim();
+        const defaultContent = ext(name)==='.html' ? '<!DOCTYPE html><html><body><h2>Hello</h2></body></html>' : '';
+        fs.add({ name, content: defaultContent });
+        renderFiles();
+        appendChat('copilot', `Created ${name}.`);
+        return;
+      }
+      if (/^open\s+my files$/i.test(msg)) { openExplorer(); appendChat('copilot','Opening My Files.'); return; }
+      if (/^open\s+paint$/i.test(msg)) { openPaint(); appendChat('copilot','Opening Paint.'); return; }
+      if (/^open\s+notepad$/i.test(msg)) { openNotepad(); appendChat('copilot','Opening Notepad.'); return; }
+      if (/^power\s+(shutdown|restart|sleep)$/i.test(msg)) {
+        const action = msg.split(/\s+/)[1]; power(action); appendChat('copilot', `Power → ${action}.`); return;
+      }
+      if (/^(add|suggest)\s+recommended/i.test(msg)) {
+        const rec = msg.replace(/^(add|suggest)\s+recommended/i,'').trim();
+        if (rec) addRecommended(rec);
+        appendChat('copilot', `Added to recommended: ${rec || '—'}.`);
+        return;
+      }
+      appendChat('copilot', 'Try: “create note.txt”, “open paint”, “add recommended better widgets”, or “power sleep”.');
+    }
+    function suggestFeature() {
+      const idea = prompt('Suggest a feature:'); if (!idea) return;
+      addRecommended(idea);
+      appendChat('copilot', 'Added your suggestion to Recommended.');
+    }
+
+    /* Recommended reader */
+    function openReader() {
+      openWindow('Recommended Reader', 640, 480, (b) => {
+        const all = JSON.parse(localStorage.getItem(RECS_KEY)||'[]').slice().reverse();
+        b.innerHTML = `
+          <div class="toolbar">
+            <button onclick="clearRecommended()">Clear</button>
+          </div>
+          <div>${all.length ? all.map(r=>`
+            <div class="file-tile">
+              <div class="name">${r.text}</div>
+              <div class="meta">${new Date(r.at).toLocaleString()}</div>
+            </div>`).join('') : '<div class="meta">Empty.</div>'}
+          </div>
+        `;
+      });
+    }
+
+    /* README About (preview README.md) */
+    function renderMarkdown(md) {
+      md = md.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      md = md.replace(/```([\s\S]*?)```/g, (m, code) => `<pre><code>${code}</code></pre>`);
+      md = md.replace(/`([^`]+)`/g, '<code>$1</code>');
+      md = md.replace(/^######\s?(.*)$/gm, '<h6>$1</h6>')
+             .replace(/^#####\s?(.*)$/gm, '<h5>$1</h5>')
+             .replace(/^####\s?(.*)$/gm, '<h4>$1</h4>')
+             .replace(/^###\s?(.*)$/gm, '<h3>$1</h3>')
+             .replace(/^##\s?(.*)$/gm, '<h2>$1</h2>')
+             .replace(/^#\s?(.*)$/gm, '<h1>$1</h1>');
+      md = md.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+             .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+      md = md.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+      md = md.replace(/^(?:-|\*)\s+(.*)$/gm, '<li>$1</li>');
+      md = md.replace(/(<li>[\s\S]*?<\/li>)/g, (m) => m.includes('<ul>') ? m : `<ul>${m}</ul>`);
+      md = md.replace(/^\d+\.\s+(.*)$/gm, '<li>$1</li>');
+      md = md.replace(/(<li>[\s\S]*?<\/li>)/g, (m) => (m.includes('<ul>') || m.includes('<ol>')) ? m : `<ol>${m}</ol>`);
+      md = md.split('\n\n').map(chunk => {
+        if (/^<h\d|<pre|<ul|<ol|<li|<p|<blockquote|<hr|<table/.test(chunk.trim())) return chunk;
+        return `<p>${chunk.trim().replace(/\n/g,'<br>')}</p>`;
+      }).join('\n');
+      return `<div class="md">${md}</div>`;
+    }
+    async function fetchREADME() {
+      try {
+        const res = await fetch('README.md', { cache: 'no-store' });
+        if (!res.ok) throw new Error('README.md not found');
+        return await res.text();
+      } catch {
+        return null;
+      }
+    }
+    function openAboutReadme() {
+      openWindow('About — README.md', 880, 600, async (b) => {
+        b.innerHTML = `<p class="muted">Loading README.md…</p>`;
+        const text = await fetchREADME();
+        if (!text) {
+          b.innerHTML = `
+            <h2>README.md not found</h2>
+            <p>Add a <code>README.md</code> at the root of this repository to show the About page.</p>
+            <p>Tip: In GitHub → Add file → Create new file → README.md → paste your scroll → Commit.</p>
+          `;
+          return;
+        }
+        b.innerHTML = renderMarkdown(text);
+      });
+    }
+
+    /* ====== Power ====== */
+    function power(action) {
+      if (!action) {
+        const choice = prompt('Power (shutdown / restart / sleep):','sleep');
+        if (!choice) return; action = choice;
+      }
+      if (action === 'shutdown') {
+        if (!confirm('Shutdown clears session windows (files persist). Proceed?')) return;
+        document.getElementById('desktop').innerHTML = '';
+        alert('System shutdown. Start menu → open windows again when ready.');
+      } else if (action === 'restart') {
+        location.reload();
+      } else if (action === 'sleep') {
+        document.getElementById('sleepOverlay').style.display = 'flex';
+      } else {
+        alert('Unknown power action.');
+      }
+    }
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const overlay = document.getElementById('sleepOverlay');
+        if (overlay.style.display === 'flex') overlay.style.display = 'none';
+      }
+    });
+
+    /* ====== Seed demo files ====== */
+    function seedDemoFiles() {
+      const demo = [
+        { name:'note.txt', content:'Hello from Win12 AIM.' },
+        { name:'readme.md', content:'# Hello\nThis is the inner desktop README.' },
+        { name:'page.html', content:'<!DOCTYPE html><html><body><h2>Demo Page</h2><p>Rendered in Edge.</p></body></html>' },
+        { name:'sketch.png', content:{ type:'dataURL', data:'' } }
+      ];
+      const existing = fs.list().map(f => f.name);
+      demo.forEach(f => { if (!existing.includes(f.name)) fs.add(f); });
+      renderFiles();
+      alert('Seeded demo files.');
+    }
+  </script>
+</body>
+</html>

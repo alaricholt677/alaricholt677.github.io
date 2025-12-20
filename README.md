@@ -122,3 +122,12 @@ Expand it.
 Together we AIM higher.
 
 ---
+
+<!-- WIN12SIMU_META
+{
+  "priority": 100,
+  "category": "ritual-app",
+  "icon": "spark",
+  "color": "#4A9FFF"
+}
+WIN12SIMU_META -->

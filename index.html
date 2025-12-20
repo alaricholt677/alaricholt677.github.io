@@ -2,936 +2,2530 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Win12 Preview Simulator AIM — All-in-One Relic</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="description" content="Win12 Preview Simulator AIM — a living, persistent, mythic OS simulator in pure HTML/CSS/JS.">
-  <style>
+  <title>Win12 AIM FS · Explorer · Notepad · Browser · Host.exe · Paint · Media Player</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style id="base-style">
     :root {
-      --bg: #0e1218;
-      --bg-2: #0a0d12;
-      --panel: #151b24;
-      --panel-2: #1b2230;
-      --panel-3: #20293a;
-      --text: #e7eefb;
-      --muted: #9aa8b7;
-      --accent: #4f8cff;
-      --accent-2: #8f67ff;
-      --accent-3: #4bc0f0;
-      --ok: #56d364;
-      --warn: #f0c84b;
-      --bad: #ff6b6b;
-      --shadow: rgba(0,0,0,.55);
+      --accent: #4c8dff;
+      --accent-soft: rgba(76, 141, 255, 0.22);
+      --accent-strong: rgba(76, 141, 255, 0.94);
+      --bg-main: radial-gradient(circle at 0% 0%, #16245a 0, #050813 45%, #02020a 100%);
+      --glass-dark: rgba(8, 12, 28, 0.9);
+      --border-glass: rgba(255, 255, 255, 0.1);
+      --text-main: #f5f7ff;
+      --text-soft: #c5cae6;
+      --text-dim: #9ca3c7;
+      --taskbar-height: 52px;
+      --transition-fast: 140ms ease-out;
+      --transition-med: 220ms ease-out;
+      --font-ui: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; color: var(--text);
-      font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      background: radial-gradient(1400px 760px at 10% 15%, rgba(79,140,255,.08), transparent 65%),
-                  radial-gradient(1200px 680px at 90% 85%, rgba(143,103,255,.08), transparent 65%),
-                  linear-gradient(180deg, var(--bg), var(--bg-2) 60%, var(--bg));
-      height: 100vh; overflow: hidden;
+    * { box-sizing: border-box; user-select: none; }
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      overflow: hidden;
+      background: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+    }
+    #theme-style {}
+
+    .button-small{
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.24);
+      background:rgba(6,10,24,0.98);
+      color:var(--text-main);
+      font-size:11px;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .button-small:hover{
+      background:rgba(30,40,76,0.98);
+      border-color:rgba(255,255,255,0.4);
     }
 
-    /* Desktop canvas */
-    #desktop {
-      position: absolute; inset: 0 0 46px 0;
+    /* login */
+    #login-overlay {
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(76, 141, 255, 0.4), transparent 60%),
+        radial-gradient(circle at 90% 100%, rgba(192, 96, 255, 0.35), transparent 60%),
+        #050813;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 2000;
+      transition: opacity var(--transition-med), transform var(--transition-med);
+    }
+    #login-overlay.hidden { opacity:0;pointer-events:none;transform:scale(1.02); }
+    .login-panel {
+      width:min(420px,92vw);border-radius:22px;
+      background:rgba(6,8,22,0.94);
+      border:1px solid rgba(255,255,255,0.18);
+      box-shadow:0 24px 60px rgba(0,0,0,0.9),0 0 0 1px rgba(76,141,255,0.4);
+      padding:16px 18px 14px;
+      backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px);
+    }
+    .login-title{text-align:center;margin-bottom:8px;}
+    .login-title h1{margin:0;font-size:20px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text-soft);}
+    .login-title h2{margin:2px 0 0;font-size:12px;color:var(--text-dim);letter-spacing:0.14em;text-transform:uppercase;}
+    #user-list{
+      margin-top:10px;border-radius:14px;
+      background:rgba(12,16,40,0.98);
+      border:1px solid rgba(255,255,255,0.12);
+      padding:6px 6px 4px;max-height:200px;overflow:auto;
+    }
+    .user-row{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:6px 8px;border-radius:10px;
+      cursor:pointer;margin-bottom:4px;
+      transition:background var(--transition-fast),transform var(--transition-fast),box-shadow var(--transition-fast);
+    }
+    .user-row:hover{
+      background:rgba(30,40,70,0.95);
+      box-shadow:0 10px 24px rgba(0,0,0,0.8);
+      transform:translateY(-1px);
+    }
+    .user-info{display:flex;align-items:center;gap:8px;}
+    .user-avatar{
+      width:30px;height:30px;border-radius:999px;
+      background:radial-gradient(circle at 30% 20%,#fff,var(--accent));
+      box-shadow:0 6px 14px rgba(0,0,0,0.8);position:relative;
+    }
+    .user-avatar::after{
+      content:"";position:absolute;inset:5px;border-radius:inherit;
+      border:1px solid rgba(148,103,255,0.7);box-shadow:0 0 12px rgba(148,103,255,0.9);
+    }
+    .user-name{font-size:13px;}
+    .user-meta{font-size:10px;color:var(--text-dim);}
+    .user-actions{display:flex;align-items:center;gap:6px;}
+    .pill-small{
+      padding:2px 6px;border-radius:999px;
+      border:1px solid rgba(255,255,255,0.18);
+      font-size:10px;color:var(--text-dim);
+      background:rgba(5,8,22,0.98);
+    }
+    .pill-small.danger{border-color:rgba(255,77,106,0.8);color:#ffb3c1;}
+    .login-form{margin-top:10px;display:flex;gap:6px;}
+    .login-input{
+      flex:1;padding:6px 8px;border-radius:999px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(5,8,22,0.98);
+      color:var(--text-main);font-size:12px;outline:none;
+    }
+    .login-button{
+      padding:6px 10px;border-radius:999px;
+      border:1px solid var(--accent-strong);
+      background:linear-gradient(to right,var(--accent),#9d72ff);
+      color:#fff;font-size:12px;cursor:pointer;
+      box-shadow:0 8px 20px rgba(0,0,0,0.9);
+      transition:transform var(--transition-fast),box-shadow var(--transition-fast);
+    }
+    .login-button:hover{
+      transform:translateY(-1px);
+      box-shadow:0 0 16px rgba(76,141,255,0.8),0 12px 30px rgba(0,0,0,0.95);
+    }
+    .login-footer{
+      margin-top:8px;font-size:10px;color:var(--text-dim);
+      display:flex;justify-content:space-between;align-items:center;
     }
 
-    /* Taskbar */
-    #taskbar {
-      position: fixed; left: 0; right: 0; bottom: 0; height: 46px;
-      background: rgba(24, 28, 36, .75); backdrop-filter: blur(8px);
-      border-top: 1px solid #253042; display: flex; align-items: center; gap: 8px; padding: 6px 10px;
-      z-index: 999;
+    /* desktop */
+    #desktop{position:absolute;inset:0;padding-bottom:var(--taskbar-height);overflow:hidden;}
+    .desktop-orbit{
+      position:absolute;top:14%;left:50%;transform:translateX(-50%);
+      width:380px;height:380px;border-radius:50%;
+      border:1px solid rgba(255,255,255,0.12);opacity:0.3;
+      box-shadow:0 0 30px rgba(76,141,255,0.6),0 0 80px rgba(106,63,181,0.7);
+      backdrop-filter:blur(36px);-webkit-backdrop-filter:blur(36px);
     }
-    .tb-btn {
-      background: var(--panel-2); border: 1px solid #2a3242; color: var(--text);
-      padding: 6px 12px; border-radius: 8px; cursor: pointer; transition: .15s;
+    .desktop-orbit::after{
+      content:"";position:absolute;inset:30%;border-radius:inherit;
+      border:1px dashed rgba(255,255,255,0.3);
+      animation:orbitSpin 40s linear infinite;
     }
-    .tb-btn:hover { border-color: var(--accent); filter: brightness(1.08); }
-    .tb-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+    @keyframes orbitSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+    .desktop-center{
+      position:absolute;top:19%;left:50%;transform:translateX(-50%);
+      text-align:center;text-shadow:0 12px 30px rgba(0,0,0,0.8);
+    }
+    .desktop-title{font-size:34px;font-weight:650;letter-spacing:0.12em;text-transform:uppercase;}
+    .desktop-title span{color:var(--accent);}
+    .desktop-sub{font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-soft);margin-top:4px;}
+    .desktop-desc{margin-top:10px;font-size:13px;color:var(--text-soft);}
+    .desktop-aim-chip{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:4px 10px;margin-top:10px;border-radius:999px;
+      background:radial-gradient(circle at 0 0,rgba(255,255,255,0.24),transparent 55%),rgba(7,10,30,0.95);
+      border:1px solid rgba(255,255,255,0.2);
+      font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(220,223,255,0.96);
+    }
+    .aim-dot{width:8px;height:8px;border-radius:999px;background:#61ffb4;box-shadow:0 0 12px #61ffb4;}
+    #desktop-icons{position:absolute;top:18px;left:20px;display:flex;flex-direction:column;gap:4px;z-index:2;}
+    .desktop-icon{
+      width:180px;padding:4px 6px;border-radius:10px;
+      display:flex;align-items:center;gap:8px;cursor:default;
+      transition:background var(--transition-fast),transform var(--transition-fast),box-shadow var(--transition-fast);
+    }
+    .desktop-icon:hover{
+      background:rgba(22,30,70,0.9);box-shadow:0 10px 24px rgba(0,0,0,0.7);transform:translateY(-1px);
+    }
+    .desktop-icon-thumb{
+      width:30px;height:30px;border-radius:8px;
+      background:radial-gradient(circle at 25% 20%,#fff,#4c8dff);
+      box-shadow:0 8px 16px rgba(0,0,0,0.7);
+    }
+    .desktop-icon-label{font-size:11px;color:var(--text-main);text-shadow:0 1px 4px rgba(0,0,0,0.9);}
+    .desktop-bottom-left{
+      position:absolute;left:24px;bottom:calc(var(--taskbar-height)+16px);
+      font-size:12px;color:var(--text-soft);
+    }
+    .desktop-bottom-left strong{color:var(--text-main);font-weight:600;}
 
-    /* Start menu */
-    #startMenu {
-      position: absolute; left: 12px; bottom: 56px; width: 360px; max-height: 70vh; overflow: auto;
-      background: rgba(26,31,38,.97); border: 1px solid #2a3242; border-radius: 12px;
-      box-shadow: 0 20px 50px var(--shadow); padding: 12px; display: none; z-index: 998;
+    /* taskbar */
+    #taskbar{
+      position:absolute;left:0;right:0;bottom:0;height:var(--taskbar-height);
+      background:linear-gradient(to top,rgba(4,6,18,0.98),rgba(4,6,18,0.9));
+      border-top:1px solid rgba(255,255,255,0.08);
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 12px;box-shadow:0 -2px 10px rgba(0,0,0,0.8);
+      backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+      z-index:1000;
     }
-    #startMenu h3 { margin: 6px 4px 10px; color: var(--muted); font-weight: 600; }
-    .widgets { display: grid; grid-template-columns: 1fr; gap: 10px; }
-    .widget {
-      background: var(--panel-2); border: 1px solid #2a3242; border-radius: 12px; padding: 12px;
+    .taskbar-left,.taskbar-center,.taskbar-right{display:flex;align-items:center;gap:8px;}
+    .taskbar-center{position:absolute;left:50%;transform:translateX(-50%);}
+    .taskbar-button{
+      width:36px;height:36px;border-radius:999px;
+      border:1px solid transparent;background:transparent;
+      display:flex;align-items:center;justify-content:center;
+      color:var(--text-main);cursor:pointer;
+      transition:background var(--transition-fast),border-color var(--transition-fast),transform var(--transition-fast),box-shadow var(--transition-fast);
     }
-    .widget .chip { display:inline-block; padding:4px 8px; border-radius:8px; font-size:12px; border:1px solid #2a3242; background: var(--panel-3); color: var(--muted); }
-    .widget h2 { margin: 10px 0 4px; }
-    .widget .muted { color: var(--muted); }
+    .taskbar-button svg{width:18px;height:18px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));}
+    .taskbar-button:hover{
+      background:rgba(30,38,76,0.98);
+      border-color:rgba(255,255,255,0.2);
+      box-shadow:0 0 12px rgba(76,141,255,0.9);
+      transform:translateY(-1px);
+    }
+    .taskbar-start-label{font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-soft);margin-left:4px;}
+    .taskbar-app-strip{
+      display:inline-flex;align-items:center;gap:5px;
+      background:rgba(10,12,32,0.98);
+      border-radius:999px;padding:4px 10px;
+      border:1px solid rgba(255,255,255,0.06);
+      box-shadow:0 10px 26px rgba(0,0,0,0.9);
+    }
+    .taskbar-app{
+      width:28px;height:28px;border-radius:10px;
+      background:radial-gradient(circle at 25% 20%,#fff,#4c8dff);
+      box-shadow:0 8px 18px rgba(0,0,0,0.9);
+      border:1px solid rgba(255,255,255,0.4);
+      cursor:pointer;
+      transition:transform var(--transition-fast),box-shadow var(--transition-fast),border-color var(--transition-fast),opacity var(--transition-fast);
+      opacity:0.9;
+    }
+    .taskbar-app:hover{transform:translateY(-1px) scale(1.03);box-shadow:0 10px 26px rgba(0,0,0,1);opacity:1;}
+    .taskbar-right{display:flex;align-items:center;gap:8px;}
+    .taskbar-import{
+      padding:4px 8px;border-radius:999px;
+      border:1px solid rgba(255,255,255,0.24);
+      background:rgba(10,12,32,0.96);
+      font-size:10px;color:var(--text-soft);
+      cursor:pointer;display:flex;align-items:center;gap:4px;
+    }
+    .taskbar-user-pill{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:4px 8px;border-radius:999px;
+      background:rgba(10,12,32,0.95);
+      border:1px solid rgba(255,255,255,0.12);
+      cursor:pointer;font-size:11px;color:var(--text-soft);
+    }
+    .user-avatar-small{
+      width:18px;height:18px;border-radius:999px;
+      background:radial-gradient(circle at 30% 20%,#fff,#4c8dff);
+      box-shadow:0 2px 6px rgba(0,0,0,0.9);
+    }
+    .taskbar-clock{
+      position:relative;
+      display:flex;flex-direction:column;align-items:flex-end;font-size:11px;color:var(--text-soft);min-width:76px;
+      cursor:pointer;
+    }
+    .taskbar-clock-time{font-size:13px;color:var(--text-main);}
+    .taskbar-notify{
+      width:24px;height:24px;border-radius:999px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(4,6,18,0.96);
+      box-shadow:0 4px 12px rgba(0,0,0,0.9);
+      position:relative;
+    }
+    .taskbar-notify::after{
+      content:"";position:absolute;top:4px;right:4px;
+      width:6px;height:6px;border-radius:999px;
+      background:var(--accent);box-shadow:0 0 12px var(--accent);
+    }
 
-    /* Windows */
-    .window {
-      position: absolute; min-width: 360px; min-height: 240px;
-      background: linear-gradient(180deg, #1a202b, #181d24);
-      border: 1px solid #2a3242; border-radius: 12px;
-      box-shadow: 0 24px 64px var(--shadow);
+    /* time flyout */
+    #time-flyout {
+      position:absolute;
+      right:0;
+      bottom:var(--taskbar-height);
+      margin-right:8px;
+      margin-bottom:8px;
+      width:220px;
+      background:rgba(8,10,26,0.98);
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.18);
+      box-shadow:0 16px 40px rgba(0,0,0,0.9);
+      padding:8px 10px;
+      font-size:12px;
+      display:none;
+      z-index:1200;
+      backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
     }
-    .titlebar {
-      height: 40px; display: flex; align-items: center; justify-content: space-between;
-      padding: 0 10px; background: linear-gradient(180deg, #202635, #1c2230);
-      border-bottom: 1px solid #2a3242; border-radius: 12px 12px 0 0; cursor: move;
+    #time-flyout-time {
+      font-size:20px;
+      margin-bottom:4px;
     }
-    .titlebar .title { font-weight: 600; color: var(--muted); display: flex; gap: 8px; align-items: center; }
-    .titlebar .title .icon { width: 16px; height: 16px; border-radius: 4px; background: var(--accent); opacity: .75; }
-    .titlebar .actions { display: flex; gap: 6px; }
-    .titlebar .actions button {
-      width: 28px; height: 24px; border-radius: 6px; border: 1px solid #2a3242;
-      background: var(--panel); color: var(--text); cursor: pointer;
+    #time-flyout-date {
+      font-size:11px;
+      color:var(--text-soft);
+      margin-bottom:4px;
     }
-    .win-body { padding: 12px; height: calc(100% - 40px); overflow: auto; }
-    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-    .toolbar button, .toolbar select, .toolbar input[type=color], .toolbar input[type=file] {
-      background: var(--panel-2); color: var(--text); border: 1px solid #2a3242; border-radius: 8px; padding: 6px 10px; cursor: pointer;
-    }
-    .toolbar input[type=text] {
-      background: #151922; color: var(--text); border: 1px solid #2a3242; border-radius: 8px; padding: 6px 10px;
-    }
-
-    /* Explorer */
-    .file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-    .file-tile { background: var(--panel); border: 1px solid #2a3242; border-radius: 10px; padding: 10px; cursor: pointer; }
-    .file-tile .name { font-weight: 600; }
-    .file-tile .meta { font-size: 12px; color: var(--muted); }
-
-    /* Context menu */
-    #ctxMenu {
-      position: absolute; background: var(--panel); border: 1px solid #2a3242; border-radius: 10px; min-width: 200px; display: none; z-index: 9999;
-      box-shadow: 0 16px 40px var(--shadow);
-    }
-    #ctxMenu button { width: 100%; text-align: left; padding: 10px 12px; border: none; background: transparent; color: var(--text); cursor: pointer; }
-    #ctxMenu button:hover { background: var(--panel-3); }
-
-    /* Inputs */
-    input, textarea { background: #151922; border: 1px solid #2a3242; color: var(--text); border-radius: 8px; padding: 8px; width: 100%; }
-    textarea { min-height: 160px; }
-    label { color: var(--muted); font-size: 13px; }
-
-    /* Markdown */
-    .md { line-height: 1.6; }
-    .md h1, .md h2, .md h3 { color: var(--text); margin: 18px 0 10px; }
-    .md h1 { font-size: 28px; } .md h2 { font-size: 22px; } .md h3 { font-size: 18px; }
-    .md p { margin: 10px 0; color: var(--text); }
-    .md a { color: var(--accent); text-decoration: none; } .md a:hover { text-decoration: underline; }
-    .md code { background: #0d1117; border: 1px solid #2a3242; border-radius: 6px; padding: 2px 6px; }
-    pre code { display:block; background:#0d1117; color:#c9d1d9; border:1px solid #2a3242; border-radius: 8px; padding: 12px; overflow:auto; }
-    .md ul, .md ol { margin: 10px 0 10px 20px; }
-
-    /* Sleep overlay */
-    #sleepOverlay {
-      position: absolute; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(2px); display: none; z-index: 9998;
-      align-items: center; justify-content: center; color: var(--muted); font-size: 22px;
+    #time-flyout-greeting {
+      font-size:11px;
+      color:var(--text-dim);
     }
 
-    /* Chips */
-    .chip { display:inline-block; padding:4px 8px; border-radius:8px; font-size:12px; border:1px solid #2a3242; background: var(--panel-3); color: var(--muted); }
+    /* start menu */
+    #start-backdrop{
+      position:absolute;inset:0;background:transparent;opacity:0;pointer-events:none;
+      transition:opacity var(--transition-med);z-index:900;
+    }
+    #start-backdrop.visible{opacity:1;pointer-events:auto;}
+    #start-menu{
+      position:absolute;left:50%;bottom:var(--taskbar-height);
+      transform:translateX(-50%) translateY(12px);
+      width:min(780px,96vw);
+      background:radial-gradient(circle at 0 0,rgba(255,255,255,0.16),transparent 55%),rgba(9,12,30,0.98);
+      border-radius:22px;
+      border:1px solid rgba(255,255,255,0.12);
+      box-shadow:0 24px 60px rgba(0,0,0,0.95),0 0 0 1px rgba(255,255,255,0.16);
+      padding:12px 16px 10px;
+      opacity:0;pointer-events:none;
+      display:flex;flex-direction:column;gap:8px;
+      backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
+      z-index:950;
+      transition:opacity var(--transition-med),transform var(--transition-med);
+    }
+    #start-menu.visible{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(-6px);}
+    .start-header{display:flex;align-items:center;justify-content:space-between;}
+    .start-header-left{display:flex;align-items:center;gap:10px;}
+    .start-avatar{
+      width:24px;height:24px;border-radius:999px;
+      background:radial-gradient(circle at 30% 20%,#fff,#4c8dff);
+      box-shadow:0 4px 8px rgba(0,0,0,0.8);position:relative;
+    }
+    .start-avatar::after{
+      content:"";position:absolute;inset:4px;border-radius:inherit;
+      border:1px solid rgba(148,103,255,0.7);box-shadow:0 0 10px rgba(148,103,255,0.8);
+    }
+    .start-title-main{font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text-soft);}
+    .start-title-sub{font-size:12px;color:var(--text-main);}
+    .start-header-right{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--text-soft);}
+    .start-user-name{font-size:11px;color:var(--text-main);}
+    .start-search{position:relative;margin-top:6px;}
+    .start-search input{
+      width:100%;padding:7px 9px 7px 30px;
+      border-radius:999px;border:1px solid rgba(255,255,255,0.16);
+      background:rgba(4,6,18,0.98);
+      color:var(--text-main);font-size:12px;outline:none;
+      box-shadow:0 8px 20px rgba(0,0,0,0.9);
+    }
+    .start-search-icon{
+      position:absolute;left:10px;top:50%;transform:translateY(-50%);
+      font-size:12px;color:var(--text-soft);
+    }
+    .start-main-grid{display:grid;grid-template-columns:1.4fr 1.1fr;gap:12px;margin-top:8px;}
+    .start-section-title{font-size:11px;text-transform:uppercase;letter-spacing:0.16em;color:var(--text-soft);margin-bottom:5px;}
+    .start-pinned-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;}
+    .start-app{
+      padding:6px 6px 5px;border-radius:12px;
+      background:rgba(11,14,32,0.96);
+      border:1px solid rgba(255,255,255,0.06);
+      box-shadow:0 8px 20px rgba(0,0,0,0.8);
+      display:flex;flex-direction:column;align-items:center;gap:4px;
+      cursor:pointer;font-size:11px;
+      transition:transform var(--transition-fast),box-shadow var(--transition-fast),border-color var(--transition-fast),background var(--transition-fast);
+    }
+    .start-app:hover{
+      background:radial-gradient(circle at 0 0,rgba(76,141,255,0.2),rgba(8,10,30,0.98));
+      border-color:rgba(76,141,255,0.9);
+      box-shadow:0 0 14px rgba(76,141,255,1),0 14px 30px rgba(0,0,0,1);
+      transform:translateY(-2px);
+    }
+    .start-app-icon{
+      width:26px;height:26px;border-radius:10px;
+      background:radial-gradient(circle at 30% 20%,#fff,#4c8dff);
+      box-shadow:0 6px 14px rgba(0,0,0,0.8);
+    }
+    .start-app-sub{font-size:9px;color:var(--text-soft);text-align:center;}
+    .start-right-panel{
+      border-radius:16px;background:rgba(8,10,30,0.98);
+      border:1px solid rgba(255,255,255,0.08);
+      box-shadow:0 10px 26px rgba(0,0,0,0.95);
+      padding:8px 8px;display:flex;flex-direction:column;gap:6px;font-size:11px;
+    }
+    #rec-section{position:relative;}
+    #rec-dropdown-toggle{
+      padding:3px 6px;border-radius:999px;
+      border:1px solid rgba(255,255,255,0.2);
+      background:rgba(6,10,24,0.96);
+      font-size:10px;color:var(--text-soft);
+      cursor:pointer;display:inline-flex;align-items:center;gap:4px;
+      margin-bottom:4px;
+    }
+    #rec-dropdown-menu{
+      position:absolute;right:8px;top:24px;
+      background:rgba(8,10,26,0.98);
+      border-radius:8px;border:1px solid rgba(255,255,255,0.2);
+      box-shadow:0 12px 26px rgba(0,0,0,0.95);
+      padding:4px 0;display:none;z-index:960;
+    }
+    .rec-dropdown-item{padding:4px 8px;font-size:11px;cursor:pointer;color:var(--text-soft);}
+    .rec-dropdown-item:hover{background:rgba(30,34,70,0.98);}
+    .start-footer{
+      margin-top:6px;padding-top:6px;
+      border-top:1px solid rgba(255,255,255,0.08);
+      display:flex;align-items:center;justify-content:space-between;
+      font-size:10px;color:var(--text-soft);
+    }
+    .start-footer-aim{text-transform:uppercase;letter-spacing:0.18em;color:rgba(225,228,255,0.92);}
 
-    /* Status bar clock */
-    #systemClock { color: var(--muted); font-weight: 600; }
+    /* window shell */
+    .window{
+      position:absolute;min-width:360px;max-width:900px;
+      min-height:220px;max-height:540px;
+      background:var(--glass-dark);
+      border-radius:16px;border:1px solid var(--border-glass);
+      box-shadow:0 22px 60px rgba(0,0,0,0.75);
+      backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px);
+      display:flex;flex-direction:column;overflow:hidden;
+      z-index:1100;opacity:0;transform:translateY(20px) scale(0.96);pointer-events:none;
+      transition:opacity var(--transition-med),transform var(--transition-med);
+    }
+    .window.visible{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}
+    .window.fullscreen{
+      left:0 !important;
+      top:0 !important;
+      width:100% !important;
+      height:calc(100% - var(--taskbar-height)) !important;
+      border-radius:0 !important;
+    }
+
+    .window-header{
+      height:34px;display:flex;align-items:center;justify-content:space-between;
+      padding:0 10px;
+      background:linear-gradient(to right,rgba(6,9,26,0.98),rgba(10,12,30,0.98));
+      border-bottom:1px solid rgba(255,255,255,0.08);
+      cursor:move;position:relative;
+    }
+    .window-title{display:flex;align-items:center;gap:7px;font-size:12px;}
+    .window-title-icon{
+      width:16px;height:16px;border-radius:999px;
+      background:radial-gradient(circle at 30% 20%,#fff,#4c8dff);
+      box-shadow:0 3px 8px rgba(0,0,0,0.9);
+    }
+    .window-title-text{display:flex;flex-direction:column;gap:1px;}
+    .window-title-main{font-size:12px;}
+    .window-title-sub{font-size:10px;color:var(--text-soft);}
+    .window-fullscreen-toggle{
+      width:20px;height:16px;border-radius:4px;
+      border:1px solid rgba(255,255,255,0.4);
+      font-size:10px;
+      display:flex;align-items:center;justify-content:center;
+      margin-left:6px;
+      cursor:pointer;
+      color:var(--text-soft);
+      background:rgba(4,6,18,0.96);
+      transition:background var(--transition-fast),transform var(--transition-fast),box-shadow var(--transition-fast);
+    }
+    .window-fullscreen-toggle:hover{
+      background:rgba(76,141,255,0.4);
+      box-shadow:0 0 8px rgba(76,141,255,0.9);
+      transform:translateY(-1px);
+    }
+    .window-info-icon{
+      width:16px;height:16px;border-radius:999px;
+      border:1px solid rgba(255,255,255,0.4);
+      color:var(--text-soft);
+      display:flex;align-items:center;justify-content:center;
+      font-size:11px;cursor:pointer;margin-left:6px;
+    }
+    .window-info-tooltip{
+      position:absolute;left:10px;top:-6px;transform:translateY(-100%);
+      background:rgba(8,10,26,0.98);
+      border-radius:8px;border:1px solid rgba(255,255,255,0.18);
+      padding:6px 8px;font-size:11px;color:var(--text-soft);
+      box-shadow:0 10px 24px rgba(0,0,0,0.9);
+      display:none;max-width:280px;
+    }
+    .window-controls{display:flex;align-items:center;gap:4px;}
+    .window-btn{
+      width:20px;height:20px;border-radius:999px;
+      border:1px solid rgba(255,255,255,0.24);
+      background:rgba(4,6,18,0.96);
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;
+      transition:background var(--transition-fast),transform var(--transition-fast),box-shadow var(--transition-fast),border-color var(--transition-fast);
+    }
+    .window-btn:hover{transform:translateY(-1px);box-shadow:0 0 10px rgba(255,255,255,0.4);}
+    .window-btn.close:hover{border-color:#ff5573;background:rgba(80,16,30,0.96);box-shadow:0 0 12px rgba(255,85,115,1);}
+    .window-btn-icon{width:10px;height:10px;position:relative;}
+    .window-btn.minimize .window-btn-icon::before{
+      content:"";position:absolute;left:2px;right:2px;bottom:2px;height:2px;border-radius:2px;background:#f5f7ff;
+    }
+    .window-btn.close .window-btn-icon::before,
+    .window-btn.close .window-btn-icon::after{
+      content:"";position:absolute;left:2px;right:2px;top:50%;height:2px;border-radius:2px;background:#f5f7ff;transform-origin:center;
+    }
+    .window-btn.close .window-btn-icon::before{transform:translateY(-50%) rotate(45deg);}
+    .window-btn.close .window-btn-icon::after{transform:translateY(-50%) rotate(-45deg);}
+    .window-body{
+      flex:1;padding:10px 12px 10px;
+      background:
+        radial-gradient(circle at 0 0,rgba(255,255,255,0.08),transparent 60%),
+        radial-gradient(circle at 100% 100%,rgba(76,141,255,0.1),transparent 60%),
+        rgba(6,9,26,0.98);
+      overflow:auto;font-size:13px;color:var(--text-main);
+    }
+    .window-body::-webkit-scrollbar{width:7px;}
+    .window-body::-webkit-scrollbar-thumb{background:rgba(76,141,255,0.9);border-radius:999px;}
+
+    .notes-area{
+      width:100%;min-height:180px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(4,6,20,0.98);
+      color:var(--text-main);
+      font-family:var(--font-ui);
+      font-size:13px;padding:8px;resize:vertical;outline:none;
+    }
+    .notes-footer{margin-top:6px;font-size:11px;color:var(--text-dim);display:flex;justify-content:space-between;}
+
+    .fs-list{
+      margin-top:4px;border-radius:10px;
+      background:rgba(8,10,26,0.98);
+      border:1px solid rgba(255,255,255,0.12);
+      padding:6px;font-size:12px;
+    }
+    .fs-row{
+      display:flex;justify-content:space-between;
+      padding:4px 4px;border-radius:6px;color:var(--text-soft);
+    }
+    .fs-row:nth-child(odd){background:rgba(14,18,40,0.98);}
+    .fs-row-name{font-family:"Cascadia Code",monospace;font-size:11px;}
+    .fs-row-meta{font-size:10px;color:var(--text-dim);}
+
+    .ai-log{
+      border-radius:10px;background:rgba(4,6,20,0.98);
+      border:1px solid rgba(255,255,255,0.18);
+      padding:8px;max-height:220px;overflow:auto;font-size:12px;
+    }
+    .ai-message{margin-bottom:6px;}
+    .ai-message-role{font-size:10px;text-transform:uppercase;letter-spacing:0.16em;color:var(--text-dim);margin-bottom:2px;}
+    .ai-message-user{color:#ffd18a;}
+    .ai-message-aim{color:#c4f0ff;}
+    .ai-input-row{margin-top:6px;display:flex;gap:6px;}
+    .ai-input{
+      flex:1;padding:5px 8px;border-radius:999px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(2,4,14,0.98);
+      color:var(--text-main);font-size:12px;outline:none;
+    }
+
+    .ctx-menu{
+      position:fixed;min-width:210px;
+      background:rgba(8,10,26,0.98);
+      border-radius:10px;border:1px solid rgba(255,255,255,0.16);
+      box-shadow:0 14px 32px rgba(0,0,0,0.9);
+      padding:4px 0;font-size:12px;color:var(--text-main);
+      z-index:1600;display:none;
+    }
+    .ctx-item{
+      padding:5px 10px;display:flex;align-items:center;justify-content:space-between;
+      cursor:pointer;transition:background var(--transition-fast),color var(--transition-fast);
+    }
+    .ctx-item.disabled{opacity:0.4;pointer-events:none;}
+    .ctx-item:hover{background:rgba(30,36,70,0.98);}
+    .ctx-separator{border-top:1px solid rgba(255,255,255,0.12);margin:4px 0;}
+
+    #admin-popup-backdrop{
+      position:fixed;inset:0;background:rgba(0,0,0,0.65);
+      display:none;align-items:center;justify-content:center;
+      z-index:1700;
+      backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    }
+    #admin-popup{
+      width:min(320px,92vw);border-radius:16px;
+      background:rgba(8,10,26,0.98);
+      border:1px solid rgba(255,255,255,0.18);
+      box-shadow:0 20px 50px rgba(0,0,0,0.95);
+      padding:10px 12px;font-size:12px;
+    }
+    #admin-popup-title{font-size:13px;margin-bottom:4px;font-weight:600;}
+    #admin-popup-buttons{margin-top:8px;display:flex;justify-content:flex-end;gap:6px;}
+    .admin-btn{
+      padding:4px 8px;border-radius:999px;
+      border:1px solid rgba(255,255,255,0.24);
+      background:rgba(6,10,24,0.98);
+      color:var(--text-main);font-size:11px;cursor:pointer;
+    }
+    .admin-btn.primary{
+      border-color:var(--accent-strong);
+      background:linear-gradient(to right,var(--accent),#8f6bff);
+    }
+
+    .dev-banner{
+      position:fixed;top:8px;right:12px;
+      padding:4px 8px;background:rgba(0,0,0,0.82);
+      color:#55ffb4;font-family:"Cascadia Code",monospace;
+      font-size:11px;border-radius:999px;
+      border:1px solid rgba(85,255,180,0.6);
+      box-shadow:0 0 14px rgba(0,0,0,0.8);
+      opacity:0;transform:translateY(-10px);pointer-events:none;
+      transition:opacity 160ms ease-out,transform 160ms ease-out;
+      z-index:1500;
+    }
+    .dev-banner.visible{opacity:1;transform:translateY(0);pointer-events:auto;}
+
+    @media(max-width:800px){
+      .desktop-center,.desktop-orbit{display:none;}
+      .window{min-width:92vw;}
+      .start-main-grid{grid-template-columns:1fr;}
+    }
+    @media(max-width:540px){
+      #desktop-icons{transform:scale(0.9);transform-origin:top left;}
+    }
+
+    /* Paint canvas and toolbar */
+    .paint-toolbar{
+      display:flex;gap:6px;align-items:center;
+      margin-bottom:6px;font-size:11px;color:var(--text-soft);
+    }
+    .paint-toolbar input[type="color"]{
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(4,6,18,0.98);
+      width:32px;height:20px;padding:0;
+    }
+    .paint-canvas-wrap{
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(4,6,20,0.98);
+      overflow:hidden;
+    }
+    .paint-canvas-wrap canvas{
+      display:block;
+      background:#0b1020;
+      cursor:crosshair;
+    }
+
+    /* Media player */
+    .media-controls{
+      display:flex;gap:6px;align-items:center;
+      margin-bottom:6px;font-size:11px;color:var(--text-soft);
+    }
+    .media-surface{
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(4,6,20,0.98);
+      min-height:220px;
+      display:flex;align-items:center;justify-content:center;
+      overflow:hidden;
+    }
+    .media-surface video,
+    .media-surface audio,
+    .media-surface img{
+      max-width:100%;
+      max-height:100%;
+    }
   </style>
+  <style id="theme-style"></style>
 </head>
 <body>
-  <div id="desktop"></div>
-
-  <!-- Start menu (widgets) -->
-  <div id="startMenu">
-    <h3>Widgets</h3>
-    <div class="widgets">
-      <div class="widget">
-        <div class="chip">Clock</div>
-        <h2 id="clockText">--:--</h2>
-        <div id="dateText" class="muted">—</div>
+  <!-- login -->
+  <div id="login-overlay">
+    <div class="login-panel">
+      <div class="login-title">
+        <h1>Win12 Preview</h1>
+        <h2>Multi-user · AIM · Host.exe Ritual</h2>
       </div>
-      <div class="widget">
-        <div class="chip">Quick notes</div>
-        <textarea id="widgetNote" placeholder="Write a quick note..."></textarea>
-        <div style="margin-top:8px; display:flex; gap:8px;">
-          <button class="tb-btn" onclick="saveWidgetNote()">Save note</button>
-          <button class="tb-btn" onclick="openApp('notepad')">Open Notepad</button>
-        </div>
+      <div id="user-list"></div>
+      <div class="login-form">
+        <input id="new-user-name" class="login-input" placeholder="Create new user (name)" maxlength="24" />
+        <button class="login-button" id="create-user">Create</button>
       </div>
-      <div class="widget">
-        <div class="chip">Recommended features</div>
-        <div id="recommendedList" style="max-height:160px; overflow:auto; margin-top:6px;"></div>
-        <div style="margin-top:8px; display:flex; gap:8px;">
-          <button class="tb-btn" onclick="openApp('reader')">Open reader</button>
-          <button class="tb-btn" onclick="clearRecommended()">Clear</button>
-        </div>
-      </div>
-      <div class="widget">
-        <div class="chip">About (README.md)</div>
-        <p class="muted">Preview your repository README inside the desktop.</p>
-        <button class="tb-btn" onclick="openAboutReadme()">Open About</button>
+      <div class="login-footer">
+        <span>All user data is local to this browser.</span>
+        <span>Channel: 12.AIM.FS.EXE</span>
       </div>
     </div>
   </div>
 
-  <!-- Taskbar -->
+  <!-- desktop -->
+  <div id="desktop">
+    <div class="desktop-orbit"></div>
+    <div class="desktop-center">
+      <div class="desktop-title">Windows <span>12</span></div>
+      <div class="desktop-sub">Preview simulator · AIM · Multi-user</div>
+      <div class="desktop-desc">
+        Desktop icons = /desktop. Explorer, Notepad, Browser, Host.exe, Regedit, Settings, AIM OS, Paint, and Media Player all live in this HTML.<br/>
+        .exe files run as base64 HTML payloads inside the Windows Host Application.
+      </div>
+      <div class="desktop-aim-chip">
+        <div class="aim-dot"></div>
+        <span>AIM · Agency · Intent · Myth</span>
+      </div>
+    </div>
+    <div id="desktop-icons"></div>
+    <div class="desktop-bottom-left">
+      <div><strong>Win12 Preview Simulator AIM</strong></div>
+      <div>Nothing touches real files. All FS, content, exe payloads, and associations live in localStorage.</div>
+    </div>
+  </div>
+
+  <!-- taskbar -->
   <div id="taskbar">
-    <button class="tb-btn" onclick="toggleStart()">Start</button>
-    <button class="tb-btn" onclick="openExplorer()">My Files</button>
-    <button class="tb-btn" onclick="openApp('notepad')">Notepad</button>
-    <button class="tb-btn" onclick="openApp('paint')">Paint</button>
-    <button class="tb-btn" onclick="openApp('edge')">Edge</button>
-    <button class="tb-btn" onclick="openApp('feedback')">Feedback</button>
-    <button class="tb-btn" onclick="openApp('copilot')">Copilot</button>
-    <button class="tb-btn" onclick="power()">Power</button>
-    <div class="tb-right">
-      <span id="systemClock">--:--</span>
+    <div class="taskbar-left">
+      <button class="taskbar-button" id="start-button">
+        <svg viewBox="0 0 24 24">
+          <rect x="3" y="3" width="8" height="8" rx="2" fill="#4c8dff"></rect>
+          <rect x="13" y="3" width="8" height="8" rx="2" fill="#94a3ff"></rect>
+          <rect x="3" y="13" width="8" height="8" rx="2" fill="#4ce0b3"></rect>
+          <rect x="13" y="13" width="8" height="8" rx="2" fill="#4c8dff"></rect>
+        </svg>
+      </button>
+      <div class="taskbar-start-label">Start</div>
+    </div>
+    <div class="taskbar-center">
+      <div class="taskbar-app-strip">
+        <div class="taskbar-app" data-app="explorer" title="Explorer"></div>
+        <div class="taskbar-app" data-app="notepad" title="Notepad"></div>
+        <div class="taskbar-app" data-app="browser" title="Browser"></div>
+        <div class="taskbar-app" data-app="host" title="Windows Host Application"></div>
+        <div class="taskbar-app" data-app="assistant" title="AIM OS"></div>
+        <div class="taskbar-app" data-app="regedit" title="Regedit"></div>
+        <div class="taskbar-app" data-app="settings" title="Settings"></div>
+        <div class="taskbar-app" data-app="notes" title="Notes"></div>
+        <div class="taskbar-app" data-app="paint" title="Paint"></div>
+        <div class="taskbar-app" data-app="media" title="Media Player"></div>
+      </div>
+    </div>
+    <div class="taskbar-right">
+      <div class="taskbar-import" id="taskbar-import">
+        <span>⬆</span><span>Import files</span>
+      </div>
+      <input type="file" id="file-input" multiple style="display:none;" />
+      <div class="taskbar-user-pill" id="user-chip">
+        <div class="user-avatar-small"></div>
+        <span id="user-chip-name">User</span>
+      </div>
+      <div class="taskbar-clock" id="taskbar-clock">
+        <div class="taskbar-clock-time" id="clock-time">--:--</div>
+        <div id="clock-label">Win12 AIM</div>
+      </div>
+      <div class="taskbar-notify"></div>
+    </div>
+  </div>
+
+  <!-- time flyout -->
+  <div id="time-flyout">
+    <div id="time-flyout-time">--:--</div>
+    <div id="time-flyout-date">---</div>
+    <div id="time-flyout-greeting">Hello.</div>
+  </div>
+
+  <!-- start -->
+  <div id="start-backdrop"></div>
+  <div id="start-menu">
+    <div class="start-header">
+      <div class="start-header-left">
+        <div class="start-avatar"></div>
+        <div>
+          <div class="start-title-main">Win12 Preview</div>
+          <div class="start-title-sub">Simulator · AIM · Multi-user</div>
+        </div>
+      </div>
+      <div class="start-header-right">
+        <div class="start-user-name" id="start-user-name">User</div>
+        <div>Local only · Client-side</div>
+      </div>
+    </div>
+    <div class="start-search">
+      <span class="start-search-icon">🔍</span>
+      <input id="start-search-input" placeholder="Search apps and files (simulated)..." />
+    </div>
+    <div class="start-main-grid">
+      <div>
+        <div class="start-section-title">Pinned</div>
+        <div class="start-pinned-grid" id="start-pinned-grid">
+          <div class="start-app" data-app="explorer" data-app-name="explorer">
+            <div class="start-app-icon"></div>
+            <div>Explorer</div>
+            <div class="start-app-sub">FS + ctx menus</div>
+          </div>
+          <div class="start-app" data-app="notepad" data-app-name="notepad">
+            <div class="start-app-icon" style="background:linear-gradient(135deg,#ffcc66,#ff9966);"></div>
+            <div>Notepad</div>
+            <div class="start-app-sub">View + edit text</div>
+          </div>
+          <div class="start-app" data-app="browser" data-app-name="browser">
+            <div class="start-app-icon" style="background:linear-gradient(135deg,#4c8dff,#94a3ff);"></div>
+            <div>Browser</div>
+            <div class="start-app-sub">Tabs + file:/// view</div>
+          </div>
+          <div class="start-app" data-app="host" data-app-name="host">
+            <div class="start-app-icon" style="background:linear-gradient(135deg,#6ee7b7,#22c55e);"></div>
+            <div>Host.exe</div>
+            <div class="start-app-sub">Run .exe HTML payload</div>
+          </div>
+          <div class="start-app" data-app="assistant" data-app-name="assistant">
+            <div class="start-app-icon" style="background:conic-gradient(from 220deg,#4c8dff,#9467ff,#4ce0b3,#4c8dff);"></div>
+            <div>AIM OS</div>
+            <div class="start-app-sub">Local assistant</div>
+          </div>
+          <div class="start-app" data-app="regedit" data-app-name="regedit">
+            <div class="start-app-icon" style="background:linear-gradient(135deg,#4c8dff,#94a3ff);"></div>
+            <div>Regedit</div>
+            <div class="start-app-sub">Associations</div>
+          </div>
+          <div class="start-app" data-app="settings" data-app-name="settings">
+            <div class="start-app-icon" style="background:radial-gradient(circle at 30% 20%,#fff,#a0b4ff);"></div>
+            <div>Settings</div>
+            <div class="start-app-sub">Theme.css & more</div>
+          </div>
+          <div class="start-app" data-app="notes" data-app-name="notes">
+            <div class="start-app-icon" style="background:linear-gradient(135deg,#f97316,#facc15);"></div>
+            <div>Notes</div>
+            <div class="start-app-sub">Per-user shrine memo</div>
+          </div>
+          <div class="start-app" data-app="paint" data-app-name="paint">
+            <div class="start-app-icon" style="background:linear-gradient(135deg,#22c55e,#3b82f6);"></div>
+            <div>Paint</div>
+            <div class="start-app-sub">Win11-style canvas</div>
+          </div>
+          <div class="start-app" data-app="media" data-app-name="media">
+            <div class="start-app-icon" style="background:linear-gradient(135deg,#8b5cf6,#ec4899);"></div>
+            <div>Media Player</div>
+            <div class="start-app-sub">Open any media</div>
+          </div>
+        </div>
+      </div>
+      <div class="start-right-panel">
+        <div class="start-section-title">Recommended</div>
+        <div class="start-rec-item" id="rec-section">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div id="rec-title" style="font-size:11px;color:var(--text-main);">Recommended files</div>
+            <div id="rec-dropdown-toggle">
+              <span id="rec-mode-label">Recommended</span>
+              <span>▼</span>
+            </div>
+            <div id="rec-dropdown-menu">
+              <div class="rec-dropdown-item" data-mode="recommended">Recommended</div>
+              <div class="rec-dropdown-item" data-mode="imported">Imported</div>
+            </div>
+          </div>
+          <div id="rec-sub" style="font-size:10px;color:var(--text-soft);">From /recommended-files in your FS.</div>
+          <div id="rec-files" style="margin-top:4px;font-size:11px;color:var(--text-soft);"></div>
+        </div>
+        <div class="start-rec-item" data-app="assistant">
+          <div style="font-size:11px;color:var(--text-main);">Ask AIM about your FS</div>
+          <div style="font-size:10px;color:var(--text-soft);">“Where is my data?” · “What is AIM?”</div>
+        </div>
+      </div>
+    </div>
+    <div class="start-footer">
+      <span>Static HTML · CSS · JS · localStorage. No backend.</span>
+      <span class="start-footer-aim">AIM · Agency · Intent · Myth</span>
+    </div>
+  </div>
+
+  <!-- Explorer -->
+  <div class="window" id="window-explorer" data-app="explorer" data-app-desc="[Explorer] Browse per-user FS, right-click files/folders/background to open, duplicate, copy, paste, rename, or view properties.">
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-icon"></div>
+        <div class="window-title-text">
+          <div class="window-title-main">[Explorer]</div>
+          <div class="window-title-sub">Tabbed sidebar · context menus · handlers</div>
+        </div>
+        <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+        <div class="window-info-icon">(i)</div>
+        <div class="window-info-tooltip"></div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+    <div class="window-body">
+      <div style="display:grid;grid-template-columns:1.1fr 2.1fr;gap:8px;font-size:12px;height:100%;">
+        <div style="border-radius:10px;background:rgba(8,11,30,0.98);border:1px solid rgba(255,255,255,0.1);padding:6px;" id="explorer-sidebar">
+          <div class="explorer-tab" data-path="/" style="padding:6px 7px;border-radius:8px;margin-bottom:4px;cursor:pointer;">This Win12</div>
+          <div class="explorer-tab" data-path="/desktop" style="padding:6px 7px;border-radius:8px;background:rgba(26,32,70,0.98);margin-bottom:4px;cursor:pointer;">Desktop</div>
+          <div class="explorer-tab" data-path="/documents" style="padding:6px 7px;border-radius:8px;margin-bottom:4px;cursor:pointer;">Documents</div>
+          <div class="explorer-tab" data-path="/recommended-files" style="padding:6px 7px;border-radius:8px;margin-bottom:4px;cursor:pointer;">Recommended</div>
+          <div class="explorer-tab" data-path="/imported" style="padding:6px 7px;border-radius:8px;margin-bottom:4px;cursor:pointer;">Imported</div>
+        </div>
+        <div id="explorer-main" style="border-radius:10px;background:rgba(8,11,30,0.98);border:1px solid rgba(255,255,255,0.1);padding:6px;position:relative;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div id="explorer-path" style="font-size:11px;color:var(--text-soft);">/desktop</div>
+            <div style="display:flex;gap:4px;">
+              <div class="button-small" id="explorer-new-file">New file</div>
+              <div class="button-small" id="explorer-up">Up</div>
+              <div class="button-small" id="explorer-refresh">Refresh</div>
+            </div>
+          </div>
+          <div id="explorer-items" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;font-size:11px;height:calc(100% - 24px);overflow:auto;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notepad -->
+  <div class="window" id="window-notepad" data-app="notepad" data-app-desc="[Notepad] Simple text editor for viewing and editing file content. Right-click a file and choose 'Open in Notepad' to edit its text.">
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-icon" style="background:linear-gradient(135deg,#ffcc66,#ff9966);"></div>
+        <div class="window-title-text">
+          <div class="window-title-main">[Notepad]</div>
+          <div class="window-title-sub" id="notepad-title-sub">No file open</div>
+        </div>
+        <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+        <div class="window-info-icon">(i)</div>
+        <div class="window-info-tooltip"></div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+    <div class="window-body">
+      <textarea id="notepad-area" class="notes-area" spellcheck="false" placeholder="File content will appear here..."></textarea>
+      <div class="notes-footer">
+        <span id="notepad-status">No file selected.</span>
+        <button class="button-small" id="notepad-save">Save to FS</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Browser -->
+  <div class="window" id="window-browser" data-app="browser" data-app-desc="[Browser] Multi-tab browser. For http/https it uses an iframe. For file:/// it shows FS content: lists folders or displays file content inline.">
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-icon" style="background:linear-gradient(135deg,#4c8dff,#94a3ff);"></div>
+        <div class="window-title-text">
+          <div class="window-title-main">[Browser]</div>
+          <div class="window-title-sub">Tabs · http/https iframe · file:/// FS view</div>
+        </div>
+        <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+        <div class="window-info-icon">(i)</div>
+        <div class="window-info-tooltip"></div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+    <div class="window-body">
+      <div id="browser-tabs" style="display:flex;gap:4px;margin-bottom:6px;font-size:11px;"></div>
+      <div style="display:flex;gap:4px;margin-bottom:4px;font-size:11px;">
+        <input id="browser-address" style="flex:1;padding:4px 6px;border-radius:999px;border:1px solid rgba(255,255,255,0.24);background:rgba(4,6,18,0.98);color:var(--text-main);outline:none;font-size:11px;" placeholder="Enter URL (http/https) or file:///desktop / file:///desktop/Welcome.txt ..." />
+        <button class="button-small" id="browser-go">Go</button>
+      </div>
+      <div id="browser-view" style="border-radius:10px;border:1px solid rgba(255,255,255,0.18);background:rgba(4,6,20,0.98);height:280px;overflow:auto;"></div>
+      <div style="margin-top:4px;font-size:10px;color:var(--text-dim);">
+        Examples: <code>https://example.com</code>, <code>file:///desktop</code>, <code>file:///desktop/Welcome.txt</code>.
+      </div>
+    </div>
+  </div>
+
+  <!-- Host.exe -->
+  <div class="window" id="window-host" data-app="host" data-app-desc="[Windows Host Application] Runs .exe files from this relic. Each .exe carries base64 HTML payload that is decoded and rendered here.">
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-icon" style="background:linear-gradient(135deg,#6ee7b7,#22c55e);"></div>
+        <div class="window-title-text">
+          <div class="window-title-main">[Windows Host Application]</div>
+          <div class="window-title-sub" id="host-title-sub">Idle · No .exe running</div>
+        </div>
+        <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+        <div class="window-info-icon">(i)</div>
+        <div class="window-info-tooltip"></div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+    <div class="window-body">
+      <div id="host-output" style="border-radius:10px;border:1px solid rgba(255,255,255,0.18);background:rgba(4,6,20,0.98);min-height:220px;overflow:auto;padding:6px;font-size:12px;">
+        Use SampleApp.exe on the desktop or any other .exe in FS. Host decodes base64 HTML payloads (exePayloadBase64) and renders them here via iframe srcdoc.
+      </div>
+    </div>
+  </div>
+
+  <!-- AIM OS -->
+  <div class="window" id="window-assistant" data-app="assistant" data-app-desc="[AIM OS] Local assistant that knows about this relic: FS, users, .exe payloads, and how everything works.">
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-icon" style="background:conic-gradient(from 220deg,#4c8dff,#9467ff,#4ce0b3,#4c8dff);"></div>
+        <div class="window-title-text">
+          <div class="window-title-main">[AIM OS]</div>
+          <div class="window-title-sub">Local, rule-based, OS-aware</div>
+        </div>
+        <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+        <div class="window-info-icon">(i)</div>
+        <div class="window-info-tooltip"></div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+    <div class="window-body">
+      <div class="ai-log" id="ai-log"></div>
+      <div class="ai-input-row">
+        <input id="ai-input" class="ai-input" placeholder="Ask about files, users, .exe, Host, AIM, Paint, or Media Player..." />
+        <button class="button-small" id="ai-send">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Regedit -->
+  <div class="window" id="window-regedit" data-app="regedit" data-app-desc="[Regedit] Simulated HKCU\\Software\\Win12\\Associations for mapping extensions to apps.">
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-icon" style="background:linear-gradient(135deg,#4c8dff,#94a3ff);"></div>
+        <div class="window-title-text">
+          <div class="window-title-main">[Regedit]</div>
+          <div class="window-title-sub">HKCU\\Software\\Win12\\Associations (simulated)</div>
+        </div>
+        <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+        <div class="window-info-icon">(i)</div>
+        <div class="window-info-tooltip"></div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+    <div class="window-body">
+      <div style="display:grid;grid-template-columns:1.1fr 1.9fr;gap:8px;font-size:12px;">
+        <div style="border-radius:10px;background:rgba(8,11,30,0.98);border:1px solid rgba(255,255,255,0.1);padding:6px;">
+          <div style="font-size:11px;color:var(--text-soft);margin-bottom:4px;">Tree</div>
+          <div style="font-family:'Cascadia Code',monospace;font-size:11px;color:var(--text-main);">
+            HKEY_CURRENT_USER<br/>
+            &nbsp;&nbsp;Software<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;Win12<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--accent);">Associations</span>
+          </div>
+        </div>
+        <div style="border-radius:10px;background:rgba(8,11,30,0.98);border:1px solid rgba(255,255,255,0.1);padding:6px;" id="regedit-values">
+          <div style="font-size:11px;color:var(--text-soft);margin-bottom:4px;">Values</div>
+          <div id="regedit-list"></div>
+          <div style="margin-top:6px;">
+            <div class="button-small" id="regedit-add">Add association</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div class="window" id="window-settings" data-app="settings" data-app-desc="[Settings] Per-user theme.css injector and room for more knobs in future builds.">
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-icon" style="background:radial-gradient(circle at 30% 20%,#fff,#a0b4ff);"></div>
+        <div class="window-title-text">
+          <div class="window-title-main">[Settings]</div>
+          <div class="window-title-sub">Per-user theme.css & FS ritual</div>
+        </div>
+        <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+        <div class="window-info-icon">(i)</div>
+        <div class="window-info-tooltip"></div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+    <div class="window-body">
+      <div style="font-size:11px;color:var(--text-soft);margin-bottom:4px;">theme.css (per user)</div>
+      <textarea id="theme-css-input" class="notes-area" style="min-height:140px;" placeholder="Write CSS here, e.g. .window { border-radius: 4px; }"></textarea>
+      <div class="notes-footer">
+        <span id="theme-status">Not saved</span>
+        <button class="button-small" id="theme-save">Save & apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="window" id="window-notes" data-app="notes" data-app-desc="[Notes] Per-user shrine notes. This is not tied to a file, it is your OS-level memory.">
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-icon" style="background:linear-gradient(135deg,#f97316,#facc15);"></div>
+        <div class="window-title-text">
+          <div class="window-title-main">[Notes]</div>
+          <div class="window-title-sub">Per-user AIM shrine log</div>
+        </div>
+        <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+        <div class="window-info-icon">(i)</div>
+        <div class="window-info-tooltip"></div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+    <div class="window-body">
+      <textarea id="notes-area" class="notes-area" spellcheck="false" placeholder="This is not tied to a file. These are your Win12 AIM personal notes, saved per user."></textarea>
+      <div class="notes-footer">
+        <span id="notes-status">Loaded.</span>
+        <button class="button-small" id="notes-save">Save notes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Files summary -->
+  <div class="window" id="window-files" data-app="files" data-app-desc="[Files] Debug view of the raw FS entries for this user.">
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-icon"></div>
+        <div class="window-title-text">
+          <div class="window-title-main">[Files]</div>
+          <div class="window-title-sub">Raw FS dump per user</div>
+        </div>
+        <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+        <div class="window-info-icon">(i)</div>
+        <div class="window-info-tooltip"></div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+    <div class="window-body">
+      <div class="fs-list" id="fs-list"></div>
+    </div>
+  </div>
+
+  <!-- Paint -->
+  <div class="window" id="window-paint" data-app="paint" data-app-desc="[Paint] Win11-style Paint. Draw on a canvas, change color and brush size, and open local images into the canvas.">
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-icon" style="background:linear-gradient(135deg,#22c55e,#3b82f6);"></div>
+        <div class="window-title-text">
+          <div class="window-title-main">[Paint]</div>
+          <div class="window-title-sub">Canvas · brush · open image</div>
+        </div>
+        <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+        <div class="window-info-icon">(i)</div>
+        <div class="window-info-tooltip"></div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+    <div class="window-body">
+      <div class="paint-toolbar">
+        <span>Brush color:</span>
+        <input type="color" id="paint-color" value="#ffffff" />
+        <span>Size:</span>
+        <input type="range" id="paint-size" min="1" max="40" value="5" />
+        <button class="button-small" id="paint-clear">Clear</button>
+        <button class="button-small" id="paint-open-image">Open image…</button>
+        <input type="file" id="paint-file-input" accept="image/*" style="display:none;" />
+      </div>
+      <div class="paint-canvas-wrap">
+        <canvas id="paint-canvas" width="640" height="360"></canvas>
+      </div>
+      <div style="margin-top:4px;font-size:10px;color:var(--text-dim);">
+        Draw directly on the canvas. Opening an image will draw it into the canvas like Win11 Paint.
+      </div>
+    </div>
+  </div>
+
+  <!-- Media Player -->
+  <div class="window" id="window-media" data-app="media" data-app-desc="[Media Player] Win11-style media player. Opens any local video, audio, or image file via the host browser.">
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-icon" style="background:linear-gradient(135deg,#8b5cf6,#ec4899);"></div>
+        <div class="window-title-text">
+          <div class="window-title-main">[Media Player]</div>
+          <div class="window-title-sub">Video · audio · images</div>
+        </div>
+        <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+        <div class="window-info-icon">(i)</div>
+        <div class="window-info-tooltip"></div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+    <div class="window-body">
+      <div class="media-controls">
+        <button class="button-small" id="media-open">Open media…</button>
+        <input type="file" id="media-file-input" style="display:none;" accept="video/*,audio/*,image/*" />
+        <span id="media-filename" style="color:var(--text-soft);font-size:11px;">No file loaded.</span>
+      </div>
+      <div class="media-surface" id="media-surface">
+        <span style="font-size:11px;color:var(--text-soft);">Open any video, audio, or image file from your device. Playback is handled by the browser.</span>
+      </div>
+      <div style="margin-top:4px;font-size:10px;color:var(--text-dim);">
+        This player does not touch your filesystem; it only creates temporary object URLs in your browser.
+      </div>
     </div>
   </div>
 
   <!-- Context menu -->
-  <div id="ctxMenu"></div>
+  <div class="ctx-menu" id="ctx-menu">
+    <div class="ctx-item" data-action="open"><span>Open</span></div>
+    <div class="ctx-item" data-action="openWith"><span>Open with…</span></div>
+    <div class="ctx-item" data-action="openInNotepad"><span>Open in Notepad</span></div>
+    <div class="ctx-item" data-action="openInBrowser"><span>Open in Browser</span></div>
+    <div class="ctx-item" data-action="runExe"><span>Run (.exe in Host)</span></div>
+    <div class="ctx-item" data-action="openLocation"><span>Open file location</span></div>
+    <div class="ctx-separator"></div>
+    <div class="ctx-item" data-action="newFile"><span>New file</span></div>
+    <div class="ctx-item" data-action="newFolder"><span>New folder</span></div>
+    <div class="ctx-item" data-action="duplicate"><span>Duplicate</span></div>
+    <div class="ctx-item" data-action="copy"><span>Copy</span></div>
+    <div class="ctx-item" data-action="paste"><span>Paste</span></div>
+    <div class="ctx-item" data-action="rename"><span>Rename…</span></div>
+    <div class="ctx-item" data-action="delete"><span>Delete</span></div>
+    <div class="ctx-separator"></div>
+    <div class="ctx-item" data-action="props"><span>Properties</span></div>
+  </div>
 
-  <!-- Sleep overlay -->
-  <div id="sleepOverlay">Sleeping… Press Escape to wake.</div>
+  <!-- Admin popup -->
+  <div id="admin-popup-backdrop">
+    <div id="admin-popup">
+      <div id="admin-popup-title">Admin permissions required</div>
+      <div id="admin-popup-body" style="font-size:12px;color:var(--text-soft);">
+        Editing this registry key changes file associations inside this relic.
+      </div>
+      <div id="admin-popup-buttons">
+        <button class="admin-btn" id="admin-cancel">Cancel</button>
+        <button class="admin-btn primary" id="admin-allow">Allow</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dev banner -->
+  <div class="dev-banner" id="dev-banner">
+    dev: <span>Win12 AIM FS · full apps · full ctx menus · .exe base64 · clock flyout · fullscreen windows · Notes · Paint · Media Player</span>
+  </div>
 
   <script>
-    /* ====== Core state, helpers, filesystem ====== */
-    const FS_KEY = 'win12.fs';
-    const NOTE_KEY = 'win12.notes.widget';
-    const RECS_KEY = 'win12.recommended';
-    const FEED_KEY = 'win12.feedback';
-    const z = { top: 10 };
+    (function(){
+      const STORAGE_KEY = "win12_aim_fs_state_exe_ctx_full_v3";
 
-    const handlers = {
-      '.txt': 'notepad',
-      '.md':  'notepad',
-      '.png': 'paint',
-      '.jpg': 'paint',
-      '.jpeg':'paint',
-      '.html':'edge'
-    };
-
-    const fs = {
-      load() { return JSON.parse(localStorage.getItem(FS_KEY) || '[]'); },
-      save(all) { localStorage.setItem(FS_KEY, JSON.stringify(all)); },
-      list() { return this.load(); },
-      add(file) {
-        const files = this.load();
-        files.push({ id: crypto.randomUUID(), ...file, created: Date.now(), updated: Date.now() });
-        this.save(files);
-      },
-      update(id, changes) {
-        const files = this.load().map(f => f.id === id ? { ...f, ...changes, updated: Date.now() } : f);
-        this.save(files);
-      },
-      remove(id) {
-        const files = this.load().filter(f => f.id !== id);
-        this.save(files);
-      },
-      get(id) { return this.load().find(f => f.id === id); }
-    };
-
-    function ext(name) {
-      const i = name.lastIndexOf('.');
-      return i === -1 ? '' : name.slice(i).toLowerCase();
-    }
-    function bytesFromText(text) {
-      return new Blob([text || '']).size;
-    }
-    function bytesFromDataURL(dataURL) {
-      if (!dataURL) return 0;
-      try { return atob(dataURL.split(',')[1]).length; } catch { return 0; }
-    }
-    function sizeOfContent(content) {
-      if (typeof content === 'string') return bytesFromText(content);
-      if (content && content.type === 'dataURL') return bytesFromDataURL(content.data);
-      return 0;
-    }
-    function formatBytes(b) {
-      if (b < 1024) return `${b} B`;
-      if (b < 1024*1024) return `${(b/1024).toFixed(1)} KB`;
-      return `${(b/1024/1024).toFixed(2)} MB`;
-    }
-    function nowClock() {
-      const d = new Date(); const hh = String(d.getHours()).padStart(2, '0'); const mm = String(d.getMinutes()).padStart(2, '0');
-      const date = d.toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'});
-      return { time: `${hh}:${mm}`, date };
-    }
-
-    /* ====== Boot ====== */
-    window.addEventListener('load', () => {
-      bootReadme();
-      startClock();
-      renderRecommendedWidget();
-      const savedNote = localStorage.getItem(NOTE_KEY);
-      if (savedNote) document.getElementById('widgetNote').value = savedNote;
-      // Also set system clock in taskbar
-      const tickTB = () => document.getElementById('systemClock').textContent = nowClock().time;
-      tickTB(); setInterval(tickTB, 1000 * 30);
-    });
-
-    function bootReadme() {
-      const readmeContent = `# Win12 Preview Simulator AIM
-They said it was just a preview. We AIM higher.
-
-This shrine includes:
-- Win11-like windows, taskbar, context menus
-- File Explorer with persistence (LocalStorage)
-- Filetype handlers (.txt, .md, .png, .html)
-- Paint with real tools
-- Notepad, Edge viewer
-- Start widgets: clock, notes, recommendations
-- Feedback hub
-- Copilot (built-in)
-- Power: shutdown / restart / sleep
-
-This system is portable and all-in-one.`;
-      openWindow('Desktop README', 820, 500, (body) => {
-        body.innerHTML = `
-          <div class="chip">Declaration</div>
-          <pre style="white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas;">${readmeContent}</pre>
-          <div class="toolbar">
-            <button onclick="seedDemoFiles()">Seed demo files</button>
-            <button onclick="openExplorer()">Open My Files</button>
-            <button onclick="openAboutReadme()">Open README About</button>
-          </div>
-        `;
-      });
-    }
-
-    /* ====== Window system ====== */
-    function openWindow(title, w=640, h=420, renderBody) {
-      const win = document.createElement('div');
-      win.className = 'window';
-      win.style.width = w + 'px';
-      win.style.height = h + 'px';
-      win.style.left = Math.round(40 + Math.random()*60) + 'px';
-      win.style.top  = Math.round(40 + Math.random()*40) + 'px';
-      win.style.zIndex = ++z.top;
-
-      const tb = document.createElement('div');
-      tb.className = 'titlebar';
-      tb.innerHTML = `<div class="title"><span class="icon"></span>${title}</div>
-        <div class="actions">
-          <button title="Minimize" onclick="minimizeWindow(this)">—</button>
-          <button title="Maximize" onclick="maximizeWindow(this)">□</button>
-          <button title="Close" onclick="closeWindow(this)">✕</button>
-        </div>`;
-      win.appendChild(tb);
-
-      const body = document.createElement('div');
-      body.className = 'win-body';
-      win.appendChild(body);
-
-      document.getElementById('desktop').appendChild(win);
-      dragWindow(win, tb);
-      if (renderBody) renderBody(body);
-      return { win, body };
-    }
-    function bringFront(el) { el.style.zIndex = ++z.top; }
-    function dragWindow(win, bar) {
-      let dx=0, dy=0, dragging=false;
-      bar.addEventListener('mousedown', (e) => {
-        dragging = true; bringFront(win);
-        dx = e.clientX - win.offsetLeft; dy = e.clientY - win.offsetTop;
-      });
-      window.addEventListener('mousemove', (e) => {
-        if (!dragging) return;
-        const x = e.clientX - dx, y = e.clientY - dy;
-        win.style.left = Math.max(0, Math.min(window.innerWidth - win.offsetWidth, x)) + 'px';
-        win.style.top  = Math.max(0, Math.min(window.innerHeight - 46 - win.offsetHeight, y)) + 'px';
-      });
-      window.addEventListener('mouseup', () => dragging=false);
-      win.addEventListener('mousedown', () => bringFront(win));
-    }
-    function closeWindow(btn) { btn.closest('.window').remove(); }
-    function minimizeWindow(btn) { btn.closest('.window').querySelector('.win-body').style.display='none'; }
-    function maximizeWindow(btn) {
-      const w = btn.closest('.window'), body = w.querySelector('.win-body');
-      if (w.dataset.max === '1') {
-        w.style.left = '40px'; w.style.top='40px'; w.style.width='640px'; w.style.height='420px';
-        w.dataset.max = '0'; body.style.display='block';
-      } else {
-        w.style.left='0'; w.style.top='0'; w.style.width = (window.innerWidth)+'px';
-        w.style.height = (window.innerHeight-46)+'px';
-        w.dataset.max = '1'; body.style.display='block';
-      }
-    }
-
-    /* ====== Start menu & widgets ====== */
-    function toggleStart() {
-      const s = document.getElementById('startMenu');
-      s.style.display = s.style.display === 'block' ? 'none' : 'block';
-    }
-    function startClock() {
-      const tick = () => {
-        const { time, date } = nowClock();
-        document.getElementById('clockText').textContent = time;
-        document.getElementById('dateText').textContent = date;
-      };
-      tick(); setInterval(tick, 1000 * 30);
-    }
-    function saveWidgetNote() {
-      localStorage.setItem(NOTE_KEY, document.getElementById('widgetNote').value);
-    }
-    function renderRecommendedWidget() {
-      const box = document.getElementById('recommendedList'); if (!box) return;
-      const all = JSON.parse(localStorage.getItem(RECS_KEY)||'[]').slice().reverse();
-      box.innerHTML = all.length ? all.map(r => `
-        <div class="file-tile">
-          <div class="name">${r.text}</div>
-          <div class="meta">${new Date(r.at).toLocaleString()}</div>
-        </div>
-      `).join('') : '<div class="meta">No recommendations yet.</div>';
-    }
-    function addRecommended(text) {
-      if (!text) return;
-      const all = JSON.parse(localStorage.getItem(RECS_KEY)||'[]');
-      all.push({ id: crypto.randomUUID(), text, at: Date.now() });
-      localStorage.setItem(RECS_KEY, JSON.stringify(all));
-      renderRecommendedWidget();
-    }
-    function clearRecommended() {
-      localStorage.removeItem(RECS_KEY); renderRecommendedWidget();
-    }
-
-    /* ====== Explorer ====== */
-    function openExplorer() {
-      const { body } = openWindow('My Files', 860, 520, (b) => {
-        b.innerHTML = `
-          <div class="toolbar">
-            <button onclick="newFilePrompt()">New file</button>
-            <input type="file" id="fileImport" accept=".txt,.md,.png,.jpg,.jpeg,.html" />
-            <button onclick="importFile()">Import</button>
-            <button onclick="seedDemoFiles()">Seed demo files</button>
-            <input type="text" id="searchQuery" placeholder="Search filename…" oninput="searchFiles(this.value)">
-          </div>
-          <div id="files" class="file-grid"></div>
-        `;
-        renderFiles();
-        const filesDiv = b.querySelector('#files');
-        filesDiv.addEventListener('contextmenu', (e) => {
-          e.preventDefault();
-          const tile = e.target.closest('.file-tile');
-          if (!tile) return;
-          showCtx(e.pageX, e.pageY, tile.dataset.id);
-        });
-        filesDiv.addEventListener('dblclick', (e) => {
-          const tile = e.target.closest('.file-tile'); if (!tile) return;
-          openById(tile.dataset.id);
-        });
-      });
-    }
-    function renderFiles(filter='') {
-      const filesDiv = document.querySelector('.window .win-body #files');
-      if (!filesDiv) return;
-      let list = fs.list();
-      if (filter) list = list.filter(f => f.name.toLowerCase().includes(filter.toLowerCase()));
-      filesDiv.innerHTML = list.length ? list.map(f => `
-        <div class="file-tile" data-id="${f.id}">
-          <div class="name">${f.name}</div>
-          <div class="meta">${ext(f.name)} • ${formatBytes(sizeOfContent(f.content))}</div>
-          <div class="meta">Updated: ${new Date(f.updated).toLocaleString()}</div>
-        </div>
-      `).join('') : '<div class="meta">No files. Create one with New file.</div>';
-    }
-    function searchFiles(q){ renderFiles(q); }
-    function newFilePrompt() {
-      const name = prompt('New file name (e.g., note.txt, sketch.png, page.html):');
-      if (!name) return;
-      const extension = ext(name);
-      let content = '';
-      if (extension === '.png' || extension === '.jpg' || extension === '.jpeg') {
-        content = { type:'dataURL', data:'' };
-      } else if (extension === '.html') {
-        content = '<!DOCTYPE html><html><head><title>Page</title></head><body><h1>Hello Win12</h1></body></html>';
-      } else {
-        content = '';
-      }
-      fs.add({ name, content });
-      renderFiles();
-    }
-    function importFile() {
-      const inp = document.getElementById('fileImport');
-      if (!inp.files.length) return;
-      const file = inp.files[0];
-      const reader = new FileReader();
-      reader.onload = () => {
-        let content;
-        const e = ext(file.name);
-        if (e === '.png' || e === '.jpg' || e === '.jpeg') {
-          content = { type:'dataURL', data: reader.result };
-        } else {
-          content = reader.result;
+      function loadState(){
+        try{
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if(!raw) return {users:[],currentUserId:null};
+          return JSON.parse(raw);
+        }catch{
+          return {users:[],currentUserId:null};
         }
-        fs.add({ name: file.name, content });
-        renderFiles();
-      };
-      if (/\.png|\.jpg|\.jpeg$/i.test(file.name)) reader.readAsDataURL(file);
-      else reader.readAsText(file);
-    }
-    function showCtx(x, y, id) {
-      const menu = document.getElementById('ctxMenu');
-      menu.innerHTML = `
-        <button onclick="openById('${id}')">Open</button>
-        <button onclick="renameFile('${id}')">Rename</button>
-        <button onclick="duplicateFile('${id}')">Duplicate</button>
-        <button onclick="deleteFile('${id}')">Delete</button>
-        <button onclick="properties('${id}')">Properties</button>
-        <button onclick="openWithPrompt('${id}')">Open with…</button>
-        <button onclick="exportFile('${id}')">Export</button>
-      `;
-      menu.style.left = x + 'px'; menu.style.top = y + 'px';
-      menu.style.display = 'block';
-      setTimeout(() => { window.addEventListener('click', hideCtx, { once: true }); }, 0);
-    }
-    function hideCtx(){ document.getElementById('ctxMenu').style.display='none'; }
-    function renameFile(id) {
-      const f = fs.get(id); if (!f) return;
-      const name = prompt('Rename file:', f.name);
-      if (!name) return;
-      fs.update(id, { name }); renderFiles();
-    }
-    function duplicateFile(id) {
-      const f = fs.get(id); if (!f) return;
-      let name = f.name;
-      const i = name.lastIndexOf('.');
-      const base = i > -1 ? name.slice(0,i) : name;
-      const e = i > -1 ? name.slice(i) : '';
-      const copyName = `${base} copy${e}`;
-      fs.add({ name: copyName, content: f.content });
-      renderFiles();
-    }
-    function deleteFile(id) {
-      if (confirm('Delete this file?')) { fs.remove(id); renderFiles(); }
-    }
-    function properties(id) {
-      const f = fs.get(id); if (!f) return;
-      openWindow('Properties', 460, 300, (b) => {
-        b.innerHTML = `
-          <div class="chip">Meta</div>
-          <p><b>Name:</b> ${f.name}</p>
-          <p><b>Type:</b> ${ext(f.name)||'none'}</p>
-          <p><b>Size:</b> ${formatBytes(sizeOfContent(f.content))}</p>
-          <p><b>Created:</b> ${new Date(f.created).toLocaleString()}</p>
-          <p><b>Updated:</b> ${new Date(f.updated).toLocaleString()}</p>
-        `;
-      });
-    }
-    function exportFile(id) {
-      const f = fs.get(id); if (!f) return;
-      const e = ext(f.name);
-      let blob;
-      if (e === '.png' || e === '.jpg' || e === '.jpeg') {
-        const dataURL = f.content?.data || '';
-        const arr = dataURL.split(','), bstr = atob(arr[1]||''), mime = (arr[0].match(/:(.*?);/)||[])[1]||'image/png';
-        let n = bstr.length; const u8 = new Uint8Array(n);
-        for (let i=0;i<n;i++) u8[i] = bstr.charCodeAt(i);
-        blob = new Blob([u8], { type: mime });
-      } else {
-        blob = new Blob([f.content || ''], { type: 'text/plain' });
       }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = f.name; a.click();
-      URL.revokeObjectURL(url);
-    }
-    function openById(id) {
-      const f = fs.get(id); if (!f) return;
-      const defaultApp = handlers[ext(f.name)] || 'notepad';
-      openWithApp(f, defaultApp);
-    }
-    function openWithPrompt(id) {
-      const f = fs.get(id); if (!f) return;
-      const choice = prompt('Open with (notepad/paint/edge):', handlers[ext(f.name)]||'notepad');
-      if (!choice) return;
-      openWithApp(f, choice);
-    }
+      let state = loadState();
 
-    /* ====== Apps ====== */
-    function openApp(app) {
-      if (app === 'notepad') return openNotepad();
-      if (app === 'paint') return openPaint();
-      if (app === 'edge') return openEdge();
-      if (app === 'feedback') return openFeedback();
-      if (app === 'copilot') return openCopilot();
-      if (app === 'reader') return openReader();
-    }
-    function openWithApp(file, app) {
-      if (app === 'notepad') openNotepad(file);
-      else if (app === 'paint') openPaint(file);
-      else if (app === 'edge') openEdge(file);
-      else alert('Unsupported app: ' + app);
-    }
+      function ensureUser(){
+        if(state.users.length === 0){
+          const sampleExeHtml = `
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Sample EXE App</title>
+<style>body{margin:0;padding:10px;font-family:sans-serif;background:#020617;color:#e5e7eb;}
+h1{font-size:18px;margin:0 0 8px;}
+small{color:#9ca3af;}
+button{padding:4px 8px;border-radius:999px;border:1px solid #4c8dff;background:#020617;color:#e5e7eb;cursor:pointer;}
+button:hover{background:#1e293b;}
+</style></head>
+<body>
+<h1>Sample .exe HTML payload</h1>
+<small>Stored as base64 inside SampleApp.exe in FS.</small>
+<p>You launched this via the Windows Host Application inside the Win12 AIM relic.</p>
+<button onclick="alert('Hello from inside the payload (simulated alert).')">Click</button>
+</body></html>`;
+          const exePayloadBase64 = btoa(sampleExeHtml);
 
-    /* Notepad */
-    function openNotepad(file=null) {
-      const title = file ? `Notepad — ${file.name}` : 'Notepad';
-      openWindow(title, 680, 440, (b) => {
-        b.innerHTML = `
-          <div class="toolbar">
-            <button onclick="saveNote()">Save</button>
-            <button onclick="saveNoteAs()">Save as…</button>
-          </div>
-          <textarea id="noteArea" placeholder="Type here..."></textarea>
-        `;
-        if (file) b.querySelector('#noteArea').value = (file.content || '');
-        window.saveNote = function() {
-          if (!file) return saveNoteAs();
-          const text = document.querySelector('#noteArea').value;
-          fs.update(file.id, { content: text });
-          alert('Saved to ' + file.name);
-          renderFiles();
-        };
-        window.saveNoteAs = function() {
-          const name = prompt('Save as:', file?.name || 'note.txt');
-          if (!name) return;
-          const text = document.querySelector('#noteArea').value;
-          fs.add({ name, content: text });
-          alert('Saved as ' + name);
-          renderFiles();
-        };
-      });
-    }
-
-    /* Paint */
-    function openPaint(file=null) {
-      const title = file ? `Paint — ${file.name}` : 'Paint';
-      openWindow(title, 820, 560, (b) => {
-        b.innerHTML = `
-          <div class="toolbar">
-            <label>Color <input type="color" id="paintColor" value="#ffffff"></label>
-            <label>Size
-              <select id="paintSize">
-                <option>2</option><option>4</option><option>8</option><option>12</option><option>18</option><option>24</option><option>36</option><option>48</option>
-              </select>
-            </label>
-            <button onclick="paintMode('brush')">Brush</button>
-            <button onclick="paintMode('eraser')">Eraser</button>
-            <button onclick="paintClear()">Clear</button>
-            <button onclick="paintSave()">Save</button>
-            <input type="file" id="paintImport" accept="image/*" />
-            <button onclick="paintImport()">Import</button>
-          </div>
-          <canvas id="paintCanvas" width="760" height="420"></canvas>
-        `;
-        initCanvas(file);
-      });
-
-      function initCanvas(file) {
-        const c = document.getElementById('paintCanvas');
-        const ctx = c.getContext('2d');
-        ctx.fillStyle = '#141820'; ctx.fillRect(0,0,c.width,c.height);
-        let drawing=false, mode='brush', last=null;
-
-        function coords(e) {
-          const rect = c.getBoundingClientRect();
-          return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+          const id = Date.now().toString(36);
+          state.users.push({
+            id,
+            name:"User",
+            createdAt:new Date().toISOString(),
+            notes:"Welcome to your Win12 AIM filesystem.\n\nThis Notes window is per-user, independent of files.\nDesktop icons = /desktop.\nRecommended = /recommended-files.\nImported = /imported.\n.exe files run in Host.exe via base64 HTML payloads.\nClock shows a flyout when clicked.\nRight-click anywhere: desktop, Explorer, files, folders, recommended, imported.",
+            themeCss:"",
+            fs:[
+              { path:"/desktop", name:"Welcome.txt", type:"file", ext:".txt", content:"Hello from the Win12 AIM relic.\n\nThis is your desktop Welcome.txt file."},
+              { path:"/desktop", name:"Readme.md", type:"file", ext:".md", content:"# Readme\n\nThis is a markdown file in /desktop."},
+              { path:"/desktop", name:"SampleApp.exe", type:"file", ext:".exe", exePayloadBase64 },
+              { path:"/documents", name:"Session.log", type:"file", ext:".log", content:"Session started.\nUser created.\nExplorer, Notepad, Browser, and Host.exe online."},
+              { path:"/recommended-files", name:"Roadmap.txt", type:"file", ext:".txt", content:"Future ideas:\n- More exe payloads\n- FS folders\n- Richer AIM behaviors" }
+            ],
+            regAssociations:{
+              ".txt":"notepad",
+              ".md":"notepad",
+              ".log":"notepad",
+              ".css":"settings",
+              ".html":"browser",
+              ".js":"notepad",
+              ".json":"notepad",
+              ".exe":"host",
+              ".png":"paint",
+              ".jpg":"paint",
+              ".jpeg":"paint",
+              ".gif":"paint",
+              ".mp4":"media",
+              ".webm":"media",
+              ".mp3":"media",
+              ".wav":"media",
+              ".ogg":"media"
+            }
+          });
+          state.currentUserId = id;
+          saveState();
         }
-        function draw(e) {
-          if (!drawing) return;
-          const { x, y } = coords(e);
-          const size = parseInt(document.getElementById('paintSize').value, 10);
-          const color = document.getElementById('paintColor').value;
-          ctx.lineCap='round'; ctx.lineJoin='round';
-          ctx.lineWidth=size;
-          if (mode==='eraser') { ctx.strokeStyle = '#141820'; ctx.fillStyle = '#141820'; }
-          else { ctx.strokeStyle = color; ctx.fillStyle = color; }
-          if (last) { ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(x, y); ctx.stroke(); }
-          ctx.beginPath(); ctx.arc(x, y, size/2, 0, Math.PI*2); ctx.fill();
-          last = { x, y };
-        }
-        c.addEventListener('mousedown', (e)=>{ drawing=true; last=null; draw(e); });
-        c.addEventListener('mouseup', ()=>{ drawing=false; last=null; });
-        c.addEventListener('mouseleave', ()=>{ drawing=false; last=null; });
-        c.addEventListener('mousemove', draw);
+      }
 
-        window.paintMode = m => mode = m;
-        window.paintClear = () => { ctx.fillStyle = '#141820'; ctx.fillRect(0,0,c.width,c.height); };
-        window.paintSave = () => {
-          const data = c.toDataURL('image/png');
-          if (file) {
-            fs.update(file.id, { content: { type:'dataURL', data } });
-            alert('Saved to ' + file.name);
-          } else {
-            const name = prompt('Save as:', 'sketch.png'); if (!name) return;
-            fs.add({ name, content: { type:'dataURL', data } });
-            alert('Saved as ' + name);
+      function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+      ensureUser();
+
+      function currentUser(){ return state.users.find(u=>u.id===state.currentUserId) || state.users[0]; }
+      function setCurrentUser(id){ state.currentUserId=id; saveState(); refreshAll(); }
+      function updateCurrentUser(updater){
+        const idx = state.users.findIndex(u=>u.id===state.currentUserId);
+        if(idx===-1) return;
+        state.users[idx] = updater(state.users[idx]);
+        saveState();
+        refreshAll();
+      }
+      function addUser(name){
+        const id = Date.now().toString(36);
+        state.users.push({
+          id,
+          name,
+          createdAt:new Date().toISOString(),
+          notes:"",
+          themeCss:"",
+          fs:[],
+          regAssociations:{
+            ".txt":"notepad",".md":"notepad",".exe":"host",
+            ".png":"paint",".jpg":"paint",".jpeg":"paint",".gif":"paint",
+            ".mp4":"media",".webm":"media",".mp3":"media",".wav":"media",".ogg":"media"
           }
-          renderFiles();
-        };
-        window.paintImport = () => {
-          const inp = document.getElementById('paintImport');
-          if (!inp.files.length) return;
-          const reader = new FileReader();
-          reader.onload = () => {
-            const img = new Image(); img.src = reader.result;
-            img.onload = () => { ctx.drawImage(img, 0, 0, c.width, c.height); };
-          };
-          reader.readAsDataURL(inp.files[0]);
-        };
-
-        if (file && file.content?.type === 'dataURL' && file.content.data) {
-          const img = new Image(); img.src = file.content.data;
-          img.onload = () => ctx.drawImage(img, 0, 0, c.width, c.height);
+        });
+        state.currentUserId=id; saveState();
+      }
+      function deleteUser(id){
+        if(state.users.length<=1) return;
+        state.users = state.users.filter(u=>u.id!==id);
+        if(!state.users.find(u=>u.id===state.currentUserId)){
+          state.currentUserId = state.users[0].id;
         }
+        saveState();
       }
-    }
 
-    /* Edge (HTML preview) */
-    function openEdge(file=null) {
-      const title = file ? `Edge — ${file.name}` : 'Edge';
-      openWindow(title, 860, 560, (b) => {
-        b.innerHTML = `
-          <div class="toolbar">
-            <button onclick="edgeSave()">Save</button>
-            <button onclick="edgeSaveAs()">Save as…</button>
-            <button onclick="edgeRender()">Render</button>
-          </div>
-          <div style="display:flex; gap:10px; height: calc(100% - 42px);">
-            <textarea id="edgeEditor" style="width:50%;" placeholder="Write HTML here..."></textarea>
-            <iframe id="edgeView" style="flex:1; background:white;"></iframe>
-          </div>
-        `;
-        const ed = b.querySelector('#edgeEditor');
-        const vf = b.querySelector('#edgeView');
-        ed.addEventListener('input', () => renderFrame(ed.value, vf));
-        if (file) { ed.value = file.content || ''; renderFrame(ed.value, vf); }
-        window.edgeRender = () => renderFrame(ed.value, vf);
+      /* DOM refs */
+      const loginOverlay = document.getElementById("login-overlay");
+      const userListEl = document.getElementById("user-list");
+      const newUserInput = document.getElementById("new-user-name");
+      const createUserBtn = document.getElementById("create-user");
+
+      const desktopEl = document.getElementById("desktop");
+      const desktopIconsEl = document.getElementById("desktop-icons");
+
+      const taskbarImport = document.getElementById("taskbar-import");
+      const fileInput = document.getElementById("file-input");
+      const userChip = document.getElementById("user-chip");
+      const userChipName = document.getElementById("user-chip-name");
+      const startUserNameEl = document.getElementById("start-user-name");
+
+      const startButton = document.getElementById("start-button");
+      const startMenu = document.getElementById("start-menu");
+      const startBackdrop = document.getElementById("start-backdrop");
+      const startSearchInput = document.getElementById("start-search-input");
+
+      const explorerSidebar = document.getElementById("explorer-sidebar");
+      const explorerItemsEl = document.getElementById("explorer-items");
+      const explorerPathEl = document.getElementById("explorer-path");
+      const explorerNewFileBtn = document.getElementById("explorer-new-file");
+      const explorerUpBtn = document.getElementById("explorer-up");
+      const explorerRefreshBtn = document.getElementById("explorer-refresh");
+
+      const notepadArea = document.getElementById("notepad-area");
+      const notepadStatus = document.getElementById("notepad-status");
+      const notepadTitleSub = document.getElementById("notepad-title-sub");
+      const notepadSaveBtn = document.getElementById("notepad-save");
+
+      const browserTabsEl = document.getElementById("browser-tabs");
+      const browserAddressEl = document.getElementById("browser-address");
+      const browserGoBtn = document.getElementById("browser-go");
+      const browserViewEl = document.getElementById("browser-view");
+
+      const hostOutputEl = document.getElementById("host-output");
+      const hostTitleSub = document.getElementById("host-title-sub");
+
+      const aiLog = document.getElementById("ai-log");
+      const aiInput = document.getElementById("ai-input");
+      const aiSend = document.getElementById("ai-send");
+
+      const regListEl = document.getElementById("regedit-list");
+      const regAddBtn = document.getElementById("regedit-add");
+      const adminBackdrop = document.getElementById("admin-popup-backdrop");
+      const adminAllow = document.getElementById("admin-allow");
+      const adminCancel = document.getElementById("admin-cancel");
+      const adminBody = document.getElementById("admin-popup-body");
+
+      const themeCssInput = document.getElementById("theme-css-input");
+      const themeStyleEl = document.getElementById("theme-style");
+      const themeStatus = document.getElementById("theme-status");
+
+      const notesArea = document.getElementById("notes-area");
+      const notesStatus = document.getElementById("notes-status");
+      const notesSaveBtn = document.getElementById("notes-save");
+
+      const fsListEl = document.getElementById("fs-list");
+
+      const recFilesEl = document.getElementById("rec-files");
+      const recSubEl = document.getElementById("rec-sub");
+      const recModeLabel = document.getElementById("rec-mode-label");
+      const recToggle = document.getElementById("rec-dropdown-toggle");
+      const recMenu = document.getElementById("rec-dropdown-menu");
+      let recMode = "recommended";
+
+      const clockTimeEl = document.getElementById("clock-time");
+      const clockLabelEl = document.getElementById("clock-label");
+      const timeFlyout = document.getElementById("time-flyout");
+      const timeFlyoutTime = document.getElementById("time-flyout-time");
+      const timeFlyoutDate = document.getElementById("time-flyout-date");
+      const timeFlyoutGreeting = document.getElementById("time-flyout-greeting");
+      const clockContainer = document.getElementById("taskbar-clock");
+
+      const ctxMenu = document.getElementById("ctx-menu");
+      const devBanner = document.getElementById("dev-banner");
+
+      const windowsMap = {};
+      document.querySelectorAll(".window").forEach(win=>windowsMap[win.dataset.app]=win);
+
+      // Paint refs
+      const paintCanvas = document.getElementById("paint-canvas");
+      const paintColor = document.getElementById("paint-color");
+      const paintSize = document.getElementById("paint-size");
+      const paintClearBtn = document.getElementById("paint-clear");
+      const paintOpenBtn = document.getElementById("paint-open-image");
+      const paintFileInput = document.getElementById("paint-file-input");
+
+      // Media refs
+      const mediaOpenBtn = document.getElementById("media-open");
+      const mediaFileInput = document.getElementById("media-file-input");
+      const mediaSurface = document.getElementById("media-surface");
+      const mediaFilename = document.getElementById("media-filename");
+
+      let currentExplorerPath = "/desktop";
+
+      /* clock & flyout */
+      function updateClock(){
+        const now = new Date();
+        const h = now.getHours().toString().padStart(2,"0");
+        const m = now.getMinutes().toString().padStart(2,"0");
+        clockTimeEl.textContent = `${h}:${m}`;
+        clockLabelEl.textContent = now.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})+" · Win12 AIM";
+      }
+      function updateTimeFlyout(){
+        const now = new Date();
+        const h = now.getHours();
+        const hh = h.toString().padStart(2,"0");
+        const mm = now.getMinutes().toString().padStart(2,"0");
+        timeFlyoutTime.textContent = `${hh}:${mm}`;
+        timeFlyoutDate.textContent = now.toLocaleDateString(undefined,{
+          weekday:"long",month:"long",day:"numeric",year:"numeric"
+        });
+        let greeting;
+        if(h<5) greeting="Late night shift.";
+        else if(h<12) greeting="Good morning.";
+        else if(h<17) greeting="Good afternoon.";
+        else greeting="Good evening.";
+        timeFlyoutGreeting.textContent = greeting+" Time is just another variable in this shrine.";
+      }
+      updateClock();
+      setInterval(updateClock,30000);
+
+      clockContainer.addEventListener("click",()=>{
+        if(timeFlyout.style.display==="block"){
+          timeFlyout.style.display="none";
+        }else{
+          updateTimeFlyout();
+          timeFlyout.style.display="block";
+        }
       });
-      function renderFrame(html, iframe) {
-        const blob = new Blob([html], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        iframe.src = url;
-        iframe.onload = () => URL.revokeObjectURL(url);
-      }
-      window.edgeSave = function() {
-        const ed = document.querySelector('#edgeEditor');
-        if (!file) return edgeSaveAs();
-        const text = ed.value;
-        fs.update(file.id, { content: text });
-        alert('Saved to ' + file.name);
-        renderFiles();
-      };
-      window.edgeSaveAs = function() {
-        const ed = document.querySelector('#edgeEditor');
-        const name = prompt('Save as:', file?.name || 'page.html'); if (!name) return;
-        const text = ed.value;
-        fs.add({ name, content: text });
-        alert('Saved as ' + name);
-        renderFiles();
-      };
-    }
-
-    /* Feedback hub */
-    function openFeedback() {
-      openWindow('Feedback hub', 700, 500, (b) => {
-        b.innerHTML = `
-          <div class="toolbar">
-            <button onclick="submitFeedback()">Submit</button>
-            <button onclick="clearFeedback()">Clear all</button>
-          </div>
-          <label>Title</label>
-          <input id="fbTitle" placeholder="Short summary">
-          <label style="margin-top:8px;">Description</label>
-          <textarea id="fbDesc" placeholder="What worked? What needs love?"></textarea>
-          <div style="margin-top:10px;">
-            <div class="chip">Submissions</div>
-            <div id="fbList" style="max-height:220px; overflow:auto; margin-top:8px;"></div>
-          </div>
-        `;
-        renderFeedbackList();
+      document.addEventListener("mousedown",(e)=>{
+        if(!clockContainer.contains(e.target) && !timeFlyout.contains(e.target)){
+          timeFlyout.style.display="none";
+        }
       });
-      window.submitFeedback = function(){
-        const t = document.getElementById('fbTitle').value.trim();
-        const d = document.getElementById('fbDesc').value.trim();
-        if (!t || !d) return alert('Please fill title and description.');
-        const all = JSON.parse(localStorage.getItem(FEED_KEY)||'[]');
-        all.push({ id: crypto.randomUUID(), title:t, desc:d, at: Date.now() });
-        localStorage.setItem(FEED_KEY, JSON.stringify(all));
-        document.getElementById('fbTitle').value='';
-        document.getElementById('fbDesc').value='';
-        renderFeedbackList();
-      };
-      window.clearFeedback = function(){
-        if (!confirm('Clear all feedback?')) return;
-        localStorage.removeItem(FEED_KEY);
-        renderFeedbackList();
-      };
-    }
-    function renderFeedbackList() {
-      const box = document.getElementById('fbList'); if (!box) return;
-      const all = JSON.parse(localStorage.getItem(FEED_KEY)||'[]').slice().reverse();
-      box.innerHTML = all.length ? all.map(f=>`
-        <div class="file-tile">
-          <div class="name">${f.title}</div>
-          <div class="meta">${new Date(f.at).toLocaleString()}</div>
-          <div>${f.desc}</div>
-        </div>
-      `).join('') : '<div class="meta">Empty.</div>';
-    }
 
-    /* Copilot mini-chat */
-    function openCopilot() {
-      openWindow('Copilot (built‑in)', 720, 520, (b) => {
-        b.innerHTML = `
-          <div class="toolbar">
-            <button onclick="suggestFeature()">Suggest feature</button>
-            <button onclick="openExplorer()">Open My Files</button>
-          </div>
-          <div id="chat" style="height:320px; overflow:auto; background:#151922; padding:10px; border-radius:8px; border:1px solid #2a3242;"></div>
-          <div style="display:flex; gap:8px; margin-top:8px;">
-            <input id="chatInput" placeholder="Ask or command... (e.g., create note.txt, open paint, power sleep)">
-            <button onclick="sendChat()">Send</button>
-          </div>
-        `;
-        appendChat('system','I live inside Win12 AIM. Ask me to create files, open apps, record recommendations, or power actions.');
+      /* login */
+      function renderUserList(){
+        userListEl.innerHTML="";
+        state.users.forEach(u=>{
+          const row=document.createElement("div");
+          row.className="user-row";
+          row.innerHTML=`
+            <div class="user-info">
+              <div class="user-avatar"></div>
+              <div>
+                <div class="user-name">${u.name}</div>
+                <div class="user-meta">Created ${new Date(u.createdAt).toLocaleString()}</div>
+              </div>
+            </div>
+            <div class="user-actions">
+              <div class="pill-small">Login</div>
+              ${state.users.length>1?`<div class="pill-small danger" data-delete="${u.id}">Remove</div>`:""}
+            </div>`;
+          row.addEventListener("click",(e)=>{
+            if(e.target.dataset.delete===u.id) return;
+            setCurrentUser(u.id);
+            hideLogin();
+          });
+          const del=row.querySelector("[data-delete]");
+          if(del){
+            del.addEventListener("click",(e)=>{
+              e.stopPropagation();
+              deleteUser(u.id);
+              renderUserList();
+            });
+          }
+          userListEl.appendChild(row);
+        });
+      }
+      function hideLogin(){
+        loginOverlay.classList.add("hidden");
+        setTimeout(()=>{loginOverlay.style.display="none";},260);
+      }
+      createUserBtn.addEventListener("click",()=>{
+        const name=newUserInput.value.trim();
+        if(!name)return;
+        addUser(name);
+        newUserInput.value="";
+        renderUserList();
+        hideLogin();
       });
-    }
-    function appendChat(role, text) {
-      const c = document.getElementById('chat'); if (!c) return;
-      const line = document.createElement('div');
-      line.innerHTML = `<div style="margin:6px 0;"><span class="chip">${role}</span> — ${text}</div>`;
-      c.appendChild(line); c.scrollTop = c.scrollHeight;
-    }
-    function sendChat() {
-      const input = document.getElementById('chatInput'); if (!input) return;
-      const msg = input.value.trim(); if (!msg) return;
-      appendChat('you', msg);
-      input.value='';
-      // intents
-      if (/^create\s+.+/i.test(msg)) {
-        const name = msg.replace(/^create\s+/i,'').trim();
-        const defaultContent = ext(name)==='.html' ? '<!DOCTYPE html><html><body><h2>Hello</h2></body></html>' : '';
-        fs.add({ name, content: defaultContent });
-        renderFiles();
-        appendChat('copilot', `Created ${name}.`);
-        return;
-      }
-      if (/^open\s+my files$/i.test(msg)) { openExplorer(); appendChat('copilot','Opening My Files.'); return; }
-      if (/^open\s+paint$/i.test(msg)) { openPaint(); appendChat('copilot','Opening Paint.'); return; }
-      if (/^open\s+notepad$/i.test(msg)) { openNotepad(); appendChat('copilot','Opening Notepad.'); return; }
-      if (/^power\s+(shutdown|restart|sleep)$/i.test(msg)) {
-        const action = msg.split(/\s+/)[1]; power(action); appendChat('copilot', `Power → ${action}.`); return;
-      }
-      if (/^(add|suggest)\s+recommended/i.test(msg)) {
-        const rec = msg.replace(/^(add|suggest)\s+recommended/i,'').trim();
-        if (rec) addRecommended(rec);
-        appendChat('copilot', `Added to recommended: ${rec || '—'}.`);
-        return;
-      }
-      appendChat('copilot', 'Try: “create note.txt”, “open paint”, “add recommended better widgets”, or “power sleep”.');
-    }
-    function suggestFeature() {
-      const idea = prompt('Suggest a feature:'); if (!idea) return;
-      addRecommended(idea);
-      appendChat('copilot', 'Added your suggestion to Recommended.');
-    }
+      newUserInput.addEventListener("keydown",(e)=>{if(e.key==="Enter")createUserBtn.click();});
+      renderUserList();
 
-    /* Recommended reader */
-    function openReader() {
-      openWindow('Recommended Reader', 640, 480, (b) => {
-        const all = JSON.parse(localStorage.getItem(RECS_KEY)||'[]').slice().reverse();
-        b.innerHTML = `
-          <div class="toolbar">
-            <button onclick="clearRecommended()">Clear</button>
-          </div>
-          <div>${all.length ? all.map(r=>`
-            <div class="file-tile">
-              <div class="name">${r.text}</div>
-              <div class="meta">${new Date(r.at).toLocaleString()}</div>
-            </div>`).join('') : '<div class="meta">Empty.</div>'}
-          </div>
-        `;
-      });
-    }
-
-    /* README About (preview README.md) */
-    function renderMarkdown(md) {
-      md = md.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      md = md.replace(/```([\s\S]*?)```/g, (m, code) => `<pre><code>${code}</code></pre>`);
-      md = md.replace(/`([^`]+)`/g, '<code>$1</code>');
-      md = md.replace(/^######\s?(.*)$/gm, '<h6>$1</h6>')
-             .replace(/^#####\s?(.*)$/gm, '<h5>$1</h5>')
-             .replace(/^####\s?(.*)$/gm, '<h4>$1</h4>')
-             .replace(/^###\s?(.*)$/gm, '<h3>$1</h3>')
-             .replace(/^##\s?(.*)$/gm, '<h2>$1</h2>')
-             .replace(/^#\s?(.*)$/gm, '<h1>$1</h1>');
-      md = md.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-             .replace(/\*([^*]+)\*/g, '<em>$1</em>');
-      md = md.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-      md = md.replace(/^(?:-|\*)\s+(.*)$/gm, '<li>$1</li>');
-      md = md.replace(/(<li>[\s\S]*?<\/li>)/g, (m) => m.includes('<ul>') ? m : `<ul>${m}</ul>`);
-      md = md.replace(/^\d+\.\s+(.*)$/gm, '<li>$1</li>');
-      md = md.replace(/(<li>[\s\S]*?<\/li>)/g, (m) => (m.includes('<ul>') || m.includes('<ol>')) ? m : `<ol>${m}</ol>`);
-      md = md.split('\n\n').map(chunk => {
-        if (/^<h\d|<pre|<ul|<ol|<li|<p|<blockquote|<hr|<table/.test(chunk.trim())) return chunk;
-        return `<p>${chunk.trim().replace(/\n/g,'<br>')}</p>`;
-      }).join('\n');
-      return `<div class="md">${md}</div>`;
-    }
-    async function fetchREADME() {
-      try {
-        const res = await fetch('README.md', { cache: 'no-store' });
-        if (!res.ok) throw new Error('README.md not found');
-        return await res.text();
-      } catch {
-        return null;
+      /* FS + desktop */
+      function renderDesktop(){
+        const u=currentUser();
+        desktopIconsEl.innerHTML="";
+        u.fs.filter(e=>e.path==="/desktop").forEach(entry=>{
+          const icon=document.createElement("div");
+          icon.className="desktop-icon";
+          icon.dataset.path=entry.path;
+          icon.dataset.name=entry.name;
+          icon.dataset.ext=entry.ext||"";
+          icon.innerHTML=`<div class="desktop-icon-thumb"></div><div class="desktop-icon-label">${entry.name}</div>`;
+          icon.addEventListener("dblclick",()=>openFile(entry));
+          icon.addEventListener("contextmenu",(ev)=>showCtxMenu(ev,entry,entry.type==="folder"));
+          desktopIconsEl.appendChild(icon);
+        });
       }
-    }
-    function openAboutReadme() {
-      openWindow('About — README.md', 880, 600, async (b) => {
-        b.innerHTML = `<p class="muted">Loading README.md…</p>`;
-        const text = await fetchREADME();
-        if (!text) {
-          b.innerHTML = `
-            <h2>README.md not found</h2>
-            <p>Add a <code>README.md</code> at the root of this repository to show the About page.</p>
-            <p>Tip: In GitHub → Add file → Create new file → README.md → paste your scroll → Commit.</p>
-          `;
+
+      function renderNotes(){
+        const u=currentUser();
+        if(!notesArea || !notesStatus) return;
+        notesArea.value = u.notes || "";
+        notesStatus.textContent = "Loaded.";
+      }
+
+      if(notesSaveBtn){
+        notesSaveBtn.addEventListener("click",()=>{
+          if(!notesArea || !notesStatus) return;
+          updateCurrentUser(u=>({...u,notes:notesArea.value}));
+          notesStatus.textContent="Saved.";
+        });
+      }
+
+      function renderTheme(){
+        const u=currentUser();
+        if(!themeCssInput || !themeStyleEl) return;
+        themeCssInput.value=u.themeCss||"";
+        themeStyleEl.textContent=u.themeCss||"";
+      }
+      const themeSaveBtn = document.getElementById("theme-save");
+      if(themeSaveBtn){
+        themeSaveBtn.addEventListener("click",()=>{
+          if(!themeCssInput || !themeStyleEl || !themeStatus) return;
+          const css=themeCssInput.value;
+          themeStyleEl.textContent=css;
+          updateCurrentUser(u=>({...u,themeCss:css}));
+          themeStatus.textContent="Applied & saved.";
+        });
+      }
+
+      function renderFSList(){
+        const u=currentUser();
+        fsListEl.innerHTML="";
+        (u.fs||[]).forEach(entry=>{
+          const row=document.createElement("div");
+          row.className="fs-row";
+          row.innerHTML=`<div class="fs-row-name">${entry.path}/${entry.name}</div><div class="fs-row-meta">${entry.ext||entry.type||""}</div>`;
+          fsListEl.appendChild(row);
+        });
+      }
+
+      function renderExplorer(path){
+        currentExplorerPath=path;
+        explorerPathEl.textContent=path;
+        const u=currentUser();
+        explorerItemsEl.innerHTML="";
+        explorerSidebar.querySelectorAll(".explorer-tab").forEach(tab=>{
+          tab.style.background=tab.dataset.path===path?"rgba(26,32,70,0.98)":"transparent";
+        });
+        let entries;
+        if(path==="/"){
+          entries=[
+            {path:"/",name:"Desktop",type:"folder",ext:"",target:"/desktop"},
+            {path:"/",name:"Documents",type:"folder",ext:"",target:"/documents"},
+            {path:"/",name:"Recommended files",type:"folder",ext:"",target:"/recommended-files"},
+            {path:"/",name:"Imported",type:"folder",ext:"",target:"/imported"}
+          ];
+        }else entries=u.fs.filter(e=>e.path===path);
+        if(!entries.length){
+          explorerItemsEl.textContent="No files or folders here.";
           return;
         }
-        b.innerHTML = renderMarkdown(text);
+        entries.forEach(entry=>{
+          const card=document.createElement("div");
+          card.className="explorer-card";
+          card.style.borderRadius="8px";
+          card.style.background="rgba(12,15,36,0.98)";
+          card.style.border="1px solid rgba(255,255,255,0.08)";
+          card.style.padding="6px";
+          card.style.cursor="pointer";
+          const icon=document.createElement("div");
+          icon.style.width="22px";icon.style.height="22px";
+          icon.style.borderRadius=entry.type==="folder"?"4px":"6px";
+          icon.style.marginBottom="4px";
+          icon.style.background=entry.type==="folder"
+            ?"linear-gradient(135deg,#4c8dff,#94a3ff)"
+            :"radial-gradient(circle at 30% 20%,#fff,#4c8dff)";
+          const name=document.createElement("div");
+          name.textContent=entry.name;
+          name.style.color="var(--text-main)";name.style.fontSize="11px";
+          const meta=document.createElement("div");
+          meta.textContent=entry.type==="folder"?"Folder":(entry.ext||"File");
+          meta.style.color="var(--text-soft)";meta.style.fontSize="10px";
+          card.appendChild(icon);card.appendChild(name);card.appendChild(meta);
+          card.addEventListener("dblclick",()=>{
+            if(entry.type==="folder" && entry.target) renderExplorer(entry.target);
+            else if(entry.type==="folder") renderExplorer(entry.path+"/"+entry.name);
+            else openFile(entry);
+          });
+          card.addEventListener("contextmenu",(ev)=>showCtxMenu(ev,entry,entry.type==="folder"));
+          explorerItemsEl.appendChild(card);
+        });
+      }
+
+      function renderRecommendedFiles(){
+        const u=currentUser();
+        const path=recMode==="imported"?"/imported":"/recommended-files";
+        recModeLabel.textContent=recMode==="imported"?"Imported":"Recommended";
+        recSubEl.textContent=recMode==="imported"?"From /imported in your FS.":"From /recommended-files in your FS.";
+        const files=u.fs.filter(e=>e.path===path);
+        recFilesEl.innerHTML="";
+        if(!files.length){
+          recFilesEl.textContent="No files here yet.";
+          return;
+        }
+        files.forEach(entry=>{
+          const div=document.createElement("div");
+          div.textContent="• "+entry.name;
+          div.style.cursor="pointer";
+          div.addEventListener("click",()=>openFile(entry));
+          div.addEventListener("contextmenu",(ev)=>showCtxMenu(ev,entry,false));
+          recFilesEl.appendChild(div);
+        });
+      }
+
+      function renderRegedit(){
+        const u=currentUser();
+        const map=u.regAssociations||{};
+        regListEl.innerHTML="";
+        Object.keys(map).forEach(ext=>{
+          const row=document.createElement("div");
+          row.style.display="flex";
+          row.style.alignItems="center";
+          row.style.justifyContent="space-between";
+          row.style.padding="4px 0";
+          const label=document.createElement("span");
+          label.textContent=ext;
+          const input=document.createElement("input");
+          input.value=map[ext];
+          input.style.borderRadius="999px";
+          input.style.border="1px solid rgba(255,255,255,0.18)";
+          input.style.background="rgba(4,6,18,0.98)";
+          input.style.color="var(--text-main)";
+          input.style.fontSize="11px";
+          input.style.padding="2px 6px";
+          input.addEventListener("change",()=>{
+            pendingRegEdit={ext,app:input.value};
+            adminBody.textContent=`Allow changing association for ${ext} to app "${input.value}"?`;
+            adminBackdrop.style.display="flex";
+          });
+          row.appendChild(label);row.appendChild(input);
+          regListEl.appendChild(row);
+        });
+      }
+
+      function refreshAll(){
+        const u=currentUser();
+        userChipName.textContent=u.name;
+        startUserNameEl.textContent=u.name;
+        renderDesktop();
+        renderNotes();
+        renderTheme();
+        renderFSList();
+        renderRecommendedFiles();
+        renderExplorer(currentExplorerPath);
+        renderRegedit();
+      }
+
+      /* start menu */
+      function openStart(){startMenu.classList.add("visible");startBackdrop.classList.add("visible");startSearchInput.value="";}
+      function closeStart(){startMenu.classList.remove("visible");startBackdrop.classList.remove("visible");}
+      function toggleStart(){startMenu.classList.contains("visible")?closeStart():openStart();}
+      startButton.addEventListener("click",toggleStart);
+      startBackdrop.addEventListener("click",closeStart);
+      document.addEventListener("mousedown",(e)=>{if(!startMenu.contains(e.target)&&!startButton.contains(e.target))closeStart();});
+      startSearchInput.addEventListener("keydown",(e)=>{
+        if(e.key==="Enter"){
+          const q=e.target.value.toLowerCase();
+          if(q.includes("file")||q.includes("explorer"))showWindow("explorer");
+          else if(q.includes("note")&& !q.includes("paint"))showWindow("notepad");
+          else if(q.includes("browser")||q.includes("web"))showWindow("browser");
+          else if(q.includes("host")||q.includes("exe"))showWindow("host");
+          else if(q.includes("assistant")||q.includes("ai"))showWindow("assistant");
+          else if(q.includes("reg"))showWindow("regedit");
+          else if(q.includes("setting"))showWindow("settings");
+          else if(q.includes("notes"))showWindow("notes");
+          else if(q.includes("paint"))showWindow("paint");
+          else if(q.includes("media")||q.includes("video")||q.includes("music"))showWindow("media");
+          closeStart();
+        }
       });
-    }
+      document.querySelectorAll(".start-app,.start-rec-item").forEach(el=>{
+        el.addEventListener("click",()=>{
+          const app=el.dataset.app;
+          if(app)showWindow(app);
+          closeStart();
+        });
+      });
 
-    /* ====== Power ====== */
-    function power(action) {
-      if (!action) {
-        const choice = prompt('Power (shutdown / restart / sleep):','sleep');
-        if (!choice) return; action = choice;
-      }
-      if (action === 'shutdown') {
-        if (!confirm('Shutdown clears session windows (files persist). Proceed?')) return;
-        document.getElementById('desktop').innerHTML = '';
-        alert('System shutdown. Start menu → open windows again when ready.');
-      } else if (action === 'restart') {
-        location.reload();
-      } else if (action === 'sleep') {
-        document.getElementById('sleepOverlay').style.display = 'flex';
-      } else {
-        alert('Unknown power action.');
-      }
-    }
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        const overlay = document.getElementById('sleepOverlay');
-        if (overlay.style.display === 'flex') overlay.style.display = 'none';
-      }
-    });
+      /* user chip */
+      userChip.addEventListener("click",()=>{
+        loginOverlay.style.display="flex";
+        setTimeout(()=>loginOverlay.classList.remove("hidden"),10);
+        renderUserList();
+      });
 
-    /* ====== Seed demo files ====== */
-    function seedDemoFiles() {
-      const demo = [
-        { name:'note.txt', content:'Hello from Win12 AIM.' },
-        { name:'readme.md', content:'# Hello\nThis is the inner desktop README.' },
-        { name:'page.html', content:'<!DOCTYPE html><html><body><h2>Demo Page</h2><p>Rendered in Edge.</p></body></html>' },
-        { name:'sketch.png', content:{ type:'dataURL', data:'' } }
-      ];
-      const existing = fs.list().map(f => f.name);
-      demo.forEach(f => { if (!existing.includes(f.name)) fs.add(f); });
-      renderFiles();
-      alert('Seeded demo files.');
-    }
+      /* import files */
+      taskbarImport.addEventListener("click",()=>fileInput.click());
+      fileInput.addEventListener("change",()=>{
+        const files=Array.from(fileInput.files||[]);
+        if(!files.length)return;
+        const textTypes=[".txt",".md",".log",".css",".html",".js",".json"];
+        let remaining=files.length;
+        const newEntries=[];
+        files.forEach(f=>{
+          const ext=f.name.includes(".")?f.name.slice(f.name.lastIndexOf(".")):"";
+          if(textTypes.includes(ext.toLowerCase())){
+            const reader=new FileReader();
+            reader.onload=()=>{
+              newEntries.push({path:"/imported",name:f.name,type:"file",ext,content:reader.result});
+              if(--remaining===0)mergeImported(newEntries);
+            };
+            reader.onerror=()=>{
+              newEntries.push({path:"/imported",name:f.name,type:"file",ext,content:"(failed to read file)"});
+              if(--remaining===0)mergeImported(newEntries);
+            };
+            reader.readAsText(f);
+          }else{
+            newEntries.push({path:"/imported",name:f.name,type:"file",ext,content:"(binary or unsupported type)"});
+            if(--remaining===0)mergeImported(newEntries);
+          }
+        });
+      });
+      function mergeImported(entries){
+        updateCurrentUser(u=>({...u,fs:u.fs.concat(entries)}));
+      }
+
+      /* context menu */
+      let ctxTargetEntry=null;
+      let ctxIsFolder=false;
+      let clipboardEntry=null;
+
+      function showCtxMenu(e,entry,isFolder){
+        e.preventDefault();
+        ctxTargetEntry=entry||null;
+        ctxIsFolder=!!isFolder || (entry && entry.type==="folder");
+        ctxMenu.style.display="block";
+        const rect=ctxMenu.getBoundingClientRect();
+        const x=Math.min(e.clientX,window.innerWidth-rect.width-4);
+        const y=Math.min(e.clientY,window.innerHeight-rect.height-4);
+        ctxMenu.style.left=x+"px";ctxMenu.style.top=y+"px";
+
+        ctxMenu.querySelectorAll(".ctx-item").forEach(i=>i.classList.remove("disabled"));
+
+        if(!ctxTargetEntry){
+          ["open","openWith","openInNotepad","openInBrowser","runExe","openLocation","rename","duplicate","delete","props"]
+          .forEach(a=>{
+            const el=ctxMenu.querySelector(`[data-action="${a}"]`);
+            if(el)el.classList.add("disabled");
+          });
+        }else{
+          if(ctxTargetEntry.ext!==".exe"){
+            const run=ctxMenu.querySelector('[data-action="runExe"]');
+            if(run)run.classList.add("disabled");
+          }
+          if(ctxIsFolder){
+            const openInNotepad=ctxMenu.querySelector('[data-action="openInNotepad"]');
+            const openInBrowser=ctxMenu.querySelector('[data-action="openInBrowser"]');
+            if(openInNotepad)openInNotepad.classList.add("disabled");
+            if(openInBrowser)openInBrowser.classList.add("disabled");
+          }
+        }
+        if(!clipboardEntry){
+          const paste=ctxMenu.querySelector('[data-action="paste"]');
+          if(paste)paste.classList.add("disabled");
+        }
+      }
+
+      function hideCtxMenu(){
+        ctxMenu.style.display="none";
+        ctxTargetEntry=null;
+      }
+
+      document.addEventListener("mousedown",(e)=>{
+        if(!ctxMenu.contains(e.target))hideCtxMenu();
+      });
+
+      desktopEl.addEventListener("contextmenu",(e)=>{
+        if(e.target.closest(".desktop-icon"))return;
+        showCtxMenu(e,null,false);
+      });
+      explorerItemsEl.addEventListener("contextmenu",(e)=>{
+        if(e.target.closest(".explorer-card"))return;
+        showCtxMenu(e,null,false);
+      });
+
+      ctxMenu.addEventListener("click",(e)=>{
+        const item=e.target.closest(".ctx-item");
+        if(!item)return;
+        if(item.classList.contains("disabled"))return;
+        const action=item.dataset.action;
+        if(action==="open" && ctxTargetEntry)openFile(ctxTargetEntry);
+        if(action==="openWith" && ctxTargetEntry)openFile(ctxTargetEntry,true);
+        if(action==="openInNotepad" && ctxTargetEntry)openInNotepad(ctxTargetEntry);
+        if(action==="openInBrowser" && ctxTargetEntry)openInBrowser(ctxTargetEntry);
+        if(action==="runExe" && ctxTargetEntry)runExe(ctxTargetEntry);
+        if(action==="openLocation" && ctxTargetEntry)openLocation(ctxTargetEntry);
+        if(action==="newFile")ctxNewFile();
+        if(action==="newFolder")ctxNewFolder();
+        if(action==="duplicate" && ctxTargetEntry)ctxDuplicate(ctxTargetEntry);
+        if(action==="copy" && ctxTargetEntry)ctxCopy(ctxTargetEntry);
+        if(action==="paste")ctxPaste(ctxTargetEntry);
+        if(action==="rename" && ctxTargetEntry)ctxRename(ctxTargetEntry);
+        if(action==="delete" && ctxTargetEntry)ctxDelete(ctxTargetEntry);
+        if(action==="props")showProps(ctxTargetEntry);
+        hideCtxMenu();
+      });
+
+      function ctxNewFile(){
+        const u=currentUser();
+        const base="New file";
+        const entry=ctxTargetEntry;
+        const path=entry
+          ?entry.type==="folder"?`${entry.path}/${entry.name}`:entry.path
+          :currentExplorerPath;
+        let counter=1;let name=base+".txt";
+        const exists=(n)=>u.fs.some(e=>e.path===path&&e.name===n);
+        while(exists(name)){counter++;name=`${base} (${counter}).txt`;}
+        updateCurrentUser(usr=>({...usr,fs:usr.fs.concat({path,name,type:"file",ext:".txt",content:""})}));
+      }
+
+      function ctxNewFolder(){
+        const u=currentUser();
+        const base="New folder";
+        const entry=ctxTargetEntry;
+        const path=entry
+          ?entry.type==="folder"?`${entry.path}/${entry.name}`:entry.path
+          :currentExplorerPath;
+        let counter=1;let name=base;
+        const exists=(n)=>u.fs.some(e=>e.path===path&&e.name===n);
+        while(exists(name)){counter++;name=`${base} (${counter})`;}
+        updateCurrentUser(usr=>({...usr,fs:usr.fs.concat({path,name,type:"folder",ext:""})}));
+      }
+
+      function ctxDuplicate(entry){
+        updateCurrentUser(u=>{
+          const newFs=u.fs.slice();
+          const base=entry.name.replace(/(\.[^.]*)$/,"");
+          const ext=entry.ext||"";
+          let counter=1;let name=`${base} - Copy${ext}`;
+          const exists=(n)=>newFs.some(e=>e.path===entry.path&&e.name===n);
+          while(exists(name)){counter++;name=`${base} - Copy (${counter})${ext}`;}
+          newFs.push({...entry,name});
+          return {...u,fs:newFs};
+        });
+      }
+      function ctxCopy(entry){clipboardEntry={...entry};}
+      function ctxPaste(entry){
+        if(!clipboardEntry)return;
+        const path=entry
+          ?entry.type==="folder"?`${entry.path}/${entry.name}`:entry.path
+          :currentExplorerPath;
+        updateCurrentUser(u=>{
+          const newFs=u.fs.slice();
+          const base=clipboardEntry.name.replace(/(\.[^.]*)$/,"");
+          const ext=clipboardEntry.ext||"";
+          let counter=0;let name=clipboardEntry.name;
+          const exists=(n)=>newFs.some(e=>e.path===path&&e.name===n);
+          while(exists(name)){counter++;name=`${base} - Copy${counter>1?" ("+counter+")":""}${ext}`;}
+          newFs.push({...clipboardEntry,path,name});
+          return {...u,fs:newFs};
+        });
+      }
+      function ctxDelete(entry){
+        updateCurrentUser(u=>({...u,fs:u.fs.filter(e=>!(e.path===entry.path&&e.name===entry.name))}));
+      }
+      function ctxRename(entry){
+        const overlay=document.createElement("div");
+        overlay.style.position="fixed";
+        overlay.style.inset="0";
+        overlay.style.background="rgba(0,0,0,0.4)";
+        overlay.style.backdropFilter="blur(8px)";
+        overlay.style.display="flex";
+        overlay.style.alignItems="center";
+        overlay.style.justifyContent="center";
+        overlay.style.zIndex=1800;
+        const box=document.createElement("div");
+        box.style.background="rgba(8,10,26,0.98)";
+        box.style.borderRadius="12px";
+        box.style.border="1px solid rgba(255,255,255,0.2)";
+        box.style.boxShadow="0 20px 40px rgba(0,0,0,0.9)";
+        box.style.padding="8px 10px";
+        box.style.fontSize="12px";
+        box.innerHTML=`
+          <div style="margin-bottom:4px;color:var(--text-soft);">Rename "${entry.name}"</div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input id="rename-input" style="flex:1;padding:4px 6px;border-radius:999px;border:1px solid rgba(255,255,255,0.24);background:rgba(4,6,18,0.98);color:var(--text-main);font-size:11px;outline:none;" />
+            <button class="button-small" id="rename-ok">OK</button>
+            <button class="button-small" id="rename-cancel">Cancel</button>
+          </div>`;
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+        const input=box.querySelector("#rename-input");
+        input.value=entry.name;input.focus();input.select();
+        const cleanup=()=>overlay.remove();
+        box.querySelector("#rename-ok").addEventListener("click",()=>{
+          const newName=input.value.trim();
+          if(newName && newName!==entry.name){
+            updateCurrentUser(u=>({...u,fs:u.fs.map(e=>e.path===entry.path && e.name===entry.name?{...e,name:newName}:e)}));
+          }
+          cleanup();
+        });
+        box.querySelector("#rename-cancel").addEventListener("click",cleanup);
+      }
+      function showProps(entry){
+        aiMsg("ai",`Properties: ${entry ? entry.name : "(none)"} (${entry ? (entry.ext||entry.type||"") : ""}) at ${entry ? entry.path : "(background)"}`);
+      }
+
+      /* Notepad */
+      let notepadCurrentFile=null;
+      function openInNotepad(entry){
+        showWindow("notepad");
+        const u=currentUser();
+        const match=u.fs.find(e=>e.path===entry.path&&e.name===entry.name);
+        notepadCurrentFile=match||entry;
+        if(notepadArea && notepadStatus && notepadTitleSub){
+          notepadArea.value=(match && match.content)!=null?match.content:"(no stored content for this file)";
+          notepadStatus.textContent=`Viewing: ${entry.path}/${entry.name}`;
+          notepadTitleSub.textContent=entry.name;
+        }
+      }
+      if(notepadSaveBtn){
+        notepadSaveBtn.addEventListener("click",()=>{
+          if(!notepadCurrentFile || !notepadArea || !notepadStatus) return;
+          const file=notepadCurrentFile;
+          const newContent=notepadArea.value;
+          updateCurrentUser(u=>({
+            ...u,
+            fs:u.fs.map(e=>e.path===file.path && e.name===file.name?{...e,content:newContent}:e)
+          }));
+          notepadStatus.textContent="Saved to FS.";
+        });
+      }
+
+      /* Browser */
+      let browserTabs=[];let browserActiveTabId=null;
+      function createBrowserTab(url){
+        const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+        browserTabs.push({id,url});
+        browserActiveTabId=id;
+        renderBrowserTabs();
+        loadBrowserTab(id);
+      }
+      function renderBrowserTabs(){
+        browserTabsEl.innerHTML="";
+        browserTabs.forEach(tab=>{
+          const el=document.createElement("div");
+          el.style.padding="3px 8px";
+          el.style.borderRadius="999px";
+          el.style.border="1px solid rgba(255,255,255,0.18)";
+          el.style.background=tab.id===browserActiveTabId?"rgba(76,141,255,0.4)":"rgba(8,10,26,0.98)";
+          el.style.cursor="pointer";
+          el.style.display="flex";
+          el.style.alignItems="center";
+          el.style.gap="4px";
+          const label=document.createElement("span");
+          label.textContent=tab.url||"New tab";
+          label.style.maxWidth="120px";
+          label.style.overflow="hidden";
+          label.style.whiteSpace="nowrap";
+          label.style.textOverflow="ellipsis";
+          const closeBtn=document.createElement("span");
+          closeBtn.textContent="×";
+          closeBtn.style.fontSize="10px";
+          closeBtn.style.opacity="0.7";
+          closeBtn.style.cursor="pointer";
+          closeBtn.addEventListener("click",(e)=>{
+            e.stopPropagation();
+            browserTabs=browserTabs.filter(t=>t.id!==tab.id);
+            if(browserActiveTabId===tab.id) browserActiveTabId=browserTabs[0]?.id||null;
+            renderBrowserTabs();
+            if(browserActiveTabId) loadBrowserTab(browserActiveTabId); else browserViewEl.textContent="No tab open.";
+          });
+          el.addEventListener("click",()=>{
+            browserActiveTabId=tab.id;
+            loadBrowserTab(tab.id);
+            renderBrowserTabs();
+          });
+          el.appendChild(label);el.appendChild(closeBtn);
+          browserTabsEl.appendChild(el);
+        });
+        const plus=document.createElement("div");
+        plus.textContent="+";
+        plus.style.padding="3px 8px";plus.style.borderRadius="999px";plus.style.border="1px solid rgba(255,255,255,0.18)";
+        plus.style.background="rgba(8,10,26,0.98)";plus.style.cursor="pointer";
+        plus.addEventListener("click",()=>createBrowserTab(""));
+        browserTabsEl.appendChild(plus);
+      }
+      function loadBrowserTab(id){
+        const tab=browserTabs.find(t=>t.id===id);
+        if(!tab)return;
+        browserActiveTabId=id;
+        browserAddressEl.value=tab.url||"";
+        renderBrowserView(tab.url);
+      }
+      function goCurrentBrowserTab(){
+        if(!browserActiveTabId){
+          createBrowserTab(browserAddressEl.value.trim());
+        }else{
+          const url=browserAddressEl.value.trim();
+          const idx=browserTabs.findIndex(t=>t.id===browserActiveTabId);
+          if(idx!==-1){
+            browserTabs[idx].url=url;
+            renderBrowserTabs();
+            renderBrowserView(url);
+          }
+        }
+      }
+      browserGoBtn.addEventListener("click",goCurrentBrowserTab);
+      browserAddressEl.addEventListener("keydown",(e)=>{if(e.key==="Enter")goCurrentBrowserTab();});
+      function renderBrowserView(url){
+        browserViewEl.innerHTML="";
+        if(!url){
+          browserViewEl.textContent="Enter a URL or file:/// path above.";
+          return;
+        }
+        if(url.startsWith("file:///"))renderFileUrl(url);
+        else if(url.startsWith("http://")||url.startsWith("https://")){
+          const iframe=document.createElement("iframe");
+          iframe.src=url;iframe.style.border="none";iframe.style.width="100%";iframe.style.height="100%";iframe.referrerPolicy="no-referrer";
+          browserViewEl.appendChild(iframe);
+        }else{
+          browserViewEl.textContent="Unknown scheme. Use http(s) or file:///.";
+        }
+      }
+      function filePathFromUrl(url){
+        const raw=url.replace("file:///","");
+        const parts=raw.split("/").filter(Boolean);
+        if(parts.length===0)return{path:"/",name:""};
+        const root="/"+parts[0];
+        if(parts.length===1)return{path:root,name:""};
+        const name=parts.slice(1).join("/");
+        return{path:root,name};
+      }
+      function renderFileUrl(url){
+        const u=currentUser();
+        const {path,name}=filePathFromUrl(url);
+        if(!name){
+          const list=u.fs.filter(e=>e.path===path);
+          const container=document.createElement("div");
+          container.style.padding="6px";
+          if(!list.length)container.textContent=`No entries in ${path}.`;
+          else{
+            list.forEach(entry=>{
+              const btn=document.createElement("button");
+              btn.textContent=entry.name+(entry.type==="folder"?" /":"");
+              btn.className="button-small";btn.style.margin="2px 4px 2px 0";
+              btn.addEventListener("click",()=>{
+                const newUrl=url.endsWith("/")?url+entry.name:url+"/"+entry.name;
+                browserAddressEl.value=newUrl;
+                goCurrentBrowserTab();
+              });
+              container.appendChild(btn);
+            });
+          }
+          browserViewEl.appendChild(container);
+        }else{
+          const entry=u.fs.find(e=>e.path===path&&e.name===name);
+          if(!entry){browserViewEl.textContent=`No such file: ${path}/${name}`;return;}
+          const pre=document.createElement("pre");
+          pre.style.margin="0";pre.style.padding="8px";pre.style.whiteSpace="pre-wrap";pre.style.fontFamily="Cascadia Code, monospace";
+          pre.textContent=entry.content||"(no stored content)";
+          browserViewEl.appendChild(pre);
+        }
+      }
+      function browserOpenFile(entry){
+        const basePath=entry.path.replace(/^\//,"");
+        const url=`file:///${basePath}/${entry.name}`;
+        if(!browserActiveTabId)createBrowserTab(url);
+        else{
+          browserAddressEl.value=url;
+          goCurrentBrowserTab();
+        }
+      }
+      function openInBrowser(entry){
+        const ext=(entry.ext||"").toLowerCase();
+        if(ext===".html" || ext===".htm" || ext===".txt" || ext===".md" || ext===".log"){
+          showWindow("browser");
+          browserOpenFile(entry);
+        }else{
+          showWindow("assistant");
+          aiMsg("ai",`"Open in Browser" for ${entry.name} is only wired for html/txt-like content right now.`);
+        }
+      }
+
+      /* Host.exe */
+      function runExe(entry){
+        showWindow("host");
+        const u=currentUser();
+        const match=u.fs.find(e=>e.path===entry.path&&e.name===entry.name);
+        const node=match||entry;
+        if(!node.exePayloadBase64){
+          hostOutputEl.textContent="This .exe has no exePayloadBase64 field.";
+          hostTitleSub.textContent=`Idle · ${entry.name}`;
+          return;
+        }
+        let html="";
+        try{ html=atob(node.exePayloadBase64); }
+        catch{
+          hostOutputEl.textContent="Failed to decode base64 payload.";
+          hostTitleSub.textContent=`Idle · ${entry.name}`;
+          return;
+        }
+        hostTitleSub.textContent=`Running: ${entry.name}`;
+        hostOutputEl.innerHTML="";
+        const iframe=document.createElement("iframe");
+        iframe.style.border="none";iframe.style.width="100%";iframe.style.height="260px";
+        iframe.srcdoc=html;
+        hostOutputEl.appendChild(iframe);
+        const info=document.createElement("div");
+        info.style.marginTop="6px";info.style.fontSize="10px";info.style.color="var(--text-dim)";
+        info.textContent="This HTML is decoded from exePayloadBase64 and rendered in an iframe srcdoc. Real executables are not run.";
+        hostOutputEl.appendChild(info);
+      }
+
+      /* associations + open */
+      function defaultAppForExt(ext){
+        const u=currentUser();
+        const map=u.regAssociations||{};
+        return map[ext]||"notepad";
+      }
+      function openLocation(entry){
+        renderExplorer(entry.path);
+        showWindow("explorer");
+      }
+      function openFile(entry,chooseApp){
+        const ext=(entry.ext||"").toLowerCase();
+        let app=defaultAppForExt(ext);
+        if(chooseApp){
+          // cycle: notepad -> paint -> media -> browser -> host -> notepad
+          if(app==="notepad")app="paint";
+          else if(app==="paint")app="media";
+          else if(app==="media")app="browser";
+          else if(app==="browser")app="host";
+          else app="notepad";
+        }
+        if(app==="notepad"){
+          openInNotepad(entry);
+        }else if(app==="browser" && (ext===".html"||ext===".htm"||ext===".txt"||ext===".md"||ext===".log")){
+          showWindow("browser");
+          openInBrowser(entry);
+        }else if(app==="host" && ext===".exe"){
+          runExe(entry);
+        }else if(app==="settings" && ext===".css"){
+          showWindow("settings");
+          if(themeCssInput) themeCssInput.value=`/* from ${entry.name} */\n`+(themeCssInput.value||"");
+        }else if(app==="paint" && (ext===".png"||ext===".jpg"||ext===".jpeg"||ext===".gif")){
+          showWindow("paint");
+          aiMsg("ai",`In a fuller build I would load ${entry.name} from FS into Paint. Here, Paint can open local image files via its toolbar.`);
+        }else if(app==="media" && (ext===".mp4"||ext===".webm"||ext===".mp3"||ext===".wav"||ext===".ogg")){
+          showWindow("media");
+          aiMsg("ai",`In a fuller build I would stream ${entry.name} from FS into Media Player. Here, Media Player opens local files via its own Open button.`);
+        }else{
+          showWindow("assistant");
+          aiMsg("ai",`I would open "${entry.name}" with app "${app}" in a fuller build. Here I log it instead.`);
+        }
+      }
+
+      /* AIM OS */
+      function aiMsg(role,text){
+        if(!aiLog) return;
+        const div=document.createElement("div");
+        div.className="ai-message "+role;
+        const roleSpan=document.createElement("div");
+        roleSpan.className="ai-message-role "+(role==="user"?"ai-message-user":"ai-message-aim");
+        roleSpan.textContent=role==="user"?"User":"AIM OS";
+        const body=document.createElement("div");
+        body.textContent=text;
+        div.appendChild(roleSpan);div.appendChild(body);
+        aiLog.appendChild(div);
+        aiLog.scrollTop=aiLog.scrollHeight;
+      }
+      function aiAnswer(q){
+        const u=currentUser();
+        const lower=q.toLowerCase();
+        if(/who am i/.test(lower))return`You are ${u.name}, inside a local Win12 shrine where Explorer, Notepad, Browser, Host.exe, Paint, and Media Player all read from the same story.`;
+        if(/where.*data|localstorage/.test(lower))return`All data is in localStorage under "${STORAGE_KEY}". Users, FS entries (including exePayloadBase64), notes, associations, theme.css — all live there.`;
+        if(/what is aim/.test(lower))return"AIM means Agency, Intent, Myth — treating this simulator as a ritual, not a disposable demo.";
+        if(/exe|host/.test(lower))return".exe files in this relic are FS entries with exePayloadBase64. Host.exe decodes that base64 into HTML and renders it in an iframe srcdoc.";
+        if(/file|explorer|fs/.test(lower))return"Explorer and Browser read the per-user fs array. Notepad shows fs.content. Browser handles http/https + file:/// mapping into the same model.";
+        if(/time|clock|flyout/.test(lower))return"Clicking the taskbar clock toggles a flyout with time, full date, and a time-of-day greeting.";
+        if(/fullscreen|maximize/.test(lower))return"Each window header has a [ ] toggle. Click it to go fullscreen above the taskbar, or again to restore.";
+        if(/context menu|right click|ctx/.test(lower))return"Right-click desktop, Explorer background, files, or folders. Menus handle Open, Open with, New, Duplicate, Copy, Paste, Rename, Delete, and Properties. .exe files get a Run (.exe in Host) entry.";
+        if(/note|notes/.test(lower))return"The Notes window is per-user and not tied to a file. It writes to the `notes` field on your user object.";
+        if(/paint/.test(lower))return"Paint is a Win11-style canvas. It lets you draw with a brush, change color and size, and open local images into the canvas.";
+        if(/media|video|music|audio/.test(lower))return"Media Player opens local video, audio, and image files using the browser's playback. It doesn't touch your disk — just uses object URLs.";
+        return"I only know this relic: users, FS, notes, associations, .exe payloads, Paint, Media Player, and AIM. But I notice you keep pushing it further.";
+      }
+      function aiSendNow(){
+        if(!aiInput) return;
+        const q=aiInput.value.trim();
+        if(!q)return;
+        aiMsg("user",q);
+        const r=aiAnswer(q);
+        aiMsg("ai",r);
+        aiInput.value="";
+      }
+      if(aiSend) aiSend.addEventListener("click",aiSendNow);
+      if(aiInput) aiInput.addEventListener("keydown",(e)=>{if(e.key==="Enter")aiSendNow();});
+      aiMsg("ai","AIM OS online. Right-click everywhere. Ask about FS, .exe, Host.exe, clock, fullscreen, context menus, Notes, Paint, or Media Player.");
+
+      /* Regedit admin */
+      let pendingRegEdit=null;
+      if(regAddBtn){
+        regAddBtn.addEventListener("click",()=>{
+          pendingRegEdit={ext:".custom",app:"notepad"};
+          adminBody.textContent=`Allow adding association .custom -> "notepad"?`;
+          adminBackdrop.style.display="flex";
+        });
+      }
+      if(adminAllow){
+        adminAllow.addEventListener("click",()=>{
+          if(!pendingRegEdit){adminBackdrop.style.display="none";return;}
+          updateCurrentUser(u=>{
+            const map={...(u.regAssociations||{})};
+            map[pendingRegEdit.ext]=pendingRegEdit.app;
+            return {...u,regAssociations:map};
+          });
+          pendingRegEdit=null;adminBackdrop.style.display="none";
+        });
+      }
+      if(adminCancel){
+        adminCancel.addEventListener("click",()=>{
+          pendingRegEdit=null;adminBackdrop.style.display="none";renderRegedit();
+        });
+      }
+      adminBackdrop.addEventListener("click",(e)=>{
+        if(e.target===adminBackdrop){pendingRegEdit=null;adminBackdrop.style.display="none";renderRegedit();}
+      });
+
+      /* windows */
+      let highestZ=1200;
+      const windowRestoreState=new Map();
+
+      function attachWindowInfo(win){
+        const infoIcon=win.querySelector(".window-info-icon");
+        const tooltip=win.querySelector(".window-info-tooltip");
+        if(!infoIcon||!tooltip)return;
+        tooltip.textContent=win.dataset.appDesc||"";
+        infoIcon.addEventListener("mouseenter",()=>{tooltip.style.display="block";});
+        infoIcon.addEventListener("mouseleave",()=>{tooltip.style.display="none";});
+      }
+
+      function toggleWindowFullscreen(win){
+        const isFull=win.classList.contains("fullscreen");
+        if(!isFull){
+          const rect=win.getBoundingClientRect();
+          windowRestoreState.set(win,{left:rect.left,top:rect.top,width:rect.width,height:rect.height});
+          win.classList.add("fullscreen");
+        }else{
+          const restore=windowRestoreState.get(win);
+          win.classList.remove("fullscreen");
+          if(restore){
+            win.style.left=restore.left+"px";
+            win.style.top=restore.top+"px";
+            win.style.width=restore.width+"px";
+            win.style.height=restore.height+"px";
+          }
+        }
+      }
+
+      document.querySelectorAll(".window").forEach(win=>{
+        attachWindowInfo(win);
+        const header=win.querySelector("[data-drag-handle]");
+        if(header){
+          let dragging=false,sx,sy,sl,st;
+          header.addEventListener("mousedown",(e)=>{
+            if(e.target.closest(".window-controls"))return;
+            if(win.classList.contains("fullscreen"))return;
+            dragging=true;
+            const rect=win.getBoundingClientRect();
+            sx=e.clientX;sy=e.clientY;sl=rect.left;st=rect.top;
+            document.body.style.cursor="move";
+            bringWindowToFront(win);
+          });
+          window.addEventListener("mousemove",(e)=>{
+            if(!dragging)return;
+            win.style.left=sl+(e.clientX-sx)+"px";
+            win.style.top=st+(e.clientY-sy)+"px";
+          });
+          window.addEventListener("mouseup",()=>{dragging=false;document.body.style.cursor="default";});
+          win.addEventListener("mousedown",()=>bringWindowToFront(win));
+        }
+        const closeBtn=win.querySelector(".window-btn.close");
+        const minBtn=win.querySelector(".window-btn.minimize");
+        if(closeBtn)closeBtn.addEventListener("click",()=>hideWindow(win.dataset.app));
+        if(minBtn)minBtn.addEventListener("click",()=>win.classList.remove("visible"));
+        const fsToggle=win.querySelector(".window-fullscreen-toggle");
+        if(fsToggle){
+          fsToggle.addEventListener("click",(e)=>{
+            e.stopPropagation();
+            toggleWindowFullscreen(win);
+          });
+        }
+      });
+
+      function bringWindowToFront(win){highestZ++;win.style.zIndex=highestZ;}
+      function showWindow(app){
+        const win=windowsMap[app];if(!win)return;
+        win.classList.add("visible");
+        if(!win.dataset.positioned){
+          const rect=win.getBoundingClientRect();
+          const vw=window.innerWidth;const vh=window.innerHeight-80;
+          const w=Math.min(rect.width||580,vw-40);
+          const h=Math.min(rect.height||360,vh-100);
+          win.style.width=w+"px";win.style.height=h+"px";
+          win.style.left=(vw/2-w/2+(Math.random()*40-20))+"px";
+          win.style.top=(vh/2-h/2+(Math.random()*40-20))+"px";
+          win.dataset.positioned="true";
+        }
+        bringWindowToFront(win);
+      }
+      function hideWindow(app){const win=windowsMap[app];if(!win)return;win.classList.remove("visible");}
+
+      document.querySelectorAll(".taskbar-app").forEach(btn=>{
+        btn.addEventListener("click",()=>{
+          const app=btn.dataset.app;
+          const win=windowsMap[app];
+          if(!win)return;
+          if(win.classList.contains("visible"))hideWindow(app);
+          else showWindow(app);
+        });
+      });
+
+      /* Recommended dropdown */
+      recToggle.addEventListener("click",(e)=>{
+        e.stopPropagation();
+        recMenu.style.display=recMenu.style.display==="block"?"none":"block";
+      });
+      recMenu.addEventListener("click",(e)=>{
+        const item=e.target.closest(".rec-dropdown-item");
+        if(!item)return;
+        recMode=item.dataset.mode;
+        recMenu.style.display="none";
+        renderRecommendedFiles();
+      });
+      document.addEventListener("mousedown",(e)=>{
+        if(!recMenu.contains(e.target) && e.target!==recToggle) recMenu.style.display="none";
+      });
+
+      /* Explorer controls */
+      explorerSidebar.addEventListener("click",(e)=>{
+        const tab=e.target.closest(".explorer-tab");
+        if(!tab)return;
+        renderExplorer(tab.dataset.path);
+      });
+      explorerUpBtn.addEventListener("click",()=>{
+        if(currentExplorerPath==="/"||currentExplorerPath==="/desktop")return;
+        renderExplorer("/");
+      });
+      explorerRefreshBtn.addEventListener("click",()=>renderExplorer(currentExplorerPath));
+      explorerNewFileBtn.addEventListener("click",()=>ctxNewFile());
+
+      /* Paint implementation */
+      if(paintCanvas && paintColor && paintSize && paintClearBtn){
+        const ctx=paintCanvas.getContext("2d");
+        ctx.fillStyle="#0b1020";
+        ctx.fillRect(0,0,paintCanvas.width,paintCanvas.height);
+
+        let drawing=false;
+        let lastX=0,lastY=0;
+
+        function getPos(evt){
+          const rect=paintCanvas.getBoundingClientRect();
+          const x=(evt.touches?evt.touches[0].clientX:evt.clientX)-rect.left;
+          const y=(evt.touches?evt.touches[0].clientY:evt.clientY)-rect.top;
+          return {x,y};
+        }
+
+        function startDraw(evt){
+          evt.preventDefault();
+          drawing=true;
+          const {x,y}=getPos(evt);
+          lastX=x;lastY=y;
+        }
+        function moveDraw(evt){
+          if(!drawing)return;
+          evt.preventDefault();
+          const {x,y}=getPos(evt);
+          ctx.strokeStyle=paintColor.value;
+          ctx.lineWidth=parseInt(paintSize.value,10)||5;
+          ctx.lineCap="round";
+          ctx.beginPath();
+          ctx.moveTo(lastX,lastY);
+          ctx.lineTo(x,y);
+          ctx.stroke();
+          lastX=x;lastY=y;
+        }
+        function endDraw(evt){
+          if(!drawing)return;
+          evt.preventDefault();
+          drawing=false;
+        }
+
+        paintCanvas.addEventListener("mousedown",startDraw);
+        paintCanvas.addEventListener("mousemove",moveDraw);
+        window.addEventListener("mouseup",endDraw);
+        paintCanvas.addEventListener("touchstart",startDraw,{passive:false});
+        paintCanvas.addEventListener("touchmove",moveDraw,{passive:false});
+        paintCanvas.addEventListener("touchend",endDraw,{passive:false});
+
+        paintClearBtn.addEventListener("click",()=>{
+          ctx.fillStyle="#0b1020";
+          ctx.fillRect(0,0,paintCanvas.width,paintCanvas.height);
+        });
+
+        if(paintOpenBtn && paintFileInput){
+          paintOpenBtn.addEventListener("click",()=>paintFileInput.click());
+          paintFileInput.addEventListener("change",()=>{
+            const file=paintFileInput.files[0];
+            if(!file)return;
+            const img=new Image();
+            img.onload=function(){
+              ctx.fillStyle="#0b1020";
+              ctx.fillRect(0,0,paintCanvas.width,paintCanvas.height);
+              const scale=Math.min(
+                paintCanvas.width/img.width,
+                paintCanvas.height/img.height
+              );
+              const w=img.width*scale;
+              const h=img.height*scale;
+              const x=(paintCanvas.width-w)/2;
+              const y=(paintCanvas.height-h)/2;
+              ctx.drawImage(img,x,y,w,h);
+            };
+            img.src=URL.createObjectURL(file);
+          });
+        }
+      }
+
+      /* Media Player implementation */
+      if(mediaOpenBtn && mediaFileInput && mediaSurface && mediaFilename){
+        mediaOpenBtn.addEventListener("click",()=>mediaFileInput.click());
+        mediaFileInput.addEventListener("change",()=>{
+          const file=mediaFileInput.files[0];
+          if(!file)return;
+          mediaSurface.innerHTML="";
+          const url=URL.createObjectURL(file);
+          mediaFilename.textContent=file.name;
+
+          if(file.type.startsWith("video/")){
+            const video=document.createElement("video");
+            video.src=url;
+            video.controls=true;
+            video.autoplay=true;
+            mediaSurface.appendChild(video);
+          }else if(file.type.startsWith("audio/")){
+            const audio=document.createElement("audio");
+            audio.src=url;
+            audio.controls=true;
+            audio.autoplay=true;
+            mediaSurface.appendChild(audio);
+          }else if(file.type.startsWith("image/")){
+            const img=document.createElement("img");
+            img.src=url;
+            mediaSurface.appendChild(img);
+          }else{
+            mediaSurface.textContent="Unsupported media type: "+file.type;
+          }
+        });
+      }
+
+      /* dev banner */
+      window.addEventListener("keydown",(e)=>{if(e.key==="F12")devBanner.classList.toggle("visible");});
+
+      /* initial */
+      function initialSetup(){
+        refreshAll();
+        hideLogin();
+        showWindow("explorer");
+        showWindow("notes");
+      }
+
+      initialSetup();
+
+      console.log("%cWin12 AIM FS full ctx relic + Notes + Paint + Media","color:#4c8dff;font-size:14px;font-weight:bold;");
+      console.log("Explorer, Notepad, Browser, Host.exe, Regedit, Settings, AIM OS, Notes, Paint (canvas+open image), Media Player (video/audio/image), clock flyout, fullscreen windows, full context menus.");
+    })();
   </script>
 </body>
 </html>

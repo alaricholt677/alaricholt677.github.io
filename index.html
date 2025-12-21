@@ -659,19 +659,26 @@
   <style id="theme-style"></style>
 </head>
 <body>
-  <div id="dl" 
-     style="position:fixed;top:-60px;left:0;width:100%;background:#111;color:#fff;
-            padding:15px;text-align:center;font-family:sans-serif;font-size:18px;
-            transition:top .6s;z-index:9999;cursor:pointer;"
-     onclick="const h=document.documentElement.outerHTML;
-              const b=new Blob([h],{type:'text/html'});
-              const u=URL.createObjectURL(b);
-              const a=document.createElement('a');
-              a.href=u;a.download='page.html';a.click();
-              URL.revokeObjectURL(u);">
-  ⬇️ Download HTML
+<div id="dlTab"
+     style="position:fixed;top:-40px;left:50%;transform:translateX(-50%);
+            background:#111;color:#fff;padding:8px 18px;border-radius:0 0 12px 12px;
+            font-family:sans-serif;font-size:14px;cursor:pointer;
+            box-shadow:0 2px 6px rgba(0,0,0,.3);transition:top .5s;z-index:9999;"
+     onclick="(function(){
+       const d = document.documentElement.cloneNode(true);
+       const t = d.querySelector('#dlTab');
+       if (t) t.remove();                      // remove the tab from exported HTML
+       const html = '<!DOCTYPE html>' + d.outerHTML;
+       const blob = new Blob([html], {type:'text/html'});
+       const url = URL.createObjectURL(blob);
+       const a = document.createElement('a');
+       a.href = url;
+       a.download = 'page.html';
+       a.click();
+       URL.revokeObjectURL(url);
+     })()">
+  &#8681; Download HTML
 </div>
-
 
   <!-- login -->
   <div id="login-overlay">
@@ -2575,7 +2582,9 @@ button:hover{background:#1e293b;}
         showWindow("notes");
       }
 
-        window.onload = () => document.getElementById('dl').style.top = '0';
+  window.onload = function () {
+    document.getElementById('dlTab').style.top = '0';
+  };
 
       initialSetup();
 

@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <!-- Electric blue gradient background -->
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0A6BFF"/>
+      <stop offset="1" stop-color="#00D0FF"/>
+    </linearGradient>
+    <!-- Glass pane gradient -->
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="rgba(255,255,255,0.85)"/>
+      <stop offset="1" stop-color="rgba(255,255,255,0.55)"/>
+    </linearGradient>
+    <!-- Highlight stroke for panes -->
+    <linearGradient id="stroke" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.2"/>
+    </linearGradient>
+    <!-- Subtle inner shadow for depth -->
+    <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feOffset dx="0" dy="2"/>
+      <feGaussianBlur stdDeviation="3"/>
+      <feComposite operator="arithmetic" k2="-1" k3="1" in2="SourceAlpha"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0"/>
+      <feComposite in2="SourceGraphic" operator="over"/>
+    </filter>
+    <!-- Glow ring -->
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#66F3FF" stop-opacity="0.9"/>
+      <stop offset="0.6" stop-color="#00D0FF" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#00D0FF" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Numeric emboss -->
+    <filter id="emboss" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.6" result="blur"/>
+      <feOffset in="blur" dx="0" dy="1" result="offset"/>
+      <feMerge>
+        <feMergeNode in="offset"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="256" height="256" rx="32" fill="url(#bg)"/>
+
+  <!-- Orbit glow -->
+  <circle cx="128" cy="128" r="98" fill="url(#glow)"/>
+
+  <!-- Pane group -->
+  <g transform="translate(128,128) rotate(-6) translate(-128,-128)">
+    <!-- Pane 1 -->
+    <rect x="36" y="36" width="92" height="92" rx="14" fill="url(#glass)" stroke="url(#stroke)" stroke-width="2" filter="url(#innerShadow)"/>
+    <!-- Pane 2 -->
+    <rect x="128" y="36" width="92" height="92" rx="14" fill="url(#glass)" stroke="url(#stroke)" stroke-width="2" filter="url(#innerShadow)"/>
+    <!-- Pane 3 -->
+    <rect x="36" y="128" width="92" height="92" rx="14" fill="url(#glass)" stroke="url(#stroke)" stroke-width="2" filter="url(#innerShadow)"/>
+    <!-- Pane 4 -->
+    <rect x="128" y="128" width="92" height="92" rx="14" fill="url(#glass)" stroke="url(#stroke)" stroke-width="2" filter="url(#innerShadow)"/>
+  </g>
+
+  <!-- Subtle split white lines (Win vibe) -->
+  <g opacity="0.65">
+    <rect x="126" y="32" width="4" height="192" fill="#ffffff"/>
+    <rect x="32" y="126" width="192" height="4" fill="#ffffff"/>
+  </g>
+
+  <!-- “12” mark -->
+  <g transform="translate(0,0)" filter="url(#emboss)">
+    <path d="M86 204 q18 0 28 -12 t10 -30 q0 -18 -10 -30 t-28 -12 q-18 0 -28 12 t-10 30 q0 18 10 30 t28 12 z" fill="#ffffff" opacity="0.9"/>
+    <path d="M150 164 c14 -20 30 -32 46 -32 c10 0 18 3 24 9 c6 6 9 13 9 22 c0 13 -6 23 -18 31 c-8 6 -19 12 -34 19 l-14 6 h64 v14 h-96 v-12 c26 -12 44 -21 53 -27 c12 -8 18 -16 18 -26 c0 -6 -2 -11 -6 -14 c-4 -3 -10 -5 -16 -5 c-9 0 -18 4 -26 13 l-4 4 z" fill="#ffffff" opacity="0.9"/>
+  </g>
+
+  <!-- Accent spark -->
+  <circle cx="206" cy="58" r="6" fill="#ffffff"/>
+  <circle cx="206" cy="58" r="14" fill="none" stroke="#66F3FF" stroke-width="2" opacity="0.7"/>
+</svg>

@@ -1,33 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
   <defs>
-    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0A6BFF"/>
-      <stop offset="1" stop-color="#00A4EF"/>
+    <!-- Gradient background in magenta/purple -->
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff4da6"/>
+      <stop offset="1" stop-color="#9b4dff"/>
     </linearGradient>
-    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
-      <stop offset="0" stop-color="#66F3FF" stop-opacity="0.8"/>
-      <stop offset="1" stop-color="#00A4EF" stop-opacity="0"/>
-    </radialGradient>
+    <!-- Pane gradient for glassy shading -->
+    <linearGradient id="pane" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.6"/>
+    </linearGradient>
+    <!-- Drop shadow filter -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
   </defs>
 
-  <!-- Background -->
-  <rect width="256" height="256" rx="32" fill="url(#blue)"/>
+  <!-- Rounded background -->
+  <rect width="256" height="256" rx="32" fill="url(#bg)"/>
 
-  <!-- Glow -->
-  <circle cx="128" cy="128" r="110" fill="url(#glow)"/>
-
-  <!-- Windows-style panes -->
-  <g transform="translate(128,128) skewX(-6) translate(-128,-128)">
-    <rect x="32" y="32" width="88" height="88" fill="white"/>
-    <rect x="136" y="32" width="88" height="88" fill="white"/>
-    <rect x="32" y="136" width="88" height="88" fill="white"/>
-    <rect x="136" y="136" width="88" height="88" fill="white"/>
+  <!-- Four panes with shading -->
+  <g transform="translate(128,128) skewX(-6) translate(-128,-128)" filter="url(#shadow)">
+    <rect x="36" y="36" width="88" height="88" rx="12" fill="url(#pane)"/>
+    <rect x="132" y="36" width="88" height="88" rx="12" fill="url(#pane)"/>
+    <rect x="36" y="132" width="88" height="88" rx="12" fill="url(#pane)"/>
+    <rect x="132" y="132" width="88" height="88" rx="12" fill="url(#pane)"/>
   </g>
 
-  <!-- Split lines for crispness -->
-  <rect x="126" y="32" width="4" height="192" fill="#00A4EF"/>
-  <rect x="32" y="126" width="192" height="4" fill="#00A4EF"/>
-
-  <!-- Subtle “12” overlay -->
-  <text x="128" y="228" text-anchor="middle" font-size="48" font-family="Segoe UI, sans-serif" fill="#ffffff" opacity="0.85">12</text>
+  <!-- Split lines for crisp separation -->
+  <rect x="126" y="32" width="4" height="192" fill="#9b4dff" opacity="0.7"/>
+  <rect x="32" y="126" width="192" height="4" fill="#9b4dff" opacity="0.7"/>
 </svg>

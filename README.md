@@ -1,6 +1,6 @@
 # Win12 Preview Simulator AIM
 
-[![Stars](https://img.shields.io/github/stars/alaricholt677/win12-preview-simulator-AIM?style=for-the-badge)](https://github.com/alaricholt677/win12-preview-simulator-AIM/stargazers)
+[![Stars](https://img.shields.io/github/stars/alaricholt677/alaricholt677.github.io?style=for-the-badge)](https://github.com/alaricholt677/alaricholt677.github.io/stars/stars.html)
 [![Forks](https://img.shields.io/github/forks/alaricholt677/win12-preview-simulator-AIM?style=for-the-badge)](https://github.com/alaricholt677/win12-preview-simulator-AIM/network/members)
 [![Issues](https://img.shields.io/github/issues/alaricholt677/win12-preview-simulator-AIM?style=for-the-badge)](https://github.com/alaricholt677/win12-preview-simulator-AIM/issues)
 

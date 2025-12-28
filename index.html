@@ -671,6 +671,137 @@
       max-width:100%;
       max-height:100%;
     }
+    /* === OVERLAY === */
+#widgets-editor-overlay {
+  position: fixed;
+  inset: 0;
+  backdrop-filter: blur(12px);
+  background: rgba(0,0,0,0.25);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 5000;
+}
+
+#widgets-editor-overlay.hidden {
+  display: none;
+}
+
+/* === PANEL === */
+.widgets-editor-panel {
+  width: 600px;
+  height: 420px;
+  background: var(--win12-surface);
+  border: 1px solid var(--win12-border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* === HEADER === */
+.widgets-editor-header {
+  padding: 10px 14px;
+  background: var(--win12-surface-2);
+  border-bottom: 1px solid var(--win12-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+}
+
+/* === CONTROLS === */
+.widgets-editor-controls {
+  padding: 10px 14px;
+  background: var(--win12-surface);
+  border-bottom: 1px solid var(--win12-border);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.widgets-editor-controls select,
+.widgets-editor-controls button {
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--win12-border);
+  background: var(--win12-surface-2);
+  cursor: pointer;
+}
+
+/* === CANVAS (widgets inside editor) === */
+#widgets-editor-canvas {
+  flex: 1;
+  position: relative;
+  background: var(--win12-surface-1);
+  overflow: hidden;
+}
+
+#desktop-widgets-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none; /* widgets handle their own events */
+}
+
+/* === WIDGET CONTAINER === */
+.desktop-widget {
+  position: absolute;
+  width: 180px;
+  background: var(--win12-surface);
+  border: 1px solid var(--win12-border);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  pointer-events: auto;
+  overflow: hidden;
+}
+
+/* === HEADER === */
+.desktop-widget-header {
+  background: var(--win12-surface-2);
+  padding: 6px 10px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--win12-border);
+}
+
+/* === CONTROLS === */
+.desktop-widget-controls button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 14px;
+  color: var(--win12-text);
+}
+
+.desktop-widget-controls button:hover {
+  color: var(--win12-accent);
+}
+
+/* === BODY === */
+.desktop-widget-body {
+  padding: 10px;
+  font-size: 14px;
+  color: var(--win12-text);
+}
+
+/* === MINIMIZED STATE === */
+.desktop-widget.minimized .desktop-widget-body {
+  display: none;
+}
+
+    .desktop-widget,
+.editor-widget {
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.desktop-widget:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
   </style>
   <style id="theme-style"></style>
 </head>
@@ -694,6 +825,36 @@
       </div>
     </div>
   </div>
+
+<!-- Desktop widgets layer (widgets appear here in normal mode) -->
+<div id="desktop-widgets-layer"></div>
+
+<!-- Widget editor overlay (background blurred via CSS) -->
+<div id="widgets-editor-overlay" class="hidden">
+  <div class="widgets-editor-panel">
+    <div class="widgets-editor-header">
+      <span>Desktop widget editor</span>
+      <button id="widgets-editor-close-btn">Close editor</button>
+    </div>
+
+    <!-- Controls -->
+    <div class="widgets-editor-controls">
+      <label>
+        Widget type:
+        <select id="widgets-editor-widget-type">
+          <option value="clock">Clock</option>
+          <option value="notes">Notes</option>
+          <option value="weather">Weather</option>
+          <option value="custom">Custom</option>
+        </select>
+      </label>
+      <button id="widgets-editor-add-btn">Add widget to desktop</button>
+    </div>
+
+    <!-- Editor canvas (widgets are visible and draggable here, not blurred) -->
+    <div id="widgets-editor-canvas"></div>
+  </div>
+</div>
 
   <!-- desktop -->
   <div id="desktop">
@@ -792,6 +953,30 @@
             <div class="start-app-icon"></div>
             <div>Explorer</div>
             <div class="start-app-sub">FS + ctx menus</div>
+          </div>
+          <div class="start-app" data-app="news" data-app-name="news">
+            <div class="start-app-icon"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <!-- Outer rounded rectangle (newspaper body) -->
+            <rect x="3" y="4" width="18" height="16" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+
+             <!-- Left title block -->
+            <rect x="5.2" y="6.2" width="6.2" height="3.6" rx="0.8" ry="0.8" fill="none" stroke="currentColor" stroke-width="1.3"/>
+
+            <!-- Left text lines -->
+            <line x1="5.4" y1="11" x2="11.2" y2="11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <line x1="5.4" y1="13.4" x2="11.2" y2="13.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <line x1="5.4" y1="15.8" x2="9.8"  y2="15.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+
+            <!-- Right image block -->
+            <rect x="12.8" y="6.2" width="5.8" height="5.8" rx="1" ry="1" fill="none" stroke="currentColor" stroke-width="1.3"/>
+
+            <!-- Right text lines under image -->
+            <line x1="12.8" y1="13.8" x2="18.6" y2="13.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            line x1="12.8" y1="16.2" x2="17.2" y2="16.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+            </div>
+            <div>News</div>
+            <div class="start-app-sub">History + user content</div>
           </div>
           <div class="start-app" data-app="notepad" data-app-name="notepad">
             <div class="start-app-icon" style="background:linear-gradient(135deg,#ffcc66,#ff9966);"></div>
@@ -1137,6 +1322,56 @@
     </div>
   </div>
 
+  <!-- News -->
+  <div class="window" id="window-news" data-app="news" data-app-desc="[News] News is something where you can view added stuff after News's intail release">
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-icon"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <!-- Outer rounded rectangle (newspaper body) -->
+          <rect x="3" y="4" width="18" height="16" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+
+          <!-- Left title block -->
+          <rect x="5.2" y="6.2" width="6.2" height="3.6" rx="0.8" ry="0.8" fill="none" stroke="currentColor" stroke-width="1.3"/>
+
+          <!-- Left text lines -->
+          <line x1="5.4" y1="11" x2="11.2" y2="11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          <line x1="5.4" y1="13.4" x2="11.2" y2="13.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          <line x1="5.4" y1="15.8" x2="9.8"  y2="15.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+
+          <!-- Right image block -->
+          <rect x="12.8" y="6.2" width="5.8" height="5.8" rx="1" ry="1" fill="none" stroke="currentColor" stroke-width="1.3"/>
+
+          <!-- Right text lines under image -->
+          <line x1="12.8" y1="13.8" x2="18.6" y2="13.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          <line x1="12.8" y1="16.2" x2="17.2" y2="16.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        </div>
+        <div class="window-title-text">
+          <div class="window-title-main">[News]</div>
+          <div class="window-title-sub">the news for after this windoow exsisted</div>
+        </div>
+        <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+        <div class="window-info-icon">(i)</div>
+        <div class="window-info-tooltip"></div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+    <div class="window-body">
+      <details>
+       <summary>4.0 - widgets</summary>
+       <div>
+         <img src="user.png"></img>
+         <h1>Type: app request, User:</h1>
+         <p>Ceal</p>
+         <p>widgets adds so you can add any to the desktop report any bugs if theres an error with it.</p>
+       </div>
+      </details>
+    </div>
+  </div>
+
   <!-- Files summary -->
   <div class="window" id="window-files" data-app="files" data-app-desc="[Files] Debug view of the raw FS entries for this user.">
     <div class="window-header" data-drag-handle>
@@ -1363,6 +1598,7 @@
     <div class="ctx-item" data-action="delete"><span>Delete</span></div>
     <div class="ctx-separator"></div>
     <div class="ctx-item" data-action="props"><span>Properties</span></div>
+    <button id="open-widgets-editor-btn">Edit desktop widgets</button>
   </div>
 
   <!-- Admin popup -->
@@ -2858,6 +3094,282 @@ Just ask anything and I’ll guide you`;
           }
         });
       }
+
+// === CONFIG / HELPERS ===
+
+const WIDGETS_LS_KEY = 'widgets';
+let lastLoadedUser = null;
+
+function getCurrentUserName() {
+  const el = document.querySelector('.user-chip-name');
+  return el ? el.innerText.trim() : null;
+}
+
+function loadWidgetsStore() {
+  try {
+    const raw = localStorage.getItem(WIDGETS_LS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    console.error('Failed to parse widgets from localStorage', e);
+    return {};
+  }
+}
+
+function saveWidgetsStore(store) {
+  localStorage.setItem(WIDGETS_LS_KEY, JSON.stringify(store));
+}
+
+// Ensure structure: { [username]: [ {id,type,x,y} ] }
+function getUserWidgets(username) {
+  const store = loadWidgetsStore();
+  return store[username] || [];
+}
+
+function setUserWidgets(username, widgets) {
+  const store = loadWidgetsStore();
+  store[username] = widgets;
+  saveWidgetsStore(store);
+}
+
+// Generate a simple id for widgets
+function generateWidgetId() {
+  return 'w_' + Math.random().toString(36).slice(2);
+}
+
+// === DOM REFERENCES ===
+
+const openEditorBtn = document.getElementById('open-widgets-editor-btn');
+const editorOverlay = document.getElementById('widgets-editor-overlay');
+const editorCloseBtn = document.getElementById('widgets-editor-close-btn');
+const editorAddBtn = document.getElementById('widgets-editor-add-btn');
+const editorTypeSelect = document.getElementById('widgets-editor-widget-type');
+const editorCanvas = document.getElementById('widgets-editor-canvas');
+const desktopLayer = document.getElementById('desktop-widgets-layer');
+const ctxMenu = document.getElementById('ctx-menu'); // your existing context menu div
+
+// === OPEN / CLOSE EDITOR ===
+
+function openWidgetsEditor() {
+  if (!editorOverlay) return;
+  editorOverlay.classList.remove('hidden');
+
+  // hide ctx-menu if open
+  if (ctxMenu) ctxMenu.style.display = 'none';
+
+  const username = getCurrentUserName();
+  if (!username) return;
+
+  // clear canvas
+  editorCanvas.innerHTML = '';
+
+  // load widgets for this user and render them on the editor canvas
+  const userWidgets = getUserWidgets(username);
+  userWidgets.forEach(widget => {
+    const el = createEditorWidgetElement(widget);
+    editorCanvas.appendChild(el);
+  });
+}
+
+function closeWidgetsEditor() {
+  if (!editorOverlay) return;
+  const username = getCurrentUserName();
+  if (!username) {
+    editorOverlay.classList.add('hidden');
+    return;
+  }
+
+  // Collect widget data from editor canvas and save
+  const widgets = [];
+  editorCanvas.querySelectorAll('.editor-widget').forEach(el => {
+    const id = el.dataset.id;
+    const type = el.dataset.type;
+    const x = parseFloat(el.style.left) || 0;
+    const y = parseFloat(el.style.top) || 0;
+    widgets.push({ id, type, x, y });
+  });
+
+  setUserWidgets(username, widgets);
+
+  editorOverlay.classList.add('hidden');
+
+  // After closing, re-render widgets on desktop
+  renderDesktopWidgetsForUser(username);
+}
+
+// === EDITOR WIDGET CREATION ===
+
+function createEditorWidgetElement(widget) {
+  const el = document.createElement('div');
+  el.className = 'editor-widget';
+  el.dataset.id = widget.id || generateWidgetId();
+  el.dataset.type = widget.type;
+
+  el.style.position = 'absolute';
+  el.style.left = (widget.x || 50) + 'px';
+  el.style.top = (widget.y || 50) + 'px';
+
+  el.textContent = widget.type + ' widget';
+
+  makeDraggable(el, editorCanvas);
+
+  return el;
+}
+
+function handleAddWidgetInEditor() {
+  const username = getCurrentUserName();
+  if (!username) return;
+
+  const type = editorTypeSelect.value || 'custom';
+  const widget = {
+    id: generateWidgetId(),
+    type,
+    x: 50,
+    y: 50
+  };
+
+  const el = createEditorWidgetElement(widget);
+  editorCanvas.appendChild(el);
+}
+
+// === DRAGGING LOGIC (inside editor canvas) ===
+
+function makeDraggable(el, container) {
+  let offsetX = 0;
+  let offsetY = 0;
+  let isDragging = false;
+
+  el.addEventListener('mousedown', startDrag);
+  el.addEventListener('touchstart', startDrag, { passive: false });
+
+  function startDrag(e) {
+    e.preventDefault();
+    isDragging = true;
+    const rect = el.getBoundingClientRect();
+    const startX = e.touches ? e.touches[0].clientX : e.clientX;
+    const startY = e.touches ? e.touches[0].clientY : e.clientY;
+    offsetX = startX - rect.left;
+    offsetY = startY - rect.top;
+
+    document.addEventListener('mousemove', onDrag);
+    document.addEventListener('mouseup', endDrag);
+    document.addEventListener('touchmove', onDrag, { passive: false });
+    document.addEventListener('touchend', endDrag);
+  }
+
+  function onDrag(e) {
+    if (!isDragging) return;
+    e.preventDefault();
+    const containerRect = container.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    let newLeft = clientX - offsetX - containerRect.left;
+    let newTop = clientY - offsetY - containerRect.top;
+
+    // optional: clamp to container
+    if (newLeft < 0) newLeft = 0;
+    if (newTop < 0) newTop = 0;
+
+    el.style.left = newLeft + 'px';
+    el.style.top = newTop + 'px';
+  }
+
+  function endDrag() {
+    isDragging = false;
+    document.removeEventListener('mousemove', onDrag);
+    document.removeEventListener('mouseup', endDrag);
+    document.removeEventListener('touchmove', onDrag);
+    document.removeEventListener('touchend', endDrag);
+  }
+}
+
+// === DESKTOP RENDERING (outside editor) ===
+
+function renderDesktopWidgetsForUser(username) {
+  if (!desktopLayer) return;
+  desktopLayer.innerHTML = '';
+
+  const widgets = getUserWidgets(username);
+
+  widgets.forEach(widget => {
+    const el = document.createElement('div');
+    el.className = 'desktop-widget';
+    el.dataset.id = widget.id;
+    el.dataset.type = widget.type;
+
+    el.style.position = 'absolute';
+    el.style.left = (widget.x || 50) + 'px';
+    el.style.top = (widget.y || 50) + 'px';
+
+    // Basic content based on type; you can replace this with real widget UIs
+    const header = document.createElement('div');
+    header.className = 'desktop-widget-header';
+    header.textContent = widget.type;
+
+    const controls = document.createElement('div');
+    controls.className = 'desktop-widget-controls';
+
+    const btnMin = document.createElement('button');
+    btnMin.textContent = '_';
+    btnMin.title = 'Minimize';
+    btnMin.addEventListener('click', () => {
+      el.classList.toggle('minimized');
+    });
+
+    const btnClose = document.createElement('button');
+    btnClose.textContent = '×';
+    btnClose.title = 'Remove widget';
+    btnClose.addEventListener('click', () => {
+      removeWidgetForUser(username, widget.id);
+      renderDesktopWidgetsForUser(username);
+    });
+
+    controls.appendChild(btnMin);
+    controls.appendChild(btnClose);
+
+    const body = document.createElement('div');
+    body.className = 'desktop-widget-body';
+    body.textContent = widget.type + ' content here';
+
+    header.appendChild(controls);
+    el.appendChild(header);
+    el.appendChild(body);
+
+    desktopLayer.appendChild(el);
+  });
+}
+
+function removeWidgetForUser(username, widgetId) {
+  const widgets = getUserWidgets(username);
+  const filtered = widgets.filter(w => w.id !== widgetId);
+  setUserWidgets(username, filtered);
+}
+
+// === USERNAME WATCHER (every second) ===
+
+setInterval(() => {
+  const currentUser = getCurrentUserName();
+  if (!currentUser) return;
+
+  if (currentUser !== lastLoadedUser) {
+    lastLoadedUser = currentUser;
+    renderDesktopWidgetsForUser(currentUser);
+  }
+}, 1000);
+
+// === EVENT WIRING ===
+
+if (openEditorBtn) {
+  openEditorBtn.addEventListener('click', openWidgetsEditor);
+}
+
+if (editorCloseBtn) {
+  editorCloseBtn.addEventListener('click', closeWidgetsEditor);
+}
+
+if (editorAddBtn) {
+  editorAddBtn.addEventListener('click', handleAddWidgetInEditor);
+}
 
       /* dev banner */
       window.addEventListener("keydown",(e)=>{if(e.key==="F12")devBanner.classList.toggle("visible");});

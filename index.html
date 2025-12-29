@@ -881,6 +881,17 @@
 .resize-bl { bottom: 0; left: 0; cursor: nesw-resize; }
 .resize-br { bottom: 0; right: 0; cursor: nwse-resize; }
 
+
+#notifications-list .notification-item {
+  background: rgba(26,32,70,0.9);
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+#notifications-list .notification-item:hover {
+  background: rgba(76,141,255,0.4);
+}
   </style>
   <style id="theme-style"></style>
 </head>
@@ -1004,6 +1015,11 @@
 
   <!-- time flyout -->
   <div id="time-flyout">
+    
+  <div id="time-flyout-notifications" style="margin-top:10px; font-size:12px; color:var(--text-main);">
+    <div style="font-weight:bold; margin-bottom:4px;">Notifications</div>
+    <div id="notifications-list" style="display:flex; flex-direction:column; gap:4px;"></div>
+
     <div id="time-flyout-time">--:--</div>
     <div id="time-flyout-date">---</div>
     <div id="time-flyout-greeting">Hello.</div>
@@ -3932,6 +3948,65 @@ function createRunWindow() {
   if (closeBtn) closeBtn.addEventListener("click", () => hideWindow("run"));
   if (minBtn) minBtn.addEventListener("click", () => runWin.classList.remove("visible"));
 }
+function notifyWithLink(message, url) {
+  const id = Date.now().toString(36);
+  notifications.push({ id, message, url });
+  renderNotifications();
+}
+
+// Update renderNotifications to handle links
+function renderNotifications() {
+  notificationsList.innerHTML = "";
+  if (notifications.length === 0) {
+    notificationsList.innerHTML = "<div style='color:var(--text-soft);'>No notifications</div>";
+    return;
+  }
+  notifications.forEach(n => {
+    const item = document.createElement("div");
+    item.className = "notification-item";
+    item.innerHTML = n.url ? `<a href="${n.url}" target="_blank" style="color:inherit;text-decoration:none;">${n.message}</a>` : n.message;
+    item.dataset.id = n.id;
+
+    // Remove notification on click
+    item.addEventListener("click", () => {
+      notifications = notifications.filter(x => x.id !== n.id);
+      renderNotifications();
+    });
+
+    notificationsList.appendChild(item);
+  });
+}
+renderNotifications();
+
+async function checkForUpdates() {
+  const githubURL = "https://raw.githubusercontent.com/alaricholt677/alaricholt677.github.io/main/index.html";
+
+  try {
+    // Fetch latest code from GitHub
+    const response = await fetch(githubURL);
+    if (!response.ok) throw new Error("Failed to fetch GitHub file");
+    const latestCode = await response.text();
+
+    // Get current code from <html> element
+    const currentCode = document.documentElement.outerHTML;
+
+    // Compare
+    if (latestCode.trim() !== currentCode.trim()) {
+      // Send notification with link
+      notifyWithLink("Update detected! Click to view on GitHub", "https://github.com/alaricholt677/alaricholt677.github.io");
+    }
+  } catch (error) {
+    console.error("Update check failed:", error);
+  }
+}
+
+
+// Check every 5 minutes
+setInterval(checkForUpdates, 5 * 60 * 1000);
+
+// Also check once on load
+checkForUpdates();
+
       /* dev banner */
       window.addEventListener("keydown",(e)=>{if(e.key==="F12")devBanner.classList.toggle("visible");});
 

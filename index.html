@@ -3813,11 +3813,110 @@ saveBtn.addEventListener("click", saveChanges);
 
 loadLS();
 
+
+function createRunWindow() {
+  // Create the window container
+  const runWin = document.createElement("div");
+  runWin.className = "window fixed-run";
+  runWin.id = "window-run";
+  runWin.dataset.app = "run";
+  runWin.dataset.appDesc = "[Run] Execute apps or open URLs.";
+
+  // Window header
+  runWin.innerHTML = `
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-icon" style="background:linear-gradient(135deg,#4c8dff,#94a3ff);"></div>
+        <div class="window-title-text">
+          <div class="window-title-main">[Run]</div>
+          <div class="window-title-sub">Type a command or URL</div>
+        </div>
+        <div class="window-info-icon">(i)</div>
+        <div class="window-info-tooltip"></div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+    <div class="window-body" style="padding:10px;font-size:12px;">
+      <div style="margin-bottom:6px;">Enter command (e.g., <code>notepad</code>, <code>explorer</code>, <code>paint</code>, or URL):</div>
+      <input id="run-input" style="width:100%;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);background:rgba(4,6,18,0.98);color:var(--text-main);" placeholder="Type command or URL..." />
+      <div style="margin-top:8px;text-align:right;">
+        <button class="button-small" id="run-ok">Run</button>
+        <button class="button-small" id="run-cancel">Cancel</button>
+      </div>
+    </div>
+  `;
+
+  // Append to body
+  document.body.appendChild(runWin);
+
+  // Add to windows map
+  windowsMap["run"] = runWin;
+
+  // Add Start menu shortcut dynamically
+  const startGrid = document.getElementById("start-pinned-grid");
+  const runTile = document.createElement("div");
+  runTile.className = "start-app";
+  runTile.dataset.app = "run";
+  runTile.dataset.appName = "run";
+  runTile.innerHTML = `
+    <div class="start-app-icon" style="background:linear-gradient(135deg,#4c8dff,#94a3ff);"></div>
+    <div>Run</div>
+    <div class="start-app-sub">Open apps or URLs</div>
+  `;
+  startGrid.appendChild(runTile);
+
+  // Attach click event to Start tile
+  runTile.addEventListener("click", () => {
+    showWindow("run");
+    document.getElementById("run-input").focus();
+  });
+
+  // Attach logic for Run buttons
+  const runInput = runWin.querySelector("#run-input");
+  const runOk = runWin.querySelector("#run-ok");
+  const runCancel = runWin.querySelector("#run-cancel");
+
+  runOk.addEventListener("click", () => {
+    const cmd = runInput.value.trim().toLowerCase();
+    if (!cmd) return;
+
+    if (cmd.startsWith("http://") || cmd.startsWith("https://") || cmd.startsWith("file:///")) {
+      showWindow("browser");
+      browserAddressEl.value = cmd;
+      browserGoBtn.click();
+    } else if (["explorer", "notepad", "browser", "host", "assistant", "regedit", "settings", "notes", "paint", "media", "camera"].includes(cmd)) {
+      showWindow(cmd);
+    } else {
+      showWindow("assistant");
+      aiMsg("ai", `Unknown command: "${cmd}". Try an app name or a URL.`);
+    }
+
+    hideWindow("run");
+  });
+
+  runCancel.addEventListener("click", () => hideWindow("run"));
+
+  // Keyboard shortcut Ctrl+R
+  document.addEventListener("keydown", e => {
+    if (e.ctrlKey && e.key.toLowerCase() === "r") {
+      showWindow("run");
+      runInput.focus();
+    }
+  });
+}
+
+// Call this after initial setup
+createRunWindow();
+
       /* dev banner */
       window.addEventListener("keydown",(e)=>{if(e.key==="F12")devBanner.classList.toggle("visible");});
 
       /* initial */
       function initialSetup(){
+        createRunWindow();
         refreshAll();
         hideLogin();
         showWindow("explorer");

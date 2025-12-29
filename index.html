@@ -1743,11 +1743,29 @@ button:hover{background:#1e293b;}
           createdAt:new Date().toISOString(),
           notes:"",
           themeCss:"",
-          fs:[],
+          fs:[{ path:"/desktop", name:"Welcome.txt", type:"file", ext:".txt", content:"Hello from the Win12 AIM relic.\n\nThis is your desktop Welcome.txt file."},
+              { path:"/desktop", name:"Readme.md", type:"file", ext:".md", content:"# Readme\n\nThis is a markdown file in /desktop."},
+              { path:"/desktop", name:"SampleApp.exe", type:"file", ext:".exe", exePayloadBase64 },
+              { path:"/documents", name:"Session.log", type:"file", ext:".log", content:"Session started.\nUser created.\nExplorer, Notepad, Browser, and Host.exe online."},
+              { path:"/recommended-files", name:"Roadmap.txt", type:"file", ext:".txt", content:"Future ideas:\n- More exe payloads\n- Users requests" }],
           regAssociations:{
-            ".txt":"notepad",".md":"notepad",".exe":"host",
-            ".png":"paint",".jpg":"paint",".jpeg":"paint",".gif":"paint",
-            ".mp4":"media",".webm":"media",".mp3":"media",".wav":"media",".ogg":"media"
+              ".txt":"notepad",
+              ".md":"notepad",
+              ".log":"notepad",
+              ".css":"settings",
+              ".html":"browser",
+              ".js":"notepad",
+              ".json":"notepad",
+              ".exe":"host",
+              ".png":"paint",
+              ".jpg":"paint",
+              ".jpeg":"paint",
+              ".gif":"paint",
+              ".mp4":"media",
+              ".webm":"media",
+              ".mp3":"media",
+              ".wav":"media",
+              ".ogg":"media"
           }
         });
         state.currentUserId=id; saveState();

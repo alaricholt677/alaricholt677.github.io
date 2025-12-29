@@ -845,6 +845,42 @@
   width: 200px !important;
 }
 
+
+.window {
+  position: absolute;
+  resize: none; /* We'll handle resizing manually */
+  overflow: hidden;
+}
+.window-resize-handle {
+  position: absolute;
+  background: transparent;
+  z-index: 10;
+}
+.resize-top, .resize-bottom {
+  height: 6px;
+  width: 100%;
+  cursor: ns-resize;
+}
+.resize-left, .resize-right {
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
+}
+.resize-top { top: 0; left: 0; }
+.resize-bottom { bottom: 0; left: 0; }
+.resize-left { top: 0; left: 0; }
+.resize-right { top: 0; right: 0; }
+.resize-corner {
+  width: 10px;
+  height: 10px;
+  position: absolute;
+  background: transparent;
+}
+.resize-tl { top: 0; left: 0; cursor: nwse-resize; }
+.resize-tr { top: 0; right: 0; cursor: nesw-resize; }
+.resize-bl { bottom: 0; left: 0; cursor: nesw-resize; }
+.resize-br { bottom: 0; right: 0; cursor: nwse-resize; }
+
   </style>
   <style id="theme-style"></style>
 </head>
@@ -1941,7 +1977,6 @@ button:hover{background:#1e293b;}
       const stopBtn = document.getElementById("camera-stop");
       const trimBtn = document.getElementById("camera-trim");
       const exportBtn = document.getElementById("camera-export");
-
       let mediaRecorder;
       let recordedChunks = [];
       let stream;
@@ -2013,6 +2048,80 @@ button:hover{background:#1e293b;}
           a.click();
         }
       });
+
+
+document.querySelectorAll(".window").forEach(win => {
+  const handles = `
+    <div class="window-resize-handle resize-top"></div>
+    <div class="window-resize-handle resize-bottom"></div>
+    <div class="window-resize-handle resize-left"></div>
+    <div class="window-resize-handle resize-right"></div>
+    <div class="window-resize-handle resize-corner resize-tl"></div>
+    <div class="window-resize-handle resize-corner resize-tr"></div>
+    <div class="window-resize-handle resize-corner resize-bl"></div>
+    <div class="window-resize-handle resize-corner resize-br"></div>
+  `;
+  win.insertAdjacentHTML("beforeend", handles);
+});
+
+
+let resizing = false;
+let resizeDir = "";
+let startX, startY, startWidth, startHeight, startLeft, startTop;
+
+document.querySelectorAll(".window-resize-handle").forEach(handle => {
+  handle.addEventListener("mousedown", e => {
+    e.preventDefault();
+    const win = handle.closest(".window");
+    resizing = true;
+    resizeDir = handle.classList[1]; // e.g., resize-top, resize-br
+    const rect = win.getBoundingClientRect();
+    startX = e.clientX;
+    startY = e.clientY;
+    startWidth = rect.width;
+    startHeight = rect.height;
+    startLeft = rect.left;
+    startTop = rect.top;
+    bringWindowToFront(win);
+  });
+});
+
+window.addEventListener("mousemove", e => {
+  if (!resizing) return;
+  const win = document.querySelector(".window.visible:last-child"); // active window
+  let newWidth = startWidth;
+  let newHeight = startHeight;
+  let newLeft = startLeft;
+  let newTop = startTop;
+
+  const dx = e.clientX - startX;
+  const dy = e.clientY - startY;
+
+  if (resizeDir.includes("right")) newWidth = startWidth + dx;
+  if (resizeDir.includes("left")) {
+    newWidth = startWidth - dx;
+    newLeft = startLeft + dx;
+  }
+  if (resizeDir.includes("bottom")) newHeight = startHeight + dy;
+  if (resizeDir.includes("top")) {
+    newHeight = startHeight - dy;
+    newTop = startTop + dy;
+  }
+
+  // Apply minimum size
+  newWidth = Math.max(300, newWidth);
+  newHeight = Math.max(200, newHeight);
+
+  win.style.width = newWidth + "px";
+  win.style.height = newHeight + "px";
+  win.style.left = newLeft + "px";
+  win.style.top = newTop + "px";
+});
+
+window.addEventListener("mouseup", () => {
+  resizing = false;
+  resizeDir = "";
+});
 
       /* clock & flyout */
       function updateClock(){

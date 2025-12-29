@@ -2315,36 +2315,72 @@ button:hover{background:#1e293b;}
         renderUserList();
       });
 
-      /* import files */
-      taskbarImport.addEventListener("click",()=>fileInput.click());
-      fileInput.addEventListener("change",()=>{
-        const files=Array.from(fileInput.files||[]);
-        if(!files.length)return;
-        const textTypes=[".txt",".md",".log",".css",".html",".js",".json"];
-        let remaining=files.length;
-        const newEntries=[];
-        files.forEach(f=>{
-          const ext=f.name.includes(".")?f.name.slice(f.name.lastIndexOf(".")):"";
-          if(textTypes.includes(ext.toLowerCase())){
-            const reader=new FileReader();
-            reader.onload=()=>{
-              newEntries.push({path:"/imported",name:f.name,type:"file",ext,content:reader.result});
-              if(--remaining===0)mergeImported(newEntries);
-            };
-            reader.onerror=()=>{
-              newEntries.push({path:"/imported",name:f.name,type:"file",ext,content:"(failed to read file)"});
-              if(--remaining===0)mergeImported(newEntries);
-            };
-            reader.readAsText(f);
-          }else{
-            newEntries.push({path:"/imported",name:f.name,type:"file",ext,content:"(binary or unsupported type)"});
-            if(--remaining===0)mergeImported(newEntries);
-          }
-        });
-      });
-      function mergeImported(entries){
-        updateCurrentUser(u=>({...u,fs:u.fs.concat(entries)}));
-      }
+
+/* import files */
+taskbarImport.addEventListener("click", () => fileInput.click());
+
+fileInput.addEventListener("change", () => {
+  const files = Array.from(fileInput.files || []);
+  if (!files.length) return;
+
+  const textTypes = [".txt", ".md", ".log", ".css", ".html", ".js", ".json"];
+  const imageTypes = [".png", ".jpg", ".jpeg", ".gif"];
+  const mediaTypes = [".mp4", ".webm", ".mp3", ".wav", ".ogg"];
+
+  let remaining = files.length;
+  const newEntries = [];
+
+  files.forEach(f => {
+    const ext = f.name.includes(".") ? f.name.slice(f.name.lastIndexOf(".")).toLowerCase() : "";
+
+    // ✅ Images & Media → store as base64 Data URL
+    if (imageTypes.includes(ext) || mediaTypes.includes(ext)) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        newEntries.push({ path: "/imported", name: f.name, type: "file", ext, content: reader.result });
+        if (--remaining === 0) mergeImported(newEntries);
+      };
+      reader.onerror = () => {
+        newEntries.push({ path: "/imported", name: f.name, type: "file", ext, content: "(failed to read file)" });
+        if (--remaining === 0) mergeImported(newEntries);
+      };
+      reader.readAsDataURL(f); // ✅ Base64 for images & media
+    }
+
+    // ✅ Text files → store as plain text
+    else if (textTypes.includes(ext)) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        newEntries.push({ path: "/imported", name: f.name, type: "file", ext, content: reader.result });
+        if (--remaining === 0) mergeImported(newEntries);
+      };
+      reader.onerror = () => {
+        newEntries.push({ path: "/imported", name: f.name, type: "file", ext, content: "(failed to read file)" });
+        if (--remaining === 0) mergeImported(newEntries);
+      };
+      reader.readAsText(f);
+    }
+
+    // ✅ Everything else → store full binary as base64
+    else {
+      const reader = new FileReader();
+      reader.onload = () => {
+        newEntries.push({ path: "/imported", name: f.name, type: "file", ext, content: reader.result });
+        if (--remaining === 0) mergeImported(newEntries);
+      };
+      reader.onerror = () => {
+        newEntries.push({ path: "/imported", name: f.name, type: "file", ext, content: "(failed to read file)" });
+        if (--remaining === 0) mergeImported(newEntries);
+      };
+      reader.readAsDataURL(f); // ✅ Binary files stored as base64
+    }
+  });
+});
+
+function mergeImported(entries) {
+  updateCurrentUser(u => ({ ...u, fs: u.fs.concat(entries) }));
+}
+
 
       /* context menu */
       let ctxTargetEntry=null;
@@ -2811,13 +2847,76 @@ button:hover{background:#1e293b;}
         }else if(app==="settings" && ext===".css"){
           showWindow("settings");
           if(themeCssInput) themeCssInput.value=`/* from ${entry.name} */\n`+(themeCssInput.value||"");
-        }else if(app==="paint" && (ext===".png"||ext===".jpg"||ext===".jpeg"||ext===".gif")){
-          showWindow("paint");
-          aiMsg("ai",`In a fuller build I would load ${entry.name} from FS into Paint. Here, Paint can open local image files via its toolbar.`);
-        }else if(app==="media" && (ext===".mp4"||ext===".webm"||ext===".mp3"||ext===".wav"||ext===".ogg")){
-          showWindow("media");
-          aiMsg("ai",`In a fuller build I would stream ${entry.name} from FS into Media Player. Here, Media Player opens local files via its own Open button.`);
-        }else{
+
+} else if(app==="paint" && (ext===".png"||ext===".jpg"||ext===".jpeg"||ext===".gif")){
+  showWindow("paint");
+
+  // Load image from FS content into Paint canvas
+  const imgData = entry.content;
+  if (imgData && paintCanvas) {
+    const ctx = paintCanvas.getContext("2d");
+    const img = new Image();
+    img.onload = function() {
+      // Clear canvas
+      ctx.fillStyle = "#0b1020";
+      ctx.fillRect(0, 0, paintCanvas.width, paintCanvas.height);
+
+      // Scale image to fit canvas
+      const scale = Math.min(paintCanvas.width / img.width, paintCanvas.height / img.height);
+      const w = img.width * scale;
+      const h = img.height * scale;
+      const x = (paintCanvas.width - w) / 2;
+      const y = (paintCanvas.height - h) / 2;
+      ctx.drawImage(img, x, y, w, h);
+    };
+
+    // If FS stores base64 or raw URL, handle both
+    if (imgData.startsWith("data:image")) {
+      img.src = imgData; // base64
+    } else {
+      img.src = URL.createObjectURL(new Blob([imgData], { type: "image/png" }));
+    }
+  } else {
+    aiMsg("ai", `Paint opened, but ${entry.name} has no image data.`);
+  }
+} else if(app==="media" && (ext===".mp4"||ext===".webm"||ext===".mp3"||ext===".wav"||ext===".ogg")){
+  showWindow("media");
+
+  if (mediaSurface && entry.content) {
+    mediaSurface.innerHTML = ""; // Clear previous content
+    mediaFilename.textContent = entry.name;
+
+    const blobType = ext === ".mp4" || ext === ".webm" ? "video/webm" :
+                     (ext === ".mp3" || ext === ".wav" || ext === ".ogg" ? "audio/ogg" : "application/octet-stream");
+
+    const blob = entry.content.startsWith("data:")
+      ? fetch(entry.content).then(res => res.blob()) // If base64 data URL
+      : Promise.resolve(new Blob([entry.content], { type: blobType }));
+
+    blob.then(b => {
+      const url = URL.createObjectURL(b);
+
+      if (blobType.startsWith("video")) {
+        const video = document.createElement("video");
+        video.src = url;
+        video.controls = true;
+        video.autoplay = true;
+        video.style.maxWidth = "100%";
+        mediaSurface.appendChild(video);
+      } else if (blobType.startsWith("audio")) {
+        const audio = document.createElement("audio");
+        audio.src = url;
+        audio.controls = true;
+        audio.autoplay = true;
+        mediaSurface.appendChild(audio);
+      } else {
+        mediaSurface.textContent = "Unsupported media type.";
+      }
+    });
+  } else {
+    aiMsg("ai", `Media Player opened, but ${entry.name} has no playable content.`);
+  }
+else{
           showWindow("assistant");
           aiMsg("ai",`I would open "${entry.name}" with app "${app}" in a fuller build. Here I log it instead.`);
         }

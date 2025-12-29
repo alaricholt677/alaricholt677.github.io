@@ -58,32 +58,32 @@ It is not a placeholder. It is a shrine of persistence, closure, and legacy.
 
 ## 🚀 Roadmap
 
-| Phase | Feature | Status |
-|-------|---------|--------|
-| 1 | Core desktop + README window | ✅ Done |
-| 2 | File Explorer + context menu | ✅ Done |
-| 3 | Filetype handlers (.txt, .png, .html) | ✅ Done |
-| 4 | Paint with tools | ✅ Done |
-| 5 | Notepad | ✅ Done |
-| 6 | Edge viewer | ✅ Done |
-| 7 | Start menu widgets | ❌ not planned or added|
-| 8 | Feedback hub | ✅ Done |
-| 9 | Copilot mini‑chat | ✅ Done |
-| 10 | Power options |  ✅ Done|
-| 11 | Persistent pins + session restore |  ❌ not planned or added|
-| 12 | Advanced widgets (weather, system stats) |  ❌ not planned or added |
-| 13 | AI‑powered Copilot expansion | ✅ Done |
-| 14 | Multi‑user collaboration | ✅ Done |
-| 15 | Full Win12‑style shell | ✅ Done|
+| Phase | Feature | Status | 2nd part |
+|-------|---------|--------|-------|
+| 1 | Core desktop + README window | ✅ Done | no 2nd part |
+| 2 | File Explorer + context menu | ✅ Done | no 2nd part |
+| 3 | Filetype handlers (.txt, .png, .html) | ✅ Done | no 2nd part |
+| 4 | Paint with tools | ✅ Done | no 2nd part |
+| 5 | Notepad | ✅ Done | no 2nd part |
+| 6 | Edge viewer | ✅ Done | no 2nd part |
+| 7 | Start menu widgets | ✅ Done | no 2nd part |
+| 8 | Feedback hub | ✅ Done | no 2nd part |
+| 9 | Copilot mini‑chat | ✅ Done | no 2nd part |
+| 10 | Power options |  ✅ Done| no 2nd part |
+| 11 | Persistent pins + session restore |  ✅ Done | ❌ not planned or added |
+| 12 | Advanced widgets (weather, system stats) | ✅ Done | no 2nd part |
+| 13 | AI‑powered Copilot expansion | ✅ Done | no 2nd part |
+| 14 | Multi‑user collaboration | ✅ Done | no 2nd part |
+| 15 | Full Win12‑style shell + News | ✅ Done | ✅ Done |
 
 ---
 
 ## 📖 Documentation
 
-- [Project Wiki](https://github.com/alaricholt677/win12-preview-simulator-AIM/wiki)  
-- [Issues & Roadmap](https://github.com/alaricholt677/win12-preview-simulator-AIM/issues)  
-- [Pull Requests](https://github.com/alaricholt677/win12-preview-simulator-AIM/pulls)  
-- [Discussions](https://github.com/alaricholt677/win12-preview-simulator-AIM/discussions)  
+- [Project Wiki](https://github.com/alaricholt677/alaricholt677.github.io/wiki)  
+- [Issues & Roadmap](https://github.com/alaricholt677/alaricholt677.github.io/issues)  
+- [Pull Requests](https://github.com/alaricholt677/alaricholt677.github.io/pulls)  
+- [discussion](https://github.com/alaricholt677/alaricholt677.github.io/discussions)  
 
 ---
 

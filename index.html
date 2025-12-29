@@ -802,6 +802,49 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.25);
 }
 
+#ls-viewer {
+  width: 100%;
+  height: 100%;
+  background: var(--win12-surface);
+  border: 1px solid var(--win12-border);
+  padding: 10px;
+  overflow: auto;
+  font-family: Consolas, monospace;
+  font-size: 14px;
+}
+
+.ls-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.ls-node {
+  margin-left: 20px;
+  padding: 4px 0;
+}
+
+.ls-field {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ls-field input {
+  padding: 2px 4px;
+  border: 1px solid var(--win12-border);
+  background: var(--win12-surface-2);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 14px;
+  width: 150px;
+}
+
+.ls-value {
+  width: 200px !important;
+}
+
   </style>
   <style id="theme-style"></style>
 </head>
@@ -1240,7 +1283,16 @@
         <div class="window-title-icon" style="background:linear-gradient(135deg,#4c8dff,#94a3ff);"></div>
         <div class="window-title-text">
           <div class="window-title-main">[Regedit]</div>
-          <div class="window-title-sub">HKCU\\Software\\Win12\\Associations (simulated)</div>
+          <div class="window-title-sub">HKCU\\Software\\Win12\\Associations</div>
+          <div id="ls-viewer">
+          <div class="ls-header">
+            <span>LocalStorage Viewer</span>
+            <button id="ls-save-btn">Save Changes</button>
+          </div>
+
+          <div id="ls-tree"></div>
+        </div>
+
         </div>
         <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
         <div class="window-info-icon">(i)</div>
@@ -3404,6 +3456,120 @@ setInterval(() => {
 if (openEditorBtn) openEditorBtn.addEventListener('click', openWidgetsEditor);
 if (editorCloseBtn) editorCloseBtn.addEventListener('click', closeWidgetsEditor);
 if (editorAddBtn) editorAddBtn.addEventListener('click', handleAddWidgetInEditor);
+
+const LS_KEY = "win12_aim_fs_state_exe_ctx_full_v3";
+
+const lsTree = document.getElementById("ls-tree");
+const saveBtn = document.getElementById("ls-save-btn");
+
+let parsed = null;
+
+// Load and parse JSON
+function loadLS() {
+  const raw = localStorage.getItem(LS_KEY);
+  if (!raw) {
+    lsTree.innerHTML = "<div>No data found.</div>";
+    return;
+  }
+
+  try {
+    parsed = JSON.parse(raw);
+    lsTree.innerHTML = "";
+    renderNode(parsed, lsTree, "");
+  } catch (e) {
+    lsTree.innerHTML = "<div>Invalid JSON.</div>";
+  }
+}
+
+// Render a node recursively
+function renderNode(obj, container, path) {
+  Object.entries(obj).forEach(([key, value]) => {
+    const node = document.createElement("div");
+    node.className = "ls-node";
+
+    const isPrimitive =
+      typeof value !== "object" || value === null || Array.isArray(value) === false && typeof value !== "object";
+
+    if (isPrimitive) {
+      // Editable field
+      const field = document.createElement("div");
+      field.className = "ls-field";
+
+      const nameInput = document.createElement("input");
+      nameInput.value = key;
+      nameInput.dataset.path = path;
+      nameInput.dataset.oldName = key;
+
+      const valueInput = document.createElement("input");
+      valueInput.className = "ls-value";
+      valueInput.value = value;
+      valueInput.dataset.path = path;
+      valueInput.dataset.name = key;
+
+      field.appendChild(nameInput);
+      field.appendChild(valueInput);
+      node.appendChild(field);
+    } else {
+      // Object or array — not editable, but expandable
+      const label = document.createElement("div");
+      label.textContent = key + " {";
+      node.appendChild(label);
+
+      renderNode(value, node, path ? path + "." + key : key);
+
+      const close = document.createElement("div");
+      close.textContent = "}";
+      node.appendChild(close);
+    }
+
+    container.appendChild(node);
+  });
+}
+
+// Save changes back to LocalStorage
+function saveChanges() {
+  if (!parsed) return;
+
+  // Rebuild the JSON from inputs
+  const nameInputs = lsTree.querySelectorAll(".ls-field input:not(.ls-value)");
+  const valueInputs = lsTree.querySelectorAll(".ls-field .ls-value");
+
+  // First rename keys
+  nameInputs.forEach(input => {
+    const path = input.dataset.path;
+    const oldName = input.dataset.oldName;
+    const newName = input.value;
+
+    const parent = getObjectByPath(parsed, path);
+    if (parent && oldName !== newName) {
+      parent[newName] = parent[oldName];
+      delete parent[oldName];
+    }
+  });
+
+  // Then update values
+  valueInputs.forEach(input => {
+    const path = input.dataset.path;
+    const name = input.dataset.name;
+    const parent = getObjectByPath(parsed, path);
+    if (parent) {
+      parent[name] = input.value;
+    }
+  });
+
+  localStorage.setItem(LS_KEY, JSON.stringify(parsed, null, 2));
+  alert("Saved.");
+}
+
+// Helper: get object by path "a.b.c"
+function getObjectByPath(obj, path) {
+  if (!path) return obj;
+  return path.split(".").reduce((o, k) => (o ? o[k] : null), obj);
+}
+
+saveBtn.addEventListener("click", saveChanges);
+
+loadLS();
 
       /* dev banner */
       window.addEventListener("keydown",(e)=>{if(e.key==="F12")devBanner.classList.toggle("visible");});

@@ -2826,101 +2826,107 @@ function mergeImported(entries) {
         renderExplorer(entry.path);
         showWindow("explorer");
       }
-      function openFile(entry,chooseApp){
-        const ext=(entry.ext||"").toLowerCase();
-        let app=defaultAppForExt(ext);
-        if(chooseApp){
-          // cycle: notepad -> paint -> media -> browser -> host -> notepad
-          if(app==="notepad")app="paint";
-          else if(app==="paint")app="media";
-          else if(app==="media")app="browser";
-          else if(app==="browser")app="host";
-          else app="notepad";
-        }
-        if(app==="notepad"){
-          openInNotepad(entry);
-        }else if(app==="browser" && (ext===".html"||ext===".htm"||ext===".txt"||ext===".md"||ext===".log")){
-          showWindow("browser");
-          openInBrowser(entry);
-        }else if(app==="host" && ext===".exe"){
-          runExe(entry);
-        }else if(app==="settings" && ext===".css"){
-          showWindow("settings");
-          if(themeCssInput) themeCssInput.value=`/* from ${entry.name} */\n`+(themeCssInput.value||"");
 
-} else if(app==="paint" && (ext===".png"||ext===".jpg"||ext===".jpeg"||ext===".gif")){
-  showWindow("paint");
+function openFile(entry, chooseApp) {
+  const ext = (entry.ext || "").toLowerCase();
+  let app = defaultAppForExt(ext);
 
-  // Load image from FS content into Paint canvas
-  const imgData = entry.content;
-  if (imgData && paintCanvas) {
-    const ctx = paintCanvas.getContext("2d");
-    const img = new Image();
-    img.onload = function() {
-      // Clear canvas
-      ctx.fillStyle = "#0b1020";
-      ctx.fillRect(0, 0, paintCanvas.width, paintCanvas.height);
+  // Cycle through apps if "Open with..." was chosen
+  if (chooseApp) {
+    if (app === "notepad") app = "paint";
+    else if (app === "paint") app = "media";
+    else if (app === "media") app = "browser";
+    else if (app === "browser") app = "host";
+    else app = "notepad";
+  }
 
-      // Scale image to fit canvas
-      const scale = Math.min(paintCanvas.width / img.width, paintCanvas.height / img.height);
-      const w = img.width * scale;
-      const h = img.height * scale;
-      const x = (paintCanvas.width - w) / 2;
-      const y = (paintCanvas.height - h) / 2;
-      ctx.drawImage(img, x, y, w, h);
-    };
+  // === Handle each app type ===
+  if (app === "notepad") {
+    openInNotepad(entry);
 
-    // If FS stores base64 or raw URL, handle both
-    if (imgData.startsWith("data:image")) {
-      img.src = imgData; // base64
-    } else {
-      img.src = URL.createObjectURL(new Blob([imgData], { type: "image/png" }));
+  } else if (app === "browser" && (ext === ".html" || ext === ".htm" || ext === ".txt" || ext === ".md" || ext === ".log")) {
+    showWindow("browser");
+    openInBrowser(entry);
+
+  } else if (app === "host" && ext === ".exe") {
+    runExe(entry);
+
+  } else if (app === "settings" && ext === ".css") {
+    showWindow("settings");
+    if (themeCssInput) {
+      themeCssInput.value = `/* from ${entry.name} */\n` + (themeCssInput.value || "");
     }
+
+  } else if (app === "paint" && (ext === ".png" || ext === ".jpg" || ext === ".jpeg" || ext === ".gif")) {
+    showWindow("paint");
+    renderImageInPaint(entry);
+
+  } else if (app === "media" && (ext === ".mp4" || ext === ".webm" || ext === ".mp3" || ext === ".wav" || ext === ".ogg")) {
+    showWindow("media");
+    renderMediaInPlayer(entry);
+
   } else {
+    // Fallback for unsupported types
+    showWindow("assistant");
+    aiMsg("ai", `I would open "${entry.name}" with app "${app}" in a fuller build. Here I log it instead.`);
+  }
+}
+
+
+function renderImageInPaint(entry) {
+  if (!paintCanvas || !entry.content) {
     aiMsg("ai", `Paint opened, but ${entry.name} has no image data.`);
+    return;
   }
-} else if(app==="media" && (ext===".mp4"||ext===".webm"||ext===".mp3"||ext===".wav"||ext===".ogg")){
-  showWindow("media");
 
-  if (mediaSurface && entry.content) {
-    mediaSurface.innerHTML = ""; // Clear previous content
-    mediaFilename.textContent = entry.name;
+  const ctx = paintCanvas.getContext("2d");
+  const img = new Image();
+  img.onload = function () {
+    ctx.fillStyle = "#0b1020";
+    ctx.fillRect(0, 0, paintCanvas.width, paintCanvas.height);
 
-    const blobType = ext === ".mp4" || ext === ".webm" ? "video/webm" :
-                     (ext === ".mp3" || ext === ".wav" || ext === ".ogg" ? "audio/ogg" : "application/octet-stream");
+    const scale = Math.min(paintCanvas.width / img.width, paintCanvas.height / img.height);
+    const w = img.width * scale;
+    const h = img.height * scale;
+    const x = (paintCanvas.width - w) / 2;
+    const y = (paintCanvas.height - h) / 2;
+    ctx.drawImage(img, x, y, w, h);
+  };
 
-    const blob = entry.content.startsWith("data:")
-      ? fetch(entry.content).then(res => res.blob()) // If base64 data URL
-      : Promise.resolve(new Blob([entry.content], { type: blobType }));
+  img.src = entry.content; // Base64 from FS
+}
 
-    blob.then(b => {
-      const url = URL.createObjectURL(b);
 
-      if (blobType.startsWith("video")) {
-        const video = document.createElement("video");
-        video.src = url;
-        video.controls = true;
-        video.autoplay = true;
-        video.style.maxWidth = "100%";
-        mediaSurface.appendChild(video);
-      } else if (blobType.startsWith("audio")) {
-        const audio = document.createElement("audio");
-        audio.src = url;
-        audio.controls = true;
-        audio.autoplay = true;
-        mediaSurface.appendChild(audio);
-      } else {
-        mediaSurface.textContent = "Unsupported media type.";
-      }
-    });
-  } else {
+function renderMediaInPlayer(entry) {
+  if (!mediaSurface || !entry.content) {
     aiMsg("ai", `Media Player opened, but ${entry.name} has no playable content.`);
+    return;
   }
-else{
-          showWindow("assistant");
-          aiMsg("ai",`I would open "${entry.name}" with app "${app}" in a fuller build. Here I log it instead.`);
-        }
-      }
+
+  mediaSurface.innerHTML = "";
+  mediaFilename.textContent = entry.name;
+
+  const url = entry.content.startsWith("data:")
+    ? entry.content // Base64 Data URL
+    : URL.createObjectURL(new Blob([entry.content]));
+
+  if (entry.ext === ".mp4" || entry.ext === ".webm") {
+    const video = document.createElement("video");
+    video.src = url;
+    video.controls = true;
+    video.autoplay = true;
+    video.style.maxWidth = "100%";
+    mediaSurface.appendChild(video);
+  } else if (entry.ext === ".mp3" || entry.ext === ".wav" || entry.ext === ".ogg") {
+    const audio = document.createElement("audio");
+    audio.src = url;
+    audio.controls = true;
+    audio.autoplay = true;
+    mediaSurface.appendChild(audio);
+  } else {
+    mediaSurface.textContent = "Unsupported media type.";
+  }
+}
 
       /* AIM OS */
       function aiMsg(role,text){

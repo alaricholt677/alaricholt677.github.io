@@ -881,6 +881,13 @@
 .resize-bl { bottom: 0; left: 0; cursor: nesw-resize; }
 .resize-br { bottom: 0; right: 0; cursor: nwse-resize; }
 
+.taskbar-network svg {
+  stroke: var(--text-main);
+}
+.taskbar-network:hover svg {
+  stroke: var(--accent);
+}
+
   </style>
   <style id="theme-style"></style>
 </head>
@@ -994,6 +1001,11 @@
         <div class="user-avatar-small"></div>
         <span id="user-chip-name">User</span>
       </div>
+      <div class="taskbar-network" id="taskbar-network" style="cursor:pointer;">
+        <svg id="network-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M2 20h20M6 16h12M10 12h4M12 8h0" />
+        </svg>
+      </div>
       <div class="taskbar-clock" id="taskbar-clock">
         <div class="taskbar-clock-time" id="clock-time">--:--</div>
         <div id="clock-label">Win12 AIM</div>
@@ -1008,6 +1020,14 @@
     <div id="time-flyout-date">---</div>
     <div id="time-flyout-greeting">Hello.</div>
   </div>
+
+
+<!-- Network Panel -->
+<div id="network-panel" style="display:none; position:absolute; bottom:40px; right:10px; background:rgba(8,11,30,0.98); border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:10px; width:220px; font-size:12px;">
+  <div style="font-weight:bold; margin-bottom:6px;">Network Status</div>
+  <input type="range" id="ping-slider" min="1" max="100" value="0" style="width:100%;">
+  <div id="ping-text" style="margin-top:6px; color:var(--text-main);">Ping: -- ms</div>
+</div>
 
   <!-- start -->
   <div id="start-backdrop"></div>
@@ -3933,67 +3953,60 @@ function createRunWindow() {
   if (minBtn) minBtn.addEventListener("click", () => runWin.classList.remove("visible"));
 }
 
-const notificationsList = document.getElementById("notifications-list");
-let notifications = [];
+const networkIcon = document.getElementById("network-icon");
+const networkPanel = document.getElementById("network-panel");
+const pingSlider = document.getElementById("ping-slider");
+const pingText = document.getElementById("ping-text");
 
-// Add notification
-function notifyWithLink(message, url) {
-  const id = Date.now().toString(36);
-  notifications.push({ id, message, url });
-  renderNotifications();
-}
+let pingHistory = [];
+let currentPing = 0;
 
-// Render notifications
-function renderNotifications() {
-  if (!notificationsList) return; // Safety check
-  notificationsList.innerHTML = "";
-  if (notifications.length === 0) {
-    notificationsList.innerHTML = "<div style='color:var(--text-soft);'>No notifications</div>";
-    return;
-  }
-  notifications.forEach(n => {
-    const item = document.createElement("div");
-    item.className = "notification-item";
-    item.style.background = "rgba(26,32,70,0.9)";
-    item.style.padding = "6px 8px";
-    item.style.borderRadius = "6px";
-    item.style.cursor = "pointer";
-    item.style.transition = "background 0.2s";
-    item.textContent = n.message;
-
-    // Click removes notification or opens link
-    item.addEventListener("click", () => {
-      if (n.url) window.open(n.url, "_blank");
-      notifications = notifications.filter(x => x.id !== n.id);
-      renderNotifications();
-    });
-
-    notificationsList.appendChild(item);
-  });
-}
-
-// Check for updates automatically
-async function checkForUpdates() {
-  const githubURL = "https://raw.githubusercontent.com/alaricholt677/alaricholt677.github.io/main/index.html";
-
+// Function to measure ping
+async function measurePing() {
+  const start = performance.now();
   try {
-    const response = await fetch(githubURL);
-    if (!response.ok) throw new Error("Failed to fetch GitHub file");
-    const latestCode = await response.text();
-    const currentCode = document.documentElement.outerHTML;
+    await fetch("https://alaricholt677.github.io", { method: "HEAD", cache: "no-store" });
+    const end = performance.now();
+    currentPing = Math.round(end - start);
+  } catch {
+    currentPing = -1; // No connection
+  }
 
-    if (latestCode.trim() !== currentCode.trim()) {
-      notifyWithLink("Update detected! Click to view on GitHub", "https://github.com/alaricholt677/alaricholt677.github.io");
-    }
-  } catch (error) {
-    console.error("Update check failed:", error);
+  // Update history
+  pingHistory.push(currentPing);
+  if (pingHistory.length > 100) pingHistory.shift();
+
+  updateNetworkIcon(currentPing);
+  updateNetworkPanel();
+}
+
+// Update SVG based on ping
+function updateNetworkIcon(ping) {
+  if (ping === -1) {
+    networkIcon.innerHTML = `<circle cx="12" cy="12" r="10" stroke="red" fill="none"/>`; // No connection
+  } else if (ping < 100) {
+    networkIcon.innerHTML = `<path d="M2 20h20M6 16h12M10 12h4M12 8h0" />`; // Good
+  } else if (ping < 300) {
+    networkIcon.innerHTML = `<path d="M2 20h20M6 16h12" />`; // Medium
+  } else {
+    networkIcon.innerHTML = `<path d="M2 20h20" />`; // Poor
   }
 }
 
-// Initial render and schedule checks
-renderNotifications();
-checkForUpdates();
-setInterval(checkForUpdates, 5 * 60 * 1000); // Every 5 minutes
+// Update panel
+function updateNetworkPanel() {
+  pingSlider.value = pingHistory.length;
+  pingText.textContent = currentPing === -1 ? "Ping: No connection" : `Ping: ${currentPing} ms`;
+}
+
+// Toggle panel on click
+document.getElementById("taskbar-network").addEventListener("click", () => {
+  networkPanel.style.display = networkPanel.style.display === "none" ? "block" : "none";
+});
+
+// Measure ping every second
+setInterval(measurePing, 1000);
+measurePing();
 
       /* dev banner */
       window.addEventListener("keydown",(e)=>{if(e.key==="F12")devBanner.classList.toggle("visible");});

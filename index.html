@@ -3814,15 +3814,15 @@ saveBtn.addEventListener("click", saveChanges);
 loadLS();
 
 
+
 function createRunWindow() {
-  // Create the window container
+  // Create the Run window
   const runWin = document.createElement("div");
   runWin.className = "window fixed-run";
   runWin.id = "window-run";
   runWin.dataset.app = "run";
   runWin.dataset.appDesc = "[Run] Execute apps or open URLs.";
 
-  // Window header
   runWin.innerHTML = `
     <div class="window-header" data-drag-handle>
       <div class="window-title">
@@ -3849,13 +3849,10 @@ function createRunWindow() {
     </div>
   `;
 
-  // Append to body
   document.body.appendChild(runWin);
-
-  // Add to windows map
   windowsMap["run"] = runWin;
 
-  // Add Start menu shortcut dynamically
+  // Add Start menu shortcut
   const startGrid = document.getElementById("start-pinned-grid");
   const runTile = document.createElement("div");
   runTile.className = "start-app";
@@ -3868,13 +3865,12 @@ function createRunWindow() {
   `;
   startGrid.appendChild(runTile);
 
-  // Attach click event to Start tile
   runTile.addEventListener("click", () => {
     showWindow("run");
     document.getElementById("run-input").focus();
   });
 
-  // Attach logic for Run buttons
+  // Attach Run logic
   const runInput = runWin.querySelector("#run-input");
   const runOk = runWin.querySelector("#run-ok");
   const runCancel = runWin.querySelector("#run-cancel");
@@ -3906,11 +3902,36 @@ function createRunWindow() {
       runInput.focus();
     }
   });
+
+  // === Enable dragging ===
+  const header = runWin.querySelector("[data-drag-handle]");
+  if (header) {
+    let dragging = false, sx, sy, sl, st;
+    header.addEventListener("mousedown", e => {
+      if (e.target.closest(".window-controls")) return;
+      dragging = true;
+      const rect = runWin.getBoundingClientRect();
+      sx = e.clientX; sy = e.clientY; sl = rect.left; st = rect.top;
+      document.body.style.cursor = "move";
+      bringWindowToFront(runWin);
+    });
+    window.addEventListener("mousemove", e => {
+      if (!dragging) return;
+      runWin.style.left = sl + (e.clientX - sx) + "px";
+      runWin.style.top = st + (e.clientY - sy) + "px";
+    });
+    window.addEventListener("mouseup", () => {
+      dragging = false;
+      document.body.style.cursor = "default";
+    });
+  }
+
+  // === Close and Minimize buttons ===
+  const closeBtn = runWin.querySelector(".window-btn.close");
+  const minBtn = runWin.querySelector(".window-btn.minimize");
+  if (closeBtn) closeBtn.addEventListener("click", () => hideWindow("run"));
+  if (minBtn) minBtn.addEventListener("click", () => runWin.classList.remove("visible"));
 }
-
-// Call this after initial setup
-createRunWindow();
-
       /* dev banner */
       window.addEventListener("keydown",(e)=>{if(e.key==="F12")devBanner.classList.toggle("visible");});
 

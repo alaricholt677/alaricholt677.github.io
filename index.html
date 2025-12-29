@@ -2630,20 +2630,40 @@ button:hover{background:#1e293b;}
       browserGoBtn.addEventListener("click",goCurrentBrowserTab);
       browserAddressEl.addEventListener("keydown",(e)=>{if(e.key==="Enter")goCurrentBrowserTab();});
       function renderBrowserView(url){
-        browserViewEl.innerHTML="";
-        if(!url){
-          browserViewEl.textContent="Enter a URL or file:/// path above.";
+        browserViewEl.innerHTML = "";
+
+        if (!url) {
+          browserViewEl.textContent = "Enter a URL or file:/// path above.";
           return;
         }
-        if(url.startsWith("file:///"))renderFileUrl(url);
-        else if(url.startsWith("http://")||url.startsWith("https://")){
-          const iframe=document.createElement("iframe");
-          iframe.src=url;iframe.style.border="none";iframe.style.width="100%";iframe.style.height="100%";iframe.referrerPolicy="no-referrer";
+
+        if (url.startsWith("file:///")) {
+          renderFileUrl(url);
+
+        } else if (url.startsWith("http://") || url.startsWith("https://")) {
+          const iframe = document.createElement("iframe");
+          iframe.src = url;
+          iframe.style.border = "none";
+          iframe.style.width = "100%";
+          iframe.style.height = "100%";
+          iframe.referrerPolicy = "no-referrer";
           browserViewEl.appendChild(iframe);
-        }else{
-          browserViewEl.textContent="Unknown scheme. Use http(s) or file:///.";
+
+        } else {
+          // NEW: treat anything else as a search query
+          const query = encodeURIComponent(url);
+          const searchUrl = `https://www.google.com/search?q=${query}`;
+
+          const iframe = document.createElement("iframe");
+          iframe.src = searchUrl;
+          iframe.style.border = "none";
+          iframe.style.width = "100%";
+          iframe.style.height = "100%";
+          iframe.referrerPolicy = "no-referrer";
+          browserViewEl.appendChild(iframe);
         }
       }
+
       function filePathFromUrl(url){
         const raw=url.replace("file:///","");
         const parts=raw.split("/").filter(Boolean);
@@ -2721,12 +2741,12 @@ button:hover{background:#1e293b;}
       }
       function openInBrowser(entry){
         const ext=(entry.ext||"").toLowerCase();
-        if(ext===".html" || ext===".htm" || ext===".txt" || ext===".md" || ext===".log"){
+        if(ext===".html" || ext===".htm" || ext===".txt" || ext===".md" || ext===".log" || ext===".png" || ext===".svg" || ext===".xml" || ext===".js" || ext===".css" || ext===".jpg" || ext===".json"){
           showWindow("browser");
           browserOpenFile(entry);
         }else{
-          showWindow("assistant");
-          aiMsg("ai",`"Open in Browser" for ${entry.name} is only wired for html/txt-like content right now.`);
+          showWindow("browser");
+          browserOpenFile(entry);
         }
       }
 

@@ -3948,14 +3948,20 @@ function createRunWindow() {
   if (closeBtn) closeBtn.addEventListener("click", () => hideWindow("run"));
   if (minBtn) minBtn.addEventListener("click", () => runWin.classList.remove("visible"));
 }
+
+const notificationsList = document.getElementById("notifications-list");
+let notifications = [];
+
+// Add notification
 function notifyWithLink(message, url) {
   const id = Date.now().toString(36);
   notifications.push({ id, message, url });
   renderNotifications();
 }
 
-// Update renderNotifications to handle links
+// Render notifications
 function renderNotifications() {
+  if (!notificationsList) return; // Safety check
   notificationsList.innerHTML = "";
   if (notifications.length === 0) {
     notificationsList.innerHTML = "<div style='color:var(--text-soft);'>No notifications</div>";
@@ -3964,11 +3970,16 @@ function renderNotifications() {
   notifications.forEach(n => {
     const item = document.createElement("div");
     item.className = "notification-item";
-    item.innerHTML = n.url ? `<a href="${n.url}" target="_blank" style="color:inherit;text-decoration:none;">${n.message}</a>` : n.message;
-    item.dataset.id = n.id;
+    item.style.background = "rgba(26,32,70,0.9)";
+    item.style.padding = "6px 8px";
+    item.style.borderRadius = "6px";
+    item.style.cursor = "pointer";
+    item.style.transition = "background 0.2s";
+    item.textContent = n.message;
 
-    // Remove notification on click
+    // Click removes notification or opens link
     item.addEventListener("click", () => {
+      if (n.url) window.open(n.url, "_blank");
       notifications = notifications.filter(x => x.id !== n.id);
       renderNotifications();
     });
@@ -3976,23 +3987,18 @@ function renderNotifications() {
     notificationsList.appendChild(item);
   });
 }
-renderNotifications();
 
+// Check for updates automatically
 async function checkForUpdates() {
   const githubURL = "https://raw.githubusercontent.com/alaricholt677/alaricholt677.github.io/main/index.html";
 
   try {
-    // Fetch latest code from GitHub
     const response = await fetch(githubURL);
     if (!response.ok) throw new Error("Failed to fetch GitHub file");
     const latestCode = await response.text();
-
-    // Get current code from <html> element
     const currentCode = document.documentElement.outerHTML;
 
-    // Compare
     if (latestCode.trim() !== currentCode.trim()) {
-      // Send notification with link
       notifyWithLink("Update detected! Click to view on GitHub", "https://github.com/alaricholt677/alaricholt677.github.io");
     }
   } catch (error) {
@@ -4000,12 +4006,10 @@ async function checkForUpdates() {
   }
 }
 
-
-// Check every 5 minutes
-setInterval(checkForUpdates, 5 * 60 * 1000);
-
-// Also check once on load
+// Initial render and schedule checks
+renderNotifications();
 checkForUpdates();
+setInterval(checkForUpdates, 5 * 60 * 1000); // Every 5 minutes
 
       /* dev banner */
       window.addEventListener("keydown",(e)=>{if(e.key==="F12")devBanner.classList.toggle("visible");});

@@ -881,17 +881,6 @@
 .resize-bl { bottom: 0; left: 0; cursor: nesw-resize; }
 .resize-br { bottom: 0; right: 0; cursor: nwse-resize; }
 
-
-#notifications-list .notification-item {
-  background: rgba(26,32,70,0.9);
-  padding: 6px 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-#notifications-list .notification-item:hover {
-  background: rgba(76,141,255,0.4);
-}
   </style>
   <style id="theme-style"></style>
 </head>
@@ -1015,11 +1004,6 @@
 
   <!-- time flyout -->
   <div id="time-flyout">
-    
-  <div id="time-flyout-notifications" style="margin-top:10px; font-size:12px; color:var(--text-main);">
-    <div style="font-weight:bold; margin-bottom:4px;">Notifications</div>
-    <div id="notifications-list" style="display:flex; flex-direction:column; gap:4px;"></div>
-
     <div id="time-flyout-time">--:--</div>
     <div id="time-flyout-date">---</div>
     <div id="time-flyout-greeting">Hello.</div>

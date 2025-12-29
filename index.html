@@ -3136,6 +3136,33 @@ function generateWidgetId() {
   return 'w_' + Math.random().toString(36).slice(2);
 }
 
+// === IN‑MEMORY WIDGET STORE ===
+// Structure: { username: [ {id,type,x,y} ] }
+const WIDGET_MEMORY = {};
+let lastLoadedUser = null;
+
+// === HELPERS ===
+
+function getCurrentUserName() {
+  const el = document.querySelector('.user-chip-name');
+  return el ? el.innerText.trim() : null;
+}
+
+function getUserWidgets(username) {
+  if (!WIDGET_MEMORY[username]) {
+    WIDGET_MEMORY[username] = [];
+  }
+  return WIDGET_MEMORY[username];
+}
+
+function setUserWidgets(username, widgets) {
+  WIDGET_MEMORY[username] = widgets;
+}
+
+function generateWidgetId() {
+  return 'w_' + Math.random().toString(36).slice(2);
+}
+
 // === DOM REFERENCES ===
 
 const openEditorBtn = document.getElementById('open-widgets-editor-btn');
@@ -3152,16 +3179,13 @@ function openWidgetsEditor() {
   if (!editorOverlay) return;
   editorOverlay.classList.remove('hidden');
 
-  // hide ctx-menu if open
   if (ctxMenu) ctxMenu.style.display = 'none';
 
   const username = getCurrentUserName();
   if (!username) return;
 
-  // clear canvas
   editorCanvas.innerHTML = '';
 
-  // load widgets for this user and render them on the editor canvas
   const userWidgets = getUserWidgets(username);
   userWidgets.forEach(widget => {
     const el = createEditorWidgetElement(widget);
@@ -3177,21 +3201,20 @@ function closeWidgetsEditor() {
     return;
   }
 
-  // Collect widget data from editor canvas and save
   const widgets = [];
   editorCanvas.querySelectorAll('.editor-widget').forEach(el => {
-    const id = el.dataset.id;
-    const type = el.dataset.type;
-    const x = parseFloat(el.style.left) || 0;
-    const y = parseFloat(el.style.top) || 0;
-    widgets.push({ id, type, x, y });
+    widgets.push({
+      id: el.dataset.id,
+      type: el.dataset.type,
+      x: parseFloat(el.style.left) || 0,
+      y: parseFloat(el.style.top) || 0
+    });
   });
 
   setUserWidgets(username, widgets);
 
   editorOverlay.classList.add('hidden');
 
-  // After closing, re-render widgets on desktop
   renderDesktopWidgetsForUser(username);
 }
 
@@ -3230,7 +3253,7 @@ function handleAddWidgetInEditor() {
   editorCanvas.appendChild(el);
 }
 
-// === DRAGGING LOGIC (inside editor canvas) ===
+// === DRAGGING ===
 
 function makeDraggable(el, container) {
   let offsetX = 0;
@@ -3265,7 +3288,6 @@ function makeDraggable(el, container) {
     let newLeft = clientX - offsetX - containerRect.left;
     let newTop = clientY - offsetY - containerRect.top;
 
-    // optional: clamp to container
     if (newLeft < 0) newLeft = 0;
     if (newTop < 0) newTop = 0;
 
@@ -3282,7 +3304,7 @@ function makeDraggable(el, container) {
   }
 }
 
-// === DESKTOP RENDERING (outside editor) ===
+// === DESKTOP RENDERING ===
 
 function renderDesktopWidgetsForUser(username) {
   if (!desktopLayer) return;
@@ -3300,7 +3322,6 @@ function renderDesktopWidgetsForUser(username) {
     el.style.left = (widget.x || 50) + 'px';
     el.style.top = (widget.y || 50) + 'px';
 
-    // Basic content based on type; you can replace this with real widget UIs
     const header = document.createElement('div');
     header.className = 'desktop-widget-header';
     header.textContent = widget.type;
@@ -3310,14 +3331,12 @@ function renderDesktopWidgetsForUser(username) {
 
     const btnMin = document.createElement('button');
     btnMin.textContent = '_';
-    btnMin.title = 'Minimize';
     btnMin.addEventListener('click', () => {
       el.classList.toggle('minimized');
     });
 
     const btnClose = document.createElement('button');
     btnClose.textContent = '×';
-    btnClose.title = 'Remove widget';
     btnClose.addEventListener('click', () => {
       removeWidgetForUser(username, widget.id);
       renderDesktopWidgetsForUser(username);
@@ -3326,11 +3345,12 @@ function renderDesktopWidgetsForUser(username) {
     controls.appendChild(btnMin);
     controls.appendChild(btnClose);
 
+    header.appendChild(controls);
+
     const body = document.createElement('div');
     body.className = 'desktop-widget-body';
     body.textContent = widget.type + ' content here';
 
-    header.appendChild(controls);
     el.appendChild(header);
     el.appendChild(body);
 
@@ -3344,7 +3364,7 @@ function removeWidgetForUser(username, widgetId) {
   setUserWidgets(username, filtered);
 }
 
-// === USERNAME WATCHER (every second) ===
+// === USERNAME WATCHER ===
 
 setInterval(() => {
   const currentUser = getCurrentUserName();
@@ -3358,17 +3378,9 @@ setInterval(() => {
 
 // === EVENT WIRING ===
 
-if (openEditorBtn) {
-  openEditorBtn.addEventListener('click', openWidgetsEditor);
-}
-
-if (editorCloseBtn) {
-  editorCloseBtn.addEventListener('click', closeWidgetsEditor);
-}
-
-if (editorAddBtn) {
-  editorAddBtn.addEventListener('click', handleAddWidgetInEditor);
-}
+if (openEditorBtn) openEditorBtn.addEventListener('click', openWidgetsEditor);
+if (editorCloseBtn) editorCloseBtn.addEventListener('click', closeWidgetsEditor);
+if (editorAddBtn) editorAddBtn.addEventListener('click', handleAddWidgetInEditor);
 
       /* dev banner */
       window.addEventListener("keydown",(e)=>{if(e.key==="F12")devBanner.classList.toggle("visible");});

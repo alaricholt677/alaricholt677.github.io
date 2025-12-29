@@ -2848,7 +2848,7 @@ function openFile(entry, chooseApp) {
   if (app === "notepad") {
     openInNotepad(entry);
 
-  } else if (app === "browser" && (ext === ".html" || ext === ".htm" || ext === ".txt" || ext === ".md" || ext === ".log")) {
+  } else if (app === "browser" && (ext === ".html" || ext === ".htm" || ext === ".txt" || ext === ".md" || ext === ".log" || ext===".png" || ext===".svg" || ext===".xml" || ext===".js" || ext===".css" || ext===".jpg" || ext===".json")) {
     showWindow("browser");
     openInBrowser(entry);
 

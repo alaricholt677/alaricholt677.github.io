@@ -2065,30 +2065,34 @@ document.querySelectorAll(".window").forEach(win => {
 });
 
 
+
 let resizing = false;
 let resizeDir = "";
 let startX, startY, startWidth, startHeight, startLeft, startTop;
+let resizeTarget = null; // ✅ store the window being resized
 
 document.querySelectorAll(".window-resize-handle").forEach(handle => {
   handle.addEventListener("mousedown", e => {
     e.preventDefault();
-    const win = handle.closest(".window");
+    resizeTarget = handle.closest(".window"); // ✅ set the target window
+    if (!resizeTarget) return;
+
     resizing = true;
     resizeDir = handle.classList[1]; // e.g., resize-top, resize-br
-    const rect = win.getBoundingClientRect();
+    const rect = resizeTarget.getBoundingClientRect();
     startX = e.clientX;
     startY = e.clientY;
     startWidth = rect.width;
     startHeight = rect.height;
     startLeft = rect.left;
     startTop = rect.top;
-    bringWindowToFront(win);
+    bringWindowToFront(resizeTarget);
   });
 });
 
 window.addEventListener("mousemove", e => {
-  if (!resizing) return;
-  const win = document.querySelector(".window.visible:last-child"); // active window
+  if (!resizing || !resizeTarget) return;
+
   let newWidth = startWidth;
   let newHeight = startHeight;
   let newLeft = startLeft;
@@ -2112,15 +2116,16 @@ window.addEventListener("mousemove", e => {
   newWidth = Math.max(300, newWidth);
   newHeight = Math.max(200, newHeight);
 
-  win.style.width = newWidth + "px";
-  win.style.height = newHeight + "px";
-  win.style.left = newLeft + "px";
-  win.style.top = newTop + "px";
+  resizeTarget.style.width = newWidth + "px";
+  resizeTarget.style.height = newHeight + "px";
+  resizeTarget.style.left = newLeft + "px";
+  resizeTarget.style.top = newTop + "px";
 });
 
 window.addEventListener("mouseup", () => {
   resizing = false;
   resizeDir = "";
+  resizeTarget = null; // ✅ clear reference
 });
 
       /* clock & flyout */

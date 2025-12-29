@@ -826,36 +826,6 @@
     </div>
   </div>
 
-<!-- Desktop widgets layer (widgets appear here in normal mode) -->
-<div id="desktop-widgets-layer"></div>
-
-<!-- Widget editor overlay (background blurred via CSS) -->
-<div id="widgets-editor-overlay" class="hidden">
-  <div class="widgets-editor-panel">
-    <div class="widgets-editor-header">
-      <span>Desktop widget editor</span>
-      <button id="widgets-editor-close-btn">Close editor</button>
-    </div>
-
-    <!-- Controls -->
-    <div class="widgets-editor-controls">
-      <label>
-        Widget type:
-        <select id="widgets-editor-widget-type">
-          <option value="clock">Clock</option>
-          <option value="notes">Notes</option>
-          <option value="weather">Weather</option>
-          <option value="custom">Custom</option>
-        </select>
-      </label>
-      <button id="widgets-editor-add-btn">Add widget to desktop</button>
-    </div>
-
-    <!-- Editor canvas (widgets are visible and draggable here, not blurred) -->
-    <div id="widgets-editor-canvas"></div>
-  </div>
-</div>
-
   <!-- desktop -->
   <div id="desktop">
     <div class="desktop-orbit"></div>
@@ -876,6 +846,42 @@
       <div><strong>Win12 Preview Simulator AIM</strong></div>
       <div>Nothing touches real files. All FS, content, exe payloads, and associations live in localStorage.</div>
     </div>
+<!-- DESKTOP WIDGETS LAYER (widgets appear here in normal mode) -->
+<div id="desktop-widgets-layer"></div>
+
+<!-- WIDGET EDITOR OVERLAY -->
+<div id="widgets-editor-overlay" class="hidden">
+  <div class="widgets-editor-panel">
+
+    <!-- HEADER -->
+    <div class="widgets-editor-header">
+      <span>Desktop Widget Editor</span>
+      <button id="widgets-editor-close-btn" class="win12-btn">Close</button>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="widgets-editor-controls">
+      <label>
+        Widget type:
+        <select id="widgets-editor-widget-type">
+          <option value="clock">Clock</option>
+          <option value="notes">Notes</option>
+          <option value="weather">Weather</option>
+          <option value="custom">Custom</option>
+        </select>
+      </label>
+
+      <button id="widgets-editor-add-btn" class="win12-btn">
+        Add Widget
+      </button>
+    </div>
+
+    <!-- CANVAS (widgets appear here in editor mode) -->
+    <div id="widgets-editor-canvas"></div>
+
+  </div>
+</div>
+
   </div>
 
   <!-- taskbar -->

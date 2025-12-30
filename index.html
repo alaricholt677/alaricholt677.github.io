@@ -4009,7 +4009,6 @@ setInterval(measurePing, 1000);
 measurePing();
 
 
-
 function createWordApp() {
   // === Create Word Window ===
   const wordWin = document.createElement("div");
@@ -4052,6 +4051,31 @@ function createWordApp() {
 
   document.body.appendChild(wordWin);
   windowsMap["word"] = wordWin;
+
+  // === Add Start Menu Tile ===
+  const startGrid = document.getElementById("start-pinned-grid");
+  const wordTile = document.createElement("div");
+  wordTile.className = "start-app";
+  wordTile.dataset.app = "word";
+  wordTile.innerHTML = `
+    <div class="start-app-icon" style="background:linear-gradient(135deg,#4c8dff,#94a3ff);"></div>
+    <div>Word</div>
+    <div class="start-app-sub">Rich text editor</div>
+  `;
+  startGrid.appendChild(wordTile);
+  wordTile.addEventListener("click", () => showWindow("word"));
+
+  // === Add Taskbar Button ===
+  const taskbarStrip = document.querySelector(".taskbar-app-strip");
+  const wordBtn = document.createElement("div");
+  wordBtn.className = "taskbar-app";
+  wordBtn.dataset.app = "word";
+  wordBtn.title = "Word";
+  taskbarStrip.appendChild(wordBtn);
+  wordBtn.addEventListener("click", () => {
+    if (wordWin.classList.contains("visible")) hideWindow("word");
+    else showWindow("word");
+  });
 
   // === Toolbar Actions ===
   const editor = wordWin.querySelector("#word-editor");
@@ -4168,9 +4192,10 @@ function createImportExplorer(editor) {
     fileList.appendChild(btn);
   });
 
-  // Cancel import if closed
   explorerWin.querySelector(".window-btn.close").addEventListener("click", () => explorerWin.remove());
 }
+
+
       /* dev banner */
       window.addEventListener("keydown",(e)=>{if(e.key==="F12")devBanner.classList.toggle("visible");});
 

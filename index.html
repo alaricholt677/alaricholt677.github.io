@@ -4009,13 +4009,14 @@ setInterval(measurePing, 1000);
 measurePing();
 
 
+
 function createWordApp() {
   // === Create Word Window ===
   const wordWin = document.createElement("div");
   wordWin.className = "window";
   wordWin.id = "window-word";
   wordWin.dataset.app = "word";
-  wordWin.dataset.appDesc = "[Word] Rich text editor with save/load/export.";
+  wordWin.dataset.appDesc = "[Word] Rich text editor with FS integration.";
 
   wordWin.innerHTML = `
     <div class="window-header" data-drag-handle>
@@ -4038,14 +4039,10 @@ function createWordApp() {
       <div class="word-toolbar" style="display:flex;gap:6px;margin-bottom:6px;">
         <button class="button-small" id="word-bold">Bold</button>
         <button class="button-small" id="word-italic">Italic</button>
-        <button class="button-small" id="word-underline">Underline</button>
         <button class="button-small" id="word-big">Big Text</button>
         <button class="button-small" id="word-insert-img">Insert Image</button>
-        <button class="button-small" id="word-save">Save</button>
-        <button class="button-small" id="word-load">Load</button>
-        <button class="button-small" id="word-export">Export HTML</button>
-        <input type="file" id="word-import" style="display:none;" accept=".html">
-        <button class="button-small" id="word-import-btn">Import HTML</button>
+        <button class="button-small" id="word-export">Export to FS</button>
+        <button class="button-small" id="word-import">Import from FS</button>
       </div>
       <div id="word-editor" contenteditable="true" style="flex:1;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:10px;background:rgba(8,11,30,0.98);color:var(--text-main);overflow:auto;">
         Start typing here...
@@ -4056,97 +4053,123 @@ function createWordApp() {
   document.body.appendChild(wordWin);
   windowsMap["word"] = wordWin;
 
-  // === Add Start Menu Tile ===
-  const startGrid = document.getElementById("start-pinned-grid");
-  const wordTile = document.createElement("div");
-  wordTile.className = "start-app";
-  wordTile.dataset.app = "word";
-  wordTile.innerHTML = `
-    <div class="start-app-icon" style="background:linear-gradient(135deg,#4c8dff,#94a3ff);"></div>
-    <div>Word</div>
-    <div class="start-app-sub">Rich text editor</div>
-  `;
-  startGrid.appendChild(wordTile);
-
-  wordTile.addEventListener("click", () => showWindow("word"));
-
-  // === Add Taskbar Button ===
-  const taskbarStrip = document.querySelector(".taskbar-app-strip");
-  const wordBtn = document.createElement("div");
-  wordBtn.className = "taskbar-app";
-  wordBtn.dataset.app = "word";
-  wordBtn.title = "Word";
-  taskbarStrip.appendChild(wordBtn);
-
-  wordBtn.addEventListener("click", () => {
-    if (wordWin.classList.contains("visible")) hideWindow("word");
-    else showWindow("word");
-  });
-
   // === Toolbar Actions ===
   const editor = wordWin.querySelector("#word-editor");
   wordWin.querySelector("#word-bold").addEventListener("click", () => document.execCommand("bold"));
   wordWin.querySelector("#word-italic").addEventListener("click", () => document.execCommand("italic"));
-  wordWin.querySelector("#word-underline").addEventListener("click", () => document.execCommand("underline"));
   wordWin.querySelector("#word-big").addEventListener("click", () => document.execCommand("fontSize", false, "5"));
 
   // Insert Image
   wordWin.querySelector("#word-insert-img").addEventListener("click", () => {
     const url = prompt("Enter image URL:");
-    if (url) editor.innerHTML += `${url}`;
+    if (url) editor.innerHTML += `<img src="${url}" style="max-width:100%;">`;
   });
 
-  // Save to localStorage
-  wordWin.querySelector("#word-save").addEventListener("click", () => {
-    localStorage.setItem("wordDoc", editor.innerHTML);
-    alert("Document saved!");
-  });
-
-  // Load from localStorage
-  wordWin.querySelector("#word-load").addEventListener("click", () => {
-    const content = localStorage.getItem("wordDoc");
-    if (content) editor.innerHTML = content;
-    else alert("No saved document found.");
-  });
-
-  // Export HTML
+  // Export to FS (/documents)
   wordWin.querySelector("#word-export").addEventListener("click", () => {
     const htmlContent = editor.innerHTML;
-    const finalHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Exported Word Document</title>
-<style>
-body { font-family: sans-serif; padding: 20px; }
-img { max-width: 100%; }
-</style>
-</head>
-<body>
-${htmlContent}
-</body>
-</html>
-    `;
-    const blob = new Blob([finalHTML], { type: "text/html" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "document.html";
-    a.click();
+    const fileName = `WordDoc_${Date.now()}.html`;
+    const u = currentUser();
+    const newFile = { path: "/documents", name: fileName, type: "file", ext: ".html", content: htmlContent };
+    updateCurrentUser(user => ({ ...user, fs: user.fs.concat(newFile) }));
+    alert(`Document exported to /documents as ${fileName}`);
   });
 
-  // Import HTML
-  const importInput = wordWin.querySelector("#word-import");
-  wordWin.querySelector("#word-import-btn").addEventListener("click", () => importInput.click());
-  importInput.addEventListener("change", () => {
-    const file = importInput.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      editor.innerHTML = reader.result.replace(/<[^>]*>/g, ""); // Strip tags for safety
-    };
-    reader.readAsText(file);
+  // Import from FS
+  wordWin.querySelector("#word-import").addEventListener("click", () => {
+    createImportExplorer(editor);
   });
+
+  // Enable drag, resize, fullscreen, minimize, close
+  enableWindowControls(wordWin);
+}
+
+// === Enable Window Controls ===
+function enableWindowControls(win) {
+  let dragging = false, sx, sy, sl, st;
+  const header = win.querySelector("[data-drag-handle]");
+  header.addEventListener("mousedown", e => {
+    if (e.target.closest(".window-controls")) return;
+    dragging = true;
+    const rect = win.getBoundingClientRect();
+    sx = e.clientX; sy = e.clientY; sl = rect.left; st = rect.top;
+    document.body.style.cursor = "move";
+    bringWindowToFront(win);
+  });
+  window.addEventListener("mousemove", e => {
+    if (!dragging) return;
+    win.style.left = sl + (e.clientX - sx) + "px";
+    win.style.top = st + (e.clientY - sy) + "px";
+  });
+  window.addEventListener("mouseup", () => {
+    dragging = false;
+    document.body.style.cursor = "default";
+  });
+
+  // Fullscreen toggle
+  const fsToggle = win.querySelector(".window-fullscreen-toggle");
+  fsToggle.addEventListener("click", () => {
+    win.classList.toggle("fullscreen");
+    if (win.classList.contains("fullscreen")) {
+      win.style.left = "0px";
+      win.style.top = "0px";
+      win.style.width = "100%";
+      win.style.height = "calc(100% - 40px)";
+    } else {
+      win.style.width = "600px";
+      win.style.height = "400px";
+    }
+  });
+
+  // Close and minimize
+  win.querySelector(".window-btn.close").addEventListener("click", () => win.remove());
+  win.querySelector(".window-btn.minimize").addEventListener("click", () => win.classList.remove("visible"));
+}
+
+// === Create Import Explorer ===
+function createImportExplorer(editor) {
+  const explorerWin = document.createElement("div");
+  explorerWin.className = "window";
+  explorerWin.id = "window-import-explorer";
+  explorerWin.innerHTML = `
+    <div class="window-header" data-drag-handle>
+      <div class="window-title"><div class="window-title-main">[Import Explorer]</div></div>
+      <div class="window-controls">
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+    <div class="window-body" style="display:flex;flex-direction:column;height:100%;">
+      <div style="font-size:12px;margin-bottom:6px;">Select an HTML file from /documents:</div>
+      <div id="import-file-list" style="flex:1;overflow:auto;border:1px solid rgba(255,255,255,0.2);padding:6px;"></div>
+    </div>
+  `;
+  document.body.appendChild(explorerWin);
+  enableWindowControls(explorerWin);
+
+  const fileList = explorerWin.querySelector("#import-file-list");
+  const u = currentUser();
+  const htmlFiles = u.fs.filter(f => f.path === "/documents" && f.ext === ".html");
+
+  if (!htmlFiles.length) {
+    fileList.textContent = "No HTML files found.";
+    return;
+  }
+
+  htmlFiles.forEach(file => {
+    const btn = document.createElement("div");
+    btn.textContent = file.name;
+    btn.style.cursor = "pointer";
+    btn.style.padding = "4px";
+    btn.style.borderBottom = "1px solid rgba(255,255,255,0.1)";
+    btn.addEventListener("click", () => {
+      editor.innerHTML = file.content; // Render HTML
+      explorerWin.remove(); // Close explorer
+    });
+    fileList.appendChild(btn);
+  });
+
+  // Cancel import if closed
+  explorerWin.querySelector(".window-btn.close").addEventListener("click", () => explorerWin.remove());
 }
       /* dev banner */
       window.addEventListener("keydown",(e)=>{if(e.key==="F12")devBanner.classList.toggle("visible");});

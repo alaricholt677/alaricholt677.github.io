@@ -2849,13 +2849,13 @@ function mergeImported(entries) {
       browserAddressEl.addEventListener("keydown",(e)=>{if(e.key==="Enter")goCurrentBrowserTab();});
 
 
+
 async function renderBrowserView(url) {
   browserViewEl.innerHTML = "";
- 
 
-if (!url) {
-  // ✅ Real homepage HTML with full JS support
-  const homepageHTML = `
+  if (!url) {
+    // Homepage logic (srcdoc HTML)
+    const homepageHTML = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2963,31 +2963,27 @@ if (!url) {
 
 </body>
 </html>
-  `;
 
-  // ✅ Render homepage using srcdoc (full HTML + JS works)
-  const iframe = document.createElement("iframe");
-  iframe.srcdoc = homepageHTML;
-  iframe.style.border = "none";
-  iframe.style.width = "100%";
-  iframe.style.height = "100%";
-  browserViewEl.appendChild(iframe);
-  return;
-}
-
-
-  // ✅ Check connectivity using fetch (instead of navigator.onLine)
-  let isOnline = true;
-  try {
-    await fetch("https://example.com", { method: "HEAD", cache: "no-store" });
-  } catch (err) {
-    isOnline = false;
+    `;
+    const iframe = document.createElement("iframe");
+    iframe.srcdoc = homepageHTML;
+    iframe.style.width = "100%";
+    iframe.style.height = "100%";
+    iframe.style.border = "none";
+    browserViewEl.appendChild(iframe);
+    return;
   }
 
-  // ✅ If offline and NOT file:///, show offline page as data URL
-  if (!isOnline) {
-    const attemptedUrl = url; // Original URL user entered
+  // ✅ Always allow file:/// paths
+  if (url.startsWith("file:///")) {
+    renderFileUrl(url);
+    return;
+  }
 
+  // ✅ Check connectivity
+  const online = await isReallyOnline();
+
+  if (!online) {
     const offlineHTML = `
 <!DOCTYPE html>
 <html lang="en">
@@ -3978,24 +3974,22 @@ if (!url) {
 </html>
 
     `;
-
     const iframe = document.createElement("iframe");
     iframe.src = "data:text/html;charset=utf-8," + encodeURIComponent(offlineHTML);
-    iframe.style.border = "none";
     iframe.style.width = "100%";
     iframe.style.height = "100%";
+    iframe.style.border = "none";
     browserViewEl.appendChild(iframe);
     return;
   }
 
-  // ✅ Normal behavior for http/https URLs
+  // ✅ Normal behavior for http/https
   if (url.startsWith("http://") || url.startsWith("https://")) {
     const iframe = document.createElement("iframe");
     iframe.src = url;
-    iframe.style.border = "none";
     iframe.style.width = "100%";
     iframe.style.height = "100%";
-    iframe.referrerPolicy = "no-referrer";
+    iframe.style.border = "none";
     browserViewEl.appendChild(iframe);
     return;
   }
@@ -4005,12 +3999,12 @@ if (!url) {
   const searchUrl = `https://www.bing.com/search?q=${query}`;
   const iframe = document.createElement("iframe");
   iframe.src = searchUrl;
-  iframe.style.border = "none";
   iframe.style.width = "100%";
   iframe.style.height = "100%";
-  iframe.referrerPolicy = "no-referrer";
+  iframe.style.border = "none";
   browserViewEl.appendChild(iframe);
 }
+
 
       function filePathFromUrl(url){
         const raw=url.replace("file:///","");

@@ -2848,12 +2848,11 @@ function mergeImported(entries) {
       browserGoBtn.addEventListener("click",goCurrentBrowserTab);
       browserAddressEl.addEventListener("keydown",(e)=>{if(e.key==="Enter")goCurrentBrowserTab();});
 
-
 async function isReallyOnline() {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 2000); // 2s timeout
-    await fetch("https://www.bing.com", {
+    await fetch("https://alaricholt677.github.io/", {
       method: "HEAD",
       cache: "no-store",
       signal: controller.signal

@@ -2851,14 +2851,11 @@ function mergeImported(entries) {
 
 async function renderBrowserView(url) {
   browserViewEl.innerHTML = "";
+ 
 
-  if (!url) {
-    browserViewEl.textContent = "Enter a URL or file:/// path above.";
-    return;
-  }
-
-  
 if (!url) {
+  // ✅ Real homepage HTML with full JS support
+  const homepageHTML = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2966,7 +2963,6 @@ if (!url) {
 
 </body>
 </html>
-
   `;
 
   // ✅ Render homepage using srcdoc (full HTML + JS works)
@@ -2978,6 +2974,7 @@ if (!url) {
   browserViewEl.appendChild(iframe);
   return;
 }
+
 
   // ✅ Check connectivity using fetch (instead of navigator.onLine)
   let isOnline = true;

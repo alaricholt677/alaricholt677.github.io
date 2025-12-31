@@ -2849,6 +2849,22 @@ function mergeImported(entries) {
       browserAddressEl.addEventListener("keydown",(e)=>{if(e.key==="Enter")goCurrentBrowserTab();});
 
 
+async function isReallyOnline() {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2000); // 2s timeout
+    await fetch("https://www.bing.com", {
+      method: "HEAD",
+      cache: "no-store",
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 
 async function renderBrowserView(url) {
   browserViewEl.innerHTML = "";

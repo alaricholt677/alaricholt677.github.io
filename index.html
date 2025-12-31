@@ -2857,11 +2857,127 @@ async function renderBrowserView(url) {
     return;
   }
 
-  // ✅ Always allow file:/// paths (local FS)
-  if (url.startsWith("file:///")) {
-    renderFileUrl(url); // Your existing FS renderer
-    return;
+  
+if (!url) {
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Edge Offline Homepage</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+  body {
+    margin: 0;
+    font-family: "Segoe UI", sans-serif;
+    background: #f3f2f1;
   }
+
+  .topbar {
+    background: #ffffff;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid #e1dfdd;
+  }
+
+  .logo {
+    font-size: 20px;
+    font-weight: 600;
+    color: #0078d4;
+  }
+
+  .addressbar {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #d2d0ce;
+    border-radius: 999px;
+    padding: 6px 14px;
+  }
+
+  .addressbar input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 14px;
+  }
+
+  .addressbar button {
+    background: #0078d4;
+    color: white;
+    border: none;
+    border-radius: 999px;
+    padding: 6px 14px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  .quicklinks {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 16px;
+  }
+
+  .ql-item {
+    background: #ffffff;
+    border: 1px solid #e1dfdd;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+
+  .ql-item:hover {
+    background: #f5f9ff;
+    border-color: #c7e0f4;
+  }
+</style>
+</head>
+
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">Edge</div>
+
+  <div class="addressbar">
+    <input id="addr" placeholder="Enter a URL">
+    <button onclick="
+      var u = document.getElementById('addr').value;
+      if(u.indexOf('://') === -1){ u = 'https://' + u; }
+      location.href = u;
+    ">Go</button>
+  </div>
+</div>
+
+<!-- QUICK LINKS -->
+<div class="quicklinks">
+  <div class="ql-item" onclick="location.href='https://www.bing.com'">Bing</div>
+  <div class="ql-item" onclick="location.href='https://www.microsoft.com'">Microsoft</div>
+  <div class="ql-item" onclick="location.href='https://www.office.com'">Office</div>
+  <div class="ql-item" onclick="location.href='https://www.xbox.com'">Xbox</div>
+  <div class="ql-item" onclick="location.href='https://www.github.com'">GitHub</div>
+</div>
+
+</body>
+</html>
+
+  `;
+
+  // ✅ Render homepage using srcdoc (full HTML + JS works)
+  const iframe = document.createElement("iframe");
+  iframe.srcdoc = homepageHTML;
+  iframe.style.border = "none";
+  iframe.style.width = "100%";
+  iframe.style.height = "100%";
+  browserViewEl.appendChild(iframe);
+  return;
+}
 
   // ✅ Check connectivity using fetch (instead of navigator.onLine)
   let isOnline = true;

@@ -1,0 +1,116 @@
+<svg
+  width="32"
+  height="32"
+  viewBox="0 0 32 32"
+  xmlns="http://www.w3.org/2000/svg"
+  aria-hidden="true"
+>
+  <!-- Wub11-style search icon: clean circle + angled handle -->
+  <defs>
+    <!-- Soft inner highlight -->
+    <radialGradient id="wub11-search-glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85" />
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.0" />
+      <stop offset="100%" stop-color="#e2e6f0" stop-opacity="0.6" />
+    </radialGradient>
+
+    <!-- Stroke for glass rim and handle -->
+    <linearGradient id="wub11-search-stroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1f2937" />
+      <stop offset="100%" stop-color="#111827" />
+    </linearGradient>
+
+    <!-- Handle fill -->
+    <linearGradient id="wub11-search-handle-fill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9ca3af" />
+      <stop offset="100%" stop-color="#6b7280" />
+    </linearGradient>
+  </defs>
+
+  <!-- Invisible canvas -->
+  <rect x="0" y="0" width="32" height="32" fill="none" />
+
+  <!-- Lens group -->
+  <g transform="translate(6 4)">
+    <!-- Outer shadow circle -->
+    <circle
+      cx="10"
+      cy="10"
+      r="8.5"
+      fill="#f3f4f6"
+      stroke="#d1d5db"
+      stroke-width="1"
+    />
+
+    <!-- Inner glow -->
+    <circle
+      cx="10"
+      cy="10"
+      r="7.2"
+      fill="url(#wub11-search-glow)"
+    />
+
+    <!-- Rim stroke -->
+    <circle
+      cx="10"
+      cy="10"
+      r="7.5"
+      fill="none"
+      stroke="url(#wub11-search-stroke)"
+      stroke-width="1.2"
+    />
+
+    <!-- Cut-out / inner void to keep it light -->
+    <circle
+      cx="10"
+      cy="10"
+      r="4.5"
+      fill="#eef2ff"
+      stroke="#e5e7eb"
+      stroke-width="0.6"
+    />
+  </g>
+
+  <!-- Handle group -->
+  <g transform="translate(6 4)">
+    <!-- Handle base (shadow) -->
+    <rect
+      x="14.3"
+      y="14.8"
+      width="7.2"
+      height="2.4"
+      rx="1.1"
+      ry="1.1"
+      fill="#000000"
+      opacity="0.08"
+      transform="rotate(45 14.3 14.8)"
+    />
+
+    <!-- Handle body -->
+    <rect
+      x="13.8"
+      y="14.1"
+      width="7.2"
+      height="2.4"
+      rx="1.1"
+      ry="1.1"
+      fill="url(#wub11-search-handle-fill)"
+      stroke="url(#wub11-search-stroke)"
+      stroke-width="0.7"
+      transform="rotate(45 13.8 14.1)"
+    />
+
+    <!-- Handle highlight -->
+    <rect
+      x="14.1"
+      y="14.3"
+      width="6.3"
+      height="0.8"
+      rx="0.4"
+      ry="0.4"
+      fill="#e5e7eb"
+      opacity="0.7"
+      transform="rotate(45 14.1 14.3)"
+    />
+  </g>
+</svg>

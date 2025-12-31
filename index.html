@@ -888,6 +888,28 @@
   stroke: var(--accent);
 }
 
+    
+#search-panel {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 360px;
+  background: rgba(8,11,30,0.98);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.2);
+  display: none;
+  flex-direction: column;
+  z-index: 1500;
+}
+#search-panel.visible {
+  display: flex;
+}
+#search-results div:hover {
+  background: rgba(255,255,255,0.08);
+  border-radius: 6px;
+}
+
   </style>
   <style id="theme-style"></style>
 </head>
@@ -977,6 +999,11 @@
       <img src="win12-icon.svg" alt="Win12 Icon" width="24" height="24">
       </button>
       <div class="taskbar-start-label">Start</div>
+      <!-- Search Button -->
+      <button class="taskbar-button" id="search-button">
+        <img src="search.svg" alt="Search Icon" width="24" height="24">
+      </button>
+
     </div>
     <div class="taskbar-center">
       <div class="taskbar-app-strip">
@@ -1178,6 +1205,23 @@
       <span>Static HTML · CSS · JS · localStorage. No backend.</span>
       <span class="start-footer-aim">AIM · Agency · Intent · Myth</span>
     </div>
+  </div>
+
+
+  <!-- Search Panel -->
+  <div id="search-panel" class="start-menu">
+    <div class="start-header">
+      <img src="search.svg" alt="Search Icon" width="64" height="64">
+      <div class="start-header-left">
+        <div class="start-title-main">Search</div>
+        <div class="start-title-sub">Find apps quickly</div>
+      </div>
+    </div>
+    <div class="start-search">
+      <span class="start-search-icon">🔍</span>
+      <input id="search-input" placeholder="Search apps..." />
+    </div>
+    <div id="search-results" style="padding:8px;font-size:12px;color:var(--text-main);"></div>
   </div>
 
   <!-- Explorer -->
@@ -4196,8 +4240,81 @@ function createImportExplorer(editor) {
 }
 
 
+const searchButton = document.getElementById("search-button");
+const searchPanel = document.getElementById("search-panel");
+const searchInput = document.getElementById("search-input");
+const searchResults = document.getElementById("search-results");
+
+const apps = [
+  "explorer","notepad","browser","host","assistant","regedit",
+  "settings","notes","paint","media","camera","word"
+];
+
+function toggleSearchPanel() {
+  const isVisible = searchPanel.classList.contains("visible");
+  if (isVisible) {
+    searchPanel.classList.remove("visible");
+  } else {
+    searchPanel.classList.add("visible");
+    searchInput.focus();
+    searchResults.innerHTML = "";
+  }
+}
+
+searchButton.addEventListener("click", toggleSearchPanel);
+
+// Close when clicking outside
+document.addEventListener("mousedown", (e) => {
+  if (!searchPanel.contains(e.target) && !searchButton.contains(e.target)) {
+    searchPanel.classList.remove("visible");
+  }
+});
+
+// Handle search input
+searchInput.addEventListener("input", () => {
+  const query = searchInput.value.toLowerCase();
+  searchResults.innerHTML = "";
+
+  if (!query) return;
+
+  const matches = apps.filter(app => app.includes(query));
+  if (matches.length === 0) {
+    searchResults.textContent = "No apps found.";
+    return;
+  }
+
+  matches.forEach(app => {
+    const div = document.createElement("div");
+    div.textContent = app.charAt(0).toUpperCase() + app.slice(1);
+    div.style.cursor = "pointer";
+    div.style.padding = "4px";
+    div.addEventListener("click", () => {
+      showWindow(app);
+      searchPanel.classList.remove("visible");
+    });
+    searchResults.appendChild(div);
+  });
+});
       /* dev banner */
       window.addEventListener("keydown",(e)=>{if(e.key==="F12")devBanner.classList.toggle("visible");});
+
+
+document.addEventListener("keydown", (e) => {
+  // Detect Windows/Meta key
+  if (e.code === "MetaLeft" || e.code === "MetaRight" || e.key === "Meta") {
+    e.preventDefault(); // Prevent default OS behavior if needed
+    toggleStart(); // Call your existing function to open/close Start Menu
+  }
+});
+
+      
+document.addEventListener("keydown", (e) => {
+  // Meta key + S shortcut
+  if (e.metaKey && e.key.toLowerCase() === "s") {
+    e.preventDefault(); // Prevent browser default (Save)
+    toggleSearchPanel(); // Open/close the search panel
+  }
+});
 
       /* initial */
       function initialSetup(){

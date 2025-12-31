@@ -2865,10 +2865,10 @@ async function isReallyOnline() {
   }
 }
 
-
 async function renderBrowserView(url) {
   browserViewEl.innerHTML = "";
 
+  const attemptedUrl = url || "";
   if (!url) {
     // Homepage logic (srcdoc HTML)
     const homepageHTML = `

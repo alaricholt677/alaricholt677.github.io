@@ -2859,11 +2859,11 @@ async function renderBrowserView(url) {
 
   // ✅ Always allow file:/// paths (local FS)
   if (url.startsWith("file:///")) {
-    renderFileUrl(url);
+    renderFileUrl(url); // Your existing FS renderer
     return;
   }
 
-  // ✅ Check connectivity using fetch
+  // ✅ Check connectivity using fetch (instead of navigator.onLine)
   let isOnline = true;
   try {
     await fetch("https://example.com", { method: "HEAD", cache: "no-store" });
@@ -2871,10 +2871,1003 @@ async function renderBrowserView(url) {
     isOnline = false;
   }
 
-  // ✅ If offline and URL is NOT file:///, show offline.html
+  // ✅ If offline and NOT file:///, show offline page as data URL
   if (!isOnline) {
+    const attemptedUrl = url; // Original URL user entered
+
+    const offlineHTML = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>You’re not connected</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #f3f2f1;
+      --card-bg: #ffffff;
+      --primary: #0078d4;
+      --primary-soft: #cfe6f8;
+      --primary-deep: #005a9e;
+      --text-main: #201f1e;
+      --text-soft: #605e5c;
+      --text-muted: #8a8886;
+      --border-soft: #e1dfdd;
+      --shadow-soft: 0 18px 45px rgba(0, 0, 0, 0.08);
+      --radius-lg: 18px;
+      --radius-pill: 999px;
+      --focus-ring: 0 0 0 3px rgba(0, 120, 212, 0.35);
+      --plug-stroke: #0078d4;
+      --plug-fill: #ffffff;
+      --plug-muted: #b3daf6;
+      --error-accent: #d83b01;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top left, #f5f7fb 0, #f3f2f1 40%, #ecebe9 100%);
+      color: var(--text-main);
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 960px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr);
+      gap: 32px;
+      align-items: center;
+      background: linear-gradient(135deg, #ffffff 0, #fbfbfc 40%, #f6f8fb 100%);
+      border-radius: 24px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      padding: 32px 32px 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    @media (max-width: 800px) {
+      .shell {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 24px 20px 20px;
+      }
+      body {
+        align-items: stretch;
+      }
+    }
+
+    .shell::before {
+      content: "";
+      position: absolute;
+      inset: -60%;
+      background:
+        radial-gradient(circle at top left, rgba(0, 120, 212, 0.06) 0, transparent 55%),
+        radial-gradient(circle at bottom right, rgba(0, 120, 212, 0.04) 0, transparent 60%);
+      pointer-events: none;
+      opacity: 0.9;
+    }
+
+    .shell-inner {
+      position: relative;
+      z-index: 1;
+      display: contents;
+    }
+
+    .left-panel {
+      padding-right: 12px;
+      min-width: 0;
+    }
+
+    .badge-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      border-radius: var(--radius-pill);
+      background: rgba(0, 120, 212, 0.06);
+      color: var(--primary-deep);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      border: 1px solid rgba(0, 120, 212, 0.1);
+      backdrop-filter: blur(10px);
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: radial-gradient(circle, #00cc6a 0, #13a10e 55%, #10893e 100%);
+      box-shadow:
+        0 0 0 4px rgba(19, 161, 14, 0.16),
+        0 0 10px rgba(19, 161, 14, 0.7);
+    }
+
+    .badge-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-weight: 600;
+      font-size: 28px;
+      letter-spacing: 0.01em;
+    }
+
+    .subtitle {
+      margin: 0 0 16px;
+      color: var(--text-soft);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .url-pill {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 6px 10px 6px 12px;
+      border-radius: var(--radius-pill);
+      background: #f3f2f1;
+      border: 1px solid #e1dfdd;
+      margin: 0 0 18px;
+    }
+
+    .url-pill-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .url-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 99px;
+      background: #f7630c;
+    }
+
+    .url-text {
+      font-size: 13px;
+      color: var(--text-soft);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .url-status {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .hint {
+      margin: 0 0 16px;
+      font-size: 13px;
+      color: var(--text-soft);
+    }
+
+    .hint strong {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .list {
+      margin: 0 0 22px;
+      padding-left: 18px;
+    }
+
+    .list li {
+      margin-bottom: 4px;
+      font-size: 13px;
+      color: var(--text-soft);
+    }
+
+    .list li strong {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 120px;
+      padding: 8px 18px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--primary-deep);
+      background: radial-gradient(circle at top left, #5cb8ff 0, #0078d4 50%, #005a9e 100%);
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, background 0.12s ease-out;
+      box-shadow: 0 6px 18px rgba(0, 120, 212, 0.35);
+      user-select: none;
+    }
+
+    .btn::after {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      border-radius: inherit;
+      border: 1px solid rgba(255, 255, 255, 0.26);
+      pointer-events: none;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(0, 120, 212, 0.45);
+      background: radial-gradient(circle at top left, #7fc6ff 0, #0a84ff 45%, #005a9e 100%);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+      box-shadow: 0 4px 10px rgba(0, 120, 212, 0.3);
+    }
+
+    .btn:focus-visible {
+      outline: none;
+      box-shadow: 0 6px 18px rgba(0, 120, 212, 0.35), var(--focus-ring);
+    }
+
+    .btn-ghost {
+      border-color: #e1dfdd;
+      background: rgba(255, 255, 255, 0.4);
+      color: var(--text-main);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .btn-ghost::after {
+      border-color: rgba(255, 255, 255, 0.7);
+    }
+
+    .btn-ghost:hover {
+      background: #ffffff;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .btn-ghost-icon {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      border: 1px solid #a19f9d;
+      position: relative;
+      display: inline-block;
+    }
+
+    .btn-ghost-icon::before {
+      content: "";
+      position: absolute;
+      inset: 3px;
+      border-radius: 2px;
+      background: linear-gradient(135deg, #4cd964, #19a636);
+    }
+
+    .keyboard-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .keyboard-key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      padding: 1px 5px;
+      border: 1px solid #d2d0ce;
+      background: #ffffff;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+      font-size: 10px;
+      margin: 0 2px;
+    }
+
+    .footnote {
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .right-panel {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .scene-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 380px;
+      aspect-ratio: 5 / 4;
+      border-radius: 22px;
+      overflow: hidden;
+      background: radial-gradient(circle at top, #f4f8ff 0, #e1efff 30%, #d6e3f7 60%, #cfd8e6 100%);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow:
+        0 14px 40px rgba(0, 0, 0, 0.12),
+        0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+    }
+
+    .scene-top-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 7px 12px 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-soft);
+      background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(244, 247,255, 0.98));
+      border-bottom: 1px solid rgba(209, 209, 211, 0.7);
+      z-index: 3;
+    }
+
+    .scene-dots {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .scene-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #e1dfdd;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scene-dot.scene-dot-active {
+      background: linear-gradient(135deg, #24c2ff, #0078d4);
+      box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.22);
+    }
+
+    .scene-dot.scene-dot-warn {
+      background: linear-gradient(135deg, #ffc640, #d83b01);
+      box-shadow: 0 0 0 3px rgba(216, 59, 1, 0.16);
+    }
+
+    .scene-title {
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+
+    .scene-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-muted);
+    }
+
+    .scene-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      border: 1px solid #d2d0ce;
+      background: #ffffff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scene-status-dot::after {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      border-radius: inherit;
+      background: repeating-linear-gradient(
+        135deg,
+        rgba(209, 52, 56, 0.9),
+        rgba(209, 52, 56, 0.9) 2px,
+        rgba(255, 255, 255, 0.9) 2px,
+        rgba(255, 255, 255, 0.9) 4px
+      );
+      opacity: 0.9;
+    }
+
+    .ground {
+      position: absolute;
+      inset: 60% 0 0;
+      background: linear-gradient(to bottom, #f1f5ff 0, #e1e7f3 40%, #d3d8e3 100%);
+      border-top: 1px solid #c1c7d7;
+      z-index: 1;
+    }
+
+    .ground::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 30% 0, rgba(255, 255, 255, 0.8) 0, transparent 45%),
+        radial-gradient(circle at 70% 10%, rgba(255, 255, 255, 0.65) 0, transparent 55%);
+      opacity: 0.8;
+    }
+
+    .ground-line {
+      position: absolute;
+      left: 10%;
+      right: 10%;
+      top: 18%;
+      height: 0;
+      border-top: 1px dashed rgba(96, 94, 92, 0.25);
+    }
+
+    .ground-notch {
+      position: absolute;
+      width: 32%;
+      height: 6px;
+      border-radius: 999px;
+      background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(0, 0, 0, 0.12), rgba(255, 255, 255, 0));
+      left: 34%;
+      top: 24%;
+      opacity: 0.7;
+    }
+
+    .cloud {
+      position: absolute;
+      background: #ffffff;
+      border-radius: 999px;
+      box-shadow: 0 4px 10px rgba(119, 143, 188, 0.3);
+      z-index: 0;
+    }
+
+    .cloud.cloud-1 {
+      width: 120px;
+      height: 34px;
+      top: 20%;
+      left: 7%;
+    }
+
+    .cloud.cloud-2 {
+      width: 90px;
+      height: 28px;
+      top: 12%;
+      right: 16%;
+    }
+
+    .cloud.cloud-3 {
+      width: 70px;
+      height: 24px;
+      top: 30%;
+      right: 6%;
+      opacity: 0.8;
+    }
+
+    .cloud::before,
+    .cloud::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      background: inherit;
+    }
+
+    .cloud::before {
+      width: 45%;
+      height: 140%;
+      top: -45%;
+      left: 8%;
+    }
+
+    .cloud::after {
+      width: 50%;
+      height: 155%;
+      top: -55%;
+      right: 0;
+    }
+
+    .plug-orbit {
+      position: absolute;
+      z-index: 2;
+      inset: 24% 14% auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .plug-orbit-circle {
+      width: 74%;
+      aspect-ratio: 1 / 1;
+      border-radius: 999px;
+      border: 1px dashed rgba(0, 120, 212, 0.3);
+      border-top-color: rgba(216, 59, 1, 0.7);
+      border-right-color: rgba(0, 120, 212, 0.7);
+      transform: rotate(-18deg);
+      position: relative;
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.08);
+      background: radial-gradient(circle at 30% 0, rgba(255, 255, 255, 0.75) 0, transparent 60%);
+    }
+
+    .plug-badge {
+      position: absolute;
+      top: 4%;
+      right: 10%;
+      padding: 3px 7px 3px 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(216, 59, 1, 0.3);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 9px;
+      color: var(--error-accent);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 4px 10px rgba(216, 59, 1, 0.16);
+    }
+
+    .plug-badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle, #ffc640 0, #ff8c00 45%, #d83b01 100%);
+      box-shadow: 0 0 0 3px rgba(255, 145, 0, 0.25);
+    }
+
+    .plug-glow {
+      position: absolute;
+      inset: 18%;
+      border-radius: inherit;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.9) 0, transparent 55%),
+        radial-gradient(circle at 70% 80%, rgba(49, 130, 206, 0.4) 0, transparent 65%);
+      opacity: 0.9;
+      pointer-events: none;
+    }
+
+    .plug-svg-wrap {
+      position: absolute;
+      inset: 18%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .plug-shadow {
+      position: absolute;
+      inset: auto 18% 6%;
+      height: 12%;
+      border-radius: 999px;
+      background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.26) 0, rgba(0, 0, 0, 0.02) 60%, transparent 70%);
+      opacity: 0.75;
+      filter: blur(1px);
+    }
+
+    .edge-orbit-pill {
+      position: absolute;
+      inset: auto 24% 7%;
+      height: 22px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(0, 120, 212, 0.1), rgba(0, 120, 212, 0.02));
+      border: 1px solid rgba(0, 120, 212, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 8px;
+      font-size: 10px;
+      color: var(--primary-deep);
+      box-shadow: 0 7px 16px rgba(0, 0, 0, 0.18);
+      backdrop-filter: blur(8px);
+    }
+
+    .edge-orbit-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: conic-gradient(
+        from 210deg,
+        #0f6feb,
+        #54e1ff,
+        #00cc6a,
+        #0f6feb
+      );
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+    }
+
+    .edge-orbit-text-sub {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .scene-foot {
+      position: absolute;
+      inset: auto 10px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 9px;
+      color: rgba(32, 31, 30, 0.6);
+      z-index: 2;
+    }
+
+    .scene-foot-left {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .scene-foot-pill {
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(209, 209, 211, 0.7);
+    }
+
+    .scene-foot-key {
+      padding: 0 4px;
+      border-radius: 3px;
+      border: 1px solid rgba(209, 209, 211, 0.8);
+      background: rgba(255, 255, 255, 0.95);
+    }
+
+    .scene-foot-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      opacity: 0.8;
+    }
+
+    .scene-foot-signal {
+      display: inline-flex;
+      align-items: flex-end;
+      gap: 1px;
+    }
+
+    .scene-foot-signal span {
+      width: 2px;
+      border-radius: 99px;
+      background: #c8c6c4;
+    }
+
+    .scene-foot-signal span:nth-child(1) {
+      height: 4px;
+    }
+
+    .scene-foot-signal span:nth-child(2) {
+      height: 6px;
+    }
+
+    .scene-foot-signal span:nth-child(3) {
+      height: 9px;
+    }
+
+    .scene-foot-signal span:nth-child(4) {
+      height: 12px;
+      background: #d83b01;
+    }
+  </style>
+</head>
+<body>
+  <main class="shell" role="main" aria-label="Offline page">
+    <div class="shell-inner">
+      <section class="left-panel">
+        <div class="badge-row">
+          <div class="badge">
+            <span class="badge-dot"></span>
+            <span>Offline mode</span>
+          </div>
+          <div class="badge-sub">Edge-style relic &bull; Local only &bull; No tracking</div>
+        </div>
+
+        <h1>You’re not connected</h1>
+        <p class="subtitle">
+          It looks like this page isn’t available right now. When you’re back online, we’ll try again.
+        </p>
+
+        <div class="url-pill" aria-label="Connection status">
+          <div class="url-pill-left">
+            <span class="url-dot"></span>
+            <span class="url-text">${attemptedUrl}</span>
+          </div>
+          <span class="url-status">No internet</span>
+        </div>
+
+        <p class="hint">
+          <strong>Try this:</strong>
+        </p>
+        <ul class="list">
+          <li><strong>Check your network cable, modem, and router.</strong></li>
+          <li>Reconnect to <strong>Wi‑Fi</strong> or your mobile network.</li>
+          <li>Make sure <strong>airplane mode</strong> is turned off.</li>
+          <li>Run your system’s <strong>network troubleshooter</strong>.</li>
+        </ul>
+
+        <div class="btn-row">
+          <button
+            class="btn"
+            type="button"
+            onclick="location.href = ${attemptedUrl}"
+          >
+            <span>Try again</span>
+          </button>
+
+          <button
+            class="btn btn-ghost"
+            type="button"
+            onclick="alert('Offline relic.\n\nAttempted URL:\n' + ${attemptedUrl})"
+          >
+            <span class="btn-ghost-icon"></span>
+            <span>Stay offline</span>
+          </button>
+        </div>
+
+        <div class="keyboard-hint">
+          Press
+          <span class="keyboard-key">F5</span>
+          or
+          <span class="keyboard-key">Ctrl</span> + <span class="keyboard-key">R</span>
+          to retry the page.
+        </div>
+
+        <p class="footnote">
+          You’re viewing a standalone HTML relic inspired by Microsoft Edge’s offline page. All visuals are locally rendered.
+        </p>
+      </section>
+
+      <section class="right-panel" aria-hidden="true">
+        <div class="scene-wrap">
+          <div class="scene-top-bar">
+            <div class="scene-dots">
+              <div class="scene-dot"></div>
+              <div class="scene-dot scene-dot-warn"></div>
+              <div class="scene-dot scene-dot-active"></div>
+            </div>
+            <div class="scene-title">Connection</div>
+            <div class="scene-status">
+              <span class="scene-status-dot"></span>
+              <span>${attemptedUrl}</span>
+            </div>
+          </div>
+
+          <div class="cloud cloud-1"></div>
+          <div class="cloud cloud-2"></div>
+          <div class="cloud cloud-3"></div>
+
+          <div class="ground">
+            <div class="ground-line"></div>
+            <div class="ground-notch"></div>
+          </div>
+
+          <div class="plug-orbit">
+            <div class="plug-orbit-circle">
+              <div class="plug-badge">
+                <span class="plug-badge-dot"></span>
+                <span>Cable unplugged</span>
+              </div>
+              <div class="plug-glow"></div>
+
+              <div class="plug-svg-wrap">
+                <!-- Inline plug SVG -->
+                <svg
+                  viewBox="0 0 120 120"
+                  width="100%"
+                  height="100%"
+                  aria-hidden="true"
+                >
+                  <defs>
+                    <linearGradient id="plugBody" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="#ffffff" />
+                      <stop offset="100%" stop-color="#dbeeff" />
+                    </linearGradient>
+                    <linearGradient id="plugWire" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#0078d4" />
+                      <stop offset="50%" stop-color="#00a4ef" />
+                      <stop offset="100%" stop-color="#50e6ff" />
+                    </linearGradient>
+                  </defs>
+
+                  <!-- Curved cable -->
+                  <path
+                    d="M 16 88
+                       C 32 76, 36 64, 40 52
+                       S 60 30, 84 30
+                       C 102 30, 110 38, 112 46"
+                    fill="none"
+                    stroke="url(#plugWire)"
+                    stroke-width="5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    opacity="0.9"
+                  />
+                  <!-- Cable highlight -->
+                  <path
+                    d="M 18 88
+                       C 34 76, 38 64, 42 52
+                       S 60 30, 84 30"
+                    fill="none"
+                    stroke="#ffffff"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    opacity="0.9"
+                  />
+
+                  <!-- Plug body -->
+                  <g transform="translate(34,46)">
+                    <!-- Body main -->
+                    <rect
+                      x="0"
+                      y="10"
+                      width="44"
+                      height="34"
+                      rx="9"
+                      ry="9"
+                      fill="url(#plugBody)"
+                      stroke="#c5d7ea"
+                      stroke-width="1.4"
+                    />
+                    <!-- Inner bevel -->
+                    <rect
+                      x="1.8"
+                      y="11.8"
+                      width="40.4"
+                      height="30.4"
+                      rx="7.6"
+                      ry="7.6"
+                      fill="none"
+                      stroke="rgba(0,0,0,0.06)"
+                      stroke-width="1.2"
+                    />
+
+                    <!-- Top ring -->
+                    <rect
+                      x="8"
+                      y="4"
+                      width="28"
+                      height="10"
+                      rx="4"
+                      ry="4"
+                      fill="#f3f8fd"
+                      stroke="#c5d7ea"
+                      stroke-width="1.2"
+                    />
+
+                    <!-- Prongs -->
+                    <rect x="11" y="0" width="4" height="10" rx="2" fill="#f9fafc" stroke="#c5d7ea" stroke-width="1.1" />
+                    <rect x="29" y="0" width="4" height="10" rx="2" fill="#f9fafc" stroke="#c5d7ea" stroke-width="1.1" />
+
+                    <!-- Face: eyes -->
+                    <circle cx="16" cy="26" r="2.2" fill="#384149" />
+                    <circle cx="28" cy="26" r="2.2" fill="#384149" />
+
+                    <!-- Face: mouth -->
+                    <path
+                      d="M 18 32
+                         Q 22 29, 26 32"
+                      fill="none"
+                      stroke="#d83b01"
+                      stroke-width="1.4"
+                      stroke-linecap="round"
+                    />
+
+                    <!-- Lower shadow -->
+                    <path
+                      d="M 4 34
+                         Q 22 40, 40 34
+                         L 40 37
+                         Q 22 43, 4 37
+                         Z"
+                      fill="rgba(0,0,0,0.05)"
+                      opacity="0.7"
+                    />
+                  </g>
+
+                  <!-- Plug collar -->
+                  <g transform="translate(46,82)">
+                    <rect
+                      x="-4"
+                      y="0"
+                      width="16"
+                      height="10"
+                      rx="4"
+                      fill="#ffffff"
+                      stroke="#c5d7ea"
+                      stroke-width="1.1"
+                    />
+                    <rect
+                      x="-2"
+                      y="2"
+                      width="12"
+                      height="6"
+                      rx="3"
+                      fill="rgba(0,120,212,0.09)"
+                      stroke="rgba(0,120,212,0.3)"
+                      stroke-width="0.9"
+                    />
+                  </g>
+
+                  <!-- Ambient ellipse -->
+                  <ellipse
+                    cx="52"
+                    cy="94"
+                    rx="22"
+                    ry="7"
+                    fill="rgba(0,0,0,0.18)"
+                    opacity="0.3"
+                  />
+                </svg>
+              </div>
+
+              <div class="plug-shadow"></div>
+            </div>
+          </div>
+
+          <div class="edge-orbit-pill">
+            <div class="edge-orbit-dot"></div>
+            <span>Edge-style offline scene</span>
+            <span class="edge-orbit-text-sub">Local render</span>
+          </div>
+
+          <div class="scene-foot">
+            <div class="scene-foot-left">
+              <div class="scene-foot-pill">
+                Press <span class="scene-foot-key">Space</span> to imagine surfing
+              </div>
+            </div>
+            <div class="scene-foot-right">
+              <div class="scene-foot-signal">
+                <span></span><span></span><span></span><span></span>
+              </div>
+              <span>No signal</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
+
+    `;
+
     const iframe = document.createElement("iframe");
-    iframe.src = "offline.html"; // Your offline page
+    iframe.src = "data:text/html;charset=utf-8," + encodeURIComponent(offlineHTML);
     iframe.style.border = "none";
     iframe.style.width = "100%";
     iframe.style.height = "100%";
@@ -2882,7 +3875,7 @@ async function renderBrowserView(url) {
     return;
   }
 
-  // ✅ Normal behavior for http/https
+  // ✅ Normal behavior for http/https URLs
   if (url.startsWith("http://") || url.startsWith("https://")) {
     const iframe = document.createElement("iframe");
     iframe.src = url;
@@ -2905,7 +3898,6 @@ async function renderBrowserView(url) {
   iframe.referrerPolicy = "no-referrer";
   browserViewEl.appendChild(iframe);
 }
-
 
       function filePathFromUrl(url){
         const raw=url.replace("file:///","");

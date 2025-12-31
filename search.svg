@@ -1,175 +1,85 @@
-<svg
-  width="32"
-  height="32"
-  viewBox="0 0 32 32"
-  xmlns="http://www.w3.org/2000/svg"
-  aria-hidden="true"
->
+<svg width="120" height="120" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- MAGENTA–PINK SPINNING BORDER GRADIENT -->
   <defs>
-    <!-- Soft inner highlight -->
-    <radialGradient id="wub11-search-glow" cx="50%" cy="40%" r="60%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9" />
-      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.0" />
-      <stop offset="100%" stop-color="#e2e6f0" stop-opacity="0.7" />
-    </radialGradient>
-
-    <!-- Stroke for glass rim and handle -->
-    <linearGradient id="wub11-search-stroke" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1f2937" />
-      <stop offset="100%" stop-color="#111827" />
+    <linearGradient id="spinBorder" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff00ff"/>
+      <stop offset="50%" stop-color="#ff4dd2"/>
+      <stop offset="100%" stop-color="#ff0099"/>
+      <animateTransform
+        attributeName="gradientTransform"
+        type="rotate"
+        from="0 0.5 0.5"
+        to="360 0.5 0.5"
+        dur="1.2s"
+        repeatCount="indefinite"
+      />
     </linearGradient>
 
-    <!-- Handle fill -->
-    <linearGradient id="wub11-search-handle-fill" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#9ca3af" />
-      <stop offset="100%" stop-color="#6b7280" />
+    <!-- NORMAL BORDER (IDLE) -->
+    <linearGradient id="idleBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d1d1d1"/>
+      <stop offset="100%" stop-color="#b8b8b8"/>
     </linearGradient>
 
-    <!-- Active orbit stroke -->
-    <linearGradient id="wub11-search-orbit" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#4f46e5" />
-      <stop offset="50%" stop-color="#22c55e" />
-      <stop offset="100%" stop-color="#0ea5e9" />
+    <!-- HANDLE FILL -->
+    <linearGradient id="handleFill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff66cc"/>
+      <stop offset="100%" stop-color="#ff0099"/>
     </linearGradient>
   </defs>
 
-  <!-- Invisible canvas -->
-  <rect x="0" y="0" width="32" height="32" fill="none" />
+  <!-- ANIMATION GROUP (SIZE PULSE + BORDER SWITCH) -->
+  <g id="icon" transform="translate(6 4)">
+    <g>
+      <!-- SIZE ANIMATION -->
+      <animateTransform
+        attributeName="transform"
+        type="scale"
+        values="1;0.85;1.15;1"
+        dur="2.4s"
+        repeatCount="indefinite"
+      />
+    </g>
 
-  <!-- Lens + handle base -->
-  <g transform="translate(6 4)">
-    <!-- Outer shadow circle -->
+    <!-- OUTER RING -->
     <circle
-      cx="10"
-      cy="10"
-      r="8.5"
-      fill="#f3f4f6"
-      stroke="#d1d5db"
-      stroke-width="1"
-    />
+      cx="10" cy="10" r="8"
+      fill="#ffe6f7"
+    >
+      <!-- BORDER COLOR SWITCH (IDLE → ACTIVE → IDLE) -->
+      <animate
+        attributeName="stroke"
+        values="url(#idleBorder);url(#spinBorder);url(#spinBorder);url(#idleBorder)"
+        dur="2.4s"
+        repeatCount="indefinite"
+      />
+      <animate
+        attributeName="stroke-width"
+        values="1;2;2;1"
+        dur="2.4s"
+        repeatCount="indefinite"
+      />
+    </circle>
 
-    <!-- Inner glow -->
+    <!-- INNER DISC -->
     <circle
-      cx="10"
-      cy="10"
-      r="7.2"
-      fill="url(#wub11-search-glow)"
-    />
-
-    <!-- Rim stroke -->
-    <circle
-      cx="10"
-      cy="10"
-      r="7.5"
-      fill="none"
-      stroke="url(#wub11-search-stroke)"
-      stroke-width="1.2"
-    />
-
-    <!-- Inner disc -->
-    <circle
-      cx="10"
-      cy="10"
-      r="4.5"
-      fill="#eef2ff"
-      stroke="#e5e7eb"
+      cx="10" cy="10" r="4.5"
+      fill="#ffd6f2"
+      stroke="#ffb3e6"
       stroke-width="0.6"
     />
 
-    <!-- Handle shadow -->
+    <!-- HANDLE -->
     <rect
-      x="14.3"
-      y="14.8"
-      width="7.2"
-      height="2.4"
-      rx="1.1"
-      ry="1.1"
-      fill="#000000"
-      opacity="0.08"
-      transform="rotate(45 14.3 14.8)"
-    />
-
-    <!-- Handle body -->
-    <rect
-      x="13.8"
-      y="14.1"
-      width="7.2"
-      height="2.4"
-      rx="1.1"
-      ry="1.1"
-      fill="url(#wub11-search-handle-fill)"
-      stroke="url(#wub11-search-stroke)"
+      x="13.8" y="14.1"
+      width="7.2" height="2.4"
+      rx="1.1" ry="1.1"
+      fill="url(#handleFill)"
+      stroke="#ff0099"
       stroke-width="0.7"
       transform="rotate(45 13.8 14.1)"
     />
-
-    <!-- Handle highlight -->
-    <rect
-      x="14.1"
-      y="14.3"
-      width="6.3"
-      height="0.8"
-      rx="0.4"
-      ry="0.4"
-      fill="#e5e7eb"
-      opacity="0.7"
-      transform="rotate(45 14.1 14.3)"
-    />
   </g>
 
-  <!-- Active searching orbit + pulse -->
-  <g transform="translate(6 4)">
-    <!-- Orbit arc (animated rotation) -->
-    <g transform="translate(10 10)">
-      <g>
-        <path
-          d="
-            M 0 -9.5
-            A 9.5 9.5 0 0 1 8 0
-          "
-          fill="none"
-          stroke="url(#wub11-search-orbit)"
-          stroke-width="1.3"
-          stroke-linecap="round"
-        >
-          <animateTransform
-            attributeName="transform"
-            type="rotate"
-            from="0 0 0"
-            to="360 0 0"
-            dur="1.1s"
-            repeatCount="indefinite"
-          />
-        </path>
-      </g>
-
-      <!-- Leading pulse dot -->
-      <circle
-        r="1.4"
-        fill="#4f46e5"
-        opacity="0.95"
-      >
-        <animateTransform
-          attributeName="transform"
-          type="rotate"
-          from="0 0 0"
-          to="360 0 0"
-          dur="1.1s"
-          repeatCount="indefinite"
-        />
-        <animate
-          attributeName="r"
-          values="1.4;2;1.4"
-          dur="1.1s"
-          repeatCount="indefinite"
-        />
-        <animate
-          attributeName="opacity"
-          values="0.4;1;0.4"
-          dur="1.1s"
-          repeatCount="indefinite"
-        />
-      </circle>
-    </g>
-  </g>
 </svg>

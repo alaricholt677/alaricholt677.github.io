@@ -5,13 +5,12 @@
   xmlns="http://www.w3.org/2000/svg"
   aria-hidden="true"
 >
-  <!-- Wub11-style search icon: clean circle + angled handle -->
   <defs>
     <!-- Soft inner highlight -->
     <radialGradient id="wub11-search-glow" cx="50%" cy="40%" r="60%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85" />
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9" />
       <stop offset="40%" stop-color="#ffffff" stop-opacity="0.0" />
-      <stop offset="100%" stop-color="#e2e6f0" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#e2e6f0" stop-opacity="0.7" />
     </radialGradient>
 
     <!-- Stroke for glass rim and handle -->
@@ -25,12 +24,19 @@
       <stop offset="0%" stop-color="#9ca3af" />
       <stop offset="100%" stop-color="#6b7280" />
     </linearGradient>
+
+    <!-- Active orbit stroke -->
+    <linearGradient id="wub11-search-orbit" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="50%" stop-color="#22c55e" />
+      <stop offset="100%" stop-color="#0ea5e9" />
+    </linearGradient>
   </defs>
 
   <!-- Invisible canvas -->
   <rect x="0" y="0" width="32" height="32" fill="none" />
 
-  <!-- Lens group -->
+  <!-- Lens + handle base -->
   <g transform="translate(6 4)">
     <!-- Outer shadow circle -->
     <circle
@@ -60,7 +66,7 @@
       stroke-width="1.2"
     />
 
-    <!-- Cut-out / inner void to keep it light -->
+    <!-- Inner disc -->
     <circle
       cx="10"
       cy="10"
@@ -69,11 +75,8 @@
       stroke="#e5e7eb"
       stroke-width="0.6"
     />
-  </g>
 
-  <!-- Handle group -->
-  <g transform="translate(6 4)">
-    <!-- Handle base (shadow) -->
+    <!-- Handle shadow -->
     <rect
       x="14.3"
       y="14.8"
@@ -112,5 +115,61 @@
       opacity="0.7"
       transform="rotate(45 14.1 14.3)"
     />
+  </g>
+
+  <!-- Active searching orbit + pulse -->
+  <g transform="translate(6 4)">
+    <!-- Orbit arc (animated rotation) -->
+    <g transform="translate(10 10)">
+      <g>
+        <path
+          d="
+            M 0 -9.5
+            A 9.5 9.5 0 0 1 8 0
+          "
+          fill="none"
+          stroke="url(#wub11-search-orbit)"
+          stroke-width="1.3"
+          stroke-linecap="round"
+        >
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            from="0 0 0"
+            to="360 0 0"
+            dur="1.1s"
+            repeatCount="indefinite"
+          />
+        </path>
+      </g>
+
+      <!-- Leading pulse dot -->
+      <circle
+        r="1.4"
+        fill="#4f46e5"
+        opacity="0.95"
+      >
+        <animateTransform
+          attributeName="transform"
+          type="rotate"
+          from="0 0 0"
+          to="360 0 0"
+          dur="1.1s"
+          repeatCount="indefinite"
+        />
+        <animate
+          attributeName="r"
+          values="1.4;2;1.4"
+          dur="1.1s"
+          repeatCount="indefinite"
+        />
+        <animate
+          attributeName="opacity"
+          values="0.4;1;0.4"
+          dur="1.1s"
+          repeatCount="indefinite"
+        />
+      </circle>
+    </g>
   </g>
 </svg>

@@ -3705,6 +3705,16 @@ async function renderBrowserView(url) {
       height: 12px;
       background: #d83b01;
     }
+    
+.drag-gradient {
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ffffff, #e0e0e0);
+  border: 4px solid;
+  border-image: linear-gradient(135deg, magenta, purple) 1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease-in-out;
+}
+
   </style>
 </head>
 <body>
@@ -5378,6 +5388,57 @@ function createImportExplorer(editor) {
   explorerWin.querySelector(".window-btn.close").addEventListener("click", () => explorerWin.remove());
 }
 
+function makeDraggable(el, container) {
+  let offsetX = 0;
+  let offsetY = 0;
+  let isDragging = false;
+
+  el.addEventListener('mousedown', startDrag);
+  el.addEventListener('touchstart', startDrag, { passive: false });
+
+  function startDrag(e) {
+    e.preventDefault();
+    isDragging = true;
+    el.classList.add('drag-gradient'); // ✅ Add gradient effect
+    const rect = el.getBoundingClientRect();
+    const startX = e.touches ? e.touches[0].clientX : e.clientX;
+    const startY = e.touches ? e.touches[0].clientY : e.clientY;
+    offsetX = startX - rect.left;
+    offsetY = startY - rect.top;
+
+    document.addEventListener('mousemove', onDrag);
+    document.addEventListener('mouseup', endDrag);
+    document.addEventListener('touchmove', onDrag, { passive: false });
+    document.addEventListener('touchend', endDrag);
+  }
+
+  function onDrag(e) {
+    if (!isDragging) return;
+    e.preventDefault();
+    const containerRect = container.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    let newLeft = clientX - offsetX - containerRect.left;
+    let newTop = clientY - offsetY - containerRect.top;
+
+    if (newLeft < 0) newLeft = 0;
+    if (newTop < 0) newTop = 0;
+
+    el.style.left = newLeft + 'px';
+    el.style.top = newTop + 'px';
+  }
+
+  function endDrag() {
+    isDragging = false;
+    el.classList.remove('drag-gradient'); // ✅ Remove gradient effect
+    document.removeEventListener('mousemove', onDrag);
+    document.removeEventListener('mouseup', endDrag);
+    document.removeEventListener('touchmove', onDrag);
+    document.removeEventListener('touchend', endDrag);
+  }
+}
+``
 
 const searchButton = document.getElementById("search-button");
 const searchPanel = document.getElementById("search-panel");

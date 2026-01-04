@@ -914,22 +914,34 @@
 .drag-rect {
   position: absolute;
   border-radius: 16px;
-  background: linear-gradient(135deg, #fff, #e0e0e0);
-  border: 4px solid transparent;
+  background: rgba(255, 255, 255, 0.3); /* Semi-transparent white */
+  border: 6px solid transparent;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   pointer-events: none;
-  animation: gradientShift 2s linear infinite;
+  overflow: hidden;
+
+  /* Gradient border effect */
+  background-clip: padding-box;
 }
 
-@keyframes gradientShift {
+.drag-rect::before {
+  content: "";
+  position: absolute;
+  top: -200%;
+  left: -200%;
+  width: 400%;
+  height: 400%;
+  background: linear-gradient(90deg, magenta, purple, magenta);
+  animation: flyGradient 3s linear infinite;
+  z-index: -1;
+}
+
+@keyframes flyGradient {
   0% {
-    border-image: linear-gradient(45deg, magenta, purple) 1;
-  }
-  50% {
-    border-image: linear-gradient(135deg, purple, magenta) 1;
+    transform: translateX(0);
   }
   100% {
-    border-image: linear-gradient(225deg, magenta, purple) 1;
+    transform: translateX(50%);
   }
 }
 
@@ -5467,9 +5479,7 @@ function enableDragRect(container) {
   }
 }
 
-// ✅ Call this on your main container
 enableDragRect(document.body);
-
 
 const searchButton = document.getElementById("search-button");
 const searchPanel = document.getElementById("search-panel");

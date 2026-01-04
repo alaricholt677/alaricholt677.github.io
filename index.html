@@ -910,6 +910,29 @@
   border-radius: 6px;
 }
 
+
+.drag-rect {
+  position: absolute;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fff, #e0e0e0);
+  border: 4px solid transparent;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  animation: gradientShift 2s linear infinite;
+}
+
+@keyframes gradientShift {
+  0% {
+    border-image: linear-gradient(45deg, magenta, purple) 1;
+  }
+  50% {
+    border-image: linear-gradient(135deg, purple, magenta) 1;
+  }
+  100% {
+    border-image: linear-gradient(225deg, magenta, purple) 1;
+  }
+}
+
   </style>
   <style id="theme-style"></style>
 </head>
@@ -5388,23 +5411,28 @@ function createImportExplorer(editor) {
   explorerWin.querySelector(".window-btn.close").addEventListener("click", () => explorerWin.remove());
 }
 
-function makeDraggable(el, container) {
-  let offsetX = 0;
-  let offsetY = 0;
-  let isDragging = false;
 
-  el.addEventListener('mousedown', startDrag);
-  el.addEventListener('touchstart', startDrag, { passive: false });
+function enableDragRect(container) {
+  let rectEl = null;
+  let startX = 0, startY = 0;
+
+  container.addEventListener('mousedown', startDrag);
+  container.addEventListener('touchstart', startDrag, { passive: false });
 
   function startDrag(e) {
     e.preventDefault();
-    isDragging = true;
-    el.classList.add('drag-gradient'); // ✅ Add gradient effect
-    const rect = el.getBoundingClientRect();
-    const startX = e.touches ? e.touches[0].clientX : e.clientX;
-    const startY = e.touches ? e.touches[0].clientY : e.clientY;
-    offsetX = startX - rect.left;
-    offsetY = startY - rect.top;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    startX = clientX;
+    startY = clientY;
+
+    rectEl = document.createElement('div');
+    rectEl.className = 'drag-rect';
+    rectEl.style.left = `${startX}px`;
+    rectEl.style.top = `${startY}px`;
+    rectEl.style.width = '0px';
+    rectEl.style.height = '0px';
+    document.body.appendChild(rectEl);
 
     document.addEventListener('mousemove', onDrag);
     document.addEventListener('mouseup', endDrag);
@@ -5413,32 +5441,35 @@ function makeDraggable(el, container) {
   }
 
   function onDrag(e) {
-    if (!isDragging) return;
-    e.preventDefault();
-    const containerRect = container.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-    let newLeft = clientX - offsetX - containerRect.left;
-    let newTop = clientY - offsetY - containerRect.top;
+    const left = Math.min(startX, clientX);
+    const top = Math.min(startY, clientY);
+    const width = Math.abs(clientX - startX);
+    const height = Math.abs(clientY - startY);
 
-    if (newLeft < 0) newLeft = 0;
-    if (newTop < 0) newTop = 0;
-
-    el.style.left = newLeft + 'px';
-    el.style.top = newTop + 'px';
+    rectEl.style.left = `${left}px`;
+    rectEl.style.top = `${top}px`;
+    rectEl.style.width = `${width}px`;
+    rectEl.style.height = `${height}px`;
   }
 
   function endDrag() {
-    isDragging = false;
-    el.classList.remove('drag-gradient'); // ✅ Remove gradient effect
+    if (rectEl) {
+      rectEl.remove();
+      rectEl = null;
+    }
     document.removeEventListener('mousemove', onDrag);
     document.removeEventListener('mouseup', endDrag);
     document.removeEventListener('touchmove', onDrag);
     document.removeEventListener('touchend', endDrag);
   }
 }
-``
+
+// ✅ Call this on your main container
+enableDragRect(document.body);
+
 
 const searchButton = document.getElementById("search-button");
 const searchPanel = document.getElementById("search-panel");

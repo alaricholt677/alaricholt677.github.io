@@ -910,122 +910,10 @@
   border-radius: 6px;
 }
 
-/* Parallax scrolling rectangles */
-@keyframes scrollRects {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-5000px); }
-}
-
-@keyframes rectGlow {
-  0%, 100% { filter: drop-shadow(0 0 4px #0078D4); }
-  50% { filter: drop-shadow(0 0 12px #33A3FF); }
-}
-
-@keyframes rectFloat {
-  0% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-  100% { transform: translateY(0); }
-}
-
-#scrolling-list {
-  animation:
-    scrollRects 35s linear infinite,
-    rectGlow 3s ease-in-out infinite,
-    rectFloat 6s ease-in-out infinite;
-}
-
-/* Loading bar fill animation */
-@keyframes loadingFill {
-  0% { width: 0%; }
-  60% { width: 100%; }
-  80% { width: 95%; }
-  100% { width: 0%; }
-}
-
-/* Shine sweep */
-@keyframes loadingShine {
-  0% { left: -50%; }
-  100% { left: 150%; }
-}
-
-#loading-progress {
-  position: relative;
-  animation: loadingFill 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  overflow: hidden;
-}
-
-#loading-progress::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -50%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
-  animation: loadingShine 1.2s linear infinite;
-}
-
-/* Cinematic fade-in */
-.fade-in {
-  opacity: 0;
-  transform: translateY(10px);
-  animation: fadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes fadeIn {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-#agreement-frame {
-  animation: driftBG 12s ease-in-out infinite alternate;
-}
-
-@keyframes driftBG {
-  0% { filter: brightness(1) saturate(1); }
-  100% { filter: brightness(1.15) saturate(1.2); }
-}
-
-  /* Match your existing wizard button style */
-  .wizard-btn {
-    background: #0078D4;
-    color: white;
-    border: none;
-    padding: 10px 18px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background 0.2s ease, transform 0.15s ease;
-  }
-
-  .wizard-btn:hover {
-    background: #0A89F0;
-    transform: translateY(-1px);
-  }
-
-  .wizard-btn:active {
-    background: #006CBE;
-    transform: translateY(0);
-  }
-
-  /* Position bottom-right like a utility action */
-  #factory-reset-btn {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 9999;
-  }
   </style>
   <style id="theme-style"></style>
 </head>
 <body>
-
-  <!-- Setup Wizard Container -->
-  <div id="setup-wizard" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#0b1020;color:#fff;z-index:9999;flex-direction:column;justify-content:center;align-items:center;text-align:center;font-family:sans-serif;">
-    <!-- Dynamic content will be injected by JS -->
-  </div>
 
   <!-- login -->
   <div id="login-overlay">
@@ -1560,9 +1448,6 @@
       <div class="notes-footer">
         <span id="theme-status">Not saved</span>
         <button class="button-small" id="theme-save">Save & apply</button>
-        <button id="factory-reset-btn" class="wizard-btn">
-         Factory Reset
-        </button>
       </div>
     </div>
   </div>
@@ -2963,11 +2848,12 @@ function mergeImported(entries) {
       browserGoBtn.addEventListener("click",goCurrentBrowserTab);
       browserAddressEl.addEventListener("keydown",(e)=>{if(e.key==="Enter")goCurrentBrowserTab();});
 
+
 async function isReallyOnline() {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 2000); // 2s timeout
-    await fetch("https://alaricholt677.github.io/", {
+    await fetch("https://www.bing.com", {
       method: "HEAD",
       cache: "no-store",
       signal: controller.signal
@@ -2979,10 +2865,10 @@ async function isReallyOnline() {
   }
 }
 
+
 async function renderBrowserView(url) {
   browserViewEl.innerHTML = "";
 
-  const attemptedUrl = url || "";
   if (!url) {
     // Homepage logic (srcdoc HTML)
     const homepageHTML = `
@@ -3820,16 +3706,6 @@ async function renderBrowserView(url) {
       height: 12px;
       background: #d83b01;
     }
-    
-.drag-gradient {
-  border-radius: 12px;
-  background: linear-gradient(135deg, #ffffff, #e0e0e0);
-  border: 4px solid;
-  border-image: linear-gradient(135deg, magenta, purple) 1;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  transition: all 0.2s ease-in-out;
-}
-
   </style>
 </head>
 <body>
@@ -5504,63 +5380,6 @@ function createImportExplorer(editor) {
 }
 
 
-function enableDragRect(container) {
-  let rectEl = null;
-  let startX = 0, startY = 0;
-
-  container.addEventListener('mousedown', startDrag);
-  container.addEventListener('touchstart', startDrag, { passive: false });
-
-  function startDrag(e) {
-    e.preventDefault();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    startX = clientX;
-    startY = clientY;
-
-    rectEl = document.createElement('div');
-    rectEl.className = 'drag-rect';
-    rectEl.style.left = `${startX}px`;
-    rectEl.style.top = `${startY}px`;
-    rectEl.style.width = '0px';
-    rectEl.style.height = '0px';
-    document.body.appendChild(rectEl);
-
-    document.addEventListener('mousemove', onDrag);
-    document.addEventListener('mouseup', endDrag);
-    document.addEventListener('touchmove', onDrag, { passive: false });
-    document.addEventListener('touchend', endDrag);
-  }
-
-  function onDrag(e) {
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-    const left = Math.min(startX, clientX);
-    const top = Math.min(startY, clientY);
-    const width = Math.abs(clientX - startX);
-    const height = Math.abs(clientY - startY);
-
-    rectEl.style.left = `${left}px`;
-    rectEl.style.top = `${top}px`;
-    rectEl.style.width = `${width}px`;
-    rectEl.style.height = `${height}px`;
-  }
-
-  function endDrag() {
-    if (rectEl) {
-      rectEl.remove();
-      rectEl = null;
-    }
-    document.removeEventListener('mousemove', onDrag);
-    document.removeEventListener('mouseup', endDrag);
-    document.removeEventListener('touchmove', onDrag);
-    document.removeEventListener('touchend', endDrag);
-  }
-}
-
-enableDragRect(document.body);
-
 const searchButton = document.getElementById("search-button");
 const searchPanel = document.getElementById("search-panel");
 const searchInput = document.getElementById("search-input");
@@ -5585,188 +5404,57 @@ function toggleSearchPanel() {
 searchButton.addEventListener("click", toggleSearchPanel);
 
 // Close when clicking outside
-document.addEventListener("mousedown", (e) =&gt; {
-  if (!searchPanel.contains(e.target) &amp;&amp; !searchButton.contains(e.target)) {
+document.addEventListener("mousedown", (e) => {
+  if (!searchPanel.contains(e.target) && !searchButton.contains(e.target)) {
     searchPanel.classList.remove("visible");
   }
 });
 
 // Handle search input
-searchInput.addEventListener("input", () =&gt; {
+searchInput.addEventListener("input", () => {
   const query = searchInput.value.toLowerCase();
   searchResults.innerHTML = "";
 
   if (!query) return;
 
-  const matches = apps.filter(app =&gt; app.includes(query));
+  const matches = apps.filter(app => app.includes(query));
   if (matches.length === 0) {
     searchResults.textContent = "No apps found.";
     return;
   }
 
-  matches.forEach(app =&gt; {
+  matches.forEach(app => {
     const div = document.createElement("div");
     div.textContent = app.charAt(0).toUpperCase() + app.slice(1);
     div.style.cursor = "pointer";
     div.style.padding = "4px";
-    div.addEventListener("click", () =&gt; {
+    div.addEventListener("click", () => {
       showWindow(app);
       searchPanel.classList.remove("visible");
     });
     searchResults.appendChild(div);
   });
 });
-document.addEventListener("DOMContentLoaded", () => {
-  const setupState = JSON.parse(localStorage.getItem("agreement_done") || "{}");
-  if (setupState.status !== "complete") {
-    showSetupWizard(setupState.step || 1);
+      /* dev banner */
+      window.addEventListener("keydown",(e)=>{if(e.key==="F12")devBanner.classList.toggle("visible");});
+
+
+document.addEventListener("keydown", (e) => {
+  // Detect Windows/Meta key
+  if (e.code === "MetaLeft" || e.code === "MetaRight" || e.key === "Meta") {
+    e.preventDefault(); // Prevent default OS behavior if needed
+    toggleStart(); // Call your existing function to open/close Start Menu
   }
 });
 
-function showSetupWizard(step) {
-  const container = document.createElement("div");
-  container.id = "setup-wizard";
-  container.style.position = "fixed";
-  container.style.top = "0";
-  container.style.left = "0";
-  container.style.width = "100%";
-  container.style.height = "100%";
-  container.style.background = "#0b1020";
-  container.style.color = "#fff";
-  container.style.zIndex = "9999";
-  container.style.display = "flex";
-  container.style.flexDirection = "column";
-  container.style.justifyContent = "center";
-  container.style.alignItems = "center";
-
-  // STEP 1: Welcome
-  if (step === 1) {
-    container.innerHTML = `
-      <h1>Welcome to your setup</h1>
-      <div style="margin-top:20px;">
-        <button id="setup-continue">Continue</button>
-        <button id="setup-skip">Skip</button>
-      </div>
-    `;
-    document.body.appendChild(container);
-
-    document.getElementById("setup-continue").onclick = () => {
-      localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 2 }));
-      location.reload();
-    };
-    document.getElementById("setup-skip").onclick = finishSetup;
+      
+document.addEventListener("keydown", (e) => {
+  // Meta key + S shortcut
+  if (e.metaKey && e.key.toLowerCase() === "s") {
+    e.preventDefault(); // Prevent browser default (Save)
+    toggleSearchPanel(); // Open/close the search panel
   }
-
-  // STEP 2: Agreement
-  if (step === 2) {
-    container.innerHTML = `
-      <h2>Agreement</h2>
-      <div id="agreement-frame" style="margin-top:20px;max-width:500px;text-align:left;"></div>
-      <div style="margin-top:20px;">
-        <button id="setup-back">Back</button>
-        <button id="setup-skip">Skip</button>
-      </div>
-    `;
-    document.body.appendChild(container);
-
-    fetchAgreement();
-
-    document.getElementById("setup-back").onclick = () => {
-      localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 1 }));
-      location.reload();
-    };
-    document.getElementById("setup-skip").onclick = finishSetup;
-  }
-
-  // STEP 3: Username Entry
-  if (step === 3) {
-    container.innerHTML = `
-      <h2>Enter your username</h2>
-      <input id="username-input" placeholder="Your name" />
-      <div style="margin-top:20px;">
-        <button id="finish-setup">Finish</button>
-        <button id="setup-back">Back</button>
-        <button id="setup-skip">Skip</button>
-      </div>
-    `;
-    document.body.appendChild(container);
-
-    document.getElementById("finish-setup").onclick = () => {
-      const name = document.getElementById("username-input").value.trim();
-      if (name) {
-        updateUserName(name);
-        finishSetup();
-      }
-    };
-    document.getElementById("setup-back").onclick = () => {
-      localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 2 }));
-      location.reload();
-    };
-    document.getElementById("setup-skip").onclick = finishSetup;
-  }
-}
-
-// Fetch and render agreement
-async function fetchAgreement() {
-  const frame = document.getElementById("agreement-frame");
-  frame.textContent = "Loading agreement...";
-  try {
-    const res = await fetch("https://alaricholt677.github.io/en-us/agreement.json");
-    const text = await res.text();
-    frame.innerHTML = "";
-    renderAgreement(text);
-
-    const nextBtn = document.createElement("button");
-    nextBtn.textContent = "Next";
-    nextBtn.style.marginTop = "20px";
-    nextBtn.onclick = () => {
-      localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 3 }));
-      location.reload();
-    };
-    frame.appendChild(nextBtn);
-  } catch {
-    frame.textContent = "Error loading agreement.";
-    const nextAnywayBtn = document.createElement("button");
-    nextAnywayBtn.textContent = "Next Anyway";
-    nextAnywayBtn.onclick = () => {
-      localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 3 }));
-      location.reload();
-    };
-    frame.appendChild(nextAnywayBtn);
-  }
-}
-
-// Render agreement text
-function renderAgreement(raw) {
-  const frame = document.getElementById("agreement-frame");
-  const lines = raw.split("\n");
-  lines.forEach(line => {
-    try {
-      const obj = JSON.parse(line);
-      const span = document.createElement("span");
-      span.textContent = obj.text;
-      span.style.color = obj.color || "#fff";
-      if (obj.isunderlined === "true") span.style.textDecoration = "underline";
-      frame.appendChild(span);
-      frame.appendChild(document.createElement("br"));
-    } catch {}
-  });
-}
-
-// Update username
-function updateUserName(name) {
-  const data = JSON.parse(localStorage.getItem("win12_aim_fs_state_exe_ctx_full_v3") || "{}");
-  if (data.user) {
-    data.user.name = name;
-    localStorage.setItem("win12_aim_fs_state_exe_ctx_full_v3", JSON.stringify(data));
-  }
-}
-
-// Finish setup
-function finishSetup() {
-  localStorage.setItem("agreement_done", JSON.stringify({ status: "complete" }));
-  document.getElementById("setup-wizard").remove();
-}
+});
 
       /* initial */
       function initialSetup(){
@@ -5779,24 +5467,7 @@ function finishSetup() {
       }
 
       initialSetup();
-  
-  document.getElementById("factory-reset-btn").addEventListener("click", () => {
-    const confirmReset = confirm(
-      "Are you sure you want to reset everything? This will erase your username and setup progress."
-    );
 
-    if (!confirmReset) return;
-
-    // Remove setup progress
-    localStorage.removeItem("agreement_done");
-
-    // Remove filesystem + user profile
-    localStorage.removeItem("win12_aim_fs_state_exe_ctx_full_v3");
-
-    // Reload to restart the ritual
-    location.reload();
-  });
-      
       console.log("%cWin12 AIM FS full ctx relic + Notes + Paint + Media","color:#4c8dff;font-size:14px;font-weight:bold;");
 console.log(`%c
 ■■■■   Win12 AIM OS — Relic Boot

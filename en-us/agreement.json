@@ -1,0 +1,25 @@
+
+{"color":"#0078D4","isunderlined":"true","text":"Welcome to AIM OS Setup"}
+{"color":"#FFFFFF","isunderlined":"false","text":"Before you begin, please read this agreement carefully."}
+{"color":"#50E6FF","isunderlined":"false","text":"AIM OS is a local simulation environment designed for creativity and exploration."}
+{"color":"#D83B01","isunderlined":"true","text":"Your files, settings, and notes are stored locally in your browser's storage."}
+{"color":"#FFFFFF","isunderlined":"false","text":"No data is sent to external servers. Everything stays on your device."}
+{"color":"#0078D4","isunderlined":"false","text":"Apps included in AIM OS:"}
+{"color":"#FFFFFF","isunderlined":"false","text":"• Explorer: Browse your virtual filesystem and manage files."}
+{"color":"#FFFFFF","isunderlined":"false","text":"• Notepad: Edit text files quickly and easily."}
+{"color":"#FFFFFF","isunderlined":"false","text":"• Browser: View HTML, images, and even offline relics."}
+{"color":"#FFFFFF","isunderlined":"false","text":"• Paint: Draw, sketch, and open images on a canvas."}
+{"color":"#FFFFFF","isunderlined":"false","text":"• Media Player: Play audio, video, and view images."}
+{"color":"#FFFFFF","isunderlined":"false","text":"• Host.exe: Run simulated .exe payloads decoded into HTML."}
+{"color":"#FFFFFF","isunderlined":"false","text":"• Notes: Keep quick thoughts and ideas in a dedicated space."}
+{"color":"#FFFFFF","isunderlined":"false","text":"• Settings & Regedit: Customize themes and file associations."}
+{"color":"#50E6FF","isunderlined":"false","text":"Your username will personalize your experience across all apps."}
+{"color":"#D83B01","isunderlined":"true","text":"Important: Changing your username updates the local user profile."}
+{"color":"#FFFFFF","isunderlined":"false","text":"Widgets can be added to your desktop for quick access to features."}
+{"color":"#FFFFFF","isunderlined":"false","text":"All changes are reversible by clearing localStorage."}
+{"color":"#0078D4","isunderlined":"false","text":"By continuing, you agree to:"}
+{"color":"#FFFFFF","isunderlined":"false","text":"• Use AIM OS for creative and educational purposes."}
+{"color":"#FFFFFF","isunderlined":"false","text":"• Understand that this is a local simulation, not a real OS."}
+{"color":"#FFFFFF","isunderlined":"false","text":"• Accept that clearing browser data will remove your files and settings."}
+{"color":"#50E6FF","isunderlined":"false","text":"Ready to begin your journey? Click Next to proceed."}
+``

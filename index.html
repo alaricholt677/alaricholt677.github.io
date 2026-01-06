@@ -988,6 +988,35 @@
   100% { filter: brightness(1.15) saturate(1.2); }
 }
 
+  /* Match your existing wizard button style */
+  .wizard-btn {
+    background: #0078D4;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s ease, transform 0.15s ease;
+  }
+
+  .wizard-btn:hover {
+    background: #0A89F0;
+    transform: translateY(-1px);
+  }
+
+  .wizard-btn:active {
+    background: #006CBE;
+    transform: translateY(0);
+  }
+
+  /* Position bottom-right like a utility action */
+  #factory-reset-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+  }
   </style>
   <style id="theme-style"></style>
 </head>
@@ -1531,6 +1560,9 @@
       <div class="notes-footer">
         <span id="theme-status">Not saved</span>
         <button class="button-small" id="theme-save">Save & apply</button>
+        <button id="factory-reset-btn" class="wizard-btn">
+         Factory Reset
+        </button>
       </div>
     </div>
   </div>
@@ -5684,7 +5716,24 @@ document.addEventListener("keydown", (e) => {
       }
 
       initialSetup();
+  
+  document.getElementById("factory-reset-btn").addEventListener("click", () => {
+    const confirmReset = confirm(
+      "Are you sure you want to reset everything? This will erase your username and setup progress."
+    );
 
+    if (!confirmReset) return;
+
+    // Remove setup progress
+    localStorage.removeItem("agreement_done");
+
+    // Remove filesystem + user profile
+    localStorage.removeItem("win12_aim_fs_state_exe_ctx_full_v3");
+
+    // Reload to restart the ritual
+    location.reload();
+  });
+      
       console.log("%cWin12 AIM FS full ctx relic + Notes + Paint + Media","color:#4c8dff;font-size:14px;font-weight:bold;");
 console.log(`%c
 ■■■■   Win12 AIM OS — Relic Boot

@@ -5582,6 +5582,40 @@ function toggleSearchPanel() {
   }
 }
 
+searchButton.addEventListener("click", toggleSearchPanel);
+
+// Close when clicking outside
+document.addEventListener("mousedown", (e) =&gt; {
+  if (!searchPanel.contains(e.target) &amp;&amp; !searchButton.contains(e.target)) {
+    searchPanel.classList.remove("visible");
+  }
+});
+
+// Handle search input
+searchInput.addEventListener("input", () =&gt; {
+  const query = searchInput.value.toLowerCase();
+  searchResults.innerHTML = "";
+
+  if (!query) return;
+
+  const matches = apps.filter(app =&gt; app.includes(query));
+  if (matches.length === 0) {
+    searchResults.textContent = "No apps found.";
+    return;
+  }
+
+  matches.forEach(app =&gt; {
+    const div = document.createElement("div");
+    div.textContent = app.charAt(0).toUpperCase() + app.slice(1);
+    div.style.cursor = "pointer";
+    div.style.padding = "4px";
+    div.addEventListener("click", () =&gt; {
+      showWindow(app);
+      searchPanel.classList.remove("visible");
+    });
+    searchResults.appendChild(div);
+  });
+});
 document.addEventListener("DOMContentLoaded", () => {
   const setupState = JSON.parse(localStorage.getItem("agreement_done") || "{}");
   if (setupState.status !== "complete") {

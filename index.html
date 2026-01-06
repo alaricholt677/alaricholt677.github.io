@@ -5646,25 +5646,36 @@ function showSetupWizard(step) {
   }
 }
 
-// Directly fetch and render agreement text
+
 async function renderAgreementDirect() {
   const frame = document.getElementById("agreement-frame");
   frame.textContent = "Loading agreement...";
   try {
     const res = await fetch("https://alaricholt677.github.io/en-us/agreement.json");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const text = await res.text();
+    console.log("Fetched agreement text:", text); // Debug log
+
     frame.innerHTML = ""; // Clear loading text
     const lines = text.split("\n");
-    lines.forEach(line => {
+
+    if (!lines.length) {
+      frame.textContent = "Agreement file is empty.";
+      return;
+    }
+
+    lines.forEach((line, index) => {
       try {
-        const obj = JSON.parse(line);
+        const obj = JSON.parse(line.trim());
         const span = document.createElement("span");
-        span.textContent = obj.text;
+        span.textContent = obj.text || `Line ${index + 1}`;
         span.style.color = obj.color || "#fff";
         if (obj.isunderlined === "true") span.style.textDecoration = "underline";
         frame.appendChild(span);
         frame.appendChild(document.createElement("br"));
-      } catch {}
+      } catch (err) {
+        console.error("Failed to parse line:", line, err);
+      }
     });
 
     // Add navigation buttons
@@ -5683,8 +5694,9 @@ async function renderAgreementDirect() {
     resetBtn.onclick = factoryReset;
     frame.appendChild(resetBtn);
 
-  } catch {
-    frame.textContent = "Error loading agreement.";
+  } catch (err) {
+    console.error("Fetch error:", err);
+    frame.textContent = `Error loading agreement: ${err.message}`;
   }
 }
 

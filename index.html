@@ -5582,7 +5582,6 @@ function toggleSearchPanel() {
   }
 }
 
-
 document.addEventListener("DOMContentLoaded", () => {
   const setupState = JSON.parse(localStorage.getItem("agreement_done") || "{}");
   if (setupState.status !== "complete") {
@@ -5612,16 +5611,13 @@ function showSetupWizard(step) {
     document.getElementById("setup-skip").onclick = finishSetup;
   }
 
-  // STEP 2: Agreement (No animation, just text)
+  // STEP 2: Agreement (Always show formatted text)
   if (step === 2) {
     container.innerHTML = `
       <h2 class="fade-in">Agreement</h2>
-      <div id="loading-bar" style="width:200px;height:10px;background:#333;margin:20px auto;border-radius:6px;overflow:hidden;">
-        <div id="loading-progress" style="height:100%;background:#0078D4;width:0%;"></div>
-      </div>
-      <div id="agreement-frame" class="fade-in" style="margin-top:20px;text-align:left;max-width:400px;font-size:14px;padding:10px;border-radius:8px;background:#1a1a1a;"></div>
+      <div id="agreement-frame" class="fade-in" style="margin-top:20px;text-align:left;max-width:500px;font-size:14px;padding:15px;border-radius:8px;background:#1a1a1a;"></div>
     `;
-    fetchAgreement();
+    renderAgreementDirect();
   }
 
   // STEP 3: Username Entry
@@ -5650,28 +5646,28 @@ function showSetupWizard(step) {
   }
 }
 
-// Fetch Agreement Logic
-async function fetchAgreement(retries = 0) {
-  const loadingBar = document.getElementById("loading-bar");
-  loadingBar.style.display = "block";
-
+// Directly fetch and render agreement text
+async function renderAgreementDirect() {
+  const frame = document.getElementById("agreement-frame");
+  frame.textContent = "Loading agreement...";
   try {
     const res = await fetch("https://alaricholt677.github.io/en-us/agreement.json");
     const text = await res.text();
+    frame.innerHTML = ""; // Clear loading text
+    const lines = text.split("\n");
+    lines.forEach(line => {
+      try {
+        const obj = JSON.parse(line);
+        const span = document.createElement("span");
+        span.textContent = obj.text;
+        span.style.color = obj.color || "#fff";
+        if (obj.isunderlined === "true") span.style.textDecoration = "underline";
+        frame.appendChild(span);
+        frame.appendChild(document.createElement("br"));
+      } catch {}
+    });
 
-    loadingBar.style.display = "none";
-
-    if (!text && retries < 10) {
-      setTimeout(() => fetchAgreement(retries + 1), 1000);
-      return;
-    }
-    if (!text) {
-      document.getElementById("agreement-frame").textContent = "Error: Timed out.";
-      return;
-    }
-
-    renderAgreement(text);
-
+    // Add navigation buttons
     const nextBtn = document.createElement("button");
     nextBtn.textContent = "Next";
     nextBtn.style.marginTop = "20px";
@@ -5679,38 +5675,17 @@ async function fetchAgreement(retries = 0) {
       localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 3 }));
       location.reload();
     };
-    document.getElementById("agreement-frame").appendChild(nextBtn);
+    frame.appendChild(nextBtn);
 
     const resetBtn = document.createElement("button");
     resetBtn.textContent = "Factory Reset";
     resetBtn.style.marginLeft = "10px";
     resetBtn.onclick = factoryReset;
-    document.getElementById("agreement-frame").appendChild(resetBtn);
+    frame.appendChild(resetBtn);
 
   } catch {
-    if (retries < 10) {
-      setTimeout(() => fetchAgreement(retries + 1), 1000);
-    } else {
-      document.getElementById("agreement-frame").textContent = "Error: Timed out.";
-    }
+    frame.textContent = "Error loading agreement.";
   }
-}
-
-// Render Agreement Text
-function renderAgreement(raw) {
-  const frame = document.getElementById("agreement-frame");
-  const lines = raw.split("\n");
-  lines.forEach(line => {
-    try {
-      const obj = JSON.parse(line);
-      const span = document.createElement("span");
-      span.textContent = obj.text;
-      span.style.color = obj.color || "#fff";
-      if (obj.isunderlined === "true") span.style.textDecoration = "underline";
-      frame.appendChild(span);
-      frame.appendChild(document.createElement("br"));
-    } catch {}
-  });
 }
 
 // Update Username
@@ -5736,41 +5711,7 @@ function factoryReset() {
     location.reload();
   }
 }
-
-// Finish Setup
-function finishSetup() {
-  localStorage.setItem("agreement_done", JSON.stringify({ status: "complete" }));
-  document.getElementById("setup-wizard").remove();
-}
-
-// Factory Reset
-function factoryReset() {
-  if (confirm("Are you sure you want to reset everything? This will erase your username and setup progress.")) {
-    localStorage.removeItem("agreement_done");
-    localStorage.removeItem("win12_aim_fs_state_exe_ctx_full_v3");
-    location.reload();
-  }
-}
-      /* dev banner */
-      window.addEventListener("keydown",(e)=>{if(e.key==="F12")devBanner.classList.toggle("visible");});
-
-
-document.addEventListener("keydown", (e) => {
-  // Detect Windows/Meta key
-  if (e.code === "MetaLeft" || e.code === "MetaRight" || e.key === "Meta") {
-    e.preventDefault(); // Prevent default OS behavior if needed
-    toggleStart(); // Call your existing function to open/close Start Menu
-  }
-});
-
-      
-document.addEventListener("keydown", (e) => {
-  // Meta key + S shortcut
-  if (e.metaKey && e.key.toLowerCase() === "s") {
-    e.preventDefault(); // Prevent browser default (Save)
-    toggleSearchPanel(); // Open/close the search panel
-  }
-});
+``
 
       /* initial */
       function initialSetup(){

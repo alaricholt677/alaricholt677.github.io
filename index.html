@@ -3000,6 +3000,7 @@ async function renderBrowserView(url) {
   const online = await isReallyOnline();
 
   if (!online) {
+    const attemptedUrl = url || window.location.href;
     const offlineHTML = `
 <!DOCTYPE html>
 <html lang="en">

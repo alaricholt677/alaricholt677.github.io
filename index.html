@@ -5595,10 +5595,34 @@ function showSetupWizard(step) {
   container.style.display = "flex";
   container.innerHTML = "";
 
+  // STEP 1: Welcome
+  if (step === 1) {
+    container.innerHTML = `
+      <div style="position:relative;width:100%;height:100%;">
+        <!-- Animated Paper Airplane -->
+        <svg class="airplane" width="80" height="80" viewBox="0 0 64 64" style="position:absolute;top:20%;left:-100px;animation:flyAcross 6s ease-in-out infinite;">
+          <polygon points="2,32 62,2 42,32 62,62" fill="#0078D4" stroke="#fff" stroke-width="2"/>
+        </svg>
+        <h1 class="fade-in">Welcome to AIM OS Setup</h1>
+        <p class="fade-in">Click continue to start configuring your experience.</p>
+        <div style="margin-top:20px;" class="fade-in">
+          <button id="setup-continue">Continue</button>
+          <button id="setup-skip">Skip</button>
+        </div>
+      </div>
+    `;
+    document.getElementById("setup-continue").onclick = () => {
+      localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 2 }));
+      location.reload();
+    };
+    document.getElementById("setup-skip").onclick = finishSetup;
+  }
+
+  // STEP 2: Agreement
   if (step === 2) {
     container.innerHTML = `
       <h2 class="fade-in">Agreement</h2>
-      
+
       <!-- Reading Animation -->
       <div style="position:relative;width:100%;height:150px;overflow:hidden;background:#111;margin-top:20px;">
         <svg id="scrolling-list" width="6000" height="150" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;">
@@ -5611,17 +5635,41 @@ function showSetupWizard(step) {
         <div id="loading-progress" style="height:100%;background:#0078D4;width:0%;"></div>
       </div>
 
-      <!-- Formatting Area -->
-      <div id="agreement-frame" style="margin-top:20px;text-align:left;max-width:400px;font-size:14px;"></div>
+      <!-- Agreement Formatting Area -->
+      <div id="agreement-frame" class="fade-in" style="margin-top:20px;text-align:left;max-width:400px;font-size:14px;padding:10px;border-radius:8px;background:#1a1a1a;"></div>
     `;
-
     fetchAgreement();
+  }
+
+  // STEP 3: Username Entry
+  if (step === 3) {
+    container.innerHTML = `
+      <h2 class="fade-in">Enter your username</h2>
+      <input id="username-input" placeholder="Your name" class="fade-in" />
+      <div style="margin-top:20px;" class="fade-in">
+        <button id="finish-setup">Finish</button>
+        <button id="setup-back">Back</button>
+        <button id="setup-skip">Skip</button>
+      </div>
+    `;
+    document.getElementById("finish-setup").onclick = () => {
+      const name = document.getElementById("username-input").value.trim();
+      if (name) {
+        updateUserName(name);
+        finishSetup();
+      }
+    };
+    document.getElementById("setup-back").onclick = () => {
+      localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 2 }));
+      location.reload();
+    };
+    document.getElementById("setup-skip").onclick = finishSetup;
   }
 }
 
+// Fetch Agreement Logic
 async function fetchAgreement(retries = 0) {
   const loadingBar = document.getElementById("loading-bar");
-  const progress = document.getElementById("loading-progress");
   loadingBar.style.display = "block";
 
   try {
@@ -5650,6 +5698,13 @@ async function fetchAgreement(retries = 0) {
     };
     document.getElementById("agreement-frame").appendChild(nextBtn);
 
+    // Add Factory Reset Button
+    const resetBtn = document.createElement("button");
+    resetBtn.textContent = "Factory Reset";
+    resetBtn.style.marginLeft = "10px";
+    resetBtn.onclick = factoryReset;
+    document.getElementById("agreement-frame").appendChild(resetBtn);
+
   } catch {
     if (retries < 10) {
       setTimeout(() => fetchAgreement(retries + 1), 1000);
@@ -5659,6 +5714,7 @@ async function fetchAgreement(retries = 0) {
   }
 }
 
+// Render Agreement Text
 function renderAgreement(raw) {
   const frame = document.getElementById("agreement-frame");
   const lines = raw.split("\n");
@@ -5675,6 +5731,7 @@ function renderAgreement(raw) {
   });
 }
 
+// Generate Scrolling Rectangles
 function generateRects(count) {
   let rects = "";
   for (let i = 0; i < count; i++) {
@@ -5684,6 +5741,29 @@ function generateRects(count) {
   return rects;
 }
 
+// Update Username
+function updateUserName(name) {
+  const data = JSON.parse(localStorage.getItem("win12_aim_fs_state_exe_ctx_full_v3") || "{}");
+  if (data.user) {
+    data.user.name = name;
+    localStorage.setItem("win12_aim_fs_state_exe_ctx_full_v3", JSON.stringify(data));
+  }
+}
+
+// Finish Setup
+function finishSetup() {
+  localStorage.setItem("agreement_done", JSON.stringify({ status: "complete" }));
+  document.getElementById("setup-wizard").remove();
+}
+
+// Factory Reset
+function factoryReset() {
+  if (confirm("Are you sure you want to reset everything? This will erase your username and setup progress.")) {
+    localStorage.removeItem("agreement_done");
+    localStorage.removeItem("win12_aim_fs_state_exe_ctx_full_v3");
+    location.reload();
+  }
+}
       /* dev banner */
       window.addEventListener("keydown",(e)=>{if(e.key==="F12")devBanner.classList.toggle("visible");});
 

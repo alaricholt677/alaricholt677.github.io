@@ -2848,23 +2848,25 @@ function mergeImported(entries) {
       browserGoBtn.addEventListener("click",goCurrentBrowserTab);
       browserAddressEl.addEventListener("keydown",(e)=>{if(e.key==="Enter")goCurrentBrowserTab();});
 
-
 async function isReallyOnline() {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 2000); // 2s timeout
-    await fetch("https://www.bing.com", {
-      method: "HEAD",
+    const timeout = setTimeout(() => controller.abort(), 2500); // ~2.5s timeout
+
+    // ✅ Ping your real site and real asset (SVG)
+    await fetch("https://alaricholt677.github.io/win12-icon.svg", {
+      method: "GET",
       cache: "no-store",
+      mode: "no-cors",      // allow opaque success; we only care that the network is reachable
       signal: controller.signal
     });
+
     clearTimeout(timeout);
-    return true;
+    return true;            // ✅ Request left the browser → online
   } catch {
-    return false;
+    return false;           // ❌ Network failed / DNS / timeout → offline
   }
 }
-
 
 async function renderBrowserView(url) {
   browserViewEl.innerHTML = "";

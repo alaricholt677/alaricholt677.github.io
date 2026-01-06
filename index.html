@@ -910,77 +910,83 @@
   border-radius: 6px;
 }
 
-
-.drag-rect {
-  position: absolute;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.3); /* Semi-transparent white */
-  border: 6px solid transparent;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  pointer-events: none;
-  overflow: hidden;
-
-  /* Gradient border effect */
-  background-clip: padding-box;
-}
-
-.drag-rect::before {
-  content: "";
-  position: absolute;
-  top: -200%;
-  left: -200%;
-  width: 400%;
-  height: 400%;
-  background: linear-gradient(90deg, magenta, purple, magenta);
-  animation: flyGradient 3s linear infinite;
-  z-index: -1;
-}
-
-@keyframes flyGradient {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(50%);
-  }
-}
-
-/* Paper Airplane Animation */
-@keyframes flyAcross {
-  0% { left: -100px; top: 20%; transform: rotate(0deg); }
-  50% { left: 50%; top: 10%; transform: rotate(10deg); }
-  100% { left: 110%; top: 30%; transform: rotate(-5deg); }
-}
-.airplane {
-  position:absolute;
-  animation: flyAcross 6s ease-in-out infinite;
-}
-
-/* Agreement Scrolling Rectangles */
+/* Parallax scrolling rectangles */
 @keyframes scrollRects {
-  0% { left: 0; }
-  100% { left: -5000px; }
-}
-#scrolling-list {
-  animation: scrollRects 40s linear infinite;
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-5000px); }
 }
 
-/* Login Expanding Line */
-@keyframes expandLine {
+@keyframes rectGlow {
+  0%, 100% { filter: drop-shadow(0 0 4px #0078D4); }
+  50% { filter: drop-shadow(0 0 12px #33A3FF); }
+}
+
+@keyframes rectFloat {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+  100% { transform: translateY(0); }
+}
+
+#scrolling-list {
+  animation:
+    scrollRects 35s linear infinite,
+    rectGlow 3s ease-in-out infinite,
+    rectFloat 6s ease-in-out infinite;
+}
+
+/* Loading bar fill animation */
+@keyframes loadingFill {
   0% { width: 0%; }
-  50% { width: 100%; }
+  60% { width: 100%; }
+  80% { width: 95%; }
   100% { width: 0%; }
 }
-#login-line {
-  animation: expandLine 2s ease-in-out infinite;
+
+/* Shine sweep */
+@keyframes loadingShine {
+  0% { left: -50%; }
+  100% { left: 150%; }
 }
 
-/* Fade-in for text/buttons */
+#loading-progress {
+  position: relative;
+  animation: loadingFill 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  overflow: hidden;
+}
+
+#loading-progress::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+  animation: loadingShine 1.2s linear infinite;
+}
+
+/* Cinematic fade-in */
 .fade-in {
   opacity: 0;
-  animation: fadeIn 1.5s forwards;
+  transform: translateY(10px);
+  animation: fadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-@keyframes fadeIn { to { opacity: 1; } }
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#agreement-frame {
+  animation: driftBG 12s ease-in-out infinite alternate;
+}
+
+@keyframes driftBG {
+  0% { filter: brightness(1) saturate(1); }
+  100% { filter: brightness(1.15) saturate(1.2); }
+}
 
   </style>
   <style id="theme-style"></style>
@@ -5544,6 +5550,7 @@ function toggleSearchPanel() {
   }
 }
 
+
 document.addEventListener("DOMContentLoaded", () => {
   const setupState = JSON.parse(localStorage.getItem("agreement_done") || "{}");
   if (setupState.status !== "complete") {
@@ -5556,129 +5563,95 @@ function showSetupWizard(step) {
   container.style.display = "flex";
   container.innerHTML = "";
 
-  if (step === 1) {
-    container.innerHTML = `
-      <div style="position:relative;width:100%;height:100%;">
-        <!-- Animated Paper Airplanes -->
-        <svg class="airplane" width="80" height="80" viewBox="0 0 64 64" style="top:20%;left:-100px;">
-          <polygon points="2,32 62,2 42,32 62,62" fill="#0078D4" stroke="#fff" stroke-width="2"/>
-        </svg>
-        <h1 class="fade-in">Welcome to your setup</h1>
-        <p class="fade-in">Click continue to start configuring your experience.</p>
-        <div style="margin-top:20px;" class="fade-in">
-          <button id="setup-continue">Continue</button>
-          <button id="setup-skip">Skip</button>
-        </div>
-      </div>
-    `;
-    document.getElementById("setup-continue").onclick = () => {
-      localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 2 }));
-      location.reload();
-    };
-    document.getElementById("setup-skip").onclick = finishSetup;
-  }
-
   if (step === 2) {
     container.innerHTML = `
       <h2 class="fade-in">Agreement</h2>
+      
+      <!-- Reading Animation -->
       <div style="position:relative;width:100%;height:150px;overflow:hidden;background:#111;margin-top:20px;">
         <svg id="scrolling-list" width="6000" height="150" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;">
-          ${generateRects(50)}
+          ${generateRects(60)}
         </svg>
       </div>
-      <button id="next-btn" style="margin-top:20px;">Next</button>
+
+      <!-- Loading Area -->
+      <div id="loading-bar" style="width:200px;height:10px;background:#333;margin:20px auto;border-radius:6px;overflow:hidden;">
+        <div id="loading-progress" style="height:100%;background:#0078D4;width:0%;"></div>
+      </div>
+
+      <!-- Formatting Area -->
+      <div id="agreement-frame" style="margin-top:20px;text-align:left;max-width:400px;font-size:14px;"></div>
     `;
-    document.getElementById("next-btn").onclick = () => {
+
+    fetchAgreement();
+  }
+}
+
+async function fetchAgreement(retries = 0) {
+  const loadingBar = document.getElementById("loading-bar");
+  const progress = document.getElementById("loading-progress");
+  loadingBar.style.display = "block";
+
+  try {
+    const res = await fetch("https://alaricholt677.github.io/en-us/agreement.json");
+    const text = await res.text();
+
+    loadingBar.style.display = "none";
+
+    if (!text && retries < 10) {
+      setTimeout(() => fetchAgreement(retries + 1), 1000);
+      return;
+    }
+    if (!text) {
+      document.getElementById("agreement-frame").textContent = "Error: Timed out.";
+      return;
+    }
+
+    renderAgreement(text);
+
+    const nextBtn = document.createElement("button");
+    nextBtn.textContent = "Next";
+    nextBtn.style.marginTop = "20px";
+    nextBtn.onclick = () => {
       localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 3 }));
       location.reload();
     };
-  }
+    document.getElementById("agreement-frame").appendChild(nextBtn);
 
-  if (step === 3) {
-    container.innerHTML = `
-      <h2 class="fade-in">Enter your username</h2>
-      <div id="login-container" style="width:300px;height:6px;background:#333;border-radius:4px;overflow:hidden;margin:40px auto;">
-       <div id="login-line" style="height:100%;background:#0078D4;width:0%;"></div>
-      </div>
-
-      <input id="username-input" placeholder="Your name" class="fade-in" />
-      <div style="margin-top:20px;" class="fade-in">
-        <button id="finish-setup">Finish</button>
-        <button id="setup-back">Back</button>
-        <button id="setup-skip">Skip</button>
-      </div>
-    `;
-    document.getElementById("finish-setup").onclick = () => {
-      const name = document.getElementById("username-input").value.trim();
-      if (name) {
-        updateUserName(name);
-        finishSetup();
-      }
-    };
-    document.getElementById("setup-back").onclick = () => {
-      localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 2 }));
-      location.reload();
-    };
-    document.getElementById("setup-skip").onclick = finishSetup;
+  } catch {
+    if (retries < 10) {
+      setTimeout(() => fetchAgreement(retries + 1), 1000);
+    } else {
+      document.getElementById("agreement-frame").textContent = "Error: Timed out.";
+    }
   }
+}
+
+function renderAgreement(raw) {
+  const frame = document.getElementById("agreement-frame");
+  const lines = raw.split("\n");
+  lines.forEach(line => {
+    try {
+      const obj = JSON.parse(line);
+      const span = document.createElement("span");
+      span.textContent = obj.text;
+      span.style.color = obj.color || "#fff";
+      if (obj.isunderlined === "true") span.style.textDecoration = "underline";
+      frame.appendChild(span);
+      frame.appendChild(document.createElement("br"));
+    } catch {}
+  });
 }
 
 function generateRects(count) {
   let rects = "";
   for (let i = 0; i < count; i++) {
     const x = i * 120;
-    rects += `<rect x="${x}" y="40" width="${50 + Math.random() * 70}" height="40" rx="20" ry="20" fill="#0078D4" stroke="#fff" stroke-width="2"/>`;
+    rects += `<rect x="${x}" y="40" width="${40 + Math.random() * 80}" height="40" rx="20" ry="20" fill="#0078D4" stroke="#fff" stroke-width="2"/>`;
   }
   return rects;
 }
 
-function updateUserName(name) {
-  const data = JSON.parse(localStorage.getItem("win12_aim_fs_state_exe_ctx_full_v3") || "{}");
-  if (data.user) {
-    data.user.name = name;
-    localStorage.setItem("win12_aim_fs_state_exe_ctx_full_v3", JSON.stringify(data));
-  }
-}
-
-function finishSetup() {
-  localStorage.setItem("agreement_done", JSON.stringify({ status: "complete" }));
-  document.getElementById("setup-wizard").remove();
-}
-
-searchButton.addEventListener("click", toggleSearchPanel);
-
-// Close when clicking outside
-document.addEventListener("mousedown", (e) => {
-  if (!searchPanel.contains(e.target) && !searchButton.contains(e.target)) {
-    searchPanel.classList.remove("visible");
-  }
-});
-
-// Handle search input
-searchInput.addEventListener("input", () => {
-  const query = searchInput.value.toLowerCase();
-  searchResults.innerHTML = "";
-
-  if (!query) return;
-
-  const matches = apps.filter(app => app.includes(query));
-  if (matches.length === 0) {
-    searchResults.textContent = "No apps found.";
-    return;
-  }
-
-  matches.forEach(app => {
-    const div = document.createElement("div");
-    div.textContent = app.charAt(0).toUpperCase() + app.slice(1);
-    div.style.cursor = "pointer";
-    div.style.padding = "4px";
-    div.addEventListener("click", () => {
-      showWindow(app);
-      searchPanel.classList.remove("visible");
-    });
-    searchResults.appendChild(div);
-  });
-});
       /* dev banner */
       window.addEventListener("keydown",(e)=>{if(e.key==="F12")devBanner.classList.toggle("visible");});
 

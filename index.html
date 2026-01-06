@@ -5605,93 +5605,104 @@ function showSetupWizard(step) {
   container.style.justifyContent = "center";
   container.style.alignItems = "center";
 
+  // STEP 1: Welcome
   if (step === 1) {
     container.innerHTML = `
       <h1>Welcome to your setup</h1>
-      <button id="setup-continue">Continue</button>
+      <div style="margin-top:20px;">
+        <button id="setup-continue">Continue</button>
+        <button id="setup-skip">Skip</button>
+      </div>
     `;
     document.body.appendChild(container);
+
     document.getElementById("setup-continue").onclick = () => {
       localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 2 }));
       location.reload();
     };
+    document.getElementById("setup-skip").onclick = finishSetup;
   }
 
+  // STEP 2: Agreement
   if (step === 2) {
     container.innerHTML = `
-      <h2>Loading agreement...</h2>
-      <div id="loading-bar" style="width:200px;height:10px;background:#333;"></div>
-      <div id="agreement-frame" style="margin-top:20px;"></div>
+      <h2>Agreement</h2>
+      <div id="agreement-frame" style="margin-top:20px;max-width:500px;text-align:left;"></div>
+      <div style="margin-top:20px;">
+        <button id="setup-back">Back</button>
+        <button id="setup-skip">Skip</button>
+      </div>
     `;
     document.body.appendChild(container);
+
     fetchAgreement();
+
+    document.getElementById("setup-back").onclick = () => {
+      localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 1 }));
+      location.reload();
+    };
+    document.getElementById("setup-skip").onclick = finishSetup;
   }
 
+  // STEP 3: Username Entry
   if (step === 3) {
     container.innerHTML = `
       <h2>Enter your username</h2>
       <input id="username-input" placeholder="Your name" />
-      <button id="finish-setup">Finish</button>
+      <div style="margin-top:20px;">
+        <button id="finish-setup">Finish</button>
+        <button id="setup-back">Back</button>
+        <button id="setup-skip">Skip</button>
+      </div>
     `;
     document.body.appendChild(container);
+
     document.getElementById("finish-setup").onclick = () => {
       const name = document.getElementById("username-input").value.trim();
       if (name) {
         updateUserName(name);
-        localStorage.setItem("agreement_done", JSON.stringify({ status: "complete" }));
-        container.remove();
+        finishSetup();
       }
     };
+    document.getElementById("setup-back").onclick = () => {
+      localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 2 }));
+      location.reload();
+    };
+    document.getElementById("setup-skip").onclick = finishSetup;
   }
 }
 
-async function fetchAgreement(retries = 0) {
+// Fetch and render agreement
+async function fetchAgreement() {
+  const frame = document.getElementById("agreement-frame");
+  frame.textContent = "Loading agreement...";
   try {
     const res = await fetch("https://alaricholt677.github.io/en-us/agreement.json");
     const text = await res.text();
-    if (!text && retries < 10) {
-      setTimeout(() => fetchAgreement(retries + 1), 1000);
-      return;
-    }
-    if (!text) {
-      document.getElementById("agreement-frame").textContent = "err: timed out";
-      return;
-    }
+    frame.innerHTML = "";
     renderAgreement(text);
+
     const nextBtn = document.createElement("button");
     nextBtn.textContent = "Next";
+    nextBtn.style.marginTop = "20px";
     nextBtn.onclick = () => {
       localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 3 }));
       location.reload();
     };
-    document.getElementById("agreement-frame").appendChild(nextBtn);
-
-    // Add fallback button if needed
-    const skipBtn = document.createElement("button");
-    skipBtn.textContent = "Next Anyway";
-    skipBtn.style.marginLeft = "10px";
-    skipBtn.onclick = () => {
+    frame.appendChild(nextBtn);
+  } catch {
+    frame.textContent = "Error loading agreement.";
+    const nextAnywayBtn = document.createElement("button");
+    nextAnywayBtn.textContent = "Next Anyway";
+    nextAnywayBtn.onclick = () => {
       localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 3 }));
       location.reload();
     };
-    document.getElementById("agreement-frame").appendChild(skipBtn);
-
-  } catch {
-    if (retries < 10) {
-      setTimeout(() => fetchAgreement(retries + 1), 1000);
-    } else {
-      document.getElementById("agreement-frame").textContent = "err: timed out";
-      const skipBtn = document.createElement("button");
-      skipBtn.textContent = "Next Anyway";
-      skipBtn.onclick = () => {
-        localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 3 }));
-        location.reload();
-      };
-      document.getElementById("agreement-frame").appendChild(skipBtn);
-    }
+    frame.appendChild(nextAnywayBtn);
   }
 }
 
+// Render agreement text
 function renderAgreement(raw) {
   const frame = document.getElementById("agreement-frame");
   const lines = raw.split("\n");
@@ -5708,6 +5719,7 @@ function renderAgreement(raw) {
   });
 }
 
+// Update username
 function updateUserName(name) {
   const data = JSON.parse(localStorage.getItem("win12_aim_fs_state_exe_ctx_full_v3") || "{}");
   if (data.user) {
@@ -5716,6 +5728,11 @@ function updateUserName(name) {
   }
 }
 
+// Finish setup
+function finishSetup() {
+  localStorage.setItem("agreement_done", JSON.stringify({ status: "complete" }));
+  document.getElementById("setup-wizard").remove();
+}
 
       /* initial */
       function initialSetup(){

@@ -945,45 +945,42 @@
   }
 }
 
-
-#setup-wizard button {
-  background:#0078d4;
-  color:#fff;
-  border:none;
-  padding:10px 20px;
-  margin-top:20px;
-  border-radius:6px;
-  cursor:pointer;
-  font-size:14px;
+/* Paper Airplane Animation */
+@keyframes flyAcross {
+  0% { left: -100px; top: 20%; transform: rotate(0deg); }
+  50% { left: 50%; top: 10%; transform: rotate(10deg); }
+  100% { left: 110%; top: 30%; transform: rotate(-5deg); }
 }
-#setup-wizard input {
-  padding:8px;
-  width:200px;
-  margin-top:10px;
-  border-radius:4px;
-  border:1px solid #ccc;
-}
-#loading-bar {
-  width:200px;
-  height:10px;
-  background:#333;
-  margin:10px auto;
-  position:relative;
-}
-#loading-bar::after {
-  content:"";
+.airplane {
   position:absolute;
-  top:0;left:0;
-  width:0%;
-  height:100%;
-  background:#0078d4;
-  animation:loadingAnim 2s infinite;
+  animation: flyAcross 6s ease-in-out infinite;
 }
-@keyframes loadingAnim {
-  0% { width:0%; }
-  50% { width:100%; }
-  100% { width:0%; }
+
+/* Agreement Scrolling Rectangles */
+@keyframes scrollRects {
+  0% { left: 0; }
+  100% { left: -5000px; }
 }
+#scrolling-list {
+  animation: scrollRects 40s linear infinite;
+}
+
+/* Login Expanding Line */
+@keyframes expandLine {
+  0% { width: 0%; }
+  50% { width: 100%; }
+  100% { width: 0%; }
+}
+#login-line {
+  animation: expandLine 2s ease-in-out infinite;
+}
+
+/* Fade-in for text/buttons */
+.fade-in {
+  opacity: 0;
+  animation: fadeIn 1.5s forwards;
+}
+@keyframes fadeIn { to { opacity: 1; } }
 
   </style>
   <style id="theme-style"></style>
@@ -5547,7 +5544,6 @@ function toggleSearchPanel() {
   }
 }
 
-      
 document.addEventListener("DOMContentLoaded", () => {
   const setupState = JSON.parse(localStorage.getItem("agreement_done") || "{}");
   if (setupState.status !== "complete") {
@@ -5558,88 +5554,82 @@ document.addEventListener("DOMContentLoaded", () => {
 function showSetupWizard(step) {
   const container = document.getElementById("setup-wizard");
   container.style.display = "flex";
+  container.innerHTML = "";
 
   if (step === 1) {
     container.innerHTML = `
-      <h1>Welcome to your setup</h1>
-      <p>Click continue to start configuring your experience.</p>
-      <button id="setup-continue">Continue</button>
+      <div style="position:relative;width:100%;height:100%;">
+        <!-- Animated Paper Airplanes -->
+        <svg class="airplane" width="80" height="80" viewBox="0 0 64 64" style="top:20%;left:-100px;">
+          <polygon points="2,32 62,2 42,32 62,62" fill="#0078D4" stroke="#fff" stroke-width="2"/>
+        </svg>
+        <h1 class="fade-in">Welcome to your setup</h1>
+        <p class="fade-in">Click continue to start configuring your experience.</p>
+        <div style="margin-top:20px;" class="fade-in">
+          <button id="setup-continue">Continue</button>
+          <button id="setup-skip">Skip</button>
+        </div>
+      </div>
     `;
     document.getElementById("setup-continue").onclick = () => {
       localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 2 }));
       location.reload();
     };
+    document.getElementById("setup-skip").onclick = finishSetup;
   }
 
   if (step === 2) {
     container.innerHTML = `
-      <h2>Loading agreement...</h2>
-      <div id="loading-bar"></div>
-      <div id="agreement-frame" style="margin-top:20px;text-align:left;max-width:400px;"></div>
+      <h2 class="fade-in">Agreement</h2>
+      <div style="position:relative;width:100%;height:150px;overflow:hidden;background:#111;margin-top:20px;">
+        <svg id="scrolling-list" width="6000" height="150" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;">
+          ${generateRects(50)}
+        </svg>
+      </div>
+      <button id="next-btn" style="margin-top:20px;">Next</button>
     `;
-    fetchAgreement();
+    document.getElementById("next-btn").onclick = () => {
+      localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 3 }));
+      location.reload();
+    };
   }
 
   if (step === 3) {
     container.innerHTML = `
-      <h2>Enter your username</h2>
-      <input id="username-input" placeholder="Your name" />
-      <button id="finish-setup">Finish</button>
+      <h2 class="fade-in">Enter your username</h2>
+      <div id="login-container" style="width:300px;height:6px;background:#333;border-radius:4px;overflow:hidden;margin:40px auto;">
+       <div id="login-line" style="height:100%;background:#0078D4;width:0%;"></div>
+      </div>
+
+      <input id="username-input" placeholder="Your name" class="fade-in" />
+      <div style="margin-top:20px;" class="fade-in">
+        <button id="finish-setup">Finish</button>
+        <button id="setup-back">Back</button>
+        <button id="setup-skip">Skip</button>
+      </div>
     `;
     document.getElementById("finish-setup").onclick = () => {
       const name = document.getElementById("username-input").value.trim();
       if (name) {
         updateUserName(name);
-        localStorage.setItem("agreement_done", JSON.stringify({ status: "complete" }));
-        container.remove();
+        finishSetup();
       }
     };
-  }
-}
-
-async function fetchAgreement(retries = 0) {
-  try {
-    const res = await fetch("https://alaricholt677.github.io/en-us/agreement.json");
-    const text = await res.text();
-    if (!text && retries < 10) {
-      setTimeout(() => fetchAgreement(retries + 1), 1000);
-      return;
-    }
-    if (!text) {
-      document.getElementById("agreement-frame").textContent = "err: timed out";
-      return;
-    }
-    renderAgreement(text);
-    const nextBtn = document.createElement("button");
-    nextBtn.textContent = "Next";
-    nextBtn.onclick = () => {
-      localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 3 }));
+    document.getElementById("setup-back").onclick = () => {
+      localStorage.setItem("agreement_done", JSON.stringify({ status: "incomplete", step: 2 }));
       location.reload();
     };
-    document.getElementById("agreement-frame").appendChild(nextBtn);
-  } catch {
-    if (retries < 10) {
-      setTimeout(() => fetchAgreement(retries + 1), 1000);
-    } else {
-      document.getElementById("agreement-frame").textContent = "err: timed out";
-    }
+    document.getElementById("setup-skip").onclick = finishSetup;
   }
 }
 
-function renderAgreement(raw) {
-  const frame = document.getElementById("agreement-frame");
-  const lines = raw.split("\n");
-  lines.forEach(line => {
-    try {
-      const obj = JSON.parse(line);
-      const span = document.createElement("span");
-      span.textContent = obj.text;
-      span.style.color = obj.color || "#fff";
-      if (obj.isunderlined === "true") span.style.textDecoration = "underline";
-      frame.appendChild(span);
-      frame.appendChild(document.createElement("br"));
-    } catch {}
-  });
+function generateRects(count) {
+  let rects = "";
+  for (let i = 0; i < count; i++) {
+    const x = i * 120;
+    rects += `<rect x="${x}" y="40" width="${50 + Math.random() * 70}" height="40" rx="20" ry="20" fill="#0078D4" stroke="#fff" stroke-width="2"/>`;
+  }
+  return rects;
 }
 
 function updateUserName(name) {
@@ -5648,6 +5638,11 @@ function updateUserName(name) {
     data.user.name = name;
     localStorage.setItem("win12_aim_fs_state_exe_ctx_full_v3", JSON.stringify(data));
   }
+}
+
+function finishSetup() {
+  localStorage.setItem("agreement_done", JSON.stringify({ status: "complete" }));
+  document.getElementById("setup-wizard").remove();
 }
 
 searchButton.addEventListener("click", toggleSearchPanel);

@@ -70,7 +70,7 @@ It is not a placeholder. It is a shrine of persistence, closure, and legacy.
 | 8 | Feedback hub | ✅ Done | no 2nd part |
 | 9 | Copilot mini‑chat | ✅ Done | no 2nd part |
 | 10 | Power options |  ✅ Done| no 2nd part |
-| 11 | Persistent pins + session restore |  ✅ Done | ❌ not planned or added |
+| 11 | Persistent pins + session restore |  ✅ Done | 🫱👾 planned will be added |
 | 12 | Advanced widgets (weather, system stats) | ✅ Done | no 2nd part |
 | 13 | AI‑powered Copilot expansion | ✅ Done | no 2nd part |
 | 14 | Multi‑user collaboration | ✅ Done | no 2nd part |

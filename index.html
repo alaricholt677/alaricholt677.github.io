@@ -5612,6 +5612,119 @@ function initAppHoverPreviews() {
 // Call once after your windowsMap is ready
 initAppHoverPreviews();
 
+
+// ===============================
+// Auto-dismiss logic (5s inactivity)
+// ===============================
+
+// How long to wait without any hover before hiding
+const PREVIEW_INACTIVITY_MS = 5000;
+
+// Store timer ID
+let previewInactiveTimer = null;
+
+// Helper: start (or restart) the inactivity timer
+function startPreviewInactivityTimer() {
+  clearPreviewInactivityTimer();
+  previewInactiveTimer = setTimeout(() => {
+    // When timer fires, clear/hide the preview strip
+    hidePreviewsStrip();
+  }, PREVIEW_INACTIVITY_MS);
+}
+
+// Helper: clear the inactivity timer
+function clearPreviewInactivityTimer() {
+  if (previewInactiveTimer) {
+    clearTimeout(previewInactiveTimer);
+    previewInactiveTimer = null;
+  }
+}
+
+// Helper: hide/clear the strip
+function hidePreviewsStrip() {
+  if (!previewsStrip) return;
+  // Option A: hide the entire container
+  // previewsStrip.style.display = 'none';
+
+  // Option B: clear tiles but keep the strip visible
+  previewsStrip.innerHTML = '';
+}
+
+// Helper: show the strip (if you hid it)
+function showPreviewsStrip() {
+  if (!previewsStrip) return;
+  // If you chose to hide instead of clear:
+  // previewsStrip.style.display = 'flex';
+}
+
+// Wire hover events across app launchers and preview tiles.
+// This version includes mouseenter/mouseleave callbacks that reset/start the inactivity timer.
+function initAppHoverPreviews() {
+  // Ensure the strip is shown (in case you hid it previously)
+  showPreviewsStrip();
+
+  // Taskbar apps
+  document.querySelectorAll('.taskbar-app[data-app]').forEach(el => {
+    const appId = el.dataset.app;
+
+    el.addEventListener('mouseenter', () => {
+      // User is "active" near launchers — clear the inactivity timer
+      clearPreviewInactivityTimer();
+      handleAppHover(appId);
+    });
+
+    el.addEventListener('mouseleave', () => {
+      // Start the countdown when leaving launcher region
+      startPreviewInactivityTimer();
+    });
+  });
+
+  // Start pinned apps
+  document.querySelectorAll('.start-app[data-app]').forEach(el => {
+    const appId = el.dataset.app;
+
+    el.addEventListener('mouseenter', () => {
+      clearPreviewInactivityTimer();
+      handleAppHover(appId);
+    });
+
+    el.addEventListener('mouseleave', () => {
+      startPreviewInactivityTimer();
+    });
+  });
+
+  // Also track hover state over the preview tiles themselves:
+  // - If the user moves the mouse into a preview tile, we clear timer.
+  // - If the user leaves the preview tile area, we start the timer.
+  const observer = new MutationObserver(() => {
+    // Rebind events whenever tiles change
+    previewsStrip.querySelectorAll('.app-preview').forEach(tile => {
+      // Avoid duplicate listeners
+      if (tile.__hoverBound) return;
+
+      tile.addEventListener('mouseenter', () => {
+        clearPreviewInactivityTimer();
+      });
+
+      tile.addEventListener('mouseleave', () => {
+        startPreviewInactivityTimer();
+      });
+
+      tile.__hoverBound = true;
+    });
+  });
+
+  observer.observe(previewsStrip, { childList: true, subtree: false });
+
+  // As a precaution, start timer if the strip initially has content and user isn't hovering
+  if (previewsStrip.children.length > 0) {
+    startPreviewInactivityTimer();
+  }
+}
+
+// Call once after your windowsMap is ready
+initAppHoverPreviews();
+
 // Close when clicking outside
 document.addEventListener("mousedown", (e) => {
   if (!searchPanel.contains(e.target) && !searchButton.contains(e.target)) {

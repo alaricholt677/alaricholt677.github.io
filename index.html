@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <link rel="icon" type="image/svg+xml" href="win12-icon.svg">
+<script src="https://unpkg.com/dom-to-image-more@3.4.3/dist/dom-to-image-more.min.js"></script>
 <title>Win12 Simulator – Browser OS</title>
 <meta name="description" content="A full Windows 12 style desktop simulator built in HTML, CSS, and JavaScript.">
 <meta name="keywords" content="Windows simulator, Win12, HTML OS, desktop simulation, web OS">
@@ -910,6 +911,66 @@
   border-radius: 6px;
 }
 
+    
+#app-previews {
+  position: fixed;
+  bottom: 56px;         /* just above the taskbar */
+  left: 12px;
+  right: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  padding: 8px;
+  background: rgba(8,11,30,0.72);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  z-index: 1600;
+}
+
+.app-preview {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 220px;           /* tile size */
+  height: 140px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(4,6,20,0.98);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.app-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(1.1) contrast(1.03);
+}
+
+/* Top-right "X" — turns red on hover; no click action */
+.app-preview .preview-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  cursor: default; /* not interactive */
+  user-select: none;
+}
+.app-preview .preview-close:hover {
+  background: #d83b01; /* red on hover */
+  border-color: #d83b01;
+}
+
   </style>
   <style id="theme-style"></style>
 </head>
@@ -991,6 +1052,10 @@
 </div>
 
   </div>
+
+
+<!-- App hover preview strip -->
+<div id="app-previews"></div>
 
   <!-- taskbar -->
   <div id="taskbar">
@@ -5405,6 +5470,147 @@ function toggleSearchPanel() {
 }
 
 searchButton.addEventListener("click", toggleSearchPanel);
+
+
+// ---------- Hover Previews for App Icons ----------
+
+// Preview strip container
+const previewsStrip = document.getElementById('app-previews');
+
+// In-memory cache to avoid re-rendering too often
+const previewCache = new Map(); // appId -> { dataUrl, ts }
+
+// Helper: make a PNG preview of a window (by app id)
+async function captureWindowPreview(appId) {
+  if (!appId) return null;
+
+  // Locate the window element:
+  // Your windows use IDs like #window-explorer, #window-browser, ...
+  const winEl = document.querySelector(`#window-${appId}`);
+  if (!winEl) return null;
+
+  // If the window is hidden or minimized, a direct capture might produce zero size.
+  // We'll clone it and render off-screen to ensure correct dimensions.
+  const clone = winEl.cloneNode(true);
+  const offscreen = document.createElement('div');
+  offscreen.style.position = 'fixed';
+  offscreen.style.left = '-10000px';
+  offscreen.style.top = '-10000px';
+  offscreen.style.width = winEl.offsetWidth ? `${winEl.offsetWidth}px` : '600px';
+  offscreen.style.height = winEl.offsetHeight ? `${winEl.offsetHeight}px` : '400px';
+  offscreen.style.opacity = '1';
+  offscreen.style.pointerEvents = 'none';
+  offscreen.appendChild(clone);
+  document.body.appendChild(offscreen);
+
+  try {
+    // Use dom-to-image-more to render the clone to PNG
+    const dataUrl = await domtoimage.toPng(offscreen, {
+      quality: 0.95,
+      cacheBust: true,
+      bgcolor: 'transparent',
+      style: { transform: 'none' }
+    });
+    return dataUrl;
+  } catch (err) {
+    console.warn('Preview capture failed for', appId, err);
+    return null;
+  } finally {
+    offscreen.remove();
+  }
+}
+
+// Helper: add/update the preview tile in the strip
+function upsertPreviewTile(appId, dataUrl) {
+  if (!previewsStrip) return;
+
+  // Reuse tile if exists
+  let tile = previewsStrip.querySelector(`.app-preview[data-app="${appId}"]`);
+  if (!tile) {
+    tile = document.createElement('div');
+    tile.className = 'app-preview';
+    tile.dataset.app = appId;
+
+    // Image element
+    const img = document.createElement('img');
+    img.alt = `${appId} preview`;
+    tile.appendChild(img);
+
+    // Non-functional red X button (hover-only visual)
+    const x = document.createElement('div');
+    x.className = 'preview-close';
+    x.textContent = '×';
+    // Click does nothing but avoid triggering tile click
+    x.addEventListener('click', (e) => { e.stopPropagation(); /* no-op */ });
+    tile.appendChild(x);
+
+    // Clicking the tile opens the actual window
+    tile.addEventListener('click', () => {
+      try {
+        showWindow(appId);
+      } catch (e) {
+        console.warn('showWindow failed for', appId, e);
+      }
+    });
+
+    previewsStrip.appendChild(tile);
+  }
+
+  // Update image source
+  const imgEl = tile.querySelector('img');
+  if (imgEl && dataUrl) imgEl.src = dataUrl;
+}
+
+// Throttle hover to avoid excessive renders
+const HOVER_THROTTLE_MS = 2000;
+
+async function handleAppHover(appId) {
+  if (!appId) return;
+
+  const cached = previewCache.get(appId);
+  const now = Date.now();
+
+  if (cached && (now - cached.ts) < HOVER_THROTTLE_MS) {
+    // Use cached image
+    upsertPreviewTile(appId, cached.dataUrl);
+    return;
+  }
+
+  // Show placeholder tile immediately, then update when image is ready
+  upsertPreviewTile(appId, null);
+
+  const dataUrl = await captureWindowPreview(appId);
+  if (dataUrl) {
+    previewCache.set(appId, { dataUrl, ts: Date.now() });
+    upsertPreviewTile(appId, dataUrl);
+  }
+}
+
+// Wire hover events for app launchers:
+// - Taskbar icons: .taskbar-app[data-app]
+// - Start menu pinned tiles: .start-app[data-app]
+// (You can add others similarly)
+function initAppHoverPreviews() {
+  // Taskbar apps
+  document.querySelectorAll('.taskbar-app[data-app]').forEach(el => {
+    const appId = el.dataset.app;
+    el.addEventListener('mouseenter', () => handleAppHover(appId));
+  });
+
+  // Start pinned apps
+  document.querySelectorAll('.start-app[data-app]').forEach(el => {
+    const appId = el.dataset.app;
+    el.addEventListener('mouseenter', () => handleAppHover(appId));
+  });
+  // remove "//" below to add previews the the start icons
+  // document.querySelectorAll('.start-rec-item[data-app]').forEach(el => {
+  //   const appId = el.dataset.app;
+  //   el.addEventListener('mouseenter', () => handleAppHover(appId));
+  // });
+}
+
+// Call once after your windowsMap is ready
+initAppHoverPreviews();
 
 // Close when clicking outside
 document.addEventListener("mousedown", (e) => {

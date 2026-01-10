@@ -5603,11 +5603,11 @@ initAppHoverPreviews();
 
 
 // ===============================
-// Auto-dismiss logic (1ms inactivity)
+// Auto-dismiss logic (1s inactivity)
 // ===============================
 
 // How long to wait without any hover before hiding
-const PREVIEW_INACTIVITY_MS = 1;
+const PREVIEW_INACTIVITY_MS = 1000;
 
 // Store timer ID
 let previewInactiveTimer = null;

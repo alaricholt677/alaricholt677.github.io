@@ -5714,6 +5714,99 @@ function initAppHoverPreviews() {
 // Call once after your windowsMap is ready
 initAppHoverPreviews();
 
+
+function handleSessionAction(action) {
+  const STORAGE_KEY = "win12_aim_fs_state_exe_ctx_full_v3";
+
+  // Find Settings window body
+  const settingsBody = document.querySelector("#window-settings .window-body");
+  if (!settingsBody) return;
+
+  // Create container for buttons (only once)
+  let container = document.getElementById("session-actions");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "session-actions";
+    container.style.marginTop = "12px";
+    container.style.padding = "8px";
+    container.style.borderTop = "1px solid rgba(255,255,255,0.2)";
+    container.style.fontSize = "12px";
+    container.innerHTML = `<h4 style="margin-bottom:6px;">Session Export / Import</h4>`;
+    settingsBody.appendChild(container);
+  }
+
+  // Add buttons if not already present
+  if (!document.getElementById("export-btn")) {
+    const exportBtn = document.createElement("button");
+    exportBtn.id = "export-btn";
+    exportBtn.className = "button-small";
+    exportBtn.textContent = "Export Session";
+    exportBtn.style.marginRight = "6px";
+    exportBtn.onclick = () => handleSessionAction("export");
+    container.appendChild(exportBtn);
+  }
+
+  if (!document.getElementById("import-btn")) {
+    const importBtn = document.createElement("button");
+    importBtn.id = "import-btn";
+    importBtn.className = "button-small";
+    importBtn.textContent = "Import Session";
+    importBtn.onclick = () => handleSessionAction("import");
+    container.appendChild(importBtn);
+  }
+
+  // Handle actions
+  if (action === "export") {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (!data) {
+      alert("No session data found.");
+      return;
+    }
+    const blob = new Blob([data], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "session.win12.lock"; // Custom extension
+    a.click();
+    alert("Session exported as session.win12.lock");
+  }
+
+  if (action === "import") {
+    // Create hidden file input if not exists
+    let fileInput = document.getElementById("session-import-input");
+    if (!fileInput) {
+      fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.id = "session-import-input";
+      fileInput.accept = ".win12.lock"; // Restrict file type
+      fileInput.style.display = "none";
+      document.body.appendChild(fileInput);
+
+      fileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const json = JSON.parse(reader.result);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(json));
+            alert("Session imported successfully! Reloading...");
+            location.reload();
+          } catch (err) {
+            alert("Invalid session file.");
+          }
+        };
+        reader.readAsText(file);
+      });
+    }
+    fileInput.click();
+  }
+}
+
+// ✅ Auto-create buttons when Settings loads
+window.addEventListener("load", () => {
+  handleSessionAction(""); // Just creates UI
+});
+
 // Close when clicking outside
 document.addEventListener("mousedown", (e) => {
   if (!searchPanel.contains(e.target) && !searchButton.contains(e.target)) {

@@ -5596,17 +5596,6 @@ function initAppHoverPreviews() {
     const appId = el.dataset.app;
     el.addEventListener('mouseenter', () => handleAppHover(appId));
   });
-
-  // Start pinned apps
-  document.querySelectorAll('.start-app[data-app]').forEach(el => {
-    const appId = el.dataset.app;
-    el.addEventListener('mouseenter', () => handleAppHover(appId));
-  });
-  // remove "//" below to add previews the the start icons
-  // document.querySelectorAll('.start-rec-item[data-app]').forEach(el => {
-  //   const appId = el.dataset.app;
-  //   el.addEventListener('mouseenter', () => handleAppHover(appId));
-  // });
 }
 
 // Call once after your windowsMap is ready

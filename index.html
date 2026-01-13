@@ -5448,6 +5448,119 @@ function createImportExplorer(editor) {
 }
 
 
+function renderExplorer(path) {
+  currentExplorerPath = path;
+  explorerPathEl.textContent = path;
+  const u = currentUser();
+  explorerItemsEl.innerHTML = "";
+
+  // Highlight active tab
+  explorerSidebar.querySelectorAll(".explorer-tab").forEach(tab => {
+    tab.style.background = tab.dataset.path === path ? "rgba(26,32,70,0.98)" : "transparent";
+  });
+
+  // Render files/folders
+  let entries;
+  if (path === "/") {
+    entries = [
+      { path: "/", name: "Desktop", type: "folder", target: "/desktop" },
+      { path: "/", name: "Documents", type: "folder", target: "/documents" },
+      { path: "/", name: "Recommended files", type: "folder", target: "/recommended-files" },
+      { path: "/", name: "Imported", type: "folder", target: "/imported" }
+    ];
+  } else {
+    entries = u.fs.filter(e => e.path === path);
+  }
+
+  if (!entries.length) {
+    explorerItemsEl.textContent = "No files or folders here.";
+  } else {
+    entries.forEach(entry => {
+      const card = document.createElement("div");
+      card.className = "explorer-card";
+      card.style.borderRadius = "8px";
+      card.style.background = "rgba(12,15,36,0.98)";
+      card.style.border = "1px solid rgba(255,255,255,0.08)";
+      card.style.padding = "6px";
+      card.style.cursor = "pointer";
+
+      const icon = document.createElement("div");
+      icon.style.width = "22px";
+      icon.style.height = "22px";
+      icon.style.borderRadius = entry.type === "folder" ? "4px" : "6px";
+      icon.style.marginBottom = "4px";
+      icon.style.background = entry.type === "folder"
+        ? "linear-gradient(135deg,#4c8dff,#94a3ff)"
+        : "radial-gradient(circle at 30% 20%,#fff,#4c8dff)";
+
+      const name = document.createElement("div");
+      name.textContent = entry.name;
+      name.style.color = "var(--text-main)";
+      name.style.fontSize = "11px";
+
+      const meta = document.createElement("div");
+      meta.textContent = entry.type === "folder" ? "Folder" : (entry.ext || "File");
+      meta.style.color = "var(--text-soft)";
+      meta.style.fontSize = "10px";
+
+      card.appendChild(icon);
+      card.appendChild(name);
+      card.appendChild(meta);
+
+      card.addEventListener("dblclick", () => {
+        if (entry.type === "folder" && entry.target) renderExplorer(entry.target);
+        else if (entry.type === "folder") renderExplorer(entry.path + "/" + entry.name);
+        else openFile(entry);
+      });
+
+      card.addEventListener("contextmenu", ev => showCtxMenu(ev, entry, entry.type === "folder"));
+      explorerItemsEl.appendChild(card);
+    });
+  }
+
+  // ✅ Update sidebar storage counter
+  updateSidebarStorageCounter();
+}
+
+// ✅ Helper to calculate total storage
+function calcTotalStorage() {
+  const u = currentUser();
+  let total = 0;
+  (u.fs || []).forEach(file => {
+    if (file.content) total += new Blob([file.content]).size;
+  });
+  return (total / (1024 * 1024)).toFixed(2); // MB
+}
+
+// ✅ Add storage counter below sidebar tabs
+function updateSidebarStorageCounter() {
+  let counterEl = document.getElementById("sidebar-storage-counter");
+  if (!counterEl) {
+    counterEl = document.createElement("div");
+    counterEl.id = "sidebar-storage-counter";
+    counterEl.style.marginTop = "8px";
+    counterEl.style.padding = "6px";
+    counterEl.style.fontSize = "11px";
+    counterEl.style.color = "var(--text-soft)";
+    counterEl.style.borderTop = "1px solid rgba(255,255,255,0.2)";
+    explorerSidebar.appendChild(counterEl);
+  }
+  counterEl.textContent = `Storage used: ${calcTotalStorage()} MB`;
+}
+
+// ✅ Call on load and after FS changes
+window.addEventListener("load", updateSidebarStorageCounter);
+
+// Hook into FS update
+function updateCurrentUser(updater) {
+  const idx = state.users.findIndex(u => u.id === state.currentUserId);
+  if (idx === -1) return;
+  state.users[idx] = updater(state.users[idx]);
+  saveState();
+  refreshAll();
+  updateSidebarStorageCounter(); // ✅ Update sidebar counter
+}
+
 const searchButton = document.getElementById("search-button");
 const searchPanel = document.getElementById("search-panel");
 const searchInput = document.getElementById("search-input");

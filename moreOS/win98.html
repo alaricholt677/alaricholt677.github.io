@@ -1,0 +1,2311 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Win98 HTML – reg.dat soul + Steam OS 98 + drag + mobile + IE file:/// + Paint</title>
+  <style>
+    * { box-sizing:border-box;margin:0;padding:0;font-family:"MS Sans Serif",Tahoma,sans-serif;user-select:none; }
+    html,body { width:100%;height:100%;overflow:hidden; }
+
+    #boot-screen {
+      position:absolute;inset:0;background:#000;color:#0f0;
+      font-family:"Courier New",monospace;font-size:12px;
+      padding:8px;white-space:pre-wrap;overflow:hidden;
+    }
+
+    #login-screen {
+      position:absolute;inset:0;background:#008080;
+      display:none;align-items:center;justify-content:center;
+    }
+    .login-box {
+      width:380px;background:#c0c0c0;border:2px solid #000;
+      box-shadow:2px 2px 0 #fff,-1px -1px 0 #808080;padding:12px;
+    }
+    .login-banner {
+      background:#000080;color:#fff;padding:6px 8px;margin-bottom:10px;
+      font-weight:bold;font-size:14px;
+    }
+    .login-row {
+      margin:8px 0;display:flex;align-items:center;justify-content:space-between;
+    }
+    .login-row label { margin-right:8px;min-width:80px; }
+    .login-row input,.login-row select {
+      width:200px;padding:2px;border:1px solid #000;background:#fff;
+    }
+    .login-buttons { text-align:right;margin-top:10px; }
+    .btn {
+      padding:2px 16px;border:2px solid #808080;background:#c0c0c0;
+      box-shadow:1px 1px 0 #fff,-1px -1px 0 #404040;margin-left:4px;
+      cursor:pointer;font-size:12px;
+    }
+    .btn:active { box-shadow:inset 1px 1px 0 #404040; }
+
+    #desktop {
+      position:absolute;inset:0;display:none;background:#008080;
+      touch-action:none;
+    }
+    #desktop-wallpaper {
+      position:absolute;inset:0;
+      background:#008080;background-size:cover;background-position:center;
+    }
+    #desktop-icons {
+      position:absolute;left:0;top:0;right:0;bottom:28px;padding:8px;
+    }
+
+    .desktop-icon {
+      position:absolute;
+      width:64px;text-align:center;color:#fff;cursor:default;
+      touch-action:none;
+    }
+    .desktop-icon img {
+      width:32px;height:32px;
+      image-rendering:pixelated;
+      image-rendering:crisp-edges;
+      display:block;margin:0 auto 2px;
+    }
+    .desktop-icon span {
+      font-size:11px;text-shadow:1px 1px 0 #000;word-wrap:break-word;
+    }
+    .desktop-icon.selected span { background:#000080; }
+
+    #taskbar {
+      position:absolute;left:0;right:0;bottom:0;height:28px;
+      background:#c0c0c0;border-top:2px solid #fff;
+      display:flex;align-items:center;
+    }
+    #start-button {
+      width:80px;margin:2px;padding:2px 4px;background:#c0c0c0;
+      border:2px solid #808080;box-shadow:1px 1px 0 #fff,-1px -1px 0 #404040;
+      display:flex;align-items:center;gap:4px;cursor:pointer;
+      font-weight:bold;font-size:12px;
+    }
+    #start-button:active { box-shadow:inset 1px 1px 0 #404040; }
+    #taskbar-windows {
+      flex:1;display:flex;align-items:stretch;overflow-x:auto;
+    }
+    .taskbar-btn {
+      min-width:120px;margin:2px;padding:2px 4px;background:#c0c0c0;
+      border:2px solid #808080;box-shadow:1px 1px 0 #fff,-1px -1px 0 #404040;
+      font-size:11px;cursor:pointer;display:flex;align-items:center;white-space:nowrap;
+    }
+    .taskbar-btn.active { background:#000080;color:#fff; }
+    #clock-canvas { width:40px;height:24px;margin-right:4px;border-left:2px solid #808080;background:#c0c0c0; }
+    #taskbar-clock { width:70px;text-align:center;font-size:11px;margin-right:4px;border-left:2px solid #808080;padding-left:4px; }
+
+    #start-menu {
+      position:absolute;left:2px;bottom:28px;width:260px;background:#c0c0c0;
+      border:2px solid #000;box-shadow:3px 3px 0 #000;display:none;z-index:1000;
+      font-size:12px;
+    }
+    .start-menu-title {
+      background:linear-gradient(90deg,#000080,#0000a0);color:#fff;
+      padding:4px;font-weight:bold;font-size:12px;
+    }
+    .start-menu-item {
+      padding:3px 8px;cursor:default;display:flex;align-items:center;gap:4px;
+    }
+    .start-menu-item:hover { background:#000080;color:#fff; }
+    .start-category {
+      font-weight:bold;border-top:1px solid #808080;margin-top:2px;padding-top:2px;
+    }
+
+    .window {
+      position:absolute;background:#c0c0c0;border:2px solid #000;
+      box-shadow:3px 3px 0 #000;display:flex;flex-direction:column;
+      min-width:260px;min-height:160px;
+      touch-action:none;
+    }
+    .window-titlebar {
+      height:20px;background:linear-gradient(90deg,#000080,#0000a0);
+      color:#fff;display:flex;align-items:center;justify-content:space-between;
+      padding:0 4px;cursor:move;font-size:11px;
+    }
+    .window-titlebar.inactive {
+      background:linear-gradient(90deg,#808080,#a0a0a0);color:#c0c0c0;
+    }
+    .window-title-left { display:flex;align-items:center;gap:4px; }
+    .window-icon { width:14px;height:14px;background:#c0c0c0;border:1px solid #000; }
+    .window-buttons { display:flex;gap:2px; }
+    .window-btn {
+      width:16px;height:14px;background:#c0c0c0;border:1px solid #000;
+      font-size:10px;text-align:center;line-height:12px;cursor:pointer;
+    }
+    .window-content { flex:1;background:#d4d0c8;padding:4px;overflow:auto;font-size:11px; }
+    .window-statusbar { height:18px;background:#c0c0c0;border-top:1px solid #808080;padding:2px 4px;font-size:10px; }
+    .window-resize { position:absolute;width:10px;height:10px;right:0;bottom:0;cursor:se-resize; }
+
+    .explorer { display:flex;flex-direction:column;height:100%; }
+    .explorer-toolbar { display:flex;align-items:center;gap:4px;padding-bottom:4px;border-bottom:1px solid #808080; }
+    .explorer-toolbar button {
+      font-size:11px;padding:2px 8px;border:2px solid #808080;background:#c0c0c0;
+      box-shadow:1px 1px 0 #fff,-1px -1px 0 #404040;cursor:pointer;
+    }
+    .explorer-body { display:flex;flex:1;margin-top:4px; }
+    .explorer-tree {
+      width:160px;border-right:1px solid #808080;background:#fff;padding:2px;overflow:auto;
+    }
+    .explorer-list {
+      flex:1;background:#fff;padding:2px;overflow:auto;
+      position:relative;
+      touch-action:none;
+    }
+    .tree-item { font-size:11px;padding-left:12px;cursor:default;white-space:nowrap; }
+    .tree-item:hover { background:#000080;color:#fff; }
+    .list-item {
+      display:flex;align-items:center;gap:4px;font-size:11px;
+      padding:1px 2px;cursor:default;
+      position:relative;
+    }
+    .list-item.selected { background:#000080;color:#fff; }
+    .list-icon {
+      width:16px;height:16px;
+      image-rendering:pixelated;
+      image-rendering:crisp-edges;
+    }
+
+    #ctx-menu {
+      position:absolute;background:#c0c0c0;border:2px solid #000;
+      box-shadow:2px 2px 0 #000;display:none;z-index:2000;font-size:11px;
+    }
+    .ctx-item { padding:2px 12px 2px 24px;cursor:default;white-space:nowrap; }
+    .ctx-item:hover { background:#000080;color:#fff; }
+
+    .text-input { width:100%;border:1px solid #000;background:#fff;padding:2px;font-size:11px; }
+    .label { margin:4px 0 2px; }
+
+    .cmd-output {
+      font-family:"Courier New",monospace;font-size:11px;background:#000;color:#0f0;
+      padding:2px;height:200px;overflow:auto;white-space:pre-wrap;
+    }
+    .cmd-input {
+      font-family:"Courier New",monospace;font-size:11px;width:100%;border:1px solid #000;
+      background:#000;color:#0f0;padding:2px;
+    }
+
+    .notify-window {
+      position:absolute;right:8px;bottom:32px;width:220px;background:#ffffe1;
+      border:1px solid #808080;padding:4px;font-size:11px;z-index:9999;
+    }
+    .notify-title { font-weight:bold;margin-bottom:4px; }
+
+    .mine-grid {
+      display:grid;grid-template-columns:repeat(9,18px);grid-auto-rows:18px;
+      gap:2px;background:#808080;padding:4px;justify-content:center;
+    }
+    .mine-cell {
+      width:18px;height:18px;background:#c0c0c0;
+      border:2px solid #808080;text-align:center;font-size:11px;
+      line-height:14px;cursor:pointer;
+    }
+    .mine-cell.open { background:#d4d0c8;border:1px solid #808080;cursor:default; }
+    .mine-cell.mine { background:#ff0000;color:#fff; }
+
+    .ie-layout {
+      display:grid;grid-template-columns:1fr 220px;grid-template-rows:auto 1fr;
+      gap:4px;height:100%;
+    }
+    .ie-toolbar { grid-column:1/3;display:flex;gap:4px;align-items:center; }
+    .ie-url { flex:1; }
+    .ie-main { border:1px solid #808080;background:#fff; }
+    .ie-console {
+      border:1px solid #808080;background:#000;color:#0f0;
+      font-family:"Courier New",monospace;font-size:10px;
+      padding:2px;overflow:auto;white-space:pre-wrap;
+    }
+
+    #selection-rect {
+      position:absolute;
+      border:1px dotted #0000ff;
+      background:rgba(0,0,255,0.2);
+      pointer-events:none;
+      display:none;
+      z-index:9998;
+    }
+
+    @media (max-width:700px){
+      .window { width:95vw !important;height:70vh !important;left:2.5vw !important;top:10vh !important; }
+      #taskbar { height:32px; }
+      #start-button { width:72px;font-size:11px; }
+      .desktop-icon { width:72px; }
+    }
+  </style>
+</head>
+<body>
+<div id="boot-screen"></div>
+
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-banner">Windows 98 HTML Edition</div>
+    <div class="login-row">
+      <label for="login-user-select">User name:</label>
+      <select id="login-user-select"></select>
+    </div>
+    <div class="login-row">
+      <label for="login-password">Password:</label>
+      <input type="password" id="login-password">
+    </div>
+    <div class="login-buttons">
+      <button class="btn" id="login-new-user-btn">New...</button>
+      <button class="btn" id="login-ok-btn">OK</button>
+    </div>
+    <div id="new-user-pane" style="margin-top:10px;display:none;border-top:1px solid #808080;padding-top:8px;">
+      <div class="login-row">
+        <label for="new-username">New user:</</label>
+        <input id="new-username">
+      </div>
+      <div class="login-row">
+        <label for="new-password">Password:</label>
+        <input type="password" id="new-password">
+      </div>
+      <div class="login-buttons">
+        <button class="btn" id="new-user-create-btn">Create</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="desktop">
+  <div id="desktop-wallpaper"></div>
+  <div id="desktop-icons"></div>
+  <div id="taskbar">
+    <div id="start-button">
+      <span>Start</span>
+    </div>
+    <div id="taskbar-windows"></div>
+    <canvas id="clock-canvas" width="40" height="24"></canvas>
+    <div id="taskbar-clock"></div>
+  </div>
+  <div id="start-menu"></div>
+</div>
+
+<div id="ctx-menu"></div>
+<div id="selection-rect"></div>
+
+<script>
+  const FS_KEY='win98_fs';
+  const USERS_KEY='win98_users';
+  const CURRENT_USER_KEY='win98_current_user';
+  const BOOT_KEY='win98_bootlog';
+
+  let fsRoot=null;
+  let users=[];
+  let currentUser=null;
+  let bootLog=[];
+
+  let windows=[];
+  let zCounter=10;
+  let draggingWindow=null;
+  let dragOffsetX=0,dragOffsetY=0;
+  let resizingWindow=null;
+  let resizeStart=null,resizeStartRect=null;
+
+  let ctxMenuTarget=null;
+  let currentSelectionPath=null;
+  let multiSelectionSet=new Set();
+
+  let regKernel=null;
+  let regBroken=false;
+  let keybindings={};
+  let clockMode='digital';
+  let wallpaperStyleEl=null;
+
+  let currentCMDDir='C:\\';
+
+  let lastTapTime=0;
+  let clickStartX=0;
+  let clickStartY=0;
+  let clickMoved=false;
+
+  const bootScreen=document.getElementById('boot-screen');
+  const loginScreen=document.getElementById('login-screen');
+  const loginUserSelect=document.getElementById('login-user-select');
+  const loginPasswordInput=document.getElementById('login-password');
+  const loginOkBtn=document.getElementById('login-ok-btn');
+  const loginNewUserBtn=document.getElementById('login-new-user-btn');
+  const newUserPane=document.getElementById('new-user-pane');
+  const newUsernameInput=document.getElementById('new-username');
+  const newPasswordInput=document.getElementById('new-password');
+  const newUserCreateBtn=document.getElementById('new-user-create-btn');
+
+  const desktopEl=document.getElementById('desktop');
+  const desktopWallpaperEl=document.getElementById('desktop-wallpaper');
+  const desktopIconsEl=document.getElementById('desktop-icons');
+  const startButton=document.getElementById('start-button');
+  const startMenu=document.getElementById('start-menu');
+  const taskbarWindowsEl=document.getElementById('taskbar-windows');
+  const clockCanvas=document.getElementById('clock-canvas');
+  const taskbarClock=document.getElementById('taskbar-clock');
+  const ctxMenuEl=document.getElementById('ctx-menu');
+  const selectionRectEl=document.getElementById('selection-rect');
+
+  const ICON_FILE = "data:image/svg+xml;utf8," +
+    "<svg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'>" +
+    "<rect x='1' y='1' width='14' height='14' fill='white' stroke='black'/>" +
+    "<rect x='3' y='4' width='10' height='1' fill='black'/>" +
+    "<rect x='3' y='6' width='10' height='1' fill='black'/>" +
+    "<rect x='3' y='8' width='10' height='1' fill='black'/>" +
+    "</svg>";
+
+  const ICON_FOLDER = "data:image/svg+xml;utf8," +
+    "<svg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'>" +
+    "<rect x='1' y='4' width='14' height='10' fill='%23d6b36a' stroke='black'/>" +
+    "<rect x='1' y='2' width='6' height='3' fill='%23e8c98f' stroke='black'/>" +
+    "</svg>";
+
+  const STEAM_GLOBAL_CSS =
+"/* Steam OS 98 – global theme */\n"+
+"body { background-color: #0b0f14; }\n"+
+"#desktop-wallpaper { background-image:\n"+
+"  radial-gradient(circle at top left, rgba(102,192,244,0.28) 0, transparent 55%),\n"+
+"  radial-gradient(circle at bottom right, rgba(36,71,103,0.7) 0, transparent 60%),\n"+
+"  radial-gradient(circle at center, #1b2838 0, #0b0f14 70%);\n"+
+"  background-color:#0b0f14; background-size:cover; background-position:center; }\n"+
+"#taskbar { background: linear-gradient(#1b2838, #0f1923); border-top:1px solid #2a3f55; box-shadow:0 -1px 0 #000; color:#c7d5e0; }\n"+
+"#start-button { background: linear-gradient(#1b2838, #101822); border-color:#2a475e; color:#c7d5e0; }\n"+
+"#start-button:active { background: linear-gradient(#101822, #0b0f14); }\n"+
+"#start-button span { position:relative; color:#c7d5e0; }\n"+
+"#start-button span::before { content:'Steam OS 98'; position:absolute; inset:0; display:flex; align-items:center; }\n"+
+".taskbar-btn { background:#1b2838; border-color:#2a475e; color:#c7d5e0; }\n"+
+".taskbar-btn.active { background:#2a475e; color:#fff; }\n"+
+"#taskbar-clock { color:#c7d5e0; background:#1b2838; border-left:1px solid #2a3f55; }\n"+
+"#clock-canvas { background:#1b2838; border-left:1px solid #2a3f55; }\n"+
+"#start-menu { background:#1b2838; border-color:#000; box-shadow:0 0 0 1px #000, 0 4px 16px rgba(0,0,0,0.7); color:#c7d5e0; }\n"+
+".start-menu-title { background:linear-gradient(90deg,#0f1923,#1b2838); color:#66c0f4; }\n"+
+".start-menu-item { color:#c7d5e0; }\n"+
+".start-menu-item:hover { background:#2a475e; color:#fff; }\n"+
+".start-category { border-top-color:#2a3f55; }\n"+
+".window { background:#1b2838; border-color:#000; box-shadow:0 4px 16px rgba(0,0,0,0.9); color:#c7d5e0; }\n"+
+".window-titlebar { background:linear-gradient(90deg,#0f1923,#1b2838); color:#66c0f4; }\n"+
+".window-titlebar.inactive { background:#141e2a; color:#4f5b66; }\n"+
+".window-content { background:#141a22; color:#c7d5e0; }\n"+
+".window-statusbar { background:#101822; border-top-color:#2a3f55; }\n"+
+".window-btn { background:#0f1923; border-color:#2a475e; color:#c7d5e0; }\n"+
+".window-btn:hover { background:#2a475e; color:#fff; }\n"+
+".explorer-tree, .explorer-list { background:#0f141b; color:#c7d5e0; }\n"+
+".explorer-toolbar button { background:#1b2838; border-color:#2a475e; color:#c7d5e0; }\n"+
+".list-item.selected { background:#2a475e; color:#fff; }\n"+
+"#ctx-menu { background:#1b2838; border-color:#000; color:#c7d5e0; }\n"+
+".ctx-item:hover { background:#2a475e; color:#fff; }\n"+
+".desktop-icon span { color:#c7d5e0; text-shadow:none; }\n"+
+".desktop-icon.selected span { background:#2a475e; color:#fff; }\n"+
+".cmd-output, .cmd-input, .ie-console { background:#000; color:#66c0f4; }\n"+
+".notify-window { background:#1b2838; color:#c7d5e0; border-color:#2a475e; }\n"+
+".notify-title { color:#66c0f4; }\n";
+
+  function normalizePath(p){return p.replace(/\//g,"\\").replace(/\\\\+/g,"\\");}
+  function createDir(name,owner=null){return{type:'dir',name,children:[],owner};}
+  function createFile(name,owner=null,content='',meta={}){return{type:'file',name,owner,content,meta};}
+  function findPath(path){
+    path=normalizePath(path);
+    const parts=path.split('\\').filter(Boolean);
+    let node=fsRoot;
+    for(let i=0;i<parts.length;i++){
+      if(!node||node.type!=='dir')return null;
+      const part=parts[i];
+      if(i===0 && part.endsWith(':')){
+        node=node.children.find(c=>c.type==='dir' && c.name===part);
+      }else{
+        node=node.children.find(c=>c.name===part);
+      }
+    }
+    return node||null;
+  }
+  function ensurePath(path,owner=null){
+    path=normalizePath(path);
+    const parts=path.split('\\').filter(Boolean);
+    let node=fsRoot;
+    for(let i=0;i<parts.length;i++){
+      const part=parts[i];
+      if(i===0&&part.endsWith(':')){
+        let d=node.children.find(c=>c.type==='dir'&&c.name===part);
+        if(!d){d=createDir(part,owner);node.children.push(d);}
+        node=d;
+      }else{
+        let n=node.children.find(c=>c.type==='dir'&&c.name===part);
+        if(!n){n=createDir(part,owner);node.children.push(n);}
+        node=n;
+      }
+    }
+    return node;
+  }
+  function listChildren(path){const n=findPath(path);if(!n||n.type!=='dir')return[];return n.children;}
+  function createOrGetFile(path,owner=null,defaultContent='',defaultMeta={}){
+    path=normalizePath(path);
+    const parts=path.split('\\').filter(Boolean);
+    const fn=parts.pop();
+    const dirPath=parts.join('\\');
+    const dir=ensurePath(dirPath,owner);
+    let f=dir.children.find(c=>c.type==='file'&&c.name===fn);
+    if(!f){f=createFile(fn,owner,defaultContent,defaultMeta);dir.children.push(f);}
+    return f;
+  }
+  function getFile(path){path=normalizePath(path);const n=findPath(path);return n&&n.type==='file'?n:null;}
+  function getNode(path){return findPath(path);}
+
+  function logBoot(m){bootLog.push('[BOOT] '+m);}
+  function renderBootScreen(){bootScreen.textContent=bootLog.join('\n');}
+
+  function initFS(){
+    fsRoot=createDir('root');
+    const c=createDir('C:');
+    fsRoot.children.push(c);
+    c.children.push(createDir('Windows'));
+    c.children.push(createDir('Users'));
+  }
+
+  function userRoot(u){return `C:\\Users\\${u}`;}
+
+  function defaultKernel(username,password){
+    return {
+      user:{
+        username,
+        passwordMirror:password
+      },
+      ui:{
+        css:{
+          global:"",
+          desktop:"#desktop-wallpaper{background-color:#008080;}",
+          taskbar:"",
+          startMenu:""
+        },
+        wallpapers:{
+          mode:"default",
+          custom:[
+            {
+              id:"checker",
+              name:"Checkerboard",
+              css:"#desktop-wallpaper{background-image:linear-gradient(45deg,#008080 25%,transparent 25%,transparent 75%,#008080 75%,#008080),linear-gradient(45deg,#008080 25%,transparent 25%,transparent 75%,#008080 75%,#008080);background-size:20px 20px;background-position:0 0,10px 10px;}"
+            },
+            {
+              id:"steam98",
+              name:"Steam OS 98",
+              css:"#desktop-wallpaper{background-image:radial-gradient(circle at top left,rgba(102,192,244,0.28) 0,transparent 55%),radial-gradient(circle at bottom right,rgba(36,71,103,0.7) 0,transparent 60%),radial-gradient(circle at center,#1b2838 0,#0b0f14 70%);background-color:#0b0f14;background-size:cover;background-position:center;}"
+            }
+          ]
+        }
+      },
+      shell:{
+        startMenu:{
+          title:"Windows 98",
+          items:[
+            {type:"shortcut",label:"File Explorer",action:{kind:"openExplorerHome"}},
+            {type:"category",label:"Accessories"},
+            {type:"appRef",appId:"notepad"},
+            {type:"appRef",appId:"cmd"},
+            {type:"appRef",appId:"paint"},
+            {type:"category",label:"Games"},
+            {type:"appRef",appId:"minesweeper"},
+            {type:"category",label:"Settings"},
+            {type:"appRef",appId:"controlpanel"},
+            {type:"appRef",appId:"ie"}
+          ],
+          showLogoff:true
+        },
+        taskbar:{ showClock:true,showStart:true },
+        desktop:{ showIcons:true },
+        contextMenus:{
+          desktop:[
+            {label:"New Text Document",fn:"newTextDoc"},
+            {label:"New Folder",fn:"newFolder"},
+            {label:"Refresh",fn:"refreshDesktop"}
+          ],
+          file:[
+            {label:"Open",fn:"openDefault"},
+            {label:"Open in Notepad",fn:"openNotepad"},
+            {label:"Rename",fn:"renameNode"},
+            {label:"Delete",fn:"deleteNode"}
+          ],
+          explorerBlank:[
+            {label:"New Text Document",fn:"newTextDoc"},
+            {label:"New Folder",fn:"newFolder"},
+            {label:"Refresh",fn:"refreshExplorer"}
+          ]
+        }
+      },
+      apps:{
+        notepad:{title:"Notepad",type:"integrated"},
+        cmd:{title:"Command Prompt",type:"integrated"},
+        minesweeper:{title:"Minesweeper",type:"integrated"},
+        controlpanel:{title:"Control Panel",type:"integrated"},
+        ie:{title:"Internet Explorer",type:"integrated"},
+        paint:{title:"Paint",type:"integrated"}
+      },
+      fileAssociations:{
+        txt:{appId:"notepad"},
+        dat:{appId:"notepad"},
+        html:{appId:"ie"},
+        htm:{appId:"ie"},
+        png:{appId:"paint"},
+        jpg:{appId:"paint"},
+        jpeg:{appId:"paint"},
+        gif:{appId:"paint"},
+        bmp:{appId:"paint"}
+      },
+      keybindings:{
+        Delete:"deleteSelection"
+      },
+      options:{
+        clockMode:"digital",
+        wallpaperMode:"default",
+        classicColor:"#008080",
+        steamBrand:false
+      },
+      interaction:{
+        dragThreshold:6,
+        doubleTapDelay:250
+      },
+      explorerToolbar:[
+        {label:"New Folder",fn:"toolbarNewFolder"},
+        {label:"Delete",fn:"toolbarDeleteSelection"},
+        {label:"Refresh",fn:"toolbarRefresh"},
+        {label:"File",fn:"toolbarFileMenu"}
+      ]
+    };
+  }
+
+  function createUserFS(username,password){
+    const root=userRoot(username);
+    ensurePath(root,username);
+    const kernel=defaultKernel(username,password);
+    createOrGetFile(`${root}\\reg.dat`,username,JSON.stringify(kernel,null,2),{type:'registry'});
+    const desktopPath=`${root}\\Desktop`;
+    ensurePath(desktopPath,username);
+    createOrGetFile(`${root}\\desktop_dir.dat`,username,desktopPath,{type:'desktopPtr'});
+    const desk=findPath(desktopPath);
+    desk.children.push(createFile('My Computer.lnk',username,'C:\\',{type:'shortcut',target:'C:\\'}));
+    desk.children.push(createFile('Notepad.lnk',username,'app:notepad',{type:'shortcut',target:'app:notepad'}));
+    desk.children.push(createFile('Command Prompt.lnk',username,'app:cmd',{type:'shortcut',target:'app:cmd'}));
+    desk.children.push(createFile('Control Panel.lnk',username,'app:controlpanel',{type:'shortcut',target:'app:controlpanel'}));
+    desk.children.push(createFile('Internet Explorer.lnk',username,'app:ie',{type:'shortcut',target:'app:ie'}));
+  }
+
+  function initFirstUser(){
+    const u={username:'Admin',password:'',isAdmin:true};
+    users.push(u);
+    createUserFS(u.username,u.password);
+    saveState();
+  }
+
+  function loadState(){
+    const fsJson=localStorage.getItem(FS_KEY);
+    const uJson=localStorage.getItem(USERS_KEY);
+    const cuJson=localStorage.getItem(CURRENT_USER_KEY);
+    const bJson=localStorage.getItem(BOOT_KEY);
+    if(fsJson)fsRoot=JSON.parse(fsJson);
+    if(uJson)users=JSON.parse(uJson);
+    if(cuJson)currentUser=JSON.parse(cuJson);
+    if(bJson)bootLog=JSON.parse(bJson);
+    if(!fsRoot) initFS();
+    if(!users||users.length===0) initFirstUser();
+  }
+
+  function saveState(){
+    localStorage.setItem(FS_KEY,JSON.stringify(fsRoot));
+    localStorage.setItem(USERS_KEY,JSON.stringify(users));
+    if(currentUser) localStorage.setItem(CURRENT_USER_KEY,JSON.stringify(currentUser));
+    localStorage.setItem(BOOT_KEY,JSON.stringify(bootLog));
+  }
+
+  function loadKernel(){
+    const root=userRoot(currentUser.username);
+    const f=getFile(`${root}\\reg.dat`);
+    if(!f){regBroken=true;regKernel=null;return;}
+    try{
+      regKernel=JSON.parse(f.content);
+      regBroken=false;
+      keybindings=regKernel.keybindings||{};
+      const opts=regKernel.options||{};
+      clockMode=opts.clockMode||'digital';
+    }catch(e){
+      regBroken=true;
+      regKernel=null;
+    }
+  }
+
+  function applyKernelCSS(){
+    if(wallpaperStyleEl){wallpaperStyleEl.remove();wallpaperStyleEl=null;}
+    const style=document.createElement('style');
+    let css='';
+    if(regKernel && regKernel.ui && regKernel.ui.css){
+      css+=(regKernel.ui.css.global||'')+'\n';
+      css+=(regKernel.ui.css.desktop||'')+'\n';
+      css+=(regKernel.ui.css.taskbar||'')+'\n';
+      css+=(regKernel.ui.css.startMenu||'')+'\n';
+    }else{
+      css+='#desktop-wallpaper{background-color:#000;}';
+    }
+    style.textContent=css;
+    document.head.appendChild(style);
+    wallpaperStyleEl=style;
+  }
+
+  function applyWallpaper(){
+    if(!regKernel){desktopWallpaperEl.style.backgroundColor='#000';return;}
+    const opts=regKernel.options||{};
+    const mode=opts.wallpaperMode||'default';
+    const classic=opts.classicColor||'#008080';
+    desktopWallpaperEl.style.backgroundImage='';
+    desktopWallpaperEl.style.backgroundColor='';
+    desktopWallpaperEl.style.backgroundSize='cover';
+
+    const wallpapers=(regKernel.ui && regKernel.ui.wallpapers) || {custom:[]};
+
+    if(mode==='default'){
+      desktopWallpaperEl.style.backgroundColor='#008080';
+    }else if(mode==='classic-color'){
+      desktopWallpaperEl.style.backgroundColor=classic;
+    }else if(mode==='bliss'){
+      desktopWallpaperEl.style.backgroundImage='url("https://upload.wikimedia.org/wikipedia/en/2/24/Bliss_%28Windows_XP%29.png")';
+    }else if(mode.startsWith('custom:')){
+      const id=mode.slice('custom:'.length);
+      const entry=(wallpapers.custom||[]).find(e=>e.id===id);
+      if(entry){
+        if(wallpaperStyleEl){wallpaperStyleEl.remove();wallpaperStyleEl=null;}
+        const style=document.createElement('style');
+        style.textContent=entry.css;
+        document.head.appendChild(style);
+        wallpaperStyleEl=style;
+      }else{
+        desktopWallpaperEl.style.backgroundColor='#008080';
+      }
+    }else{
+      desktopWallpaperEl.style.backgroundColor='#008080';
+    }
+  }
+
+  function refreshLoginUsers(){
+    loginUserSelect.innerHTML='';
+    users.forEach(u=>{
+      const opt=document.createElement('option');
+      opt.value=u.username;
+      opt.textContent=u.username;
+      loginUserSelect.appendChild(opt);
+    });
+    if(currentUser){
+      const idx=users.findIndex(u=>u.username===currentUser.username);
+      if(idx>=0)loginUserSelect.selectedIndex=idx;
+    }
+  }
+
+  loginOkBtn.addEventListener('click',()=>{
+    const username=loginUserSelect.value;
+    const pwd=loginPasswordInput.value;
+    const u=users.find(x=>x.username===username);
+    if(!u){alert('User not found');return;}
+    if(u.password!==pwd){alert('Incorrect password');return;}
+    currentUser={username:u.username,isAdmin:!!u.isAdmin};
+    saveState();
+    startWindows();
+  });
+
+  loginNewUserBtn.addEventListener('click',()=>{newUserPane.style.display='block';});
+  newUserCreateBtn.addEventListener('click',()=>{
+    const username=newUsernameInput.value.trim();
+    const pwd=newPasswordInput.value;
+    if(!username)return;
+    if(users.some(u=>u.username===username)){alert('User exists');return;}
+    const u={username,password:pwd,isAdmin:false};
+    users.push(u);
+    createUserFS(username,pwd);
+    saveState();
+    newUserPane.style.display='none';
+    newUsernameInput.value='';newPasswordInput.value='';
+    refreshLoginUsers();
+  });
+
+  function startWindows(){
+    bootScreen.style.display='none';
+    loginScreen.style.display='none';
+    desktopEl.style.display='block';
+
+    loadKernel();
+    if(regBroken || !regKernel){
+      desktopWallpaperEl.style.background='#000';
+      desktopIconsEl.innerHTML='';
+      startMenu.style.display='none';
+      taskbarWindowsEl.innerHTML='';
+      startButton.style.pointerEvents='none';
+      startButton.style.opacity='0.3';
+      applyKernelCSS();
+    }else{
+      applyKernelCSS();
+      applyWallpaper();
+      renderDesktopIcons();
+      buildStartMenuFromKernel();
+      startButton.style.pointerEvents='auto';
+      startButton.style.opacity='1';
+    }
+    updateClock();drawClock();
+    setInterval(updateClock,1000);
+    setInterval(drawClock,1000);
+  }
+
+  function cwdDesktopPath(){
+    const root=userRoot(currentUser.username);
+    const ptr=getFile(`${root}\\desktop_dir.dat`);
+    if(!ptr)return `${root}\\Desktop`;
+    return ptr.content;
+  }
+
+  function clearSelection(){
+    currentSelectionPath=null;
+    multiSelectionSet.clear();
+    document.querySelectorAll('.desktop-icon.selected,.list-item.selected').forEach(el=>el.classList.remove('selected'));
+  }
+  function addSelection(path,element){
+    multiSelectionSet.add(normalizePath(path));
+    if(element)element.classList.add('selected');
+    currentSelectionPath=normalizePath(path);
+  }
+
+  function renderDesktopIcons(){
+    if(regBroken || !regKernel){desktopIconsEl.innerHTML='';return;}
+    desktopIconsEl.innerHTML='';
+    multiSelectionSet.clear();
+    const path=cwdDesktopPath();
+    const dir=findPath(path);if(!dir)return;
+    const cols=Math.floor((desktopIconsEl.clientWidth||600)/72)||1;
+    let i=0;
+    (dir.children||[]).forEach(n=>{
+      const div=document.createElement('div');
+      div.className='desktop-icon';
+      const col=i%cols;
+      const row=Math.floor(i/cols);
+      div.style.left=(col*72)+'px';
+      div.style.top=(row*72)+'px';
+      i++;
+      div.dataset.path=normalizePath(`${path}\\${n.name}`);
+      let iconSrc=ICON_FILE;
+      if(n.type==='dir')iconSrc=ICON_FOLDER;
+      if(n.meta && n.meta.type==='shortcut')iconSrc=ICON_FILE;
+      div.innerHTML=`<img src="${iconSrc}"><span>${n.name}</span>`;
+      div.addEventListener('mousedown',desktopIconPointerDown);
+      div.addEventListener('touchstart',wrapTouch(desktopIconPointerDown));
+      div.addEventListener('contextmenu',e=>{
+        e.preventDefault();
+        clearSelection();addSelection(div.dataset.path,div);
+        showNodeContextMenu(e.clientX,e.clientY,div.dataset.path);
+      });
+      desktopIconsEl.appendChild(div);
+    });
+  }
+
+  function desktopIconPointerDown(e){
+    const isTouch=e.type==='touch';
+    const pt=e;
+    if(!isTouch)pt.preventDefault();
+    const div=pt.currentTarget;
+    const path=div.dataset.path;
+
+    const threshold=regKernel?.interaction?.dragThreshold ?? 6;
+    const doubleDelay=regKernel?.interaction?.doubleTapDelay ?? 250;
+
+    clickStartX=pt.clientX;
+    clickStartY=pt.clientY;
+    clickMoved=false;
+
+    function move(ev){
+      const m=ev.type==='touch'?ev:ev;
+      if(Math.abs(m.clientX-clickStartX)>threshold || Math.abs(m.clientY-clickStartY)>threshold){
+        clickMoved=true;
+        document.removeEventListener('mousemove',move);
+        document.removeEventListener('touchmove',wrappedMove);
+        startDragMove(m,path,'desktop');
+      }
+    }
+
+    function up(ev){
+      document.removeEventListener('mouseup',up);
+      document.removeEventListener('touchend',wrappedUp);
+      document.removeEventListener('mousemove',move);
+      document.removeEventListener('touchmove',wrappedMove);
+
+      if(clickMoved)return;
+      const now=Date.now();
+      if(now-lastTapTime<doubleDelay){
+        openFileOrShortcut(path);
+      }else{
+        clearSelection();
+        addSelection(path,div);
+      }
+      lastTapTime=now;
+    }
+
+    const wrappedMove=wrapTouch(move);
+    const wrappedUp=wrapTouch(up);
+
+    document.addEventListener('mousemove',move);
+    document.addEventListener('touchmove',wrappedMove);
+    document.addEventListener('mouseup',up);
+    document.addEventListener('touchend',wrappedUp);
+  }
+
+  desktopEl.addEventListener('contextmenu',e=>{
+    if(e.target.closest('.desktop-icon'))return;
+    e.preventDefault();
+    clearSelection();
+    showDesktopContextMenu(e.clientX,e.clientY);
+  });
+
+  desktopEl.addEventListener('mousedown',e=>{
+    if(e.target.closest('.desktop-icon'))return;
+    if(e.button===2)return;
+    startSelectionRect(e,desktopIconsEl,'desktop');
+  });
+  desktopEl.addEventListener('touchstart',wrapTouch(e=>{
+    if(e.target.closest('.desktop-icon'))return;
+    startSelectionRect(e,desktopIconsEl,'desktop');
+  }));
+
+  startButton.addEventListener('click',()=>{
+    if(regBroken || !regKernel)return;
+    startMenu.style.display=(startMenu.style.display==='block')?'none':'block';
+  });
+
+  function buildStartMenuFromKernel(){
+    startMenu.innerHTML='';
+    const shell=(regKernel.shell||{});
+    const cfg=shell.startMenu||{title:'Windows 98',items:[]};
+    const title=document.createElement('div');
+    title.className='start-menu-title';
+    title.textContent=cfg.title||'Windows 98';
+    startMenu.appendChild(title);
+
+    (cfg.items||[]).forEach(it=>{
+      if(it.type==='category'){
+        const d=document.createElement('div');
+        d.className='start-menu-item start-category';
+        d.textContent=it.label;
+        startMenu.appendChild(d);
+      }else if(it.type==='shortcut'){
+        const d=document.createElement('div');
+        d.className='start-menu-item';
+        d.textContent=it.label;
+        d.addEventListener('click',()=>{
+          startMenu.style.display='none';
+          if(it.action && it.action.kind==='openExplorerHome'){
+            openExplorerWindow(userRoot(currentUser.username));
+          }
+        });
+        startMenu.appendChild(d);
+      }else if(it.type==='appRef'){
+        const appId=it.appId;
+        const app=(regKernel.apps||{})[appId];
+        if(!app)return;
+        const d=document.createElement('div');
+        d.className='start-menu-item';
+        d.textContent=app.title;
+        d.addEventListener('click',()=>{
+          startMenu.style.display='none';
+          runApp(appId,{});
+        });
+        startMenu.appendChild(d);
+      }
+    });
+
+    if(cfg.showLogoff){
+      const d=document.createElement('div');
+      d.className='start-menu-item';
+      d.textContent='Log Off...';
+      d.addEventListener('click',()=>{startMenu.style.display='none';logoff();});
+      startMenu.appendChild(d);
+    }
+  }
+
+  function logoff(){
+    currentUser=null;
+    localStorage.removeItem(CURRENT_USER_KEY);
+    windows.forEach(w=>w.el.remove());
+    windows=[];
+    desktopEl.style.display='none';
+    loginScreen.style.display='flex';
+    loginPasswordInput.value='';
+    refreshLoginUsers();
+  }
+
+  function createWindow(opts){
+    const win={
+      id:'w'+Date.now()+Math.random().toString(16).slice(2),
+      title:opts.title||'Window',
+      x:opts.x??80,y:opts.y??80,
+      width:opts.width??400,height:opts.height??280,
+      type:opts.type||'generic',
+      minimized:false,el:null,taskbarBtn:null,
+      onClose:opts.onClose||null,
+      explorerState:opts.explorerState||null
+    };
+    const el=document.createElement('div');
+    el.className='window';
+    el.style.left=win.x+'px';
+    el.style.top=win.y+'px';
+    el.style.width=win.width+'px';
+    el.style.height=win.height+'px';
+    el.style.zIndex=++zCounter;
+    el.innerHTML=`
+      <div class="window-titlebar">
+        <div class="window-title-left"><div class="window-icon"></div><span>${win.title}</span></div>
+        <div class="window-buttons">
+          <div class="window-btn" data-action="min">_</div>
+          <div class="window-btn" data-action="max">□</div>
+          <div class="window-btn" data-action="close">X</div>
+        </div>
+      </div>
+      <div class="window-content"></div>
+      <div class="window-statusbar"></div>
+      <div class="window-resize"></div>`;
+    const tb=el.querySelector('.window-titlebar');
+    const contentEl=el.querySelector('.window-content');
+    const resizeEl=el.querySelector('.window-resize');
+
+    tb.addEventListener('mousedown',e=>{
+      focusWindow(win);
+      draggingWindow=win;
+      dragOffsetX=e.clientX-el.offsetLeft;
+      dragOffsetY=e.clientY-el.offsetTop;
+    });
+    tb.addEventListener('touchstart',wrapTouch(e=>{
+      focusWindow(win);
+      draggingWindow=win;
+      dragOffsetX=e.clientX-el.offsetLeft;
+      dragOffsetY=e.clientY-el.offsetTop;
+    }));
+
+    el.querySelectorAll('.window-btn').forEach(b=>{
+      b.addEventListener('click',()=>{
+        const a=b.dataset.action;
+        if(a==='close')closeWindow(win);
+        else if(a==='min')minimizeWindow(win);
+      });
+    });
+    resizeEl.addEventListener('mousedown',e=>{
+      e.stopPropagation();
+      focusWindow(win);
+      resizingWindow=win;
+      resizeStart={x:e.clientX,y:e.clientY};
+      const r=el.getBoundingClientRect();
+      resizeStartRect={width:r.width,height:r.height};
+    });
+
+    el.addEventListener('mousedown',()=>focusWindow(win));
+    el.addEventListener('touchstart',wrapTouch(()=>focusWindow(win)));
+
+    document.body.appendChild(el);
+    win.el=el;
+
+    const btn=document.createElement('div');
+    btn.className='taskbar-btn';
+    btn.textContent=win.title;
+    btn.dataset.winId=win.id;
+    btn.addEventListener('click',()=>{
+      if(win.minimized)restoreWindow(win);else minimizeWindow(win);
+    });
+    taskbarWindowsEl.appendChild(btn);
+    win.taskbarBtn=btn;
+
+    windows.push(win);
+    focusWindow(win);
+    if(typeof opts.buildContent==='function')opts.buildContent(contentEl,win);
+    return win;
+  }
+
+  function focusWindow(win){
+    windows.forEach(w=>{
+      if(!w.el)return;
+      const tb=w.el.querySelector('.window-titlebar');
+      if(w.id===win.id){
+        w.el.style.zIndex=++zCounter;
+        tb.classList.remove('inactive');
+        if(w.taskbarBtn)w.taskbarBtn.classList.add('active');
+      }else{
+        tb.classList.add('inactive');
+        if(w.taskbarBtn)w.taskbarBtn.classList.remove('active');
+      }
+    });
+  }
+  function closeWindow(win){
+    if(win.onClose)win.onClose();
+    if(win.el)win.el.remove();
+    if(win.taskbarBtn)win.taskbarBtn.remove();
+    windows=windows.filter(w=>w.id!==win.id);
+  }
+  function minimizeWindow(win){
+    if(!win.el)return;
+    win.el.style.display='none';
+    win.minimized=true;
+    if(win.taskbarBtn)win.taskbarBtn.classList.remove('active');
+  }
+  function restoreWindow(win){
+    if(!win.el)return;
+    win.el.style.display='flex';
+    win.minimized=false;
+    focusWindow(win);
+  }
+
+  document.addEventListener('mousemove',e=>{
+    if(draggingWindow){
+      const el=draggingWindow.el;
+      el.style.left=(e.clientX-dragOffsetX)+'px';
+      el.style.top=(e.clientY-dragOffsetY)+'px';
+    }
+    if(resizingWindow){
+      const el=resizingWindow.el;
+      const dx=e.clientX-resizeStart.x;
+      const dy=e.clientY-resizeStart.y;
+      el.style.width=Math.max(260,resizeStartRect.width+dx)+'px';
+      el.style.height=Math.max(160,resizeStartRect.height+dy)+'px';
+    }
+    updateDragMove(e);
+    updateSelectionRect(e);
+  });
+  document.addEventListener('mouseup',()=>{draggingWindow=null;resizingWindow=null;endDragMove();endSelectionRect();});
+  document.addEventListener('touchmove',wrapTouch(e=>{updateDragMove(e);updateSelectionRect(e);}));
+  document.addEventListener('touchend',()=>{endDragMove();endSelectionRect();});
+
+  function openExplorerWindow(path){
+    if(regBroken || !regKernel)return;
+    path=normalizePath(path);
+    createWindow({
+      title:path+' - Explorer',
+      width:560,height:380,type:'explorer',
+      explorerState:{currentPath:path},
+      buildContent:(contentEl,winRef)=>{
+        contentEl.innerHTML=`
+          <div class="explorer">
+            <div class="explorer-toolbar"></div>
+            <div class="explorer-body">
+              <div class="explorer-tree"></div>
+              <div class="explorer-list"></div>
+            </div>
+          </div>`;
+        const tbEl=contentEl.querySelector('.explorer-toolbar');
+        const treeEl=contentEl.querySelector('.explorer-tree');
+        const listEl=contentEl.querySelector('.explorer-list');
+        buildExplorerToolbar(tbEl,winRef);
+        buildTree(treeEl);
+        renderList(listEl,path,winRef);
+
+        listEl.addEventListener('mousedown',e=>{
+          const row=e.target.closest('.list-item');
+          const threshold=regKernel?.interaction?.dragThreshold ?? 6;
+          const doubleDelay=regKernel?.interaction?.doubleTapDelay ?? 250;
+          if(row && e.button===0){
+            const p=row.dataset.path;
+            clickStartX=e.clientX;
+            clickStartY=e.clientY;
+            clickMoved=false;
+
+            function move(ev){
+              if(Math.abs(ev.clientX-clickStartX)>threshold || Math.abs(ev.clientY-clickStartY)>threshold){
+                clickMoved=true;
+                document.removeEventListener('mousemove',move);
+                startDragMove(ev,p,'explorer',winRef);
+              }
+            }
+            function up(ev){
+              document.removeEventListener('mouseup',up);
+              document.removeEventListener('mousemove',move);
+              if(clickMoved)return;
+              const now=Date.now();
+              if(now-lastTapTime<doubleDelay){
+                openFileOrShortcut(p);
+              }else{
+                clearSelection();
+                addSelection(p,row);
+              }
+              lastTapTime=now;
+            }
+            document.addEventListener('mousemove',move);
+            document.addEventListener('mouseup',up);
+          }else if(!row && e.button===0){
+            startSelectionRect(e,listEl,'explorer',winRef);
+          }
+        });
+
+        listEl.addEventListener('touchstart',wrapTouch(e=>{
+          const row=e.target.closest('.list-item');
+          const threshold=regKernel?.interaction?.dragThreshold ?? 6;
+          const doubleDelay=regKernel?.interaction?.doubleTapDelay ?? 250;
+          if(row){
+            const p=row.dataset.path;
+            clickStartX=e.clientX;
+            clickStartY=e.clientY;
+            clickMoved=false;
+
+            function move(ev){
+              const m=ev;
+              if(Math.abs(m.clientX-clickStartX)>threshold || Math.abs(m.clientY-clickStartY)>threshold){
+                clickMoved=true;
+                document.removeEventListener('touchmove',wrappedMove);
+                startDragMove(ev,p,'explorer',winRef);
+              }
+            }
+            const wrappedMove=wrapTouch(move);
+            function up(ev){
+              document.removeEventListener('touchend',wrappedUp);
+              document.removeEventListener('touchmove',wrappedMove);
+              if(clickMoved)return;
+              const now=Date.now();
+              if(now-lastTapTime<doubleDelay){
+                openFileOrShortcut(p);
+              }else{
+                clearSelection();
+                addSelection(p,row);
+              }
+              lastTapTime=now;
+            }
+            const wrappedUp=wrapTouch(up);
+            document.addEventListener('touchmove',wrappedMove);
+            document.addEventListener('touchend',wrappedUp);
+          }else{
+            startSelectionRect(e,listEl,'explorer',winRef);
+          }
+        }));
+
+        listEl.addEventListener('contextmenu',e=>{
+          const row=e.target.closest('.list-item');
+          e.preventDefault();
+          if(row){
+            clearSelection();addSelection(row.dataset.path,row);
+            showNodeContextMenu(e.clientX,e.clientY,row.dataset.path);
+          }else{
+            showExplorerBlankContextMenu(e.clientX,e.clientY,winRef.explorerState.currentPath);
+          }
+        });
+      }
+    });
+  }
+
+  function buildExplorerToolbar(tbEl,winRef){
+    tbEl.innerHTML='';
+    const tbCfg=regKernel.explorerToolbar||[];
+    tbCfg.forEach(b=>{
+      const btn=document.createElement('button');
+      btn.textContent=b.label;
+      btn.addEventListener('click',()=>handleExplorerToolbar(b.fn,winRef));
+      tbEl.appendChild(btn);
+    });
+    if(regBroken){
+      const em=document.createElement('button');
+      em.textContent='Emergency reset reg.dat';
+      em.style.background='#ff8080';
+      em.addEventListener('click',()=>{
+        const pw=getUserPassword(currentUser.username);
+        const fresh=defaultKernel(currentUser.username,pw);
+        setKernel(fresh);regKernel=fresh;regBroken=false;
+        applyKernelCSS();applyWallpaper();buildStartMenuFromKernel();renderDesktopIcons();
+        showNotification('Registry','reg.dat reset to default.');
+      });
+      tbEl.appendChild(em);
+    }
+    const span=document.createElement('span');
+    span.style.marginLeft='8px';span.style.fontSize='11px';
+    span.textContent=(winRef.explorerState && winRef.explorerState.currentPath)||'';
+    tbEl.appendChild(span);
+    winRef.explorerState.pathLabelEl=span;
+  }
+
+  function handleExplorerToolbar(fn,winRef){
+    const contentEl=winRef.el.querySelector('.window-content');
+    const listEl=contentEl.querySelector('.explorer-list');
+    const path=winRef.explorerState.currentPath;
+    if(fn==='toolbarNewFolder'){
+      const dir=findPath(path);if(!dir||dir.type!=='dir')return;
+      dir.children.push(createDir('New Folder',currentUser.username));
+      saveState();renderList(listEl,path,winRef);renderDesktopIcons();
+    }else if(fn==='toolbarDeleteSelection'){
+      if(multiSelectionSet.size===0 && currentSelectionPath)multiSelectionSet.add(currentSelectionPath);
+      if(multiSelectionSet.size>0){
+        multiSelectionSet.forEach(p=>deleteNode(p));
+        saveState();renderList(listEl,path,winRef);renderDesktopIcons();clearSelection();
+      }
+    }else if(fn==='toolbarRefresh'){
+      renderList(listEl,path,winRef);
+    }else if(fn==='toolbarFileMenu'){
+      showNotification('File','(demo) File menu not implemented.');
+    }
+  }
+
+  function buildTree(treeEl){
+    treeEl.innerHTML='';
+    const c=findPath('C:');if(!c)return;
+    const rootItem=document.createElement('div');
+    rootItem.className='tree-item';
+    rootItem.innerHTML='<span data-path="C:\\">[C:]</span>';
+    rootItem.addEventListener('click',e=>{
+      const p=e.target.dataset.path;if(!p)return;
+      const listEl=treeEl.parentElement.querySelector('.explorer-list');
+      const winRef=windows.find(w=>w.el.contains(treeEl));
+      if(winRef && winRef.explorerState)winRef.explorerState.currentPath=p;
+      renderList(listEl,p,winRef);
+    });
+    treeEl.appendChild(rootItem);
+  }
+
+  function renderList(listEl,path,winRef){
+    listEl.innerHTML='';
+    const n=findPath(path);if(!n||n.type!=='dir'){listEl.textContent='Folder not found.';return;}
+    if(winRef && winRef.explorerState){
+      winRef.explorerState.currentPath=path;
+      if(winRef.explorerState.pathLabelEl)winRef.explorerState.pathLabelEl.textContent=path;
+    }
+    listChildren(path).forEach(c=>{
+      const row=document.createElement('div');
+      row.className='list-item';
+      row.dataset.path=normalizePath(path+'\\'+c.name);
+      let iconSrc=ICON_FILE;
+      if(c.type==='dir')iconSrc=ICON_FOLDER;
+      if(c.meta && c.meta.type==='shortcut')iconSrc=ICON_FILE;
+      row.innerHTML=`<img class="list-icon" src="${iconSrc}"><span>${c.name}</span>`;
+      listEl.appendChild(row);
+    });
+  }
+
+  function showErrorWindow(title,msg){
+    createWindow({
+      title,width:280,height:150,
+      buildContent:el=>{
+        el.innerHTML=`
+          <div style="padding:4px;">
+            <p>${msg}</p>
+            <div style="text-align:right;margin-top:10px;">
+              <button class="btn">OK</button>
+            </div>
+          </div>`;
+        el.querySelector('button').addEventListener('click',()=>{
+          const w=windows.find(w=>w.el===el.parentElement);
+          if(w)closeWindow(w);
+        });
+      }
+    });
+  }
+
+  function getExtension(name){const i=name.lastIndexOf('.');return i===-1?'':name.slice(i+1).toLowerCase();}
+  function openFileOrShortcut(path){
+    const n=getNode(path);if(!n){showErrorWindow('Error','Node not found:\n'+path);return;}
+    if(n.type==='dir'){openExplorerWindow(path);return;}
+    const f=n;
+    if(f.meta.type==='shortcut'){
+      const target=f.meta.target;
+      if(target.startsWith('app:')) runApp(target.slice(4),{});
+      else openFileOrShortcut(target);
+      return;
+    }
+    if(!regKernel){showErrorWindow('Error','reg.dat missing or broken');return;}
+    const ext=getExtension(f.name);
+    const assoc=(regKernel.fileAssociations||{})[ext];
+    if(!assoc){showErrorWindow('Open','No association for *.'+ext);return;}
+    runApp(assoc.appId,{file:f,path});
+  }
+
+  function runApp(appId,ctx){
+    if(!regKernel){showErrorWindow('Error','reg.dat missing or broken');return;}
+    const apps=regKernel.apps||{};
+    const app=apps[appId];
+    if(!app){showErrorWindow('Error','App not found: '+appId);return;}
+    if(app.type==='integrated'){
+      if(appId==='notepad')openNotepadWindow(ctx && ctx.file,ctx && ctx.path);
+      else if(appId==='cmd')openCMDWindow();
+      else if(appId==='minesweeper')openMinesweeper();
+      else if(appId==='controlpanel')openControlPanel();
+      else if(appId==='ie')openInternetExplorer(ctx && ctx.path);
+      else if(appId==='paint')openPaintWindow(ctx && ctx.file,ctx && ctx.path);
+      else showErrorWindow('Error','Integrated app not implemented: '+appId);
+    }else showErrorWindow('Error','App type not implemented: '+app.type);
+  }
+
+  function showDesktopContextMenu(x,y){
+    if(regBroken || !regKernel)return;
+    ctxMenuTarget={type:'desktop'};
+    ctxMenuEl.innerHTML='';
+    const items=((regKernel.shell||{}).contextMenus||{}).desktop || [];
+    items.forEach(it=>{
+      const d=document.createElement('div');
+      d.className='ctx-item';d.textContent=it.label;d.dataset.fn=it.fn;
+      ctxMenuEl.appendChild(d);
+    });
+    ctxMenuEl.style.left=x+'px';ctxMenuEl.style.top=y+'px';ctxMenuEl.style.display='block';
+  }
+
+  function showExplorerBlankContextMenu(x,y,currentPath){
+    if(regBroken || !regKernel)return;
+    ctxMenuTarget={type:'explorerBlank',path:currentPath};
+    ctxMenuEl.innerHTML='';
+    const items=((regKernel.shell||{}).contextMenus||{}).explorerBlank || [];
+    items.forEach(it=>{
+      const d=document.createElement('div');
+      d.className='ctx-item';d.textContent=it.label;d.dataset.fn=it.fn;
+      ctxMenuEl.appendChild(d);
+    });
+    ctxMenuEl.style.left=x+'px';ctxMenuEl.style.top=y+'px';ctxMenuEl.style.display='block';
+  }
+
+  function showNodeContextMenu(x,y,path){
+    if(regBroken || !regKernel)return;
+    ctxMenuTarget={type:'node',path:normalizePath(path)};
+    ctxMenuEl.innerHTML='';
+    const items=((regKernel.shell||{}).contextMenus||{}).file || [];
+    items.forEach(it=>{
+      const d=document.createElement('div');
+      d.className='ctx-item';d.textContent=it.label;d.dataset.fn=it.fn;
+      ctxMenuEl.appendChild(d);
+    });
+    ctxMenuEl.style.left=x+'px';ctxMenuEl.style.top=y+'px';ctxMenuEl.style.display='block';
+  }
+
+  document.addEventListener('click',()=>{ctxMenuEl.style.display='none';});
+  ctxMenuEl.addEventListener('click',e=>{
+    const it=e.target.closest('.ctx-item');if(!it)return;
+    const fn=it.dataset.fn;
+    if(ctxMenuTarget?.type==='desktop') handleDesktopCtx(fn);
+    else if(ctxMenuTarget?.type==='node') handleNodeCtx(fn,ctxMenuTarget.path);
+    else if(ctxMenuTarget?.type==='explorerBlank') handleExplorerBlankCtx(fn,ctxMenuTarget.path);
+    ctxMenuEl.style.display='none';
+  });
+
+  function handleDesktopCtx(fn){
+    const path=cwdDesktopPath();
+    const dir=findPath(path);if(!dir)return;
+    if(fn==='newTextDoc'){
+      dir.children.push(createFile('New Text Document.txt',currentUser.username,'',{type:'file'}));
+      saveState();renderDesktopIcons();
+    }else if(fn==='newFolder'){
+      dir.children.push(createDir('New Folder',currentUser.username));
+      saveState();renderDesktopIcons();
+    }else if(fn==='refreshDesktop'){
+      renderDesktopIcons();
+    }
+  }
+
+  function handleExplorerBlankCtx(fn,currentPath){
+    const dir=findPath(currentPath);if(!dir)return;
+    const expWins=windows.filter(w=>w.type==='explorer' && w.explorerState && w.explorerState.currentPath===currentPath);
+    const refresh=()=>{
+      expWins.forEach(w=>{
+        const ce=w.el.querySelector('.window-content');
+        const listEl=ce.querySelector('.explorer-list');
+        renderList(listEl,currentPath,w);
+      });
+      if(currentPath===cwdDesktopPath())renderDesktopIcons();
+    };
+    if(fn==='newTextDoc'){
+      dir.children.push(createFile('New Text Document.txt',currentUser.username,'',{type:'file'}));
+      saveState();refresh();
+    }else if(fn==='newFolder'){
+      dir.children.push(createDir('New Folder',currentUser.username));
+      saveState();refresh();
+    }else if(fn==='refreshExplorer'){
+      refresh();
+    }
+  }
+
+  function handleNodeCtx(fn,path){
+    const n=getNode(path);if(!n)return;
+    if(fn==='openDefault') openFileOrShortcut(path);
+    else if(fn==='openNotepad'){
+      if(n.type==='file')openNotepadWindow(n,path);
+      else showErrorWindow('Open in Notepad','Cannot open folder in Notepad.');
+    }else if(fn==='renameNode') showRenameWindow(path);
+    else if(fn==='deleteNode'){
+      deleteNode(path);saveState();renderDesktopIcons();
+      windows.forEach(w=>{
+        if(w.type==='explorer'){
+          const ce=w.el.querySelector('.window-content');
+          const listEl=ce.querySelector('.explorer-list');
+          if(w.explorerState?.currentPath)renderList(listEl,w.explorerState.currentPath,w);
+        }
+      });
+    }
+  }
+
+  function showRenameWindow(path){
+    const n=getNode(path);if(!n)return;
+    const w=createWindow({
+      title:'Rename',width:260,height:140,
+      buildContent:el=>{
+        el.innerHTML=`
+          <div style="padding:4px;">
+            <div class="label">New name:</div>
+            <input class="text-input" value="${n.name}">
+            <div style="text-align:right;margin-top:8px;">
+              <button class="btn" data-a="ok">OK</button>
+              <button class="btn" data-a="cancel">Cancel</button>
+            </div>
+          </div>`;
+        const inp=el.querySelector('input');
+        el.querySelector('[data-a="ok"]').addEventListener('click',()=>{
+          const nv=inp.value.trim();if(nv){n.name=nv;saveState();}
+          closeWindow(w);renderDesktopIcons();
+        });
+        el.querySelector('[data-a="cancel"]').addEventListener('click',()=>closeWindow(w));
+      }
+    });
+  }
+
+  function deleteNode(path){
+    path=normalizePath(path);
+    const parts=path.split('\\').filter(Boolean);
+    const name=parts.pop();
+    const dirPath=parts.join('\\');
+    const dir=findPath(dirPath);
+    if(!dir || dir.type!=='dir')return;
+    const idx=dir.children.findIndex(c=>c.name===name);
+    if(idx!==-1)dir.children.splice(idx,1);
+  }
+
+  document.addEventListener('keydown',e=>{
+    if(e.ctrlKey && e.altKey && (e.key==='r'||e.key==='R')){
+      e.preventDefault();
+      openRegRestoreDialog();
+      return;
+    }
+    if(regBroken || !regKernel) return;
+    const act=keybindings[e.key];
+    if(act==='deleteSelection'){
+      if(multiSelectionSet.size===0 && currentSelectionPath)multiSelectionSet.add(currentSelectionPath);
+      if(multiSelectionSet.size>0){
+        multiSelectionSet.forEach(p=>deleteNode(p));
+        saveState();
+        renderDesktopIcons();
+        windows.forEach(w=>{
+          if(w.type==='explorer'){
+            const ce=w.el.querySelector('.window-content');
+            const listEl=ce.querySelector('.explorer-list');
+            if(w.explorerState?.currentPath)renderList(listEl,w.explorerState.currentPath,w);
+          }
+        });
+        clearSelection();
+      }
+    }
+  });
+
+  function openNotepadWindow(file,path){
+    const txt=file?file.content:'';
+    const title=file?file.name+' - Notepad':'Untitled - Notepad';
+    createWindow({
+      title,width:460,height:340,
+      buildContent:el=>{
+        el.innerHTML=`
+          <div>
+            <div class="label">Text:</div>
+            <textarea class="text-input" style="height:220px;"></textarea>
+            <div style="text-align:right;margin-top:4px;">
+              <button class="btn" data-a="save">Save</button>
+            </div>
+          </div>`;
+        const ta=el.querySelector('textarea');
+        ta.value=txt;
+        el.querySelector('[data-a="save"]').addEventListener('click',()=>{
+          if(file){file.content=ta.value;saveState();}
+          else showErrorWindow('Notepad','Only saving existing files in this demo.');
+        });
+      }
+    });
+  }
+
+  function openCMDWindow(){
+    currentCMDDir='C:\\';
+    createWindow({
+      title:'Command Prompt',width:500,height:320,type:'cmd',
+      buildContent:el=>{
+        el.innerHTML='<div class="cmd-output"></div><input class="cmd-input">';
+        const out=el.querySelector('.cmd-output');
+        const inp=el.querySelector('.cmd-input');
+        out.textContent=`Win98 HTML CMD\nType "help" for commands.\n\n${currentCMDDir}>`;
+        inp.addEventListener('keydown',e=>{
+          if(e.key==='Enter'){
+            const cmd=inp.value.trim();inp.value='';
+            handleCMD(cmd,out);
+          }
+        });
+        inp.focus();
+      }
+    });
+  }
+
+  function appendCMD(out,t){out.textContent+=t+'\n';out.scrollTop=out.scrollHeight;}
+  function handleCMD(cmd,out){
+    appendCMD(out,cmd);
+    if(!cmd){appendCMD(out,`${currentCMDDir}>`);return;}
+    if(cmd==='help'){
+      appendCMD(out,'help, dir, cd "path", del name, add "file": content, notify "head": "body"');
+      appendCMD(out,`${currentCMDDir}>`);return;
+    }
+    if(cmd==='dir'){
+      const n=findPath(currentCMDDir);
+      if(!n||n.type!=='dir')appendCMD(out,'Path not found.');
+      else n.children.forEach(c=>appendCMD(out,(c.type==='dir'?' <DIR> ':'       ')+c.name));
+      appendCMD(out,`${currentCMDDir}>`);return;
+    }
+    if(cmd.startsWith('cd ')){
+      const m=cmd.match(/^cd\s+"([^"]+)"$/);
+      if(!m)appendCMD(out,'Usage: cd "path"');
+      else{
+        const p=normalizePath(m[1]);const n=findPath(p);
+        if(n&&n.type==='dir')currentCMDDir=p;else appendCMD(out,'Path not found.');
+      }
+      appendCMD(out,`${currentCMDDir}>`);return;
+    }
+    if(cmd.startsWith('del ')){
+      const name=cmd.slice(4).trim();
+      const p=normalizePath(currentCMDDir+'\\'+name);
+      deleteNode(p);saveState();appendCMD(out,'Deleted (if existed).');
+      appendCMD(out,`${currentCMDDir}>`);return;
+    }
+    if(cmd.startsWith('add ')){
+      const m=cmd.match(/^add\s+"([^"]+)"\s*:\s*(.*)$/);
+      if(!m)appendCMD(out,'Usage: add "file": content');
+      else{
+        const fn=m[1];const content=m[2];
+        const full=normalizePath(currentCMDDir+'\\'+fn);
+        const parts=full.split('\\').filter(Boolean);
+        const name=parts.pop();const dp=parts.join('\\');
+        const dir=ensurePath(dp,currentUser.username);
+        let f=dir.children.find(c=>c.type==='file'&&c.name===name);
+        if(!f){f=createFile(name,currentUser.username,content,{});dir.children.push(f);}
+        else f.content=content;
+        saveState();appendCMD(out,'File added/updated.');renderDesktopIcons();
+      }
+      appendCMD(out,`${currentCMDDir}>`);return;
+    }
+    if(cmd.toLowerCase().startsWith('notify ')){
+      const m=cmd.match(/^notify\s+"([^"]+)"\s*:\s*"([^"]+)"$/i);
+      if(!m)appendCMD(out,'Usage: notify "head": "body"');
+      else{showNotification(m[1],m[2]);appendCMD(out,'Notification sent.');}
+      appendCMD(out,`${currentCMDDir}>`);return;
+    }
+    appendCMD(out,'Unknown command');appendCMD(out,`${currentCMDDir}>`);
+  }
+
+  function showNotification(head,body){
+    const d=document.createElement('div');
+    d.className='notify-window';
+    d.innerHTML=`<div class="notify-title">${head}</div><div>${body}</div>`;
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(),4000);
+  }
+
+  function openMinesweeper(){
+    const size=9,minesCount=10;
+    const board=[];
+    for(let y=0;y<size;y++){
+      board[y]=[];
+      for(let x=0;x<size;x++)board[y][x]={mine:false,open:false,count:0};
+    }
+    let placed=0;
+    while(placed<minesCount){
+      const x=Math.floor(Math.random()*size);
+      const y=Math.floor(Math.random()*size);
+      if(!board[y][x].mine){board[y][x].mine=true;placed++;}
+    }
+    const dirs=[-1,0,1];
+    for(let y=0;y<size;y++){
+      for(let x=0;x<size;x++){
+        if(board[y][x].mine)continue;
+        let c=0;
+        dirs.forEach(dy=>dirs.forEach(dx=>{
+          if(dx===0&&dy===0)return;
+          const nx=x+dx,ny=y+dy;
+          if(nx>=0&&nx<size&&ny>=0&&ny<size&&board[ny][nx].mine)c++;
+        }));
+        board[y][x].count=c;
+      }
+    }
+    function reveal(x,y,gridEl){
+      const cell=board[y][x];
+      if(cell.open)return;
+      cell.open=true;
+      const btn=gridEl.children[y*size+x];
+      btn.classList.add('open');
+      if(cell.mine){
+        btn.classList.add('mine');btn.textContent='X';
+        showErrorWindow('Minesweeper','Boom! You hit a mine.');
+        return;
+      }
+      if(cell.count>0)btn.textContent=cell.count;
+      else{
+        dirs.forEach(dy=>dirs.forEach(dx=>{
+          if(dx===0&&dy===0)return;
+          const nx=x+dx,ny=y+dy;
+          if(nx>=0&&nx<size&&ny>=0&&ny<size)reveal(nx,ny,gridEl);
+        }));
+      }
+    }
+    createWindow({
+      title:'Minesweeper',width:260,height:260,
+      buildContent:el=>{
+        el.innerHTML='<div class="mine-grid"></div>';
+        const gridEl=el.querySelector('.mine-grid');
+        for(let y=0;y<size;y++){
+          for(let x=0;x<size;x++){
+            const btn=document.createElement('div');
+            btn.className='mine-cell';
+            btn.addEventListener('click',()=>reveal(x,y,gridEl));
+            gridEl.appendChild(btn);
+          }
+        }
+      }
+    });
+  }
+
+  function openInternetExplorer(initialPath){
+    createWindow({
+      title:'Internet Explorer',width:700,height:450,
+      type:'ie',
+      buildContent:el=>{
+        el.innerHTML=`
+          <div class="ie-layout">
+            <div class="ie-toolbar">
+              <span>Address:</span>
+              <input class="text-input ie-url" id="ie-url">
+              <button class="btn" id="ie-go">Go</button>
+            </div>
+            <div class="ie-main" style="position:relative;">
+              <div id="ie-fileview" style="position:absolute;inset:0;overflow:auto;background:#ffffff;display:none;font-family:'Courier New',monospace;font-size:11px;padding:4px;"></div>
+              <iframe id="ie-frame" style="width:100%;height:100%;border:none;background:#ffffff;"></iframe>
+            </div>
+            <div class="ie-console" id="ie-console">IE console log:\n</div>
+          </div>`;
+        const urlInput=el.querySelector('#ie-url');
+        const iframe=el.querySelector('#ie-frame');
+        const fileView=el.querySelector('#ie-fileview');
+        const consoleEl=el.querySelector('#ie-console');
+
+        function log(msg){
+          consoleEl.textContent+=msg+'\n';
+          consoleEl.scrollTop=consoleEl.scrollHeight;
+        }
+
+        function fsPathFromFileUrl(u){
+          if(!u.toLowerCase().startsWith('file:///'))return null;
+          let p=u.slice('file:///'.length);
+          p=p.replace(/\//g,'\\');
+          if(!p.match(/^[A-Za-z]:/)){
+            p='C:\\'+p;
+          }
+          return normalizePath(p);
+        }
+
+        function buildIndexHtml(dirPath){
+          const n=findPath(dirPath);
+          if(!n||n.type!=='dir')return `<pre>Path not found: ${dirPath}</pre>`;
+          const children=(n.children||[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
+          let html=`<pre>Index of ${dirPath}\n\n`;
+          const parts=dirPath.split('\\').filter(Boolean);
+          if(parts.length>1){
+            const up=dirPath.replace(/\\[^\\]+$/, '');
+            html+=`<a href="file:///${up.replace(/\\/g,'/')}">[..]</a>\n\n`;
+          }
+          children.forEach(c=>{
+            const isDir=c.type==='dir';
+            let icon=isDir?ICON_FOLDER:ICON_FILE;
+            const targetPath=normalizePath(dirPath+'\\'+c.name);
+            const href='file:///'+targetPath.replace(/\\/g,'/');
+            html+=`<span><img src="${icon}" style="width:16px;height:16px;image-rendering:pixelated;vertical-align:middle;margin-right:4px;"></span><a href="${href}">${c.name}${isDir?'/':''}</a>\n`;
+          });
+          html+='</pre>';
+          return html;
+        }
+
+        function loadFileUrl(u){
+          const p=fsPathFromFileUrl(u);
+          if(!p){
+            fileView.style.display='none';
+            iframe.style.display='block';
+            log('Navigating to: '+u);
+            try{
+              iframe.removeAttribute('srcdoc');
+              iframe.src=u;
+            }catch(e){log('Error: '+e.message);}
+            return;
+          }
+
+          const node=getNode(p);
+          if(!node){
+            fileView.style.display='block';
+            iframe.style.display='none';
+            fileView.innerHTML=`<pre>Path not found: ${p}</pre>`;
+            return;
+          }
+
+          if(node.type==='dir'){
+            const html=buildIndexHtml(p);
+            fileView.style.display='block';
+            iframe.style.display='none';
+            fileView.innerHTML=html;
+            fileView.querySelectorAll('a[href]').forEach(a=>{
+              a.addEventListener('click',ev=>{
+                ev.preventDefault();
+                const href=a.getAttribute('href');
+                urlInput.value=href;
+                loadFileUrl(href);
+              });
+            });
+          }else{
+            fileView.style.display='none';
+            iframe.style.display='block';
+            const ext=getExtension(node.name);
+            let mime='text/plain';
+            if(ext==='html'||ext==='htm')mime='text/html';
+            else if(ext==='png')mime='image/png';
+            else if(ext==='jpg'||ext==='jpeg')mime='image/jpeg';
+            else if(ext==='gif')mime='image/gif';
+            else if(ext==='bmp')mime='image/bmp';
+
+            const content=node.content||'';
+            if(mime==='text/html'){
+              iframe.removeAttribute('src');
+              iframe.setAttribute('srcdoc',content);
+            }else if(mime.startsWith('image/')){
+              const dataUrl=`data:${mime};base64,`+btoa(content);
+              iframe.removeAttribute('srcdoc');
+              iframe.src=dataUrl;
+            }else{
+              const escaped=content.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+              iframe.removeAttribute('src');
+              iframe.setAttribute('srcdoc',`<pre>${escaped}</pre>`);
+            }
+          }
+        }
+
+        function loadURL(u){
+          log('Navigating to: '+u);
+          if(u.toLowerCase().startsWith('file:///')){
+            loadFileUrl(u);
+          }else{
+            fileView.style.display='none';
+            iframe.style.display='block';
+            iframe.removeAttribute('srcdoc');
+            try{iframe.src=u;}catch(e){log('Error: '+e.message);}
+          }
+        }
+
+        el.querySelector('#ie-go').addEventListener('click',()=>loadURL(urlInput.value));
+
+        if(initialPath){
+          const fileUrl='file:///'+normalizePath(initialPath).replace(/\\/g,'/');
+          urlInput.value=fileUrl;
+          loadURL(fileUrl);
+        }else{
+          urlInput.value='https://example.com';
+          loadURL(urlInput.value);
+        }
+      }
+    });
+  }
+
+  function openControlPanel(){
+    if(regBroken || !regKernel){showErrorWindow('Control Panel','reg.dat missing or broken.');return;}
+    createWindow({
+      title:'Control Panel',width:460,height:420,
+      buildContent:el=>{
+        const opts=regKernel.options||{};
+        const mode=opts.wallpaperMode||'default';
+        const classic=opts.classicColor||'#008080';
+        const steamBrand=!!opts.steamBrand;
+        const wallpapers=(regKernel.ui && regKernel.ui.wallpapers) || {custom:[]};
+
+        el.innerHTML=`
+          <div style="padding:4px;">
+            <div class="label">Clock style:</div>
+            <select class="text-input" id="clock-mode-select">
+              <option value="digital">Digital</option>
+              <option value="analog">Analog</option>
+            </select>
+
+            <div class="label" style="margin-top:8px;">Wallpaper:</div>
+            <select class="text-input" id="wallpaper-select"></select>
+
+            <div class="label" id="classic-color-label" style="margin-top:8px;display:none;">Classic color:</div>
+            <input type="color" id="classic-color-input" style="width:80px;display:none;">
+
+            <div class="label" style="margin-top:8px;">Import custom CSS wallpaper:</div>
+            <input class="text-input" id="cust-name" placeholder="Name (id auto)">
+            <textarea class="text-input" id="cust-css" style="height:80px;margin-top:4px;" placeholder="#desktop-wallpaper{...}"></textarea>
+            <div style="text-align:right;margin-top:4px;">
+              <button class="btn" id="cust-add">Add</button>
+            </div>
+
+            <div class="label" style="margin-top:10px;border-top:1px solid #808080;padding-top:6px;">Steam OS 98 branding:</div>
+            <label style="font-size:11px;display:flex;align-items:center;gap:4px;">
+              <input type="checkbox" id="steam-brand" style="width:auto;">
+              Enable Steam OS 98 name, theme, and wallpaper
+            </label>
+
+            <div class="label" style="margin-top:10px;border-top:1px solid #808080;padding-top:6px;">Factory reset reg.dat:</div>
+            <p style="font-size:10px;">Reset kernel (shell, apps, css) for this user to default.</p>
+            <div style="text-align:right;margin-top:4px;">
+              <button class="btn" id="cp-reset-reg">Reset reg.dat</button>
+            </div>
+
+            <div style="text-align:right;margin-top:8px;">
+              <button class="btn" id="cp-apply">Apply</button>
+            </div>
+          </div>`;
+
+        const selClock=el.querySelector('#clock-mode-select');
+        const selWall=el.querySelector('#wallpaper-select');
+        const classicLabel=el.querySelector('#classic-color-label');
+        const classicInput=el.querySelector('#classic-color-input');
+        const steamCheckbox=el.querySelector('#steam-brand');
+
+        selClock.value=opts.clockMode||'digital';
+
+        selWall.innerHTML='';
+        const optDefault=document.createElement('option');
+        optDefault.value='default';optDefault.textContent='Default teal';
+        selWall.appendChild(optDefault);
+        const optBliss=document.createElement('option');
+        optBliss.value='bliss';optBliss.textContent='Bliss (XP)';
+        selWall.appendChild(optBliss);
+        const optClassic=document.createElement('option');
+        optClassic.value='classic-color';optClassic.textContent='Classic solid color';
+        selWall.appendChild(optClassic);
+        const steamEntry=(wallpapers.custom||[]).find(e2=>e2.id==='steam98');
+        if(steamEntry){
+          const optSteam=document.createElement('option');
+          optSteam.value='custom:steam98';optSteam.textContent='Steam OS 98';
+          selWall.appendChild(optSteam);
+        }
+        (wallpapers.custom||[]).forEach(e2=>{
+          if(e2.id==='steam98')return;
+          const o=document.createElement('option');
+          o.value='custom:'+e2.id;o.textContent='Custom: '+e2.name;
+          selWall.appendChild(o);
+        });
+        selWall.value=mode;
+
+        function updateClassic(){
+          if(selWall.value==='classic-color'){
+            classicLabel.style.display='block';
+            classicInput.style.display='block';
+          }else{
+            classicLabel.style.display='none';
+            classicInput.style.display='none';
+          }
+        }
+        classicInput.value=classic;
+        updateClassic();
+        selWall.addEventListener('change',updateClassic);
+
+        steamCheckbox.checked=steamBrand;
+
+        el.querySelector('#cust-add').addEventListener('click',()=>{
+          const name=el.querySelector('#cust-name').value.trim()||'Custom';
+          const css=el.querySelector('#cust-css').value;
+          if(!css.trim())return;
+          wallpapers.custom=wallpapers.custom||[];
+          const id='cust'+Date.now().toString(16);
+          wallpapers.custom.push({id,name,css});
+          regKernel.ui=regKernel.ui||{};
+          regKernel.ui.wallpapers=wallpapers;
+          const o=document.createElement('option');
+          o.value='custom:'+id;o.textContent='Custom: '+name;
+          selWall.appendChild(o);
+          el.querySelector('#cust-name').value='';
+          el.querySelector('#cust-css').value='';
+          setKernel(regKernel);
+        });
+
+        el.querySelector('#cp-reset-reg').addEventListener('click',()=>{
+          const pw=getUserPassword(currentUser.username);
+          const fresh=defaultKernel(currentUser.username,pw);
+          setKernel(fresh);
+          regKernel=fresh;
+          applyKernelCSS();applyWallpaper();buildStartMenuFromKernel();renderDesktopIcons();
+          showNotification('Registry','reg.dat reset to default kernel.');
+        });
+
+        el.querySelector('#cp-apply').addEventListener('click',()=>{
+          const newClock=selClock.value;
+          let newWall=selWall.value;
+          const newColor=classicInput.value||'#008080';
+          const wantSteam=steamCheckbox.checked;
+
+          regKernel.options=regKernel.options||{};
+          regKernel.options.clockMode=newClock;
+          regKernel.options.classicColor=newColor;
+          regKernel.options.steamBrand=wantSteam;
+
+          if(wantSteam){
+            if(regKernel.shell && regKernel.shell.startMenu){
+              regKernel.shell.startMenu.title='Steam OS 98';
+            }
+            regKernel.ui=regKernel.ui||{};
+            regKernel.ui.css=regKernel.ui.css||{};
+            regKernel.ui.css.global=STEAM_GLOBAL_CSS;
+            newWall='custom:steam98';
+          }else{
+            if(regKernel.shell && regKernel.shell.startMenu){
+              regKernel.shell.startMenu.title='Windows 98';
+            }
+            regKernel.ui=regKernel.ui||{};
+            regKernel.ui.css=regKernel.ui.css||{};
+            regKernel.ui.css.global="";
+          }
+
+          regKernel.options.wallpaperMode=newWall;
+
+          setKernel(regKernel);
+          clockMode=newClock;
+          applyKernelCSS();
+          applyWallpaper();
+          buildStartMenuFromKernel();
+          renderDesktopIcons();
+        });
+      }
+    });
+  }
+
+  function openPaintWindow(file,path){
+    const initialImage = file && file.content ? file.content : null;
+    createWindow({
+      title: (file ? file.name + ' - Paint' : 'Untitled - Paint'),
+      width:500,height:400,type:'paint',
+      buildContent:el=>{
+        el.innerHTML=`
+          <div style="display:flex;flex-direction:column;height:100%;">
+            <div style="display:flex;gap:4px;margin-bottom:4px;">
+              <button class="btn" data-a="clear">Clear</button>
+              <button class="btn" data-a="brush">Brush</button>
+              <button class="btn" data-a="eraser">Eraser</button>
+              <input type="color" id="paint-color" value="#000000" style="width:60px;">
+            </div>
+            <div style="flex:1;border:1px solid #000;background:#ffffff;position:relative;">
+              <canvas id="paint-canvas" width="400" height="260" style="image-rendering:pixelated;width:100%;height:100%;"></canvas>
+            </div>
+          </div>`;
+
+        const canvas=el.querySelector('#paint-canvas');
+        const ctx=canvas.getContext('2d');
+        let drawing=false;
+        let mode='brush';
+        let lastX=0,lastY=0;
+        const colorInput=el.querySelector('#paint-color');
+
+        function setSize(){
+          const rect=canvas.parentElement.getBoundingClientRect();
+          canvas.width=rect.width;
+          canvas.height=rect.height;
+          if(!initialImage){
+            ctx.fillStyle='#ffffff';
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+          }
+        }
+        setSize();
+        window.addEventListener('resize',setSize);
+
+        if(initialImage){
+          ctx.fillStyle='#ffffff';
+          ctx.fillRect(0,0,canvas.width,canvas.height);
+        }
+
+        function startDraw(x,y){
+          drawing=true;
+          lastX=x;lastY=y;
+        }
+        function drawTo(x,y){
+          if(!drawing)return;
+          if(mode==='brush'){
+            ctx.strokeStyle=colorInput.value;
+            ctx.lineWidth=2;
+          }else if(mode==='eraser'){
+            ctx.strokeStyle='#ffffff';
+            ctx.lineWidth=8;
+          }
+          ctx.lineCap='round';
+          ctx.beginPath();
+          ctx.moveTo(lastX,lastY);
+          ctx.lineTo(x,y);
+          ctx.stroke();
+          lastX=x;lastY=y;
+        }
+        function endDraw(){drawing=false;}
+
+        canvas.addEventListener('mousedown',e=>startDraw(e.offsetX,e.offsetY));
+        canvas.addEventListener('mousemove',e=>drawTo(e.offsetX,e.offsetY));
+        canvas.addEventListener('mouseup',endDraw);
+        canvas.addEventListener('mouseleave',endDraw);
+
+        canvas.addEventListener('touchstart',e=>{
+          e.preventDefault();
+          const t=e.touches[0];
+          const r=canvas.getBoundingClientRect();
+          startDraw(t.clientX-r.left,t.clientY-r.top);
+        });
+        canvas.addEventListener('touchmove',e=>{
+          e.preventDefault();
+          const t=e.touches[0];
+          const r=canvas.getBoundingClientRect();
+          drawTo(t.clientX-r.left,t.clientY-r.top);
+        });
+        canvas.addEventListener('touchend',endDraw);
+
+        el.querySelector('[data-a="clear"]').addEventListener('click',()=>{
+          ctx.fillStyle='#ffffff';
+          ctx.fillRect(0,0,canvas.width,canvas.height);
+        });
+        el.querySelector('[data-a="brush"]').addEventListener('click',()=>{mode='brush';});
+        el.querySelector('[data-a="eraser"]').addEventListener('click',()=>{mode='eraser';});
+      }
+    });
+  }
+
+  function updateClock(){
+    const d=new Date();
+    const h=d.getHours(),m=d.getMinutes();
+    const hh=((h+11)%12+1),ampm=h>=12?'PM':'AM';
+    const mm=String(m).padStart(2,'0');
+    taskbarClock.textContent=`${hh}:${mm} ${ampm}`;
+  }
+  function drawClock(){
+    const ctx=clockCanvas.getContext('2d');
+    const w=clockCanvas.width,h=clockCanvas.height;
+    ctx.clearRect(0,0,w,h);
+    const d=new Date();
+    if(clockMode==='digital'){
+      ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
+      ctx.fillStyle='#0f0';ctx.font='10px "Courier New"';
+      const hh=String(d.getHours()).padStart(2,'0');
+      const mm=String(d.getMinutes()).padStart(2,'0');
+      ctx.fillText(`${hh}:${mm}`,2,16);
+    }else{
+      ctx.fillStyle='#c0c0c0';ctx.fillRect(0,0,w,h);
+      ctx.strokeStyle='#000';ctx.beginPath();ctx.arc(w/2,h/2,10,0,Math.PI*2);ctx.stroke();
+    }
+  }
+
+  function getUserPassword(username){
+    const u=users.find(x=>x.username===username);
+    return u?u.password:'';
+  }
+  function setKernel(k){
+    const root=userRoot(currentUser.username);
+    const f=createOrGetFile(`${root}\\reg.dat`,currentUser.username,'');
+    f.content=JSON.stringify(k,null,2);
+    saveState();
+  }
+
+  function openRegRestoreDialog(){
+    createWindow({
+      title:'Registry Recovery',width:320,height:160,
+      buildContent:el=>{
+        const root=userRoot(currentUser.username);
+        const f=getFile(`${root}\\reg.dat`);
+        let ok=false;
+        if(f){
+          try{JSON.parse(f.content);ok=true;}catch(e){ok=false;}
+        }
+        el.innerHTML=`
+          <div style="padding:6px;">
+            <p style="font-size:11px;">
+              Restore reg.dat to a fresh default kernel for this user.
+            </p>
+            <p style="font-size:10px;margin-top:4px;">
+              Button is disabled if a valid reg.dat already exists.
+            </p>
+            <div style="text-align:right;margin-top:10px;">
+              <button class="btn" id="rr-restore">Restore reg.dat</button>
+            </div>
+          </div>`;
+        const btn=el.querySelector('#rr-restore');
+        if(ok){btn.disabled=true;btn.textContent='reg.dat OK';}
+        btn.addEventListener('click',()=>{
+          const pw=getUserPassword(currentUser.username);
+          const fresh=defaultKernel(currentUser.username,pw);
+          setKernel(fresh);
+          regKernel=fresh;regBroken=false;
+          applyKernelCSS();applyWallpaper();buildStartMenuFromKernel();renderDesktopIcons();
+          showNotification('Registry','reg.dat recovered to default.');
+        });
+      }
+    });
+  }
+
+  let dragMoveState=null;
+  let selecting=false;
+  let selectStartX=0,selectStartY=0;
+  let selectContext=null;
+  let lastPointerX=0,lastPointerY=0;
+
+  function startDragMove(e,path,origin,originExplorerWin=null){
+    dragMoveState={
+      origin,
+      originExplorerWin,
+      active:true
+    };
+  }
+
+  function updateDragMove(e){
+    if(!dragMoveState||!dragMoveState.active)return;
+    lastPointerX=e.clientX;
+    lastPointerY=e.clientY;
+  }
+
+  function endDragMove(){
+    if(!dragMoveState)return;
+    dragMoveState=null;
+
+    if(multiSelectionSet.size===0 && currentSelectionPath)multiSelectionSet.add(currentSelectionPath);
+    if(multiSelectionSet.size===0)return;
+
+    let targetPath=null;
+    const elemUnder=document.elementFromPoint(lastPointerX,lastPointerY) || null;
+    if(elemUnder){
+      if(elemUnder.closest('#desktop-icons') || elemUnder.closest('#desktop-wallpaper')){
+        targetPath=cwdDesktopPath();
+      }else{
+        const list=elemUnder.closest('.explorer-list');
+        if(list){
+          const win=windows.find(w=>w.el && w.el.contains(list));
+          if(win && win.explorerState)targetPath=win.explorerState.currentPath;
+        }
+      }
+    }
+    if(!targetPath)return;
+
+    multiSelectionSet.forEach(p=>{
+      moveNode(p,targetPath);
+    });
+    saveState();
+    renderDesktopIcons();
+    windows.forEach(w=>{
+      if(w.type==='explorer'){
+        const ce=w.el.querySelector('.window-content');
+        const listEl=ce.querySelector('.explorer-list');
+        if(w.explorerState?.currentPath)renderList(listEl,w.explorerState.currentPath,w);
+      }
+    });
+    clearSelection();
+  }
+
+  function moveNode(srcPath,targetDirPath){
+    srcPath=normalizePath(srcPath);
+    targetDirPath=normalizePath(targetDirPath);
+    const srcNode=getNode(srcPath);
+    const targetDir=findPath(targetDirPath);
+    if(!srcNode||!targetDir||targetDir.type!=='dir')return;
+    const parts=srcPath.split('\\').filter(Boolean);
+    const name=parts.pop();
+    const dirPath=parts.join('\\');
+    const srcDir=findPath(dirPath);
+    if(!srcDir||srcDir.type!=='dir')return;
+    const idx=srcDir.children.findIndex(c=>c.name===name);
+    if(idx===-1)return;
+    srcDir.children.splice(idx,1);
+    srcNode.name=uniqueNameInDir(targetDir,srcNode.name);
+    targetDir.children.push(srcNode);
+  }
+
+  function uniqueNameInDir(dir,name){
+    let base=name;
+    let ext='';
+    const dot=name.lastIndexOf('.');
+    if(dot!==-1){base=name.slice(0,dot);ext=name.slice(dot);}
+    let n=0;
+    let candidate=name;
+    while(dir.children.some(c=>c.name===candidate)){
+      n++;candidate=base+' ('+n+')'+ext;
+    }
+    return candidate;
+  }
+
+  function startSelectionRect(e,container,type,winRef=null){
+    selecting=true;
+    selectStartX=e.clientX;
+    selectStartY=e.clientY;
+    lastPointerX=e.clientX;
+    lastPointerY=e.clientY;
+    selectionRectEl.style.left=selectStartX+'px';
+    selectionRectEl.style.top=selectStartY+'px';
+    selectionRectEl.style.width='0px';
+    selectionRectEl.style.height='0px';
+    selectionRectEl.style.display='block';
+    selectContext={type,container,explorerWin:winRef};
+    clearSelection();
+  }
+
+  function updateSelectionRect(e){
+    if(!selecting)return;
+    lastPointerX=e.clientX;
+    lastPointerY=e.clientY;
+    const x1=Math.min(selectStartX,lastPointerX);
+    const y1=Math.min(selectStartY,lastPointerY);
+    const x2=Math.max(selectStartX,lastPointerX);
+    const y2=Math.max(selectStartY,lastPointerY);
+    selectionRectEl.style.left=x1+'px';
+    selectionRectEl.style.top=y1+'px';
+    selectionRectEl.style.width=(x2-x1)+'px';
+    selectionRectEl.style.height=(y2-y1)+'px';
+
+    const rect={left:x1,top:y1,right:x2,bottom:y2};
+    clearSelection();
+    if(selectContext.type==='desktop'){
+      desktopIconsEl.querySelectorAll('.desktop-icon').forEach(icon=>{
+        const r=icon.getBoundingClientRect();
+        if(rectIntersect(rect,r)){
+          addSelection(icon.dataset.path,icon);
+        }
+      });
+    }else if(selectContext.type==='explorer'){
+      selectContext.container.querySelectorAll('.list-item').forEach(row=>{
+        const r=row.getBoundingClientRect();
+        if(rectIntersect(rect,r)){
+          addSelection(row.dataset.path,row);
+        }
+      });
+    }
+  }
+
+  function endSelectionRect(){
+    selecting=false;
+    selectionRectEl.style.display='none';
+  }
+
+  function rectIntersect(a,b){
+    return !(b.left>a.right || b.right<a.left || b.top>a.bottom || b.bottom<a.top);
+  }
+
+  function wrapTouch(fn){
+    return function(ev){
+      ev.preventDefault();
+      const t=ev.touches[0]||ev.changedTouches[0];
+      const fake={
+        type:'touch',
+        clientX:t.clientX,
+        clientY:t.clientY,
+        target:t.target,
+        currentTarget:ev.currentTarget,
+        ctrlKey:false
+      };
+      fn(fake);
+    };
+  }
+
+  function showBootLog(){
+    loadState();
+    const lines=[
+      'Starting MS-DOS...',
+      'Loading virtual file system...',
+      'Loading users...',
+      'Starting Windows 98 HTML...'
+    ];
+    let i=0;
+    const id=setInterval(()=>{
+      if(i<lines.length){logBoot(lines[i]);renderBootScreen();i++;}
+      else{
+        clearInterval(id);
+        saveState();
+        bootScreen.style.display='none';
+        loginScreen.style.display='flex';
+        refreshLoginUsers();
+      }
+    },600);
+  }
+
+  loadState();
+  renderBootScreen();
+  bootScreen.style.display='block';
+  showBootLog();
+</script>
+</body>
+</html>

@@ -4635,11 +4635,12 @@ function renderMediaInPlayer(entry) {
 function aiMsg(role, text){
   if(!aiLog) return;
 
-  // --- Detect and handle Troubleshooter sound token ---
+  // --- Troubleshooter sound trigger (one-shot) ---
   if(text.includes("<<PLAY_TROUBLESHOOTER_SOUND>>")){
     const audio = document.getElementById("troubleshooterAudio");
     if(audio){
-      audio.currentTime = 0;
+      audio.pause();          // stop if it was mid-play
+      audio.currentTime = 0;  // rewind to start
       audio.play().catch(()=>{});
     }
     text = text.replace("<<PLAY_TROUBLESHOOTER_SOUND>>", "");
@@ -4661,6 +4662,7 @@ function aiMsg(role, text){
   aiLog.appendChild(div);
   aiLog.scrollTop = aiLog.scrollHeight;
 }
+
 
 function aiAnswer(q){
   const u = currentUser();

@@ -2175,6 +2175,8 @@
   </div>
 </div>
 
+<audio id="troubleshooterAudio" src="troubleshooter.mp3" style="display: none;"></audio>
+
   <script>
     (function(){
       const STORAGE_KEY = "win12_aim_fs_state_exe_ctx_full_v3";
@@ -4642,7 +4644,15 @@ function renderMediaInPlayer(entry) {
         div.appendChild(roleSpan);div.appendChild(body);
         aiLog.appendChild(div);
         aiLog.scrollTop=aiLog.scrollHeight;
-      }
+if(response.includes("<<PLAY_TROUBLESHOOTER_SOUND>>")){
+  const audio = document.getElementById("troubleshooterAudio");
+  if(audio){
+    audio.currentTime = 0;
+    audio.play().catch(()=>{});
+  }
+  response = response.replace("<<PLAY_TROUBLESHOOTER_SOUND>>", "");
+}
+}
 function aiAnswer(q){
   const u = currentUser();
   const lower = q.toLowerCase();
@@ -4662,6 +4672,33 @@ function aiAnswer(q){
   if(/thank(s| you)/.test(lower))
     return "Always, traveler. This relic grows because of you";
 
+if(/troubleshoot|help menu|support center/.test(lower)){
+  return `<<PLAY_TROUBLESHOOTER_SOUND>>
+=== TROUBLESHOOTING MENU ===
+
+• View folders:
+  - /desktop
+  - /documents
+  - /imported
+  - /recommended-files
+
+• How to inspect a folder:
+  Type: file:///folder-name
+  Example: file:///documents
+
+• App help:
+  Explorer, Notepad, Browser, Host.exe, Paint, Media Player
+
+• Hidden features:
+  - Right‑click context menus
+  - Fullscreen toggle [ ]
+  - Start → Recommended files
+  - Start → Imported dropdown
+  - .exe payloads via Host.exe
+
+Ask about any item above to learn more.`;
+}
+
   if(/help|what can you do|assist|commands|features/.test(lower))
     return `Here’s what I can help you with inside this Win12 relic:
 • FS, users, notes, associations
@@ -4671,6 +4708,7 @@ function aiAnswer(q){
 • Media Player (video/audio/image)
 • Window system, fullscreen, context menus
 • Time flyout, settings, registry emulation
+• Type troubleshoot for a music to while help
 Just ask anything and I’ll guide you`;
 
   if(/ok|cool|nice|great/.test(lower))

@@ -1111,6 +1111,11 @@
     <div id="time-flyout-time">--:--</div>
     <div id="time-flyout-date">---</div>
     <div id="time-flyout-greeting">Hello.</div>
+      <!-- Troubleshooter Entry Button (you can move this into taskbar/start) -->
+    <button id="troubleshooterEntryBtn" class="ts-entry-btn" onclick="openTroubleshooter()">
+      ?
+    </button>
+
   </div>
 
 
@@ -1864,6 +1869,69 @@
     <img src="win12-icon.svg" alt="Win12 Icon" width="24" height="24">
     dev: <span>Win12 AIM FS · full apps · full ctx menus · .exe base64 · clock flyout · fullscreen windows · Notes · Paint · Media Player</span>
   </div>
+<!-- Fullscreen Troubleshooter Overlay -->
+<div id="troubleshooterOverlay" class="ts-overlay">
+  <audio id="troubleshooterAudio" loop>
+    <source src="troubleshooter.mp3" type="audio/mpeg">
+  </audio>
+
+  <div class="ts-backdrop"></div>
+
+  <!-- Scroll animation panels -->
+  <div class="ts-scroll-panel ts-scroll-top"></div>
+  <div class="ts-scroll-panel ts-scroll-middle"></div>
+
+  <!-- Main UI container -->
+  <div class="ts-ui">
+    <div class="ts-header">
+      <div class="ts-title">Troubleshooting Center</div>
+      <div class="ts-subtitle">Win12 shrine for help, hidden features, and file:/// mapping.</div>
+      <button class="ts-close-btn" onclick="closeTroubleshooter()">✕</button>
+    </div>
+
+    <div class="ts-body">
+      <!-- Sidebar -->
+      <div class="ts-sidebar">
+        <button class="ts-side-item" data-ts-section="home">
+          <span class="ts-icon">🏠</span>
+          <span class="ts-label">Home</span>
+        </button>
+        <button class="ts-side-item" data-ts-section="apps">
+          <span class="ts-icon">🧩</span>
+          <span class="ts-label">Apps</span>
+        </button>
+        <button class="ts-side-item" data-ts-section="folders">
+          <span class="ts-icon">📁</span>
+          <span class="ts-label">Folders</span>
+        </button>
+        <button class="ts-side-item" data-ts-section="hidden">
+          <span class="ts-icon">✨</span>
+          <span class="ts-label">Hidden Features</span>
+        </button>
+        <button class="ts-side-item" data-ts-section="filemap">
+          <span class="ts-icon">🌐</span>
+          <span class="ts-label">file:/// mapping</span>
+        </button>
+      </div>
+
+      <!-- Main content -->
+      <div class="ts-main">
+        <!-- Search bar -->
+        <div class="ts-search-wrap">
+          <div class="ts-search">
+            <span class="ts-search-icon">🔍</span>
+            <input id="tsSearchInput" type="text" placeholder="Search for help or type file:///folder..." />
+          </div>
+        </div>
+
+        <!-- Dynamic content area -->
+        <div id="tsContent" class="ts-content">
+          <!-- Filled by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
   <script>
     (function(){
@@ -5914,6 +5982,180 @@ function handleSessionAction(action) {
     fileInput.click();
   }
 }
+
+// Basic content templates
+const TS_CONTENT = {
+  home: `
+    <h2>Welcome to the Troubleshooting Center</h2>
+    <p>This full-screen Win12 shrine is here to explain how this relic works, reveal hidden features, and map your files and folders conceptually.</p>
+    <ul>
+      <li><b>Apps:</b> Explorer, Notepad, Browser, Host.exe, Paint, Media Player.</li>
+      <li><b>Folders:</b> /desktop, /documents, /imported, /recommended-files.</li>
+      <li><b>Paths:</b> Use <code>file:///folder</code> to talk about a folder.</li>
+      <li><b>Hidden features:</b> context menus, fullscreen, Start recommendations, imported files.</li>
+    </ul>
+    <p>Use the sidebar to explore, or type a question or <code>file:///documents</code> into the search bar.</p>
+  `,
+  apps: `
+    <h2>App Help</h2>
+    <h3>Explorer</h3>
+    <p>Explorer reads the per-user fs array. Folders and files are just entries in that model. It shows /desktop, /documents, and any other virtual paths you define.</p>
+    <h3>Notepad</h3>
+    <p>Notepad shows <code>fs.content</code> for text-like entries. It writes changes back into the same fs entry, so Explorer and Browser see the same story.</p>
+    <h3>Browser</h3>
+    <p>Browser handles <code>http</code>, <code>https</code>, and <code>file:///</code> URLs. <code>file:///</code> is mapped into the same fs model Explorer uses.</p>
+    <h3>Host.exe</h3>
+    <p>.exe files in this relic are fs entries with <code>exePayloadBase64</code>. Host.exe decodes that base64 into HTML and renders it in an iframe <code>srcdoc</code>.</p>
+    <h3>Paint</h3>
+    <p>Paint is a Win11-style canvas. You can draw, change color and brush size, and open local images into the canvas.</p>
+    <h3>Media Player</h3>
+    <p>Media Player opens local video, audio, and image files using the browser's playback. It never touches your disk directly — it uses object URLs.</p>
+  `,
+  folders: `
+    <h2>Folder Mapping</h2>
+    <p>These are conceptual folders in the per-user fs model:</p>
+    <ul>
+      <li><b>/desktop</b> — items shown on the desktop and root of Explorer.</li>
+      <li><b>/documents</b> — open the Documents folder in File Explorer to view these.</li>
+      <li><b>/recommended-files</b> — open Start; the Recommended section lists these by name.</li>
+      <li><b>/imported</b> — open Start, use the dropdown above Recommended, choose "Imported", then return to Start.</li>
+    </ul>
+    <p>You can also reference them via <code>file:///desktop</code>, <code>file:///documents</code>, <code>file:///recommended-files</code>, or <code>file:///imported</code> when talking to the AIM OS AI.</p>
+  `,
+  hidden: `
+    <h2>Hidden Features</h2>
+    <ul>
+      <li><b>Context menus:</b> Right-click desktop, Explorer background, files, or folders. Menus handle Open, Open with, New, Duplicate, Copy, Paste, Rename, Delete, and Properties. .exe files get a Run (.exe in Host) entry.</li>
+      <li><b>Fullscreen:</b> Each window header has a [ ] toggle. Click it to go fullscreen above the taskbar, or again to restore.</li>
+      <li><b>Notes:</b> The Notes window is per-user and not tied to a file. It writes to the <code>notes</code> field on your user object.</li>
+      <li><b>Start recommendations:</b> Start shows a Recommended section for /recommended-files; switch the dropdown to "Imported" to see /imported.</li>
+      <li><b>Host.exe rituals:</b> .exe fs entries can be treated as HTML rituals via <code>exePayloadBase64</code> and Host.exe.</li>
+    </ul>
+  `,
+  filemap: `
+    <h2>file:/// Mapping</h2>
+    <p><code>file:///</code> URLs are mapped into the same fs model Explorer and Browser use.</p>
+    <ul>
+      <li><code>file:///desktop</code> — conceptually refers to desktop items.</li>
+      <li><code>file:///documents</code> — conceptually refers to your Documents folder entries.</li>
+      <li><code>file:///recommended-files</code> — conceptually refers to Start's Recommended list.</li>
+      <li><code>file:///imported</code> — conceptually refers to Start's Imported list (via the dropdown).</li>
+    </ul>
+    <p>The AIM OS AI can use these paths to talk about folders, even though everything is still just fs entries under your user.</p>
+  `
+};
+
+function setTsContent(section) {
+  const el = document.getElementById('tsContent');
+  el.innerHTML = TS_CONTENT[section] || TS_CONTENT.home;
+}
+
+function openTroubleshooter() {
+  const overlay = document.getElementById('troubleshooterOverlay');
+  const audio = document.getElementById('troubleshooterAudio');
+
+  overlay.style.display = 'block';
+  // trigger scroll animation
+  overlay.classList.add('ts-animating');
+
+  // after scroll animation, show UI
+  setTimeout(() => {
+    overlay.classList.add('ts-active');
+    overlay.classList.remove('ts-animating');
+  }, 550);
+
+  // start audio
+  if (audio) {
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  }
+
+  // default content
+  setTsContent('home');
+}
+
+function closeTroubleshooter() {
+  const overlay = document.getElementById('troubleshooterOverlay');
+  const audio = document.getElementById('troubleshooterAudio');
+
+  overlay.classList.remove('ts-active');
+  setTimeout(() => {
+    overlay.style.display = 'none';
+  }, 300);
+
+  if (audio) {
+    audio.pause();
+    audio.currentTime = 0;
+  }
+}
+
+// Sidebar click handling
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.ts-side-item');
+  if (!btn) return;
+  const section = btn.getAttribute('data-ts-section');
+  setTsContent(section);
+});
+
+// Search handling (simple: route to sections or show hints)
+document.addEventListener('input', (e) => {
+  if (e.target.id !== 'tsSearchInput') return;
+  const val = e.target.value.toLowerCase().trim();
+  const content = document.getElementById('tsContent');
+
+  if (!val) {
+    setTsContent('home');
+    return;
+  }
+
+  if (val.startsWith('file:///')) {
+    const folder = val.replace('file:///', '').trim();
+    content.innerHTML = `
+      <h2>file:///${folder}</h2>
+      <p>This is a conceptual folder path in the AIM OS fs model.</p>
+      <p>To view it in the UI:</p>
+      <ul>
+        <li><b>desktop</b> — open the desktop or Explorer root.</li>
+        <li><b>documents</b> — open the Documents folder in File Explorer.</li>
+        <li><b>recommended-files</b> — open Start; check the Recommended section.</li>
+        <li><b>imported</b> — open Start, use the dropdown above Recommended, choose "Imported", then return to Start.</li>
+      </ul>
+      <p>The AI can use this path to talk about items in that conceptual folder.</p>
+    `;
+    return;
+  }
+
+  if (val.includes('app') || val.includes('explorer') || val.includes('notepad') || val.includes('browser') || val.includes('paint') || val.includes('media')) {
+    setTsContent('apps');
+    return;
+  }
+
+  if (val.includes('folder') || val.includes('/desktop') || val.includes('/documents') || val.includes('/imported') || val.includes('/recommended')) {
+    setTsContent('folders');
+    return;
+  }
+
+  if (val.includes('hidden') || val.includes('secret') || val.includes('tip')) {
+    setTsContent('hidden');
+    return;
+  }
+
+  if (val.includes('file:///')) {
+    setTsContent('filemap');
+    return;
+  }
+
+  // fallback: generic hint
+  content.innerHTML = `
+    <h2>Search</h2>
+    <p>I didn't match that directly, but you can:</p>
+    <ul>
+      <li>Type <code>file:///desktop</code>, <code>file:///documents</code>, <code>file:///recommended-files</code>, or <code>file:///imported</code>.</li>
+      <li>Ask about apps: Explorer, Notepad, Browser, Host.exe, Paint, Media Player.</li>
+      <li>Ask for hidden features, tips, or context menus.</li>
+    </ul>
+  `;
+});
 
 // ✅ Auto-create buttons when Settings loads
 window.addEventListener("load", () => {

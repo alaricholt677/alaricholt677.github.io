@@ -2423,6 +2423,7 @@ button:hover{background:#1e293b;}
       const camPopupBackdrop = document.getElementById("camera-popup-backdrop");
       const camPopupClose = document.getElementById("camera-popup-close");
 
+  function openTroubleshooter() { const overlay = document.getElementById('troubleshooterOverlay'); const audio = document.getElementById('troubleshooterAudio'); overlay.style.display = 'block'; overlay.classList.add('ts-animating'); setTimeout(() => { overlay.classList.add('ts-active'); overlay.classList.remove('ts-animating'); }, 550); if (audio) { audio.currentTime = 0; audio.play().catch(() => {}); } setTsContent('home'); } function closeTroubleshooter() { const overlay = document.getElementById('troubleshooterOverlay'); const audio = document.getElementById('troubleshooterAudio'); overlay.classList.remove('ts-active'); setTimeout(() => { overlay.style.display = 'none'; }, 300); if (audio) { audio.pause(); audio.currentTime = 0; } }
       // Show popup function
       function showCameraUnsupportedPopup() {
         camPopupBackdrop.style.display = "flex";
@@ -6290,45 +6291,6 @@ const TS_CONTENT = {
 function setTsContent(section) {
   const el = document.getElementById('tsContent');
   el.innerHTML = TS_CONTENT[section] || TS_CONTENT.home;
-}
-
-function openTroubleshooter() {
-  const overlay = document.getElementById('troubleshooterOverlay');
-  const audio = document.getElementById('troubleshooterAudio');
-
-  overlay.style.display = 'block';
-  // trigger scroll animation
-  overlay.classList.add('ts-animating');
-
-  // after scroll animation, show UI
-  setTimeout(() => {
-    overlay.classList.add('ts-active');
-    overlay.classList.remove('ts-animating');
-  }, 550);
-
-  // start audio
-  if (audio) {
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
-  }
-
-  // default content
-  setTsContent('home');
-}
-
-function closeTroubleshooter() {
-  const overlay = document.getElementById('troubleshooterOverlay');
-  const audio = document.getElementById('troubleshooterAudio');
-
-  overlay.classList.remove('ts-active');
-  setTimeout(() => {
-    overlay.style.display = 'none';
-  }, 300);
-
-  if (audio) {
-    audio.pause();
-    audio.currentTime = 0;
-  }
 }
 
 // Sidebar click handling

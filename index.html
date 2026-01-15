@@ -4631,28 +4631,37 @@ function renderMediaInPlayer(entry) {
   }
 }
 
-      /* AIM OS */
-      function aiMsg(role,text){
-        if(!aiLog) return;
-        const div=document.createElement("div");
-        div.className="ai-message "+role;
-        const roleSpan=document.createElement("div");
-        roleSpan.className="ai-message-role "+(role==="user"?"ai-message-user":"ai-message-aim");
-        roleSpan.textContent=role==="user"?"User":"AIM OS";
-        const body=document.createElement("div");
-        body.textContent=text;
-        div.appendChild(roleSpan);div.appendChild(body);
-        aiLog.appendChild(div);
-        aiLog.scrollTop=aiLog.scrollHeight;
-if(response.includes("<<PLAY_TROUBLESHOOTER_SOUND>>")){
-  const audio = document.getElementById("troubleshooterAudio");
-  if(audio){
-    audio.currentTime = 0;
-    audio.play().catch(()=>{});
+/* AIM OS */
+function aiMsg(role, text){
+  if(!aiLog) return;
+
+  // --- Detect and handle Troubleshooter sound token ---
+  if(text.includes("<<PLAY_TROUBLESHOOTER_SOUND>>")){
+    const audio = document.getElementById("troubleshooterAudio");
+    if(audio){
+      audio.currentTime = 0;
+      audio.play().catch(()=>{});
+    }
+    text = text.replace("<<PLAY_TROUBLESHOOTER_SOUND>>", "");
   }
-  response = response.replace("<<PLAY_TROUBLESHOOTER_SOUND>>", "");
+
+  // --- Build message UI ---
+  const div = document.createElement("div");
+  div.className = "ai-message " + role;
+
+  const roleSpan = document.createElement("div");
+  roleSpan.className = "ai-message-role " + (role==="user" ? "ai-message-user" : "ai-message-aim");
+  roleSpan.textContent = role==="user" ? "User" : "AIM OS";
+
+  const body = document.createElement("div");
+  body.textContent = text;
+
+  div.appendChild(roleSpan);
+  div.appendChild(body);
+  aiLog.appendChild(div);
+  aiLog.scrollTop = aiLog.scrollHeight;
 }
-}
+
 function aiAnswer(q){
   const u = currentUser();
   const lower = q.toLowerCase();

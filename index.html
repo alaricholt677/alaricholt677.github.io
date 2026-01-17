@@ -4824,9 +4824,15 @@ Just ask anything and I’ll guide you`;
   if(/media|video|music|audio/.test(lower))
     return "Media Player opens local video, audio, and image files using the browser's playback. It doesn't touch your disk — just uses object URLs.";
 
-if(/factory reset/.test(lower)){ return `<<AIM_FACTORY_RESET>> <<PLAY_TROUBLESHOOTER_SOUND>> Performing a full system ritual…`; } 
-  if(/export session/.test(lower)){ return `<<AIM_EXPORT_SESSION>> Preparing your session for export…`; }
-  if(/import session/.test(lower)){ return `<<AIM_IMPORT_SESSION>> Choose a .win12.lock file to restore your session.`;
+if(/factory reset/.test(lower)){
+  return `<<AIM_FACTORY_RESET>> <<PLAY_TROUBLESHOOTER_SOUND>> Performing a full system ritual…`;
+} 
+  if(/export session/.test(lower)){
+    return `<<AIM_EXPORT_SESSION>> Preparing your session for export…`; 
+  }
+  if(/import session/.test(lower)){
+    return `<<AIM_IMPORT_SESSION>> Choose a .win12.lock file to restore your session.`;
+  }
   // -----------------------------
   // FALLBACK (updated)
   // -----------------------------

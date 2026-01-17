@@ -6428,7 +6428,6 @@ function setTsContent(section) {
   el.innerHTML = TS_CONTENT[section] || TS_CONTENT.home;
 }
 
-
 function initThemeStudio() {
   const themeWin = document.createElement("div");
   themeWin.className = "window";
@@ -6457,6 +6456,7 @@ function initThemeStudio() {
       <select id="theme-target">${generateThemeOptions()}</select>
       <input type="color" id="theme-color" />
       <textarea id="theme-editor" style="width:100%;height:120px;margin-top:8px;" placeholder="Write custom CSS here..."></textarea>
+      <input id="theme-comment" style="width:100%;margin-top:8px;" placeholder="Add a comment (optional)" />
       <div style="margin-top:8px;text-align:right;">
         <button id="theme-insert-btn" class="button-small">Insert & Apply</button>
         <button id="theme-append-btn" class="button-small">Insert to Stylesheet</button>
@@ -6488,27 +6488,18 @@ function initThemeStudio() {
     alert("Theme applied live!");
   };
 
-  // Insert CSS into editor (append with element info)
+  // Insert CSS into editor (append with optional comment)
   document.getElementById("theme-append-btn").onclick = () => {
     const selector = document.getElementById("theme-target").value;
     const color = document.getElementById("theme-color").value;
+    const comment = document.getElementById("theme-comment").value.trim();
 
-    // Fetch all matching elements
-    const elements = document.querySelectorAll(selector);
-    let infoComment = `/* Elements matched for ${selector}: ${elements.length} */\n`;
-    elements.forEach((el, i) => {
-      const id = el.id ? `id="${el.id}"` : "";
-      const cls = el.className ? `class="${el.className}"` : "";
-      const text = el.innerText ? `text="${el.innerText.trim()}"` : "";
-      infoComment += `/* [${i + 1}] ${id} ${cls} ${text} */\n`;
-    });
+    let cssBlock = "";
+    if (comment) cssBlock += `/* ${comment} */\n`;
+    cssBlock += `${selector} { background-color: ${color}; }`;
 
-    // CSS line
-    const cssLine = `${selector} { background-color: ${color}; }`;
-
-    // Append to editor
     const editor = document.getElementById("theme-editor");
-    editor.value += `\n${infoComment}${cssLine}\n`;
+    editor.value += `\n${cssBlock}\n`;
 
     alert(`CSS for ${selector} added to stylesheet editor!`);
   };
@@ -6552,7 +6543,7 @@ function generateThemeOptions() {
   return selectors.map(sel => `<option value="${sel}">${sel}</option>`).join("");
 }
 
-// ✅ Context menu integration
+// ✅ Context menu integration for "Open in Theme Studio"
 function addThemeCtxMenu() {
   const ctxMenu = document.getElementById("ctx-menu");
   const themeCtxItem = document.createElement("div");
@@ -6638,6 +6629,7 @@ function makeWindowInteractive(win) {
 
 // ✅ Initialize Theme Studio
 window.addEventListener("load", initThemeStudio);
+
 
 // Sidebar click handling
 document.addEventListener('click', (e) => {

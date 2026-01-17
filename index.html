@@ -6428,14 +6428,11 @@ function setTsContent(section) {
   el.innerHTML = TS_CONTENT[section] || TS_CONTENT.home;
 }
 
-
 function initThemeStudio() {
-  // Create Theme Studio window
   const themeWin = document.createElement("div");
   themeWin.className = "window";
   themeWin.id = "window-theme-studio";
   themeWin.dataset.app = "theme-studio";
-  themeWin.dataset.appDesc = "[Theme Studio] Customize Win12 styles dynamically.";
 
   themeWin.innerHTML = `
     <div class="window-header" data-drag-handle>
@@ -6456,13 +6453,12 @@ function initThemeStudio() {
     </div>
     <div class="window-body" style="padding:10px;font-size:12px;">
       <h4>Theme Editor</h4>
-      <select id="theme-target">
-        ${generateThemeOptions()}
-      </select>
+      <select id="theme-target">${generateThemeOptions()}</select>
       <input type="color" id="theme-color" />
       <textarea id="theme-editor" style="width:100%;height:120px;margin-top:8px;" placeholder="Write custom CSS here..."></textarea>
       <div style="margin-top:8px;text-align:right;">
         <button id="theme-insert-btn" class="button-small">Insert & Apply</button>
+        <button id="theme-append-btn" class="button-small">Insert to Stylesheet</button>
         <button id="theme-export-btn" class="button-small">Export CSS</button>
       </div>
     </div>
@@ -6484,11 +6480,21 @@ function initThemeStudio() {
   startGrid.appendChild(themeTile);
   themeTile.addEventListener("click", () => showWindow("theme-studio"));
 
-  // Insert CSS live using insertWindowCSS()
+  // Insert CSS live
   document.getElementById("theme-insert-btn").onclick = () => {
     const cssContent = document.getElementById("theme-editor").value;
     insertWindowCSS(cssContent);
     alert("Theme applied live!");
+  };
+
+  // Insert CSS into editor (append)
+  document.getElementById("theme-append-btn").onclick = () => {
+    const selector = document.getElementById("theme-target").value;
+    const color = document.getElementById("theme-color").value;
+    const cssLine = `${selector} { background-color: ${color}; }`;
+    const editor = document.getElementById("theme-editor");
+    editor.value += "\n" + cssLine;
+    alert("CSS added to stylesheet editor!");
   };
 
   // Export CSS to FS
@@ -6501,69 +6507,16 @@ function initThemeStudio() {
     alert("Theme exported as theme.css in Documents.");
   };
 
-  // Dropdown + color picker auto-insert CSS
-  const targetSelect = document.getElementById("theme-target");
+  // Auto-generate CSS when color changes
   const colorInput = document.getElementById("theme-color");
   colorInput.addEventListener("input", () => {
-    const selector = targetSelect.value;
+    const selector = document.getElementById("theme-target").value;
     const cssLine = `${selector} { background-color: ${colorInput.value}; }`;
     document.getElementById("theme-editor").value += "\n" + cssLine;
   });
 
-  // Make window interactive
   makeWindowInteractive(themeWin);
-
-  // Add context menu item for CSS files
-  const ctxMenu = document.getElementById("ctx-menu");
-  const themeCtxItem = document.createElement("div");
-  themeCtxItem.className = "ctx-item";
-  themeCtxItem.dataset.action = "openInThemeStudio";
-  themeCtxItem.innerHTML = "<span>Open in Theme Studio</span>";
-  ctxMenu.appendChild(themeCtxItem);
-
-  ctxMenu.addEventListener("click", (e) => {
-    const item = e.target.closest(".ctx-item");
-    if (!item) return;
-    if (item.dataset.action === "openInThemeStudio" && ctxTargetEntry && ctxTargetEntry.ext === ".css") {
-      openThemeStudioPopup(ctxTargetEntry);
-    }
-  });
-
-  // Popup for import
-  function openThemeStudioPopup(entry) {
-    const popup = document.createElement("div");
-    popup.style.position = "fixed";
-    popup.style.inset = "0";
-    popup.style.background = "rgba(0,0,0,0.6)";
-    popup.style.display = "flex";
-    popup.style.alignItems = "center";
-    popup.style.justifyContent = "center";
-    popup.style.zIndex = "2000";
-
-    popup.innerHTML = `
-      <div style="background:#0b1020;padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);width:320px;text-align:center;color:white;">
-        <h3>Import CSS</h3>
-        <p>Choose where to import this CSS:</p>
-        <button id="import-settings" class="button-small">Import to Settings</button>
-        <button id="import-theme" class="button-small">Import to Theme Studio</button>
-        <button id="popup-cancel" class="button-small">Cancel</button>
-      </div>
-    `;
-    document.body.appendChild(popup);
-
-    document.getElementById("import-settings").onclick = () => {
-      showWindow("settings");
-      themeCssInput.value = entry.content || "";
-      popup.remove();
-    };
-
-    document.getElementById("import-theme").onclick = () => {
-      document.getElementById("theme-editor").value = entry.content || "";
-      popup.remove();
-    };
-
-    document.getElementById("popup-cancel").onclick = () => popup.remove();
-  }
+  addThemeCtxMenu();
 }
 
 // ✅ Function to insert CSS dynamically
@@ -6591,6 +6544,60 @@ function generateThemeOptions() {
   return selectors.map(sel => `<option value="${sel}">${sel}</option>`).join("");
 }
 
+// ✅ Context menu integration
+function addThemeCtxMenu() {
+  const ctxMenu = document.getElementById("ctx-menu");
+  const themeCtxItem = document.createElement("div");
+  themeCtxItem.className = "ctx-item";
+  themeCtxItem.dataset.action = "openInThemeStudio";
+  themeCtxItem.innerHTML = "<span>Open in Theme Studio</span>";
+  ctxMenu.appendChild(themeCtxItem);
+
+  ctxMenu.addEventListener("click", (e) => {
+    const item = e.target.closest(".ctx-item");
+    if (!item) return;
+    if (item.dataset.action === "openInThemeStudio" && ctxTargetEntry && ctxTargetEntry.ext === ".css") {
+      openThemeStudioPopup(ctxTargetEntry);
+    }
+  });
+}
+
+// ✅ Popup for importing CSS
+function openThemeStudioPopup(entry) {
+  const popup = document.createElement("div");
+  popup.style.position = "fixed";
+  popup.style.inset = "0";
+  popup.style.background = "rgba(0,0,0,0.6)";
+  popup.style.display = "flex";
+  popup.style.alignItems = "center";
+  popup.style.justifyContent = "center";
+  popup.style.zIndex = "2000";
+
+  popup.innerHTML = `
+    <div style="background:#0b1020;padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);width:320px;text-align:center;color:white;">
+      <h3>Import CSS</h3>
+      <p>Choose where to import this CSS:</p>
+      <button id="import-settings" class="button-small">Import to Settings</button>
+      <button id="import-theme" class="button-small">Import to Theme Studio</button>
+      <button id="popup-cancel" class="button-small">Cancel</button>
+    </div>
+  `;
+  document.body.appendChild(popup);
+
+  document.getElementById("import-settings").onclick = () => {
+    showWindow("settings");
+    themeCssInput.value = entry.content || "";
+    popup.remove();
+  };
+
+  document.getElementById("import-theme").onclick = () => {
+    document.getElementById("theme-editor").value = entry.content || "";
+    popup.remove();
+  };
+
+  document.getElementById("popup-cancel").onclick = () => popup.remove();
+}
+
 // ✅ Window interaction helper
 function makeWindowInteractive(win) {
   const header = win.querySelector("[data-drag-handle]");
@@ -6616,14 +6623,9 @@ function makeWindowInteractive(win) {
     document.body.style.cursor = "default";
   });
 
-  // Close & minimize
   win.querySelector(".window-btn.close").onclick = () => hideWindow(win.dataset.app);
   win.querySelector(".window-btn.minimize").onclick = () => win.classList.remove("visible");
-
-  // Fullscreen toggle
-  win.querySelector(".window-fullscreen-toggle").onclick = () => {
-    win.classList.toggle("fullscreen");
-  };
+  win.querySelector(".window-fullscreen-toggle").onclick = () => win.classList.toggle("fullscreen");
 }
 
 // ✅ Initialize Theme Studio

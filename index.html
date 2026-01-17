@@ -6428,6 +6428,7 @@ function setTsContent(section) {
   el.innerHTML = TS_CONTENT[section] || TS_CONTENT.home;
 }
 
+
 function initThemeStudio() {
   const themeWin = document.createElement("div");
   themeWin.className = "window";
@@ -6487,14 +6488,29 @@ function initThemeStudio() {
     alert("Theme applied live!");
   };
 
-  // Insert CSS into editor (append)
+  // Insert CSS into editor (append with element info)
   document.getElementById("theme-append-btn").onclick = () => {
     const selector = document.getElementById("theme-target").value;
     const color = document.getElementById("theme-color").value;
+
+    // Fetch all matching elements
+    const elements = document.querySelectorAll(selector);
+    let infoComment = `/* Elements matched for ${selector}: ${elements.length} */\n`;
+    elements.forEach((el, i) => {
+      const id = el.id ? `id="${el.id}"` : "";
+      const cls = el.className ? `class="${el.className}"` : "";
+      const text = el.innerText ? `text="${el.innerText.trim()}"` : "";
+      infoComment += `/* [${i + 1}] ${id} ${cls} ${text} */\n`;
+    });
+
+    // CSS line
     const cssLine = `${selector} { background-color: ${color}; }`;
+
+    // Append to editor
     const editor = document.getElementById("theme-editor");
-    editor.value += "\n" + cssLine;
-    alert("CSS added to stylesheet editor!");
+    editor.value += `\n${infoComment}${cssLine}\n`;
+
+    alert(`CSS for ${selector} added to stylesheet editor!`);
   };
 
   // Export CSS to FS
@@ -6506,14 +6522,6 @@ function initThemeStudio() {
     }));
     alert("Theme exported as theme.css in Documents.");
   };
-
-  // Auto-generate CSS when color changes
-  const colorInput = document.getElementById("theme-color");
-  colorInput.addEventListener("input", () => {
-    const selector = document.getElementById("theme-target").value;
-    const cssLine = `${selector} { background-color: ${colorInput.value}; }`;
-    document.getElementById("theme-editor").value += "\n" + cssLine;
-  });
 
   makeWindowInteractive(themeWin);
   addThemeCtxMenu();

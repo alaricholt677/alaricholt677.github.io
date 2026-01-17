@@ -6430,7 +6430,7 @@ function setTsContent(section) {
 
 
 function initThemeStudio() {
-  // 1. Create Theme Studio window
+  // Create Theme Studio window
   const themeWin = document.createElement("div");
   themeWin.className = "window";
   themeWin.id = "window-theme-studio";
@@ -6445,26 +6445,24 @@ function initThemeStudio() {
           <div class="window-title-main">[Theme Studio]</div>
           <div class="window-title-sub">Customize UI styles</div>
         </div>
+        <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+        <div class="window-info-icon">(i)</div>
+        <div class="window-info-tooltip" style="display:none;">Edit CSS and apply live</div>
       </div>
       <div class="window-controls">
-        <div class="window-btn minimize"></div>
-        <div class="window-btn close"></div>
+        <div class="window-btn minimize">_</div>
+        <div class="window-btn close">X</div>
       </div>
     </div>
     <div class="window-body" style="padding:10px;font-size:12px;">
       <h4>Theme Editor</h4>
       <select id="theme-target">
-        <option value="body">Body Background</option>
-        <option value="taskbar">Taskbar</option>
-        <option value="start-menu">Start Menu</option>
-        <option value="window">Window Color</option>
-        <option value="window-btns">Window Buttons</option>
-        <option value="popup">Popups</option>
+        ${generateThemeOptions()}
       </select>
       <input type="color" id="theme-color" />
       <textarea id="theme-editor" style="width:100%;height:120px;margin-top:8px;" placeholder="Write custom CSS here..."></textarea>
       <div style="margin-top:8px;text-align:right;">
-        <button id="theme-import-btn" class="button-small">Import CSS</button>
+        <button id="theme-insert-btn" class="button-small">Insert & Apply</button>
         <button id="theme-export-btn" class="button-small">Export CSS</button>
       </div>
     </div>
@@ -6473,7 +6471,7 @@ function initThemeStudio() {
   document.body.appendChild(themeWin);
   windowsMap["theme-studio"] = themeWin;
 
-  // 2. Add Start Menu icon
+  // Add Start Menu icon
   const startGrid = document.getElementById("start-pinned-grid");
   const themeTile = document.createElement("div");
   themeTile.className = "start-app";
@@ -6486,7 +6484,36 @@ function initThemeStudio() {
   startGrid.appendChild(themeTile);
   themeTile.addEventListener("click", () => showWindow("theme-studio"));
 
-  // 3. Add context menu item for CSS files
+  // Insert CSS live using insertWindowCSS()
+  document.getElementById("theme-insert-btn").onclick = () => {
+    const cssContent = document.getElementById("theme-editor").value;
+    insertWindowCSS(cssContent);
+    alert("Theme applied live!");
+  };
+
+  // Export CSS to FS
+  document.getElementById("theme-export-btn").onclick = () => {
+    const cssContent = document.getElementById("theme-editor").value;
+    updateCurrentUser(u => ({
+      ...u,
+      fs: u.fs.concat({ path: "/documents", name: "theme.css", type: "file", ext: ".css", content: cssContent })
+    }));
+    alert("Theme exported as theme.css in Documents.");
+  };
+
+  // Dropdown + color picker auto-insert CSS
+  const targetSelect = document.getElementById("theme-target");
+  const colorInput = document.getElementById("theme-color");
+  colorInput.addEventListener("input", () => {
+    const selector = targetSelect.value;
+    const cssLine = `${selector} { background-color: ${colorInput.value}; }`;
+    document.getElementById("theme-editor").value += "\n" + cssLine;
+  });
+
+  // Make window interactive
+  makeWindowInteractive(themeWin);
+
+  // Add context menu item for CSS files
   const ctxMenu = document.getElementById("ctx-menu");
   const themeCtxItem = document.createElement("div");
   themeCtxItem.className = "ctx-item";
@@ -6502,7 +6529,7 @@ function initThemeStudio() {
     }
   });
 
-  // 4. Popup for import/export
+  // Popup for import
   function openThemeStudioPopup(entry) {
     const popup = document.createElement("div");
     popup.style.position = "fixed";
@@ -6537,15 +6564,65 @@ function initThemeStudio() {
 
     document.getElementById("popup-cancel").onclick = () => popup.remove();
   }
+}
 
-  // 5. Export CSS to FS
-  document.getElementById("theme-export-btn").onclick = () => {
-    const cssContent = document.getElementById("theme-editor").value;
-    updateCurrentUser(u => ({
-      ...u,
-      fs: u.fs.concat({ path: "/documents", name: "theme.css", type: "file", ext: ".css", content: cssContent })
-    }));
-    alert("Theme exported as theme.css in Documents.");
+// ✅ Function to insert CSS dynamically
+function insertWindowCSS(cssContent) {
+  let styleTag = document.getElementById("theme-studio-style");
+  if (!styleTag) {
+    styleTag = document.createElement("style");
+    styleTag.id = "theme-studio-style";
+    document.head.appendChild(styleTag);
+  }
+  styleTag.textContent = cssContent;
+}
+
+// ✅ Generate dropdown options for ALL elements
+function generateThemeOptions() {
+  const selectors = [
+    "body", "#taskbar", "#start-menu", "#desktop", "#desktop-icons",
+    ".window", ".window-header", ".window-controls", ".window-btn",
+    ".window-fullscreen-toggle", ".window-info-icon", ".ctx-menu",
+    ".ctx-item", "#widgets-editor-overlay", "#widgets-editor-canvas",
+    "#notes-area", "#theme-css-input", "#taskbar-clock", "#taskbar-network",
+    "#taskbar-import", "#start-pinned-grid", "#rec-files", "#rec-dropdown-menu",
+    "#admin-popup", "#camera-popup", "#media-surface", "#paint-canvas"
+  ];
+  return selectors.map(sel => `<option value="${sel}">${sel}</option>`).join("");
+}
+
+// ✅ Window interaction helper
+function makeWindowInteractive(win) {
+  const header = win.querySelector("[data-drag-handle]");
+  let dragging = false, sx, sy, sl, st;
+
+  header.addEventListener("mousedown", e => {
+    if (e.target.closest(".window-controls")) return;
+    dragging = true;
+    const rect = win.getBoundingClientRect();
+    sx = e.clientX; sy = e.clientY; sl = rect.left; st = rect.top;
+    document.body.style.cursor = "move";
+    bringWindowToFront(win);
+  });
+
+  window.addEventListener("mousemove", e => {
+    if (!dragging) return;
+    win.style.left = sl + (e.clientX - sx) + "px";
+    win.style.top = st + (e.clientY - sy) + "px";
+  });
+
+  window.addEventListener("mouseup", () => {
+    dragging = false;
+    document.body.style.cursor = "default";
+  });
+
+  // Close & minimize
+  win.querySelector(".window-btn.close").onclick = () => hideWindow(win.dataset.app);
+  win.querySelector(".window-btn.minimize").onclick = () => win.classList.remove("visible");
+
+  // Fullscreen toggle
+  win.querySelector(".window-fullscreen-toggle").onclick = () => {
+    win.classList.toggle("fullscreen");
   };
 }
 

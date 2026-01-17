@@ -6758,15 +6758,29 @@ document.addEventListener("keydown", (e) => {
 });
 
 
-async function saveOfflineSite(url) {
+// Master function that ALWAYS runs
+async function handleURLVisitAlways() {
+  const url = "https://example.com"; // Fixed URL for best results
   const folderPath = `/imported/offlinesites/${encodeURIComponent(url)}/allfilesfetched`;
-  const files = [];
 
   try {
-    // Fetch main HTML
+    if (!navigator.onLine) {
+      // Offline: Show popup if offline copy exists
+      const user = currentUser();
+      const file = user.fs.find(f => f.path.includes(encodeURIComponent(url)) && f.name === "index.html");
+      if (file) {
+        showOfflinePopup(url);
+      }
+      return; // Still runs every cycle
+    }
+
+    // Online: Fetch and save offline copy
     const htmlResponse = await fetch(url);
     const htmlText = await htmlResponse.text();
-    files.push({ path: folderPath, name: "index.html", type: "file", ext: ".html", content: htmlText });
+
+    const files = [
+      { path: folderPath, name: "index.html", type: "file", ext: ".html", content: htmlText }
+    ];
 
     // Parse HTML for assets
     const parser = new DOMParser();
@@ -6784,12 +6798,13 @@ async function saveOfflineSite(url) {
 
     // Save to FS
     updateCurrentUser(u => ({ ...u, fs: u.fs.concat(files) }));
-    alert(`Offline copy of ${url} saved!`);
+    console.log(`Offline copy of ${url} saved successfully!`);
   } catch (err) {
-    console.error("Failed to save offline site:", err);
+    console.error("Failed to fetch and save offline site:", err);
   }
 }
 
+// Helper: Convert Blob to Base64
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -6799,45 +6814,12 @@ function blobToBase64(blob) {
   });
 }
 
+// Helper: Get file extension
 function getExt(name) {
   return name.includes(".") ? name.slice(name.lastIndexOf(".")) : "";
 }
 
-
-function showOfflineSitesWindow() {
-  const win = document.createElement("div");
-  win.className = "window";
-  win.id = "window-offline-sites";
-  win.dataset.app = "offline-sites";
-
-  win.innerHTML = `
-    <div class="window-header" data-drag-handle>
-      <div class="window-title"><div class="window-title-main">[Offline Sites]</div></div>
-      <div class="window-controls"><div class="window-btn close">X</div></div>
-    </div>
-    <div class="window-body" style="padding:10px;font-size:12px;">
-      <h4>Saved Offline Sites</h4>
-      <div id="offline-sites-list"></div>
-    </div>
-  `;
-
-  document.body.appendChild(win);
-  makeWindowInteractive(win);
-
-  const list = win.querySelector("#offline-sites-list");
-  const user = currentUser();
-  const offlineFolders = user.fs.filter(f => f.path.startsWith("/imported/offlinesites/") && f.name === "index.html");
-
-  offlineFolders.forEach(file => {
-    const url = decodeURIComponent(file.path.split("/")[2]);
-    const btn = document.createElement("button");
-    btn.textContent = `Open ${url}`;
-    btn.onclick = () => openInBrowser(file);
-    list.appendChild(btn);
-  });
-}
-
-
+// Popup for offline fallback
 function showOfflinePopup(url) {
   const popup = document.createElement("div");
   popup.style.position = "fixed";
@@ -6868,14 +6850,9 @@ function showOfflinePopup(url) {
   document.getElementById("offline-no").onclick = () => popup.remove();
 }
 
+// ✅ Make it ALWAYS run every 30 seconds
+setInterval(handleURLVisitAlways, 30000);
 
-async function handleURLVisit(url) {
-  if (!navigator.onLine) {
-    showOfflinePopup(url);
-  } else {
-    await saveOfflineSite(url);
-  }
-}
 
       /* initial */
       function initialSetup(){

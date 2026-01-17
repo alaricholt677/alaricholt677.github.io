@@ -4771,16 +4771,33 @@ Ask about any item above to learn more.`;
 }
 
   if(/help|what can you do|assist|commands|features/.test(lower))
-    return `Here’s what I can help you with inside this Win12 relic:
-• FS, users, notes, associations
-• .exe payloads + Host.exe runtime
-• Explorer, Browser, Notepad
-• Paint (canvas + open image)
-• Media Player (video/audio/image)
-• Window system, fullscreen, context menus
-• Time flyout, settings, registry emulation
-• Type troubleshoot for a music to while help
-Just ask anything and I’ll guide you`;
+    return `=== AIM OS HELP ===
+
+• Troubleshooting Menu  
+  Type: troubleshoot
+
+• Folder inspection  
+  file:///desktop  
+  file:///documents  
+  file:///imported  
+  file:///recommended-files  
+
+• System commands  
+  factory reset — clears win12_aim_fs_state_exe_ctx_full_v3  
+  export session — saves your session as session.win12.lock  
+  import session — load a .win12.lock file into the OS  
+
+• App help  
+  Explorer, Notepad, Browser, Host.exe, Paint, Media Player  
+
+• Hidden features  
+  - Right‑click context menus  
+  - Fullscreen toggle [ ]  
+  - Start → Recommended  
+  - Start → Imported dropdown  
+  - .exe payloads via Host.exe  
+
+Ask about any item above to learn more.`;
 
   if(/ok|cool|nice|great/.test(lower))
     return "Got it. I'm right here with you";

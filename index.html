@@ -6428,6 +6428,130 @@ function setTsContent(section) {
   el.innerHTML = TS_CONTENT[section] || TS_CONTENT.home;
 }
 
+
+function initThemeStudio() {
+  // 1. Create Theme Studio window
+  const themeWin = document.createElement("div");
+  themeWin.className = "window";
+  themeWin.id = "window-theme-studio";
+  themeWin.dataset.app = "theme-studio";
+  themeWin.dataset.appDesc = "[Theme Studio] Customize Win12 styles dynamically.";
+
+  themeWin.innerHTML = `
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-icon" style="background:linear-gradient(135deg,#4c8dff,#94a3ff);"></div>
+        <div class="window-title-text">
+          <div class="window-title-main">[Theme Studio]</div>
+          <div class="window-title-sub">Customize UI styles</div>
+        </div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn minimize"></div>
+        <div class="window-btn close"></div>
+      </div>
+    </div>
+    <div class="window-body" style="padding:10px;font-size:12px;">
+      <h4>Theme Editor</h4>
+      <select id="theme-target">
+        <option value="body">Body Background</option>
+        <option value="taskbar">Taskbar</option>
+        <option value="start-menu">Start Menu</option>
+        <option value="window">Window Color</option>
+        <option value="window-btns">Window Buttons</option>
+        <option value="popup">Popups</option>
+      </select>
+      <input type="color" id="theme-color" />
+      <textarea id="theme-editor" style="width:100%;height:120px;margin-top:8px;" placeholder="Write custom CSS here..."></textarea>
+      <div style="margin-top:8px;text-align:right;">
+        <button id="theme-import-btn" class="button-small">Import CSS</button>
+        <button id="theme-export-btn" class="button-small">Export CSS</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(themeWin);
+  windowsMap["theme-studio"] = themeWin;
+
+  // 2. Add Start Menu icon
+  const startGrid = document.getElementById("start-pinned-grid");
+  const themeTile = document.createElement("div");
+  themeTile.className = "start-app";
+  themeTile.dataset.app = "theme-studio";
+  themeTile.innerHTML = `
+    <div class="start-app-icon" style="background:linear-gradient(135deg,#4c8dff,#94a3ff);"></div>
+    <div>Theme Studio</div>
+    <div class="start-app-sub">Customize UI</div>
+  `;
+  startGrid.appendChild(themeTile);
+  themeTile.addEventListener("click", () => showWindow("theme-studio"));
+
+  // 3. Add context menu item for CSS files
+  const ctxMenu = document.getElementById("ctx-menu");
+  const themeCtxItem = document.createElement("div");
+  themeCtxItem.className = "ctx-item";
+  themeCtxItem.dataset.action = "openInThemeStudio";
+  themeCtxItem.innerHTML = "<span>Open in Theme Studio</span>";
+  ctxMenu.appendChild(themeCtxItem);
+
+  ctxMenu.addEventListener("click", (e) => {
+    const item = e.target.closest(".ctx-item");
+    if (!item) return;
+    if (item.dataset.action === "openInThemeStudio" && ctxTargetEntry && ctxTargetEntry.ext === ".css") {
+      openThemeStudioPopup(ctxTargetEntry);
+    }
+  });
+
+  // 4. Popup for import/export
+  function openThemeStudioPopup(entry) {
+    const popup = document.createElement("div");
+    popup.style.position = "fixed";
+    popup.style.inset = "0";
+    popup.style.background = "rgba(0,0,0,0.6)";
+    popup.style.display = "flex";
+    popup.style.alignItems = "center";
+    popup.style.justifyContent = "center";
+    popup.style.zIndex = "2000";
+
+    popup.innerHTML = `
+      <div style="background:#0b1020;padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);width:320px;text-align:center;color:white;">
+        <h3>Import CSS</h3>
+        <p>Choose where to import this CSS:</p>
+        <button id="import-settings" class="button-small">Import to Settings</button>
+        <button id="import-theme" class="button-small">Import to Theme Studio</button>
+        <button id="popup-cancel" class="button-small">Cancel</button>
+      </div>
+    `;
+    document.body.appendChild(popup);
+
+    document.getElementById("import-settings").onclick = () => {
+      showWindow("settings");
+      themeCssInput.value = entry.content || "";
+      popup.remove();
+    };
+
+    document.getElementById("import-theme").onclick = () => {
+      document.getElementById("theme-editor").value = entry.content || "";
+      popup.remove();
+    };
+
+    document.getElementById("popup-cancel").onclick = () => popup.remove();
+  }
+
+  // 5. Export CSS to FS
+  document.getElementById("theme-export-btn").onclick = () => {
+    const cssContent = document.getElementById("theme-editor").value;
+    updateCurrentUser(u => ({
+      ...u,
+      fs: u.fs.concat({ path: "/documents", name: "theme.css", type: "file", ext: ".css", content: cssContent })
+    }));
+    alert("Theme exported as theme.css in Documents.");
+  };
+}
+
+// ✅ Initialize Theme Studio
+window.addEventListener("load", initThemeStudio);
+
 // Sidebar click handling
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('.ts-side-item');

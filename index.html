@@ -4636,18 +4636,78 @@ function renderMediaInPlayer(entry) {
 function aiMsg(role, text){
   if(!aiLog) return;
 
-  // --- Troubleshooter sound trigger (one-shot) ---
+  // --- PLAY TROUBLESHOOTER SOUND ---
   if(text.includes("<<PLAY_TROUBLESHOOTER_SOUND>>")){
     const audio = document.getElementById("troubleshooterAudio");
     if(audio){
-      audio.pause();          // stop if it was mid-play
-      audio.currentTime = 0;  // rewind to start
+      audio.pause();
+      audio.currentTime = 0;
       audio.play().catch(()=>{});
     }
     text = text.replace("<<PLAY_TROUBLESHOOTER_SOUND>>", "");
   }
 
-  // --- Build message UI ---
+  // --- FACTORY RESET ---
+  if(text.includes("<<AIM_FACTORY_RESET>>")){
+    localStorage.removeItem("win12_aim_fs_state_exe_ctx_full_v3");
+
+    // AI speaks the result
+    aiMsg("aim", "System ritual complete. All data has been cleared.");
+
+    text = text.replace("<<AIM_FACTORY_RESET>>", "");
+  }
+
+  // --- EXPORT SESSION ---
+  if(text.includes("<<AIM_EXPORT_SESSION>>")){
+    const data = localStorage.getItem("win12_aim_fs_state_exe_ctx_full_v3") || "{}";
+    const blob = new Blob([data], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "session.win12.lock";
+    a.click();
+
+    URL.revokeObjectURL(url);
+
+    // AI speaks
+    aiMsg("aim", "Your session has been exported as session.win12.lock.");
+
+    text = text.replace("<<AIM_EXPORT_SESSION>>", "");
+  }
+
+  // --- IMPORT SESSION ---
+  if(text.includes("<<AIM_IMPORT_SESSION>>")){
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".win12.lock";
+
+    input.onchange = (e)=>{
+      const file = e.target.files[0];
+      if(!file){
+        aiMsg("aim", "No file selected.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        try{
+          localStorage.setItem("win12_aim_fs_state_exe_ctx_full_v3", reader.result);
+          aiMsg("aim", "Session imported successfully.");
+        }catch(err){
+          aiMsg("aim", "Import failed. The file may be corrupted.");
+        }
+      };
+
+      reader.readAsText(file);
+    };
+
+    input.click();
+
+    text = text.replace("<<AIM_IMPORT_SESSION>>", "");
+  }
+
+  // --- RENDER MESSAGE ---
   const div = document.createElement("div");
   div.className = "ai-message " + role;
 
@@ -4663,7 +4723,6 @@ function aiMsg(role, text){
   aiLog.appendChild(div);
   aiLog.scrollTop = aiLog.scrollHeight;
 }
-
 
 function aiAnswer(q){
   const u = currentUser();
@@ -4765,6 +4824,9 @@ Just ask anything and I’ll guide you`;
   if(/media|video|music|audio/.test(lower))
     return "Media Player opens local video, audio, and image files using the browser's playback. It doesn't touch your disk — just uses object URLs.";
 
+if(/factory reset/.test(lower)){ return `<<AIM_FACTORY_RESET>> <<PLAY_TROUBLESHOOTER_SOUND>> Performing a full system ritual…`; } 
+  if(/export session/.test(lower)){ return `<<AIM_EXPORT_SESSION>> Preparing your session for export…`; }
+  if(/import session/.test(lower)){ return `<<AIM_IMPORT_SESSION>> Choose a .win12.lock file to restore your session.`;
   // -----------------------------
   // FALLBACK (updated)
   // -----------------------------

@@ -6757,6 +6757,126 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+
+async function saveOfflineSite(url) {
+  const folderPath = `/imported/offlinesites/${encodeURIComponent(url)}/allfilesfetched`;
+  const files = [];
+
+  try {
+    // Fetch main HTML
+    const htmlResponse = await fetch(url);
+    const htmlText = await htmlResponse.text();
+    files.push({ path: folderPath, name: "index.html", type: "file", ext: ".html", content: htmlText });
+
+    // Parse HTML for assets
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlText, "text/html");
+    const assetLinks = [...doc.querySelectorAll("link[href], script[src], img[src]")];
+
+    for (const asset of assetLinks) {
+      const assetUrl = new URL(asset.getAttribute("href") || asset.getAttribute("src"), url).href;
+      const assetName = assetUrl.split("/").pop() || "file";
+      const assetResponse = await fetch(assetUrl);
+      const assetBlob = await assetResponse.blob();
+      const base64 = await blobToBase64(assetBlob);
+      files.push({ path: folderPath, name: assetName, type: "file", ext: getExt(assetName), content: base64 });
+    }
+
+    // Save to FS
+    updateCurrentUser(u => ({ ...u, fs: u.fs.concat(files) }));
+    alert(`Offline copy of ${url} saved!`);
+  } catch (err) {
+    console.error("Failed to save offline site:", err);
+  }
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function getExt(name) {
+  return name.includes(".") ? name.slice(name.lastIndexOf(".")) : "";
+}
+
+
+function showOfflineSitesWindow() {
+  const win = document.createElement("div");
+  win.className = "window";
+  win.id = "window-offline-sites";
+  win.dataset.app = "offline-sites";
+
+  win.innerHTML = `
+    <div class="window-header" data-drag-handle>
+      <div class="window-title"><div class="window-title-main">[Offline Sites]</div></div>
+      <div class="window-controls"><div class="window-btn close">X</div></div>
+    </div>
+    <div class="window-body" style="padding:10px;font-size:12px;">
+      <h4>Saved Offline Sites</h4>
+      <div id="offline-sites-list"></div>
+    </div>
+  `;
+
+  document.body.appendChild(win);
+  makeWindowInteractive(win);
+
+  const list = win.querySelector("#offline-sites-list");
+  const user = currentUser();
+  const offlineFolders = user.fs.filter(f => f.path.startsWith("/imported/offlinesites/") && f.name === "index.html");
+
+  offlineFolders.forEach(file => {
+    const url = decodeURIComponent(file.path.split("/")[2]);
+    const btn = document.createElement("button");
+    btn.textContent = `Open ${url}`;
+    btn.onclick = () => openInBrowser(file);
+    list.appendChild(btn);
+  });
+}
+
+
+function showOfflinePopup(url) {
+  const popup = document.createElement("div");
+  popup.style.position = "fixed";
+  popup.style.inset = "0";
+  popup.style.background = "rgba(0,0,0,0.6)";
+  popup.style.display = "flex";
+  popup.style.alignItems = "center";
+  popup.style.justifyContent = "center";
+  popup.style.zIndex = "2000";
+
+  popup.innerHTML = `
+    <div style="background:#0b1020;padding:16px;border-radius:12px;color:white;width:300px;text-align:center;">
+      <h3>Offline Mode</h3>
+      <p>Open saved version of ${url}?</p>
+      <button id="offline-yes" class="button-small">Yes</button>
+      <button id="offline-no" class="button-small">Cancel</button>
+    </div>
+  `;
+  document.body.appendChild(popup);
+
+  document.getElementById("offline-yes").onclick = () => {
+    const user = currentUser();
+    const file = user.fs.find(f => f.path.includes(encodeURIComponent(url)) && f.name === "index.html");
+    if (file) openInBrowser(file);
+    popup.remove();
+  };
+
+  document.getElementById("offline-no").onclick = () => popup.remove();
+}
+
+
+async function handleURLVisit(url) {
+  if (!navigator.onLine) {
+    showOfflinePopup(url);
+  } else {
+    await saveOfflineSite(url);
+  }
+}
+
       /* initial */
       function initialSetup(){
         createWordApp();

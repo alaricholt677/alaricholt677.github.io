@@ -2032,6 +2032,63 @@
 </div>
 
 
+<!-- Task Manager -->
+<div class="window" id="window-taskmgr" data-app="taskmgr" data-app-desc="[Task Manager] Monitor processes, performance, and users.">
+  <div class="window-header" data-drag-handle>
+    <div class="window-title">
+      <div class="window-title-icon" style="background:linear-gradient(135deg,#ff7ad9,#b400ff);"></div>
+      <div class="window-title-text">
+        <div class="window-title-main">[Task Manager]</div>
+        <div class="window-title-sub">Processes · Performance · Users</div>
+      </div>
+      <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+      <div class="window-info-icon">(i)</div>
+      <div class="window-info-tooltip"></div>
+    </div>
+    <div class="window-controls">
+      <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+      <div class="window-btn close"><div class="window-btn-icon"></div></div>
+    </div>
+  </div>
+  <div class="window-body taskmgr-body">
+    <div class="taskmgr-container">
+      <aside class="taskmgr-sidebar">
+        <div class="taskmgr-sidebar-header">Task Manager</div>
+        <ul class="taskmgr-sidebar-list">
+          <li class="taskmgr-sidebar-item active" data-tab="processes">Processes</li>
+          <li class="taskmgr-sidebar-item" data-tab="performance">Performance</li>
+          <li class="taskmgr-sidebar-item" data-tab="users">Users</li>
+        </ul>
+      </aside>
+      <main class="taskmgr-main">
+        <div class="taskmgr-main-header">
+          <div class="taskmgr-main-tabs">
+            <button class="taskmgr-tab-btn active" data-tab="processes">Processes</button>
+            <button class="taskmgr-tab-btn" data-tab="performance">Performance</button>
+            <button class="taskmgr-tab-btn" data-tab="users">Users</button>
+          </div>
+          <div class="taskmgr-main-actions">
+            <button class="taskmgr-btn taskmgr-btn-refresh">Refresh</button>
+            <button class="taskmgr-btn taskmgr-btn-run">Run App</button>
+          </div>
+        </div>
+        <div class="taskmgr-main-content">
+          <section class="taskmgr-tab taskmgr-tab-processes active">
+            <table class="taskmgr-table"><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody></tbody></table>
+          </section>
+          <section class="taskmgr-tab taskmgr-tab-performance">
+            <canvas id="cpuChart"></canvas>
+            <canvas id="memChart"></canvas>
+          </section>
+          <section class="taskmgr-tab taskmgr-tab-users">
+            <div id="usersList">Loading users...</div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
   <!-- Context menu -->
   <div class="ctx-menu" id="ctx-menu">
     <div class="ctx-item" data-action="open"><span>Open</span></div>
@@ -6879,111 +6936,14 @@ function createAppWindowSkeleton(appId, title, iconEmoji) {
 }
 
 
+
 function initTaskManager() {
-  const appId = 'taskmgr';
-  const appTitle = 'Task Manager';
+  const win = document.getElementById('window-taskmgr');
 
-  // Inject scoped CSS for Task Manager content
-  const style = document.createElement('style');
-  style.textContent = `
-    .taskmgr-body {
-      padding: 10px;
-      background: radial-gradient(circle at top, rgba(255,255,255,0.18), rgba(0,0,0,0.65));
-      height: calc(100% - 34px);
-      box-sizing: border-box;
-    }
-    .taskmgr-container {
-      display: grid;
-      grid-template-columns: 220px minmax(0, 1fr);
-      gap: 10px;
-      height: 100%;
-    }
-    .taskmgr-sidebar {
-      background: rgba(10,0,30,0.75);
-      border-radius: 14px;
-      padding: 10px;
-    }
-    .taskmgr-sidebar-item.active,
-    .taskmgr-tab-btn.active {
-      background: linear-gradient(135deg,#ff7ad9,#b400ff);
-      color: #fff;
-    }
-    .taskmgr-tab-btn {
-      border: none;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.9);
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .taskmgr-main-actions .taskmgr-btn {
-      border: none;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.08);
-      color: #fff;
-      cursor: pointer;
-    }
-    canvas {
-      width: 100%;
-      height: 120px;
-      background: rgba(255,255,255,0.04);
-      border-radius: 8px;
-    }
-  `;
-  document.head.appendChild(style);
-
-  // Create window skeleton
-  let win = document.getElementById(appId);
-  if (!win) win = createAppWindowSkeleton(appId, appTitle, '📊');
-
-  const body = win.querySelector('.win12-window-body');
-  body.classList.add('taskmgr-body');
-
-  // Layout with sidebar and tabs
-  body.innerHTML = `
-    <div class="taskmgr-container">
-      <aside class="taskmgr-sidebar">
-        <div class="taskmgr-sidebar-header">Task Manager</div>
-        <ul class="taskmgr-sidebar-list">
-          <li class="taskmgr-sidebar-item active" data-tab="processes">Processes</li>
-          <li class="taskmgr-sidebar-item" data-tab="performance">Performance</li>
-          <li class="taskmgr-sidebar-item" data-tab="users">Users</li>
-        </ul>
-      </aside>
-      <main class="taskmgr-main">
-        <div class="taskmgr-main-header">
-          <div class="taskmgr-main-tabs">
-            <button class="taskmgr-tab-btn active" data-tab="processes">Processes</button>
-            <button class="taskmgr-tab-btn" data-tab="performance">Performance</button>
-            <button class="taskmgr-tab-btn" data-tab="users">Users</button>
-          </div>
-          <div class="taskmgr-main-actions">
-            <button class="taskmgr-btn taskmgr-btn-refresh">Refresh</button>
-            <button class="taskmgr-btn taskmgr-btn-run">Run App</button>
-          </div>
-        </div>
-        <div class="taskmgr-main-content">
-          <section class="taskmgr-tab taskmgr-tab-processes active">
-            <table class="taskmgr-table"><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody></tbody></table>
-          </section>
-          <section class="taskmgr-tab taskmgr-tab-performance">
-            <canvas id="cpuChart"></canvas>
-            <canvas id="memChart"></canvas>
-          </section>
-          <section class="taskmgr-tab taskmgr-tab-users">
-            <div id="usersList">Loading users...</div>
-          </section>
-        </div>
-      </main>
-    </div>
-  `;
-
-  // Tab switching logic
-  const tabs = body.querySelectorAll('.taskmgr-tab');
-  const tabBtns = body.querySelectorAll('.taskmgr-tab-btn');
-  const sidebarItems = body.querySelectorAll('.taskmgr-sidebar-item');
+  // Tab switching
+  const tabs = win.querySelectorAll('.taskmgr-tab');
+  const tabBtns = win.querySelectorAll('.taskmgr-tab-btn');
+  const sidebarItems = win.querySelectorAll('.taskmgr-sidebar-item');
   function activateTab(tabName) {
     tabs.forEach(t => t.classList.toggle('active', t.classList.contains(`taskmgr-tab-${tabName}`)));
     tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === tabName));
@@ -6994,7 +6954,7 @@ function initTaskManager() {
 
   // Processes tab: show open windows
   function renderProcesses() {
-    const tbody = body.querySelector('.taskmgr-tab-processes tbody');
+    const tbody = win.querySelector('.taskmgr-tab-processes tbody');
     tbody.innerHTML = '';
     windowsMap.forEach(meta => {
       const row = `<tr><td>${meta.title}</td><td>${document.getElementById(meta.id)?.classList.contains('visible') ? 'Running' : 'Hidden'}</td></tr>`;
@@ -7014,7 +6974,7 @@ function initTaskManager() {
     ctx.fillRect(10, 40, value * 2, 20);
   }
   function updatePerformance() {
-    const cpu = Math.floor(Math.random() * 100); // Placeholder for real metrics
+    const cpu = Math.floor(Math.random() * 100); // Replace with real metrics later
     const mem = Math.floor(Math.random() * 100);
     drawChart(cpuCtx, cpu, 'CPU');
     drawChart(memCtx, mem, 'Memory');
@@ -7029,41 +6989,27 @@ function initTaskManager() {
   }
 
   // Refresh button
-  body.querySelector('.taskmgr-btn-refresh').addEventListener('click', () => {
+  win.querySelector('.taskmgr-btn-refresh').addEventListener('click', () => {
     renderProcesses();
     updatePerformance();
     renderUsers();
   });
 
-  // ✅ Run App button now calls showWindow('run')
-  body.querySelector('.taskmgr-btn-run').addEventListener('click', () => {
+  // ✅ Run App button opens Run dialog
+  win.querySelector('.taskmgr-btn-run').addEventListener('click', () => {
     if (typeof showWindow === 'function') {
-      showWindow('run'); // Correct integration with your window system
+      showWindow('run'); // Correct integration
     } else {
       alert('Run dialog function not found!');
     }
   });
 
   // Window controls
-  win.querySelector('.win12-window-close').addEventListener('click', () => win.classList.remove('visible'));
-  win.querySelector('.win12-window-minimize').addEventListener('click', () => win.classList.remove('visible'));
-  win.querySelector('.win12-window-maximize').addEventListener('click', () => win.classList.toggle('fullscreen'));
-
-  // Add Start Menu icon
-  const startGrid = document.getElementById('start-pinned-grid');
-  if (startGrid && !startGrid.querySelector('[data-app="taskmgr"]')) {
-    const startBtn = document.createElement('div');
-    startBtn.className = 'start-app';
-    startBtn.dataset.app = appId;
-    startBtn.innerHTML = `
-      <div class="start-app-icon" style="background:linear-gradient(135deg,#ff7ad9,#b400ff);"></div>
-      <div>Task Manager</div>
-      <div class="start-app-sub">Monitor apps & performance</div>
-    `;
-    startGrid.appendChild(startBtn);
-    startBtn.addEventListener('click', () => win.classList.add('visible'));
-  }
+  win.querySelector('.window-btn.close').addEventListener('click', () => win.classList.remove('visible'));
+  win.querySelector('.window-btn.minimize').addEventListener('click', () => win.classList.remove('visible'));
+  win.querySelector('.window-fullscreen-toggle').addEventListener('click', () => win.classList.toggle('fullscreen'));
 }
+
 
       /* initial */
       function initialSetup(){

@@ -1214,16 +1214,40 @@
   animation: tsScrollMiddleIn 0.5s ease 0.1s forwards;
 }
 
-.win12-window {
+/* === Task Manager Window === */
+.taskmgr-window {
   position: absolute;
-  background: radial-gradient(circle at top left, #ff9aeb, #b400ff 40%, #2b0b4f 80%);
-  color: #fdfcff;
+  display: flex;
+  flex-direction: column;
+  min-width: 360px;
+  max-width: 900px;
+  min-height: 220px;
+  max-height: 540px;
   border-radius: 14px;
   box-shadow: 0 18px 40px rgba(0,0,0,0.45);
   overflow: hidden;
+  z-index: 1200;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  background: radial-gradient(circle at top left, #ff9aeb, #b400ff 40%, #2b0b4f 80%);
+  color: #fdfcff;
 }
 
-.win12-window-header {
+.taskmgr-window.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.taskmgr-window.fullscreen {
+  left: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  height: calc(100% - var(--taskbar-height)) !important;
+  border-radius: 0 !important;
+}
+
+/* Header */
+.taskmgr-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1232,13 +1256,13 @@
   backdrop-filter: blur(18px);
 }
 
-.win12-window-header-left {
+.taskmgr-header-left {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.win12-window-icon {
+.taskmgr-icon {
   width: 22px;
   height: 22px;
   display: inline-flex;
@@ -1249,12 +1273,12 @@
   box-shadow: 0 0 0 1px rgba(255,255,255,0.25);
 }
 
-.win12-window-title {
+.taskmgr-title {
   font-weight: 600;
   font-size: 13px;
 }
 
-.win12-window-header-right .win12-window-btn {
+.taskmgr-header-right .taskmgr-btn {
   border: none;
   background: transparent;
   color: #fdfcff;
@@ -1264,15 +1288,16 @@
   transition: background 0.15s ease, transform 0.1s ease;
 }
 
-.win12-window-header-right .win12-window-btn:hover {
+.taskmgr-header-right .taskmgr-btn:hover {
   background: rgba(255,255,255,0.12);
   transform: translateY(-1px);
 }
 
-.win12-window-header-right .win12-window-close:hover {
+.taskmgr-header-right .taskmgr-close:hover {
   background: rgba(255,0,80,0.75);
 }
 
+/* Body */
 .taskmgr-body {
   padding: 10px;
   background: radial-gradient(circle at top, rgba(255,255,255,0.18), rgba(0,0,0,0.65));
@@ -1280,255 +1305,15 @@
   box-sizing: border-box;
 }
 
-.taskmgr-container {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: 10px;
-  height: 100%;
-}
-
-.taskmgr-sidebar {
-  background: rgba(10, 0, 30, 0.75);
-  border-radius: 14px;
-  padding: 10px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
-  display: flex;
-  flex-direction: column;
-}
-
-.taskmgr-sidebar-header {
-  font-weight: 600;
-  font-size: 14px;
-  margin-bottom: 10px;
-  opacity: 0.9;
-}
-
-.taskmgr-sidebar-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.taskmgr-sidebar-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 10px;
-  cursor: pointer;
-  color: rgba(255,255,255,0.85);
-  transition: background 0.15s ease, transform 0.1s ease;
-}
-
-.taskmgr-sidebar-item:hover {
-  background: rgba(255,255,255,0.08);
-  transform: translateY(-1px);
-}
-
-.taskmgr-sidebar-item.active {
-  background: linear-gradient(135deg, #ff7ad9, #b400ff);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-}
-
-.taskmgr-sidebar-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: radial-gradient(circle, #ffebff, #ff7ad9);
-}
-
-.taskmgr-main {
-  background: rgba(10, 0, 30, 0.75);
-  border-radius: 14px;
-  padding: 10px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
-  display: flex;
-  flex-direction: column;
-}
-
-.taskmgr-main-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.taskmgr-main-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.taskmgr-tab-btn {
-  border: none;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.9);
-  font-size: 12px;
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
-}
-
-.taskmgr-tab-btn:hover {
-  background: rgba(255,255,255,0.12);
-  transform: translateY(-1px);
-}
-
-.taskmgr-tab-btn.active {
+/* Sidebar & Tabs */
+.taskmgr-sidebar-item.active,
+.taskmgr-tab-btn.active,
+.taskmgr-btn-endtask,
+.taskmgr-performance-chart-bar {
   background: linear-gradient(135deg, #ff7ad9, #b400ff);
   box-shadow: 0 8px 20px rgba(0,0,0,0.5);
 }
 
-.taskmgr-main-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.taskmgr-btn {
-  border: none;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  cursor: pointer;
-  background: rgba(255,255,255,0.08);
-  color: #fdfcff;
-  transition: background 0.15s ease, transform 0.1s ease;
-}
-
-.taskmgr-btn:hover {
-  background: rgba(255,255,255,0.16);
-  transform: translateY(-1px);
-}
-
-.taskmgr-btn-endtask {
-  background: linear-gradient(135deg, #ff4b8b, #b400ff);
-}
-
-.taskmgr-main-content {
-  flex: 1;
-  background: rgba(0,0,0,0.35);
-  border-radius: 12px;
-  padding: 8px;
-  overflow: hidden;
-}
-
-.taskmgr-tab {
-  display: none;
-  height: 100%;
-}
-
-.taskmgr-tab.active {
-  display: block;
-}
-
-.taskmgr-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-  border-radius: 10px;
-  overflow: hidden;
-  background: rgba(10,0,30,0.9);
-}
-
-.taskmgr-table thead {
-  background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02));
-}
-
-.taskmgr-table th,
-.taskmgr-table td {
-  padding: 6px 8px;
-  text-align: left;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-
-.taskmgr-table tbody tr:hover {
-  background: rgba(255,255,255,0.06);
-}
-
-.taskmgr-table tbody tr.selected {
-  background: linear-gradient(135deg, rgba(255,122,217,0.4), rgba(180,0,255,0.4));
-}
-
-.taskmgr-processes-footer {
-  margin-top: 6px;
-  font-size: 11px;
-  opacity: 0.8;
-}
-
-.taskmgr-performance-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  height: 100%;
-}
-
-.taskmgr-performance-card {
-  background: rgba(10,0,30,0.9);
-  border-radius: 12px;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.taskmgr-performance-title {
-  font-size: 12px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.taskmgr-performance-chart {
-  flex: 1;
-  background: rgba(255,255,255,0.04);
-  border-radius: 8px;
-  overflow: hidden;
-  position: relative;
-}
-
-.taskmgr-performance-chart-bar {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 0%;
-  background: linear-gradient(135deg, #ff7ad9, #b400ff);
-  transition: width 0.25s ease;
-}
-
-.taskmgr-performance-value {
-  margin-top: 4px;
-  font-size: 12px;
-  opacity: 0.9;
-}
-
-.taskmgr-start-icon {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-}
-
-.taskmgr-start-icon-inner {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #ff7ad9, #b400ff);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  color: #fff;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-}
-
-.taskmgr-start-icon-label {
-  font-size: 11px;
-  color: rgba(255,255,255,0.9);
-}
   </style>
   <style id="theme-style"></style>
 </head>

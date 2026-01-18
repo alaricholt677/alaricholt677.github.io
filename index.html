@@ -1207,12 +1207,7 @@
   0% { width: 0; opacity: 0; }
   100% { width: 80%; opacity: 1; }
 }
-.ts-overlay.ts-animating .ts-scroll-top {
-  animation: tsScrollTopIn 0.5s ease forwards;
-}
-.ts-overlay.ts-animating .ts-scroll-middle {
-  animation: tsScrollMiddleIn 0.5s ease 0.1s forwards;
-}
+
 .taskmgr-performance-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1237,6 +1232,7 @@
   background: rgba(255,255,255,0.06);
   border-radius: 8px;
 }
+
   </style>
   <style id="theme-style"></style>
 </head>
@@ -2059,33 +2055,85 @@
   </div>
 </div>
 
-<div class="taskmgr-main-content">
-  <section class="taskmgr-tab" data-tab="processes">
-    <table class="taskmgr-table">
-      <thead><tr><th>Name</th><th>Status</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </section>
-  <section class="taskmgr-tab" data-tab="performance">
-    <div class="taskmgr-performance-grid">
-      <div class="taskmgr-performance-card">
-        <div class="taskmgr-performance-title">CPU Usage</div>
-        <canvas id="cpuChart"></canvas>
+
+<div class="window" id="window-taskmgr" data-app="taskmgr" data-app-desc="[Task Manager] Monitor processes, performance, and users.">
+  <div class="window-header" data-drag-handle>
+    <div class="window-title">
+      <div class="window-title-icon" style="background:linear-gradient(135deg,#ff7ad9,#b400ff);"></div>
+      <div class="window-title-text">
+        <div class="window-title-main">[Task Manager]</div>
+        <div class="window-title-sub">Processes · Performance · Users</div>
       </div>
-      <div class="taskmgr-performance-card">
-        <div class="taskmgr-performance-title">Memory Usage</div>
-        <canvas id="memChart"></canvas>
-      </div>
-      <div class="taskmgr-performance-card">
-        <div class="taskmgr-performance-title">Network</div>
-        <canvas id="netChart"></canvas>
-      </div>
+      <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+      <div class="window-info-icon">(i)</div>
+      <div class="window-info-tooltip"></div>
     </div>
-  </section>
-  <section class="taskmgr-tab" data-tab="users">
-    <div id="usersList">Loading users...</div>
-  </section>
+    <div class="window-controls">
+      <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+      <div class="window-btn close"><div class="window-btn-icon"></div></div>
+    </div>
+  </div>
+  <div class="window-body taskmgr-body">
+    <div class="taskmgr-container">
+      <aside class="taskmgr-sidebar">
+        <div class="taskmgr-sidebar-header">Task Manager</div>
+        <ul class="taskmgr-sidebar-list">
+          <li class="taskmgr-sidebar-item active" data-tab="processes">Processes</li>
+          <li class="taskmgr-sidebar-item" data-tab="performance">Performance</li>
+          <li class="taskmgr-sidebar-item" data-tab="app-history">App History</li>
+          <li class="taskmgr-sidebar-item" data-tab="startup">Startup</li>
+          <li class="taskmgr-sidebar-item" data-tab="users">Users</li>
+          <li class="taskmgr-sidebar-item" data-tab="details">Details</li>
+          <li class="taskmgr-sidebar-item" data-tab="services">Services</li>
+        </ul>
+      </aside>
+      <main class="taskmgr-main">
+        <div class="taskmgr-main-header">
+          <div class="taskmgr-main-tabs">
+            <button class="taskmgr-tab-btn active" data-tab="processes">Processes</button>
+            <button class="taskmgr-tab-btn" data-tab="performance">Performance</button>
+            <button class="taskmgr-tab-btn" data-tab="app-history">App History</button>
+            <button class="taskmgr-tab-btn" data-tab="startup">Startup</button>
+            <button class="taskmgr-tab-btn" data-tab="users">Users</button>
+            <button class="taskmgr-tab-btn" data-tab="details">Details</button>
+            <button class="taskmgr-tab-btn" data-tab="services">Services</button>
+          </div>
+          <div class="taskmgr-main-actions">
+            <button class="taskmgr-btn taskmgr-btn-refresh">Refresh</button>
+            <button class="taskmgr-btn taskmgr-btn-run">Run App</button>
+          </div>
+        </div>
+        <div class="taskmgr-main-content">
+          <section class="taskmgr-tab active" data-tab="processes">
+            <table class="taskmgr-table"><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody></tbody></table>
+          </section>
+          <section class="taskmgr-tab" data-tab="performance">
+            <div class="taskmgr-performance-grid">
+              <div class="taskmgr-performance-card">
+                <div class="taskmgr-performance-title">CPU Usage</div>
+                <canvas id="cpuChart"></canvas>
+              </div>
+              <div class="taskmgr-performance-card">
+                <div class="taskmgr-performance-title">Memory Usage</div>
+                <canvas id="memChart"></canvas>
+              </div>
+              <div class="taskmgr-performance-card">
+                <div class="taskmgr-performance-title">Network Latency</div>
+                <canvas id="netChart"></canvas>
+              </div>
+            </div>
+          </section>
+          <section class="taskmgr-tab" data-tab="app-history">App History content...</section>
+          <section class="taskmgr-tab" data-tab="startup">Startup content...</section>
+          <section class="taskmgr-tab" data-tab="users"><div id="usersList">Loading users...</div></section>
+          <section class="taskmgr-tab" data-tab="details">Details content...</section>
+          <section class="taskmgr-tab" data-tab="services">Services content...</section>
+        </div>
+      </main>
+    </div>
+  </div>
 </div>
+
 
   <!-- Context menu -->
   <div class="ctx-menu" id="ctx-menu">
@@ -6933,11 +6981,10 @@ function createAppWindowSkeleton(appId, title, iconEmoji) {
   return win;
 }
 
-
 function initTaskManager() {
   const win = document.getElementById('window-taskmgr');
 
-  // Tab switching using data-tab
+  // Tab switching
   const tabs = win.querySelectorAll('.taskmgr-tab');
   const tabBtns = win.querySelectorAll('.taskmgr-tab-btn');
   const sidebarItems = win.querySelectorAll('.taskmgr-sidebar-item');
@@ -6951,7 +6998,17 @@ function initTaskManager() {
   tabBtns.forEach(b => b.addEventListener('click', () => activateTab(b.dataset.tab)));
   sidebarItems.forEach(i => i.addEventListener('click', () => activateTab(i.dataset.tab)));
 
-  // Performance charts: connected lines
+  // Processes tab
+  function renderProcesses() {
+    const tbody = win.querySelector('.taskmgr-tab[data-tab="processes"] tbody');
+    tbody.innerHTML = '';
+    windowsMap.forEach(meta => {
+      const row = `<tr><td>${meta.title}</td><td>${document.getElementById(meta.id)?.classList.contains('visible') ? 'Running' : 'Hidden'}</td></tr>`;
+      tbody.insertAdjacentHTML('beforeend', row);
+    });
+  }
+
+  // Performance charts: CPU, Memory (random), Network (real latency)
   const cpuCtx = document.getElementById('cpuChart').getContext('2d');
   const memCtx = document.getElementById('memChart').getContext('2d');
   const netCtx = document.getElementById('netChart').getContext('2d');
@@ -6973,17 +7030,25 @@ function initTaskManager() {
     ctx.stroke();
     ctx.fillStyle = '#fff';
     ctx.font = '12px sans-serif';
-    ctx.fillText(`${label}: ${data[data.length - 1]}%`, 10, 15);
+    ctx.fillText(`${label}: ${data[data.length - 1]}${label === 'Network' ? 'ms' : '%'}`, 10, 15);
   }
 
-  function updatePerformance() {
+  async function measureNetworkLatency() {
+    const start = performance.now();
+    try {
+      await fetch('https://alaricholt677.github.io', { mode: 'no-cors' });
+    } catch (e) {}
+    return performance.now() - start;
+  }
+
+  async function updatePerformance() {
     const cpu = Math.floor(Math.random() * 100);
     const mem = Math.floor(Math.random() * 100);
-    const net = Math.floor(Math.random() * 100);
+    const net = await measureNetworkLatency();
 
     cpuData.push(cpu);
     memData.push(mem);
-    netData.push(net);
+    netData.push(Math.min(net, 500)); // cap latency for chart
 
     if (cpuData.length > maxPoints) cpuData.shift();
     if (memData.length > maxPoints) memData.shift();
@@ -6994,19 +7059,9 @@ function initTaskManager() {
     drawLineChart(netCtx, netData, '#61ffb4', 'Network');
   }
 
-  setInterval(updatePerformance, 1000); // Update every second
+  setInterval(updatePerformance, 2000);
 
-  // Processes tab
-  function renderProcesses() {
-    const tbody = win.querySelector('.taskmgr-tab-processes tbody');
-    tbody.innerHTML = '';
-    windowsMap.forEach(meta => {
-      const row = `<tr><td>${meta.title}</td><td>${document.getElementById(meta.id)?.classList.contains('visible') ? 'Running' : 'Hidden'}</td></tr>`;
-      tbody.insertAdjacentHTML('beforeend', row);
-    });
-  }
-
-  // Users tab: decode current user
+  // Users tab
   function renderUsers() {
     const usersDiv = document.getElementById('usersList');
     const data = JSON.parse(localStorage.getItem('win12_aim_fs_state_exe_ctx_full_v3') || '{}');
@@ -7026,6 +7081,11 @@ function initTaskManager() {
       showWindow('run');
     }
   });
+
+  // Window controls
+  win.querySelector('.window-btn.close').addEventListener('click', () => win.classList.remove('visible'));
+  win.querySelector('.window-btn.minimize').addEventListener('click', () => win.classList.remove('visible'));
+  win.querySelector('.window-fullscreen-toggle').addEventListener('click', () => win.classList.toggle('fullscreen'));
 }
 
 

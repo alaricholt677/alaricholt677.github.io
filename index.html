@@ -6878,15 +6878,88 @@ function createAppWindowSkeleton(appId, title, iconEmoji) {
   return win;
 }
 
-// Main Task Manager initializer
+
+// === Skeleton function (unchanged) ===
+function createAppWindowSkeleton(appId, title, iconEmoji) {
+  const win = document.createElement('div');
+  win.className = 'win12-window';
+  win.id = appId;
+
+  win.innerHTML = `
+    <div class="win12-window-header">
+      <div class="win12-window-header-left">
+        <span class="win12-window-icon">${iconEmoji || '🧩'}</span>
+        <span class="win12-window-title">${title}</span>
+      </div>
+      <div class="win12-window-header-right">
+        <button class="win12-window-btn win12-window-minimize">_</button>
+        <button class="win12-window-btn win12-window-maximize">▢</button>
+        <button class="win12-window-btn win12-window-close">✕</button>
+      </div>
+    </div>
+    <div class="win12-window-body"></div>
+  `;
+
+  document.body.appendChild(win);
+  return win;
+}
+
+// === Main Task Manager initializer (refix) ===
 function initTaskManager() {
   const appId = 'taskmgr';
   const appTitle = 'Task Manager';
 
-  // Ensure windowsMap exists
-  window.windowsMap = window.windowsMap || new Map();
+  // Inject scoped CSS for Task Manager
+  const style = document.createElement('style');
+  style.textContent = `
+    .win12-window#${appId} {
+      background: radial-gradient(circle at top left, #ff9aeb, #b400ff 40%, #2b0b4f 80%);
+      color: #fdfcff;
+      border-radius: 14px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+    }
+    .taskmgr-body {
+      padding: 10px;
+      background: radial-gradient(circle at top, rgba(255,255,255,0.18), rgba(0,0,0,0.65));
+      height: calc(100% - 34px);
+      box-sizing: border-box;
+    }
+    .taskmgr-container {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 10px;
+      height: 100%;
+    }
+    .taskmgr-sidebar {
+      background: rgba(10, 0, 30, 0.75);
+      border-radius: 14px;
+      padding: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+    }
+    .taskmgr-sidebar-item.active,
+    .taskmgr-tab-btn.active,
+    .taskmgr-btn-endtask {
+      background: linear-gradient(135deg, #ff7ad9, #b400ff);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    }
+    .taskmgr-tab-btn {
+      border: none;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.9);
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+    .taskmgr-tab-btn:hover {
+      background: rgba(255,255,255,0.12);
+      transform: translateY(-1px);
+    }
+  `;
+  document.head.appendChild(style);
 
-  // Create window if not already created
+  // Create window using skeleton
   let win = document.getElementById(appId);
   if (!win) {
     win = createAppWindowSkeleton(appId, appTitle, '📊');
@@ -6904,11 +6977,7 @@ function initTaskManager() {
           <div class="taskmgr-main-tabs">
             <button class="taskmgr-tab-btn active" data-tab="processes">Processes</button>
             <button class="taskmgr-tab-btn" data-tab="performance">Performance</button>
-            <button class="taskmgr-tab-btn" data-tab="app-history">App History</button>
-            <button class="taskmgr-tab-btn" data-tab="startup">Startup</button>
             <button class="taskmgr-tab-btn" data-tab="users">Users</button>
-            <button class="taskmgr-tab-btn" data-tab="details">Details</button>
-            <button class="taskmgr-tab-btn" data-tab="services">Services</button>
           </div>
           <div class="taskmgr-main-actions">
             <button class="taskmgr-btn taskmgr-btn-refresh">Refresh</button>
@@ -6916,71 +6985,43 @@ function initTaskManager() {
           </div>
         </div>
         <div class="taskmgr-main-content">
-          <section class="taskmgr-tab taskmgr-tab-processes active"></section>
-          <section class="taskmgr-tab taskmgr-tab-performance"></section>
-          <section class="taskmgr-tab taskmgr-tab-app-history"></section>
-          <section class="taskmgr-tab taskmgr-tab-startup"></section>
-          <section class="taskmgr-tab taskmgr-tab-users"></section>
-          <section class="taskmgr-tab taskmgr-tab-details"></section>
-          <section class="taskmgr-tab taskmgr-tab-services"></section>
+          <section class="taskmgr-tab taskmgr-tab-processes active">Processes content...</section>
+          <section class="taskmgr-tab taskmgr-tab-performance">Performance content...</section>
+          <section class="taskmgr-tab taskmgr-tab-users">Users content...</section>
         </div>
       </main>
     </div>
   `;
 
+  // Sidebar rendering
   const sidebarEl = body.querySelector('.taskmgr-sidebar');
-  const processesTabEl = body.querySelector('.taskmgr-tab-processes');
-  const performanceTabEl = body.querySelector('.taskmgr-tab-performance');
-  const usersTabEl = body.querySelector('.taskmgr-tab-users');
+  sidebarEl.innerHTML = `
+    <div class="taskmgr-sidebar-header">Task Manager</div>
+    <ul class="taskmgr-sidebar-list">
+      <li class="taskmgr-sidebar-item active" data-tab="processes">Processes</li>
+      <li class="taskmgr-sidebar-item" data-tab="performance">Performance</li>
+      <li class="taskmgr-sidebar-item" data-tab="users">Users</li>
+    </ul>
+  `;
 
-  // Render sidebar
-  function renderSidebar() {
-    const sections = [
-      'Processes', 'Performance', 'App History', 'Startup', 'Users', 'Details', 'Services'
-    ];
-    sidebarEl.innerHTML = `
-      <div class="taskmgr-sidebar-header">Task Manager</div>
-      <ul class="taskmgr-sidebar-list">
-        ${sections.map((name, idx) => `
-          <li class="taskmgr-sidebar-item ${idx === 0 ? 'active' : ''}" data-tab="${name.toLowerCase().replace(' ', '-')}">
-            <span class="taskmgr-sidebar-dot"></span>
-            <span class="taskmgr-sidebar-label">${name}</span>
-          </li>
-        `).join('')}
-      </ul>
-    `;
+  // Tab switching logic
+  const tabButtons = body.querySelectorAll('.taskmgr-tab-btn');
+  const tabs = body.querySelectorAll('.taskmgr-tab');
+  const sidebarItems = body.querySelectorAll('.taskmgr-sidebar-item');
+
+  function activateTab(tabName) {
+    tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tabName));
+    tabs.forEach(tab => tab.classList.toggle('active', tab.classList.contains(`taskmgr-tab-${tabName}`)));
+    sidebarItems.forEach(item => item.classList.toggle('active', item.dataset.tab === tabName));
   }
 
-  // Tabs interaction
-  function wireTabs() {
-    const tabButtons = body.querySelectorAll('.taskmgr-tab-btn');
-    const tabs = body.querySelectorAll('.taskmgr-tab');
-    const sidebarItems = body.querySelectorAll('.taskmgr-sidebar-item');
-
-    function activateTab(tabName) {
-      tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tabName));
-      tabs.forEach(tab => tab.classList.toggle('active', tab.classList.contains(`taskmgr-tab-${tabName}`)));
-      sidebarItems.forEach(item => item.classList.toggle('active', item.dataset.tab === tabName));
-    }
-
-    tabButtons.forEach(btn => btn.addEventListener('click', () => activateTab(btn.dataset.tab)));
-    sidebarItems.forEach(item => item.addEventListener('click', () => activateTab(item.dataset.tab)));
-  }
-
-  // Wire actions
-  function wireActions() {
-    const refreshBtn = body.querySelector('.taskmgr-btn-refresh');
-    if (refreshBtn) refreshBtn.addEventListener('click', () => alert('Refreshing...'));
-  }
+  tabButtons.forEach(btn => btn.addEventListener('click', () => activateTab(btn.dataset.tab)));
+  sidebarItems.forEach(item => item.addEventListener('click', () => activateTab(item.dataset.tab)));
 
   // Window controls
-  const btnClose = win.querySelector('.win12-window-close');
-  const btnMin = win.querySelector('.win12-window-minimize');
-  const btnMax = win.querySelector('.win12-window-maximize');
-
-  btnClose.addEventListener('click', () => win.classList.remove('visible'));
-  btnMin.addEventListener('click', () => win.classList.remove('visible'));
-  btnMax.addEventListener('click', () => win.classList.toggle('fullscreen'));
+  win.querySelector('.win12-window-close').addEventListener('click', () => win.classList.remove('visible'));
+  win.querySelector('.win12-window-minimize').addEventListener('click', () => win.classList.remove('visible'));
+  win.querySelector('.win12-window-maximize').addEventListener('click', () => win.classList.toggle('fullscreen'));
 
   // Add Start Menu icon
   const startGrid = document.getElementById('start-pinned-grid');
@@ -6996,11 +7037,6 @@ function initTaskManager() {
     startGrid.appendChild(startBtn);
     startBtn.addEventListener('click', () => win.classList.add('visible'));
   }
-
-  // Initialize UI
-  renderSidebar();
-  wireTabs();
-  wireActions();
 }
       /* initial */
       function initialSetup(){

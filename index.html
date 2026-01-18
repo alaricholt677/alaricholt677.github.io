@@ -6853,9 +6853,182 @@ function showOfflinePopup(url) {
 // ✅ Make it ALWAYS run every 30 seconds
 setInterval(handleURLVisitAlways, 30000);
 
+function createTaskManagerApp() {
+  // === 1. Inject Task Manager Styles into <head> ===
+  const style = document.createElement('style');
+  style.textContent = `
+    /* Task Manager Scoped Styles */
+    .taskmgr-window {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      min-width: 360px;
+      max-width: 900px;
+      min-height: 220px;
+      max-height: 540px;
+      border-radius: 14px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+      overflow: hidden;
+      background: radial-gradient(circle at top left, #ff9aeb, #b400ff 40%, #2b0b4f 80%);
+      color: #fdfcff;
+      z-index: 1200;
+      opacity: 0;
+      transform: translateY(20px) scale(0.96);
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .taskmgr-window.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+    .taskmgr-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.12), rgba(0,0,0,0.25));
+      backdrop-filter: blur(18px);
+    }
+    .taskmgr-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .taskmgr-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #ff7ad9, #b400ff);
+    }
+    .taskmgr-title {
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .taskmgr-header-right .taskmgr-btn {
+      border: none;
+      background: transparent;
+      color: #fdfcff;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+    .taskmgr-header-right .taskmgr-btn:hover {
+      background: rgba(255,255,255,0.12);
+      transform: translateY(-1px);
+    }
+    .taskmgr-body {
+      padding: 10px;
+      background: radial-gradient(circle at top, rgba(255,255,255,0.18), rgba(0,0,0,0.65));
+      height: calc(100% - 34px);
+      box-sizing: border-box;
+    }
+    .taskmgr-sidebar-item.active,
+    .taskmgr-tab-btn.active,
+    .taskmgr-btn-endtask {
+      background: linear-gradient(135deg, #ff7ad9, #b400ff);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    }
+  `;
+  document.head.appendChild(style);
+
+  // === 2. Create Task Manager Window ===
+  const taskMgrWin = document.createElement('div');
+  taskMgrWin.className = 'taskmgr-window';
+  taskMgrWin.id = 'window-taskmgr';
+  taskMgrWin.innerHTML = `
+    <div class="taskmgr-header" data-drag-handle>
+      <div class="taskmgr-header-left">
+        <div class="taskmgr-icon"></div>
+        <div class="taskmgr-title">Task Manager</div>
+      </div>
+      <div class="taskmgr-header-right">
+        <button class="taskmgr-btn taskmgr-close">×</button>
+      </div>
+    </div>
+    <div class="taskmgr-body">
+      <div class="taskmgr-container">
+        <aside class="taskmgr-sidebar">
+          <div class="taskmgr-sidebar-header">Task Manager</div>
+          <ul class="taskmgr-sidebar-list">
+            <li class="taskmgr-sidebar-item active">Processes</li>
+            <li class="taskmgr-sidebar-item">Performance</li>
+            <li class="taskmgr-sidebar-item">Users</li>
+          </ul>
+        </aside>
+        <main class="taskmgr-main">
+          <div class="taskmgr-main-header">
+            <div class="taskmgr-main-tabs">
+              <button class="taskmgr-tab-btn active">Processes</button>
+              <button class="taskmgr-tab-btn">Performance</button>
+              <button class="taskmgr-tab-btn">Users</button>
+            </div>
+            <div class="taskmgr-main-actions">
+              <button class="taskmgr-btn taskmgr-btn-refresh">Refresh</button>
+              <button class="taskmgr-btn taskmgr-btn-endtask">End Task</button>
+            </div>
+          </div>
+          <div class="taskmgr-main-content">
+            <section class="taskmgr-tab active">Processes content...</section>
+            <section class="taskmgr-tab">Performance content...</section>
+            <section class="taskmgr-tab">Users content...</section>
+          </div>
+        </main>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(taskMgrWin);
+
+  // === 3. Create Start Menu Icon ===
+  const startGrid = document.getElementById('start-pinned-grid');
+  const taskMgrTile = document.createElement('div');
+  taskMgrTile.className = 'start-app';
+  taskMgrTile.dataset.app = 'taskmgr';
+  taskMgrTile.innerHTML = `
+    <div class="start-app-icon" style="background:linear-gradient(135deg,#ff7ad9,#b400ff);"></div>
+    <div>Task Manager</div>
+    <div class="start-app-sub">Monitor apps & performance</div>
+  `;
+  startGrid.appendChild(taskMgrTile);
+
+  // === 4. Wire up open/close logic ===
+  taskMgrTile.addEventListener('click', () => {
+    taskMgrWin.classList.add('visible');
+    bringWindowToFront(taskMgrWin);
+  });
+  taskMgrWin.querySelector('.taskmgr-close').addEventListener('click', () => {
+    taskMgrWin.classList.remove('visible');
+  });
+
+  // === 5. Enable drag and fullscreen toggle ===
+  const header = taskMgrWin.querySelector('[data-drag-handle]');
+  let dragging = false, sx, sy, sl, st;
+  header.addEventListener('mousedown', e => {
+    dragging = true;
+    const rect = taskMgrWin.getBoundingClientRect();
+    sx = e.clientX; sy = e.clientY; sl = rect.left; st = rect.top;
+    document.body.style.cursor = 'move';
+    bringWindowToFront(taskMgrWin);
+  });
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    taskMgrWin.style.left = sl + (e.clientX - sx) + 'px';
+    taskMgrWin.style.top = st + (e.clientY - sy) + 'px';
+  });
+  window.addEventListener('mouseup', () => {
+    dragging = false;
+    document.body.style.cursor = 'default';
+  });
+
+  function bringWindowToFront(win) {
+    win.style.zIndex = parseInt(win.style.zIndex || 1200) + 1;
+  }
+}
 
       /* initial */
       function initialSetup(){
+        createTaskManagerApp();
         createWordApp();
         createRunWindow();
         refreshAll();

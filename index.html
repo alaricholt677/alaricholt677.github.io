@@ -1214,6 +1214,91 @@
   animation: tsScrollMiddleIn 0.5s ease 0.1s forwards;
 }
 
+
+/* Task Manager internal styling */
+.taskmgr-body {
+  padding: 10px;
+  background: radial-gradient(circle at top, rgba(255,255,255,0.18), rgba(0,0,0,0.65));
+  height: calc(100% - 34px);
+}
+.taskmgr-container {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 10px;
+  height: 100%;
+}
+.taskmgr-sidebar {
+  background: rgba(10,0,30,0.75);
+  border-radius: 14px;
+  padding: 10px;
+}
+.taskmgr-sidebar-item {
+  padding: 6px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.85);
+}
+.taskmgr-sidebar-item.active,
+.taskmgr-tab-btn.active {
+  background: linear-gradient(135deg,#ff7ad9,#b400ff);
+  color: #fff;
+}
+.taskmgr-main-tabs {
+  display: flex;
+  gap: 6px;
+}
+.taskmgr-tab-btn {
+  border: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.9);
+  cursor: pointer;
+}
+.taskmgr-main-actions .taskmgr-btn {
+  border: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  cursor: pointer;
+}
+
+/* Performance Tab Canvas Styling */
+.taskmgr-tab-performance {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 10px;
+}
+
+.taskmgr-tab-performance canvas {
+  width: 100%;
+  height: 140px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.4);
+  display: block;
+}
+
+/* Optional: Add a subtle border and glow for Win11 feel */
+.taskmgr-tab-performance canvas:hover {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 10px rgba(255, 122, 217, 0.4);
+  transition: box-shadow 0.3s ease, border 0.3s ease;
+}
+
+.taskmgr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  color: #fff;
+}
+.taskmgr-table th, .taskmgr-table td {
+  padding: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
   </style>
   <style id="theme-style"></style>
 </head>
@@ -6940,8 +7025,6 @@ function createAppWindowSkeleton(appId, title, iconEmoji) {
   return win;
 }
 
-
-
 function initTaskManager() {
   const win = document.getElementById('window-taskmgr');
 
@@ -6979,18 +7062,18 @@ function initTaskManager() {
     ctx.fillRect(10, 40, value * 2, 20);
   }
   function updatePerformance() {
-    const cpu = Math.floor(Math.random() * 100); // Replace with real metrics later
+    const cpu = Math.floor(Math.random() * 100); // Placeholder for real metrics
     const mem = Math.floor(Math.random() * 100);
     drawChart(cpuCtx, cpu, 'CPU');
     drawChart(memCtx, mem, 'Memory');
   }
 
-  // Users tab
+  // Users tab: decode current user
   function renderUsers() {
     const usersDiv = document.getElementById('usersList');
     const data = JSON.parse(localStorage.getItem('win12_aim_fs_state_exe_ctx_full_v3') || '{}');
-    const users = data.users || [];
-    usersDiv.innerHTML = users.length ? users.map(u => `<div>${u.name}</div>`).join('') : 'No users found';
+    const currentUser = data.currentUser ? decodeURIComponent(data.currentUser) : 'Unknown';
+    usersDiv.innerHTML = `<strong>Current User:</strong> ${currentUser}`;
   }
 
   // Refresh button
@@ -7000,10 +7083,10 @@ function initTaskManager() {
     renderUsers();
   });
 
-  // ✅ Run App button opens Run dialog
+  // Run App button
   win.querySelector('.taskmgr-btn-run').addEventListener('click', () => {
     if (typeof showWindow === 'function') {
-      showWindow('run'); // Correct integration
+      showWindow('run');
     } else {
       alert('Run dialog function not found!');
     }

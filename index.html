@@ -1214,6 +1214,321 @@
   animation: tsScrollMiddleIn 0.5s ease 0.1s forwards;
 }
 
+.win12-window {
+  position: absolute;
+  background: radial-gradient(circle at top left, #ff9aeb, #b400ff 40%, #2b0b4f 80%);
+  color: #fdfcff;
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+  overflow: hidden;
+}
+
+.win12-window-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.12), rgba(0,0,0,0.25));
+  backdrop-filter: blur(18px);
+}
+
+.win12-window-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.win12-window-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #ff7ad9, #b400ff);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.25);
+}
+
+.win12-window-title {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.win12-window-header-right .win12-window-btn {
+  border: none;
+  background: transparent;
+  color: #fdfcff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.win12-window-header-right .win12-window-btn:hover {
+  background: rgba(255,255,255,0.12);
+  transform: translateY(-1px);
+}
+
+.win12-window-header-right .win12-window-close:hover {
+  background: rgba(255,0,80,0.75);
+}
+
+.taskmgr-body {
+  padding: 10px;
+  background: radial-gradient(circle at top, rgba(255,255,255,0.18), rgba(0,0,0,0.65));
+  height: calc(100% - 34px);
+  box-sizing: border-box;
+}
+
+.taskmgr-container {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 10px;
+  height: 100%;
+}
+
+.taskmgr-sidebar {
+  background: rgba(10, 0, 30, 0.75);
+  border-radius: 14px;
+  padding: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  display: flex;
+  flex-direction: column;
+}
+
+.taskmgr-sidebar-header {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 10px;
+  opacity: 0.9;
+}
+
+.taskmgr-sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.taskmgr-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.85);
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.taskmgr-sidebar-item:hover {
+  background: rgba(255,255,255,0.08);
+  transform: translateY(-1px);
+}
+
+.taskmgr-sidebar-item.active {
+  background: linear-gradient(135deg, #ff7ad9, #b400ff);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+.taskmgr-sidebar-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: radial-gradient(circle, #ffebff, #ff7ad9);
+}
+
+.taskmgr-main {
+  background: rgba(10, 0, 30, 0.75);
+  border-radius: 14px;
+  padding: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  display: flex;
+  flex-direction: column;
+}
+
+.taskmgr-main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.taskmgr-main-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.taskmgr-tab-btn {
+  border: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.9);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.taskmgr-tab-btn:hover {
+  background: rgba(255,255,255,0.12);
+  transform: translateY(-1px);
+}
+
+.taskmgr-tab-btn.active {
+  background: linear-gradient(135deg, #ff7ad9, #b400ff);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+}
+
+.taskmgr-main-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.taskmgr-btn {
+  border: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.08);
+  color: #fdfcff;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.taskmgr-btn:hover {
+  background: rgba(255,255,255,0.16);
+  transform: translateY(-1px);
+}
+
+.taskmgr-btn-endtask {
+  background: linear-gradient(135deg, #ff4b8b, #b400ff);
+}
+
+.taskmgr-main-content {
+  flex: 1;
+  background: rgba(0,0,0,0.35);
+  border-radius: 12px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.taskmgr-tab {
+  display: none;
+  height: 100%;
+}
+
+.taskmgr-tab.active {
+  display: block;
+}
+
+.taskmgr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(10,0,30,0.9);
+}
+
+.taskmgr-table thead {
+  background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02));
+}
+
+.taskmgr-table th,
+.taskmgr-table td {
+  padding: 6px 8px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.taskmgr-table tbody tr:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.taskmgr-table tbody tr.selected {
+  background: linear-gradient(135deg, rgba(255,122,217,0.4), rgba(180,0,255,0.4));
+}
+
+.taskmgr-processes-footer {
+  margin-top: 6px;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.taskmgr-performance-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  height: 100%;
+}
+
+.taskmgr-performance-card {
+  background: rgba(10,0,30,0.9);
+  border-radius: 12px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.taskmgr-performance-title {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.taskmgr-performance-chart {
+  flex: 1;
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.taskmgr-performance-chart-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0%;
+  background: linear-gradient(135deg, #ff7ad9, #b400ff);
+  transition: width 0.25s ease;
+}
+
+.taskmgr-performance-value {
+  margin-top: 4px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.taskmgr-start-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.taskmgr-start-icon-inner {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ff7ad9, #b400ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+.taskmgr-start-icon-label {
+  font-size: 11px;
+  color: rgba(255,255,255,0.9);
+}
   </style>
   <style id="theme-style"></style>
 </head>
@@ -6854,8 +7169,482 @@ function showOfflinePopup(url) {
 setInterval(handleURLVisitAlways, 30000);
 
 
+// Example window skeleton for consistency
+// You can reuse this pattern for other apps too.
+function createAppWindowSkeleton(appId, title, iconEmoji) {
+  const win = document.createElement('div');
+  win.className = 'win12-window';
+  win.id = appId;
+
+  win.innerHTML = `
+    <div class="win12-window-header">
+      <div class="win12-window-header-left">
+        <span class="win12-window-icon">${iconEmoji || '🧩'}</span>
+        <span class="win12-window-title">${title}</span>
+      </div>
+      <div class="win12-window-header-right">
+        <button class="win12-window-btn win12-window-minimize">_</button>
+        <button class="win12-window-btn win12-window-maximize">▢</button>
+        <button class="win12-window-btn win12-window-close">✕</button>
+      </div>
+    </div>
+    <div class="win12-window-body"></div>
+  `;
+
+  document.body.appendChild(win);
+  return win;
+}
+
+// Main Task Manager initializer
+function initTaskManager() {
+  const appId = 'taskmgr';
+  const appTitle = 'Task Manager';
+
+  // Ensure windowsMap exists
+  window.windowsMap = window.windowsMap || new Map();
+
+  // Create window if not already created
+  let win = document.getElementById(appId);
+  if (!win) {
+    win = createAppWindowSkeleton(appId, appTitle, '📊');
+  }
+
+  const body = win.querySelector('.win12-window-body');
+  body.classList.add('taskmgr-body');
+
+  // Build Task Manager layout
+  body.innerHTML = `
+    <div class="taskmgr-container">
+      <aside class="taskmgr-sidebar"></aside>
+      <main class="taskmgr-main">
+        <div class="taskmgr-main-header">
+          <div class="taskmgr-main-tabs">
+            <button class="taskmgr-tab-btn active" data-tab="processes">Processes</button>
+            <button class="taskmgr-tab-btn" data-tab="performance">Performance</button>
+            <button class="taskmgr-tab-btn" data-tab="app-history">App History</button>
+            <button class="taskmgr-tab-btn" data-tab="startup">Startup</button>
+            <button class="taskmgr-tab-btn" data-tab="users">Users</button>
+            <button class="taskmgr-tab-btn" data-tab="details">Details</button>
+            <button class="taskmgr-tab-btn" data-tab="services">Services</button>
+          </div>
+          <div class="taskmgr-main-actions">
+            <button class="taskmgr-btn taskmgr-btn-refresh">Refresh</button>
+            <button class="taskmgr-btn taskmgr-btn-endtask">End Task</button>
+          </div>
+        </div>
+        <div class="taskmgr-main-content">
+          <section class="taskmgr-tab taskmgr-tab-processes active"></section>
+          <section class="taskmgr-tab taskmgr-tab-performance"></section>
+          <section class="taskmgr-tab taskmgr-tab-app-history"></section>
+          <section class="taskmgr-tab taskmgr-tab-startup"></section>
+          <section class="taskmgr-tab taskmgr-tab-users"></section>
+          <section class="taskmgr-tab taskmgr-tab-details"></section>
+          <section class="taskmgr-tab taskmgr-tab-services"></section>
+        </div>
+      </main>
+    </div>
+  `;
+
+  const sidebarEl = body.querySelector('.taskmgr-sidebar');
+  const processesTabEl = body.querySelector('.taskmgr-tab-processes');
+  const performanceTabEl = body.querySelector('.taskmgr-tab-performance');
+  const usersTabEl = body.querySelector('.taskmgr-tab-users');
+
+  // --- Helper functions ---
+
+  function renderSidebar() {
+    const sections = [
+      'Processes',
+      'Performance',
+      'App History',
+      'Startup',
+      'Users',
+      'Details',
+      'Services'
+    ];
+
+    sidebarEl.innerHTML = `
+      <div class="taskmgr-sidebar-header">Task Manager</div>
+      <ul class="taskmgr-sidebar-list">
+        ${sections
+          .map(
+            (name, idx) => `
+          <li class="taskmgr-sidebar-item ${idx === 0 ? 'active' : ''}" data-tab="${name.toLowerCase().replace(' ', '-')}">
+            <span class="taskmgr-sidebar-dot"></span>
+            <span class="taskmgr-sidebar-label">${name}</span>
+          </li>
+        `
+          )
+          .join('')}
+      </ul>
+    `;
+  }
+
+  function getVisibleApps() {
+    const visibleApps = [];
+    windowsMap.forEach((meta, key) => {
+      const el = document.getElementById(key);
+      if (el && el.classList.contains('visible')) {
+        visibleApps.push({
+          id: key,
+          name: meta.title || key,
+          status: 'Running'
+        });
+      }
+    });
+    return visibleApps;
+  }
+
+  function renderProcessesTab() {
+    const apps = getVisibleApps();
+
+    processesTabEl.innerHTML = `
+      <table class="taskmgr-table taskmgr-table-processes">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>CPU %</th>
+            <th>Memory</th>
+            <th>Disk</th>
+            <th>Network</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${apps
+            .map(app => {
+              const cpu = (Math.random() * 50).toFixed(1);
+              const mem = (Math.random() * 1024).toFixed(0) + ' MB';
+              const disk = (Math.random() * 10).toFixed(1) + ' MB/s';
+              const net = (Math.random() * 5).toFixed(1) + ' Mbps';
+              return `
+              <tr data-app-id="${app.id}">
+                <td>${app.name}</td>
+                <td>${cpu}</td>
+                <td>${mem}</td>
+                <td>${disk}</td>
+                <td>${net}</td>
+                <td>${app.status}</td>
+              </tr>
+            `;
+            })
+            .join('')}
+        </tbody>
+      </table>
+      <div class="taskmgr-processes-footer">
+        <span>${apps.length} apps running</span>
+      </div>
+    `;
+  }
+
+  function renderPerformanceTab() {
+    performanceTabEl.innerHTML = `
+      <div class="taskmgr-performance-grid">
+        <div class="taskmgr-performance-card">
+          <div class="taskmgr-performance-title">CPU</div>
+          <div class="taskmgr-performance-chart" id="taskmgr-cpu-chart">
+            <div class="taskmgr-performance-chart-bar"></div>
+          </div>
+          <div class="taskmgr-performance-value" id="taskmgr-cpu-value">0%</div>
+        </div>
+        <div class="taskmgr-performance-card">
+          <div class="taskmgr-performance-title">Memory</div>
+          <div class="taskmgr-performance-chart" id="taskmgr-mem-chart">
+            <div class="taskmgr-performance-chart-bar"></div>
+          </div>
+          <div class="taskmgr-performance-value" id="taskmgr-mem-value">0%</div>
+        </div>
+        <div class="taskmgr-performance-card">
+          <div class="taskmgr-performance-title">Network</div>
+          <div class="taskmgr-performance-chart" id="taskmgr-net-chart">
+            <div class="taskmgr-performance-chart-bar"></div>
+          </div>
+          <div class="taskmgr-performance-value" id="taskmgr-net-value">0 Mbps</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderUsersTab() {
+    const key = 'win12_aim_fs_state_exe_ctx_full_v3';
+    let users = [];
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // You can adapt this depending on your actual structure
+        if (Array.isArray(parsed.users)) {
+          users = parsed.users;
+        } else if (parsed && typeof parsed === 'object') {
+          // fallback: treat keys as users
+          users = Object.keys(parsed).map(name => ({
+            name,
+            createdAt: parsed[name]?.createdAt || null
+          }));
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse users from localStorage', e);
+    }
+
+    usersTabEl.innerHTML = `
+      <table class="taskmgr-table taskmgr-table-users">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Created At</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${
+            users.length
+              ? users
+                  .map(u => {
+                    const created = u.createdAt
+                      ? new Date(u.createdAt).toLocaleString()
+                      : 'Unknown';
+                    return `
+                    <tr>
+                      <td>${u.name || 'Unknown'}</td>
+                      <td>${created}</td>
+                    </tr>
+                  `;
+                  })
+                  .join('')
+              : `<tr><td colspan="2">No users found</td></tr>`
+          }
+        </tbody>
+      </table>
+    `;
+  }
+
+  function updateCharts() {
+    const cpuVal = document.getElementById('taskmgr-cpu-value');
+    const memVal = document.getElementById('taskmgr-mem-value');
+    const netVal = document.getElementById('taskmgr-net-value');
+
+    const cpuBar = document.querySelector('#taskmgr-cpu-chart .taskmgr-performance-chart-bar');
+    const memBar = document.querySelector('#taskmgr-mem-chart .taskmgr-performance-chart-bar');
+    const netBar = document.querySelector('#taskmgr-net-chart .taskmgr-performance-chart-bar');
+
+    const cpu = Math.floor(Math.random() * 100);
+    const mem = Math.floor(Math.random() * 100);
+
+    if (cpuVal && cpuBar) {
+      cpuVal.textContent = cpu + '%';
+      cpuBar.style.width = cpu + '%';
+    }
+    if (memVal && memBar) {
+      memVal.textContent = mem + '%';
+      memBar.style.width = mem + '%';
+    }
+
+    // network will be updated by fetchNetworkUsage
+  }
+
+  async function fetchNetworkUsage() {
+    const netVal = document.getElementById('taskmgr-net-value');
+    const netBar = document.querySelector('#taskmgr-net-chart .taskmgr-performance-chart-bar');
+
+    let speed = (Math.random() * 10).toFixed(1); // fallback random
+    try {
+      const start = performance.now();
+      await fetch('https://example.com', { mode: 'no-cors' });
+      const end = performance.now();
+      const delta = end - start;
+      // crude "speed" metric
+      speed = (1000 / delta).toFixed(1);
+    } catch (e) {
+      // ignore, keep random
+    }
+
+    if (netVal && netBar) {
+      netVal.textContent = speed + ' Mbps';
+      const pct = Math.min(100, (speed / 50) * 100);
+      netBar.style.width = pct + '%';
+    }
+  }
+
+  function refreshAll() {
+    renderProcessesTab();
+    renderUsersTab();
+    renderPerformanceTab();
+    updateCharts();
+    fetchNetworkUsage();
+  }
+
+  // --- Tab + sidebar wiring ---
+
+  function wireTabs() {
+    const tabButtons = body.querySelectorAll('.taskmgr-tab-btn');
+    const tabs = body.querySelectorAll('.taskmgr-tab');
+    const sidebarItems = body.querySelectorAll('.taskmgr-sidebar-item');
+
+    function activateTab(tabName) {
+      tabButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabName);
+      });
+      tabs.forEach(tab => {
+        const isMatch =
+          tab.classList.contains(`taskmgr-tab-${tabName}`);
+        tab.classList.toggle('active', isMatch);
+      });
+      sidebarItems.forEach(item => {
+        item.classList.toggle('active', item.dataset.tab === tabName);
+      });
+    }
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        activateTab(btn.dataset.tab);
+      });
+    });
+
+    sidebarItems.forEach(item => {
+      item.addEventListener('click', () => {
+        activateTab(item.dataset.tab);
+      });
+    });
+  }
+
+  function wireActions() {
+    const refreshBtn = body.querySelector('.taskmgr-btn-refresh');
+    const endTaskBtn = body.querySelector('.taskmgr-btn-endtask');
+
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', () => {
+        refreshAll();
+      });
+    }
+
+    if (endTaskBtn) {
+      endTaskBtn.addEventListener('click', () => {
+        const selectedRow = processesTabEl.querySelector('tr.selected');
+        if (!selectedRow) return;
+        const appId = selectedRow.getAttribute('data-app-id');
+        if (appId && windowsMap.has(appId)) {
+          hideWindow(appId);
+          refreshAll();
+        }
+      });
+    }
+
+    // row selection
+    processesTabEl.addEventListener('click', e => {
+      const row = e.target.closest('tr[data-app-id]');
+      if (!row) return;
+      processesTabEl
+        .querySelectorAll('tr.selected')
+        .forEach(r => r.classList.remove('selected'));
+      row.classList.add('selected');
+    });
+  }
+
+  // --- Window system integration ---
+
+  // Register in windowsMap
+  if (!windowsMap.has(appId)) {
+    windowsMap.set(appId, {
+      id: appId,
+      title: appTitle,
+      element: win
+    });
+  }
+
+  // Wire header controls
+  const btnClose = win.querySelector('.win12-window-close');
+  const btnMin = win.querySelector('.win12-window-minimize');
+  const btnMax = win.querySelector('.win12-window-maximize');
+
+  if (btnClose) {
+    btnClose.addEventListener('click', () => hideWindow(appId));
+  }
+  if (btnMin) {
+    btnMin.addEventListener('click', () => hideWindow(appId));
+  }
+  if (btnMax) {
+    btnMax.addEventListener('click', () => {
+      win.classList.toggle('fullscreen');
+    });
+  }
+
+  // Make window draggable/resizable/etc using your existing helper
+  if (typeof makeWindowInteractive === 'function') {
+    makeWindowInteractive(win, appId);
+  }
+
+  // --- Start Menu integration ---
+
+  function ensureStartMenuIcon() {
+    // Adapt these selectors to your actual Start Menu DOM
+    const startMenu = document.querySelector('.win12-start-menu-apps') ||
+                      document.querySelector('#start-menu-apps') ||
+                      document.body;
+
+    if (!startMenu.querySelector('[data-app-id="taskmgr"]')) {
+      const btn = document.createElement('button');
+      btn.className = 'win12-start-app-icon taskmgr-start-icon';
+      btn.setAttribute('data-app-id', 'taskmgr');
+      btn.innerHTML = `
+        <span class="taskmgr-start-icon-inner">TM</span>
+        <span class="taskmgr-start-icon-label">Task Manager</span>
+      `;
+      btn.addEventListener('click', () => {
+        showWindow(appId);
+      });
+      startMenu.appendChild(btn);
+    }
+  }
+
+  ensureStartMenuIcon();
+
+  // --- Taskbar previews integration (example) ---
+
+  function ensureTaskbarEntry() {
+    // Adapt selector to your taskbar container
+    const taskbar = document.querySelector('.win12-taskbar-apps') ||
+                    document.querySelector('#taskbar-apps');
+    if (!taskbar) return;
+
+    if (!taskbar.querySelector(`[data-app-id="${appId}"]`)) {
+      const btn = document.createElement('button');
+      btn.className = 'win12-taskbar-button taskmgr-taskbar-button';
+      btn.setAttribute('data-app-id', appId);
+      btn.innerHTML = `
+        <span class="win12-taskbar-icon">📊</span>
+      `;
+      btn.addEventListener('click', () => {
+        const el = document.getElementById(appId);
+        if (el && el.classList.contains('visible')) {
+          hideWindow(appId);
+        } else {
+          showWindow(appId);
+        }
+      });
+      taskbar.appendChild(btn);
+    }
+  }
+
+  ensureTaskbarEntry();
+
+  // --- Initial render and wiring ---
+
+  renderSidebar();
+  renderProcessesTab();
+  renderPerformanceTab();
+  renderUsersTab();
+  wireTabs();
+  wireActions();
+  updateCharts();
+  fetchNetworkUsage();
+
+  // Show window initially if desired
+  showWindow(appId);
+}
+
       /* initial */
       function initialSetup(){
+        initTaskManager();
         createWordApp();
         createRunWindow();
         refreshAll();

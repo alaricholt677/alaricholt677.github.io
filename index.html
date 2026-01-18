@@ -6853,10 +6853,11 @@ function showOfflinePopup(url) {
 // ✅ Make it ALWAYS run every 30 seconds
 setInterval(handleURLVisitAlways, 30000);
 
-// Skeleton for consistency
+
+// Basic skeleton for consistency
 function createAppWindowSkeleton(appId, title, iconEmoji) {
   const win = document.createElement('div');
-  win.className = 'win12-window';
+  win.className = 'win12-window'; // Basic window styling
   win.id = appId;
 
   win.innerHTML = `
@@ -6877,35 +6878,70 @@ function createAppWindowSkeleton(appId, title, iconEmoji) {
   return win;
 }
 
+
 function initTaskManager() {
   const appId = 'taskmgr';
   const appTitle = 'Task Manager';
 
-  // Inject scoped CSS
+  // Inject scoped CSS for Task Manager content
   const style = document.createElement('style');
   style.textContent = `
-    .win12-window#${appId} {
-      background: radial-gradient(circle at top left, #ff9aeb, #b400ff 40%, #2b0b4f 80%);
-      color: #fdfcff;
-      border-radius: 14px;
-      box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+    .taskmgr-body {
+      padding: 10px;
+      background: radial-gradient(circle at top, rgba(255,255,255,0.18), rgba(0,0,0,0.65));
+      height: calc(100% - 34px);
+      box-sizing: border-box;
     }
-    .taskmgr-body { padding: 10px; background: radial-gradient(circle at top, rgba(255,255,255,0.18), rgba(0,0,0,0.65)); height: calc(100% - 34px); }
-    .taskmgr-container { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 10px; height: 100%; }
-    .taskmgr-sidebar { background: rgba(10,0,30,0.75); border-radius: 14px; padding: 10px; }
-    .taskmgr-sidebar-item.active, .taskmgr-tab-btn.active { background: linear-gradient(135deg,#ff7ad9,#b400ff); }
-    canvas { width: 100%; height: 120px; background: rgba(255,255,255,0.04); border-radius: 8px; }
+    .taskmgr-container {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 10px;
+      height: 100%;
+    }
+    .taskmgr-sidebar {
+      background: rgba(10,0,30,0.75);
+      border-radius: 14px;
+      padding: 10px;
+    }
+    .taskmgr-sidebar-item.active,
+    .taskmgr-tab-btn.active {
+      background: linear-gradient(135deg,#ff7ad9,#b400ff);
+      color: #fff;
+    }
+    .taskmgr-tab-btn {
+      border: none;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.9);
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .taskmgr-main-actions .taskmgr-btn {
+      border: none;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      cursor: pointer;
+    }
+    canvas {
+      width: 100%;
+      height: 120px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 8px;
+    }
   `;
   document.head.appendChild(style);
 
-  // Create window
+  // Create window skeleton
   let win = document.getElementById(appId);
   if (!win) win = createAppWindowSkeleton(appId, appTitle, '📊');
 
   const body = win.querySelector('.win12-window-body');
   body.classList.add('taskmgr-body');
 
-  // Layout with tabs
+  // Layout with sidebar and tabs
   body.innerHTML = `
     <div class="taskmgr-container">
       <aside class="taskmgr-sidebar">
@@ -6944,7 +6980,7 @@ function initTaskManager() {
     </div>
   `;
 
-  // Tab switching
+  // Tab switching logic
   const tabs = body.querySelectorAll('.taskmgr-tab');
   const tabBtns = body.querySelectorAll('.taskmgr-tab-btn');
   const sidebarItems = body.querySelectorAll('.taskmgr-sidebar-item');
@@ -6966,7 +7002,7 @@ function initTaskManager() {
     });
   }
 
-  // Performance tab: real charts
+  // Performance tab: draw charts
   const cpuCtx = document.getElementById('cpuChart').getContext('2d');
   const memCtx = document.getElementById('memChart').getContext('2d');
   function drawChart(ctx, value, label) {
@@ -6978,7 +7014,7 @@ function initTaskManager() {
     ctx.fillRect(10, 40, value * 2, 20);
   }
   function updatePerformance() {
-    const cpu = Math.floor(Math.random() * 100); // Replace with real metrics if available
+    const cpu = Math.floor(Math.random() * 100); // Placeholder for real metrics
     const mem = Math.floor(Math.random() * 100);
     drawChart(cpuCtx, cpu, 'CPU');
     drawChart(memCtx, mem, 'Memory');
@@ -6999,9 +7035,13 @@ function initTaskManager() {
     renderUsers();
   });
 
-  // Run App button
+  // ✅ Run App button now calls showWindow('run')
   body.querySelector('.taskmgr-btn-run').addEventListener('click', () => {
-    alert('Open Run dialog here...');
+    if (typeof showWindow === 'function') {
+      showWindow('run'); // Correct integration with your window system
+    } else {
+      alert('Run dialog function not found!');
+    }
   });
 
   // Window controls

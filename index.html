@@ -6641,7 +6641,9 @@ function generateThemeOptions() {
     ".ctx-item", "#widgets-editor-overlay", "#widgets-editor-canvas",
     "#notes-area", "#theme-css-input", "#taskbar-clock", "#taskbar-network",
     "#taskbar-import", "#start-pinned-grid", "#rec-files", "#rec-dropdown-menu",
-    "#admin-popup", "#camera-popup", "#media-surface", "#paint-canvas"
+    "#admin-popup", "#camera-popup", "#media-surface", "#paint-canvas",
+    ".taskmgr-performance-card canvas", ".taskmgr-performance-title",
+    ".taskmgr-performance-card", ".taskmgr-performance-grid"
   ];
   return selectors.map(sel => `<option value="${sel}">${sel}</option>`).join("");
 }

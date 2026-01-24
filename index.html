@@ -7091,8 +7091,69 @@ function initTaskManager() {
 }
 
 
+function fixWidgetsVisibility() {
+  // Ensure the widget layer exists and is visible
+  let widgetLayer = document.getElementById('desktop-widgets-layer');
+  if (!widgetLayer) {
+    widgetLayer = document.createElement('div');
+    widgetLayer.id = 'desktop-widgets-layer';
+    document.body.appendChild(widgetLayer);
+  }
+  widgetLayer.style.display = 'block';
+  widgetLayer.style.position = 'absolute';
+  widgetLayer.style.inset = '0';
+  widgetLayer.style.zIndex = '1000';
+  widgetLayer.style.pointerEvents = 'none'; // Widgets handle their own events
+
+  // Load widgets from localStorage or create defaults
+  const savedWidgets = JSON.parse(localStorage.getItem('widgets') || '[]');
+
+  if (savedWidgets.length === 0) {
+    // Add a default widget if none exist
+    savedWidgets.push({ type: 'clock', x: 20, y: 20 });
+    localStorage.setItem('widgets', JSON.stringify(savedWidgets));
+  }
+
+  // Clear existing widgets
+  widgetLayer.innerHTML = '';
+
+  // Render widgets
+  savedWidgets.forEach(widget => {
+    const widgetEl = document.createElement('div');
+    widgetEl.className = 'desktop-widget';
+    widgetEl.style.position = 'absolute';
+    widgetEl.style.left = widget.x + 'px';
+    widgetEl.style.top = widget.y + 'px';
+    widgetEl.style.width = '180px';
+    widgetEl.style.background = 'rgba(10,10,30,0.9)';
+    widgetEl.style.borderRadius = '8px';
+    widgetEl.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
+    widgetEl.style.pointerEvents = 'auto';
+    widgetEl.style.color = '#fff';
+    widgetEl.style.fontSize = '14px';
+    widgetEl.style.padding = '10px';
+
+    // Widget content based on type
+    if (widget.type === 'clock') {
+      widgetEl.innerHTML = `<div style="font-weight:bold;">Clock</div><div id="widget-clock-${widget.x}-${widget.y}">--:--</div>`;
+      setInterval(() => {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        document.getElementById(`widget-clock-${widget.x}-${widget.y}`).textContent = timeStr;
+      }, 1000);
+    } else if (widget.type === 'notes') {
+      widgetEl.innerHTML = `<div style="font-weight:bold;">Notes</div><textarea style="width:100%;height:80px;background:#111;color:#fff;border:none;border-radius:4px;">${widget.content || ''}</textarea>`;
+    } else {
+      widgetEl.innerHTML = `<div style="font-weight:bold;">${widget.type}</div>`;
+    }
+
+    widgetLayer.appendChild(widgetEl);
+  });
+}
+
       /* initial */
       function initialSetup(){
+        fixWidgetsVisibility();
         initTaskManager();
         createWordApp();
         createRunWindow();

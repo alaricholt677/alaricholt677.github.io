@@ -7091,69 +7091,156 @@ function initTaskManager() {
 }
 
 
-function fixWidgetsVisibility() {
-  // Ensure the widget layer exists and is visible
+
+function initWidgetsSystem() {
+  // Create widget layer
   let widgetLayer = document.getElementById('desktop-widgets-layer');
   if (!widgetLayer) {
     widgetLayer = document.createElement('div');
     widgetLayer.id = 'desktop-widgets-layer';
+    widgetLayer.style.position = 'absolute';
+    widgetLayer.style.inset = '0';
+    widgetLayer.style.zIndex = '1000';
     document.body.appendChild(widgetLayer);
   }
-  widgetLayer.style.display = 'block';
-  widgetLayer.style.position = 'absolute';
-  widgetLayer.style.inset = '0';
-  widgetLayer.style.zIndex = '1000';
-  widgetLayer.style.pointerEvents = 'none'; // Widgets handle their own events
 
-  // Load widgets from localStorage or create defaults
+  // Load saved widgets
   const savedWidgets = JSON.parse(localStorage.getItem('widgets') || '[]');
+  savedWidgets.forEach(widget => createWidget(widget.type, widget.x, widget.y, widget.content));
 
-  if (savedWidgets.length === 0) {
-    // Add a default widget if none exist
-    savedWidgets.push({ type: 'clock', x: 20, y: 20 });
-    localStorage.setItem('widgets', JSON.stringify(savedWidgets));
-  }
-
-  // Clear existing widgets
-  widgetLayer.innerHTML = '';
-
-  // Render widgets
-  savedWidgets.forEach(widget => {
+  // Function to create a widget
+  function createWidget(type, x = 50, y = 50, content = '') {
     const widgetEl = document.createElement('div');
     widgetEl.className = 'desktop-widget';
     widgetEl.style.position = 'absolute';
-    widgetEl.style.left = widget.x + 'px';
-    widgetEl.style.top = widget.y + 'px';
-    widgetEl.style.width = '180px';
+    widgetEl.style.left = `${x}px`;
+    widgetEl.style.top = `${y}px`;
+    widgetEl.style.width = '200px';
     widgetEl.style.background = 'rgba(10,10,30,0.9)';
     widgetEl.style.borderRadius = '8px';
     widgetEl.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
-    widgetEl.style.pointerEvents = 'auto';
     widgetEl.style.color = '#fff';
     widgetEl.style.fontSize = '14px';
-    widgetEl.style.padding = '10px';
+    widgetEl.style.padding = '8px';
+    widgetEl.style.cursor = 'move';
 
-    // Widget content based on type
-    if (widget.type === 'clock') {
-      widgetEl.innerHTML = `<div style="font-weight:bold;">Clock</div><div id="widget-clock-${widget.x}-${widget.y}">--:--</div>`;
+    // Header with controls
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.marginBottom = '6px';
+    header.innerHTML = `<strong>${type}</strong>`;
+
+    const controls = document.createElement('div');
+    controls.style.display = 'flex';
+    controls.style.gap = '6px';
+
+    const minimizeBtn = document.createElement('button');
+    minimizeBtn.textContent = '–';
+    minimizeBtn.style.background = 'transparent';
+    minimizeBtn.style.color = '#fff';
+    minimizeBtn.style.border = 'none';
+    minimizeBtn.style.cursor = 'pointer';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕';
+    closeBtn.style.background = 'transparent';
+    closeBtn.style.color = '#fff';
+    closeBtn.style.border = 'none';
+    closeBtn.style.cursor = 'pointer';
+
+    controls.appendChild(minimizeBtn);
+    controls.appendChild(closeBtn);
+    header.appendChild(controls);
+    widgetEl.appendChild(header);
+
+    // Body content
+    const body = document.createElement('div');
+    body.className = 'widget-body';
+
+    if (type === 'Clock') {
+      body.innerHTML = `<div id="clock-${Date.now()}">--:--</div>`;
       setInterval(() => {
         const now = new Date();
-        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        document.getElementById(`widget-clock-${widget.x}-${widget.y}`).textContent = timeStr;
+        body.querySelector('div').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       }, 1000);
-    } else if (widget.type === 'notes') {
-      widgetEl.innerHTML = `<div style="font-weight:bold;">Notes</div><textarea style="width:100%;height:80px;background:#111;color:#fff;border:none;border-radius:4px;">${widget.content || ''}</textarea>`;
+    } else if (type === 'Notes') {
+      body.innerHTML = `<textarea style="width:100%;height:80px;background:#111;color:#fff;border:none;border-radius:4px;">${content}</textarea>`;
+    } else if (type === 'Weather') {
+      body.innerHTML = `<div>Weather: Sunny 25°C</div>`;
     } else {
-      widgetEl.innerHTML = `<div style="font-weight:bold;">${widget.type}</div>`;
+      body.innerHTML = `<div>${content || 'Custom Widget'}</div>`;
     }
 
+    widgetEl.appendChild(body);
     widgetLayer.appendChild(widgetEl);
-  });
+
+    // Save widget state
+    saveWidget(type, x, y, content);
+
+    // Remove widget
+    closeBtn.addEventListener('click', () => {
+      widgetEl.remove();
+      removeWidget(type, x, y);
+    });
+
+    // Minimize widget
+    minimizeBtn.addEventListener('click', () => {
+      body.style.display = body.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Drag functionality
+    let isDragging = false, offsetX, offsetY;
+    widgetEl.addEventListener('mousedown', e => {
+      if (e.target.tagName === 'TEXTAREA') return; // Don't drag when editing notes
+      isDragging = true;
+      offsetX = e.clientX - widgetEl.offsetLeft;
+      offsetY = e.clientY - widgetEl.offsetTop;
+      widgetEl.style.zIndex = '2000';
+    });
+    document.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      widgetEl.style.left = `${e.clientX - offsetX}px`;
+      widgetEl.style.top = `${e.clientY - offsetY}px`;
+    });
+    document.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        widgetEl.style.zIndex = '1000';
+        saveWidget(type, parseInt(widgetEl.style.left), parseInt(widgetEl.style.top), content);
+      }
+    });
+  }
+
+  // Save widget state to localStorage
+  function saveWidget(type, x, y, content) {
+    const widgets = JSON.parse(localStorage.getItem('widgets') || '[]');
+    const existingIndex = widgets.findIndex(w => w.type === type && w.x === x && w.y === y);
+    if (existingIndex >= 0) {
+      widgets[existingIndex] = { type, x, y, content };
+    } else {
+      widgets.push({ type, x, y, content });
+    }
+    localStorage.setItem('widgets', JSON.stringify(widgets));
+  }
+
+  // Remove widget from localStorage
+  function removeWidget(type, x, y) {
+    let widgets = JSON.parse(localStorage.getItem('widgets') || '[]');
+    widgets = widgets.filter(w => !(w.type === type && w.x === x && w.y === y));
+    localStorage.setItem('widgets', JSON.stringify(widgets));
+  }
+
+  // Public API to add new widget
+  window.addWidget = (type, content = '') => createWidget(type, 50, 50, content);
 }
+
+// Initialize everything
+document.addEventListener('DOMContentLoaded', initWidgetsSystem);
 
       /* initial */
       function initialSetup(){
-        fixWidgetsVisibility();
+        initWidgetsSystem();
         initTaskManager();
         createWordApp();
         createRunWindow();

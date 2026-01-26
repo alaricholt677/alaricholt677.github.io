@@ -2171,8 +2171,41 @@
     <div class="ctx-item" data-action="delete"><span>Delete</span></div>
     <div class="ctx-separator"></div>
     <div class="ctx-item" data-action="props"><span>Properties</span></div>
-    <button id="open-widgets-editor-btn">Edit desktop widgets</button>
+    <div class="ctx-item" data-action="open">Open</div><div class="ctx-item" id="ctx-add-widget" style="border-top:1px solid rgba(255,255,255,0.2);padding-top:6px;">➕ Add Widget </div></div>
+
   </div>
+
+  
+<!-- Widget Popup Skeleton -->
+<div id="widget-popup-backdrop" style="display:none;">
+  <div id="widget-popup" style="background:#0b1020;padding:16px;border-radius:12px;width:320px;color:white;">
+    <div id="widget-popup-title" style="display:flex;align-items:center;font-size:14px;font-weight:bold;">
+      <svg width="18" height="18" viewBox="0 0 64 64" style="margin-right:6px;">
+        <circle cx="32" cy="32" r="30" fill="#4c8dff"/>
+        <rect x="28" y="16" width="8" height="24" fill="white"/>
+      </svg>
+      Create Widget
+    </div>
+    <div id="widget-popup-body" style="margin-top:8px;font-size:12px;color:var(--text-soft);">
+      <label>Select Widget Type:</label>
+      <select id="widget-type" style="width:100%;margin-top:6px;">
+        <option>Clock</option>
+        <option>Notes</option>
+        <option>Calendar</option>
+        <option>Calculator</option>
+        <option>MiniWeb</option>
+        <option>MiniRun</option>
+        <option>MiniCPU</option>
+        <option>Custom</option>
+      </select>
+      <div id="widget-extra" style="margin-top:8px;"></div>
+    </div>
+    <div id="widget-popup-buttons" style="margin-top:12px;text-align:right;">
+      <button class="admin-btn" id="widget-popup-cancel">Cancel</button>
+      <button class="admin-btn primary" id="widget-popup-create">Create</button>
+    </div>
+  </div>
+</div>
 
   <!-- Admin popup -->
   <div id="admin-popup-backdrop">
@@ -7095,9 +7128,9 @@ function initWidgetsSystem(currentUser) {
   const userKey = `widgets_${currentUser}`;
   const widgetLayer = document.getElementById('desktop-widgets-layer') || createWidgetLayer();
 
-  // Load saved widgets for current user
+  // Load saved widgets
   const savedWidgets = JSON.parse(localStorage.getItem(userKey) || '[]');
-  savedWidgets.forEach(widget => createWidget(widget.type, widget.x, widget.y, widget.content));
+  savedWidgets.forEach(widget => createWidget(widget.type, widget.name, widget.content, widget.x, widget.y));
 
   // === Create Widget Layer ===
   function createWidgetLayer() {
@@ -7110,107 +7143,159 @@ function initWidgetsSystem(currentUser) {
     return layer;
   }
 
+  // === Context Menu Button ===
+  const ctxMenu = document.getElementById('ctx-menu');
+  const addWidgetBtn = document.createElement('div');
+  addWidgetBtn.className = 'ctx-item';
+  addWidgetBtn.style.borderTop = '1px solid rgba(255,255,255,0.2)';
+  addWidgetBtn.style.paddingTop = '6px';
+  addWidgetBtn.textContent = '➕ Add Widget';
+  ctxMenu.appendChild(addWidgetBtn);
+
+  addWidgetBtn.addEventListener('click', () => {
+    showWidgetPopup();
+  });
+
+  // === Popup Skeleton ===
+  function showWidgetPopup() {
+    const popup = document.createElement('div');
+    popup.id = 'widget-popup-backdrop';
+    popup.style.position = 'fixed';
+    popup.style.inset = '0';
+    popup.style.background = 'rgba(0,0,0,0.6)';
+    popup.style.display = 'flex';
+    popup.style.alignItems = 'center';
+    popup.style.justifyContent = 'center';
+    popup.style.zIndex = '2000';
+
+    popup.innerHTML = `
+      <div style="background:#0b1020;padding:16px;border-radius:12px;width:320px;color:white;">
+        <div style="display:flex;align-items:center;font-size:14px;font-weight:bold;">
+          <svg width="18" height="18" viewBox="0 0 64 64" style="margin-right:6px;">
+            <circle cx="32" cy="32" r="30" fill="#4c8dff"/>
+            <rect x="28" y="16" width="8" height="24" fill="white"/>
+          </svg>
+          Create Widget
+        </div>
+        <div style="margin-top:8px;font-size:12px;">
+          <label>Select Widget Type:</label>
+          <select id="widget-type" style="width:100%;margin-top:6px;">
+            <option>Clock</option>
+            <option>Notes</option>
+            <option>Calendar</option>
+            <option>Calculator</option>
+            <option>MiniWeb</option>
+            <option>MiniRun</option>
+            <option>MiniCPU</option>
+            <option>Custom</option>
+          </select>
+          <div id="widget-extra" style="margin-top:8px;"></div>
+        </div>
+        <div style="margin-top:12px;text-align:right;">
+          <button id="widget-popup-cancel" class="admin-btn">Cancel</button>
+          <button id="widget-popup-create" class="admin-btn primary">Create</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(popup);
+
+    const typeSelect = popup.querySelector('#widget-type');
+    const extra = popup.querySelector('#widget-extra');
+
+    typeSelect.addEventListener('change', () => {
+      extra.innerHTML = '';
+      if (typeSelect.value === 'Custom') {
+        extra.innerHTML = `
+          <input id="custom-name" placeholder="Widget Name" style="width:100%;margin-top:6px;">
+          <textarea id="custom-html" placeholder="Enter HTML code" style="width:100%;height:80px;margin-top:6px;"></textarea>
+        `;
+      }
+    });
+
+    popup.querySelector('#widget-popup-cancel').onclick = () => popup.remove();
+
+    popup.querySelector('#widget-popup-create').onclick = () => {
+      const type = typeSelect.value;
+      let name = type;
+      let content = '';
+      if (type === 'Custom') {
+        name = document.getElementById('custom-name').value || 'Custom Widget';
+        content = document.getElementById('custom-html').value || '<h3>Empty Widget</h3>';
+      }
+      createWidget(type, name, content);
+      popup.remove();
+    };
+  }
+
   // === Create Widget ===
-  function createWidget(type, x = 50, y = 50, content = '') {
+  function createWidget(type, name, content = '', x = 50, y = 50) {
     const widgetEl = document.createElement('div');
     widgetEl.className = 'desktop-widget';
     widgetEl.style.position = 'absolute';
     widgetEl.style.left = `${x}px`;
     widgetEl.style.top = `${y}px`;
-    widgetEl.style.width = '220px';
+    widgetEl.style.width = '240px';
     widgetEl.style.background = 'rgba(10,10,30,0.9)';
     widgetEl.style.borderRadius = '8px';
-    widgetEl.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
-    widgetEl.style.color = '#fff';
-    widgetEl.style.fontSize = '14px';
     widgetEl.style.padding = '8px';
-    widgetEl.style.cursor = 'move';
+    widgetEl.style.color = '#fff';
 
-    // Header
     const header = document.createElement('div');
     header.style.display = 'flex';
     header.style.justifyContent = 'space-between';
-    header.style.marginBottom = '6px';
-    header.innerHTML = `<strong>${type}</strong>`;
-
-    const controls = document.createElement('div');
-    controls.style.display = 'flex';
-    controls.style.gap = '6px';
-
-    const minimizeBtn = document.createElement('button');
-    minimizeBtn.textContent = '–';
-    minimizeBtn.style.background = 'transparent';
-    minimizeBtn.style.color = '#fff';
-    minimizeBtn.style.border = 'none';
-    minimizeBtn.style.cursor = 'pointer';
-
+    header.innerHTML = `<strong>${name}</strong>`;
     const closeBtn = document.createElement('button');
     closeBtn.textContent = '✕';
     closeBtn.style.background = 'transparent';
     closeBtn.style.color = '#fff';
     closeBtn.style.border = 'none';
     closeBtn.style.cursor = 'pointer';
-
-    controls.append(minimizeBtn, closeBtn);
-    header.appendChild(controls);
+    closeBtn.onclick = () => {
+      widgetEl.remove();
+      removeWidget(name);
+    };
+    header.appendChild(closeBtn);
     widgetEl.appendChild(header);
 
-    // Body
     const body = document.createElement('div');
     body.className = 'widget-body';
-    body.innerHTML = getWidgetContent(type, content);
-    widgetEl.appendChild(body);
+    body.style.marginTop = '6px';
 
-    widgetLayer.appendChild(widgetEl);
-    saveWidget(type, x, y, content);
-
-    // Controls
-    closeBtn.addEventListener('click', () => {
-      widgetEl.remove();
-      removeWidget(type, x, y);
-    });
-    minimizeBtn.addEventListener('click', () => {
-      body.style.display = body.style.display === 'none' ? 'block' : 'none';
-    });
-
-    // Dragging
-    enableDrag(widgetEl, type, content);
-  }
-
-  // === Widget Content Generator ===
-  function getWidgetContent(type, content) {
+    // === Widget Content ===
     if (type === 'Clock') {
-      return `<div id="clock-${Date.now()}">--:--</div>`;
+      body.innerHTML = `<div>${new Date().toLocaleString()}</div>`;
+      setInterval(() => body.innerHTML = `<div>${new Date().toLocaleString()}</div>`, 1000);
     } else if (type === 'Notes') {
-      return `<textarea style="width:100%;height:80px;background:#111;color:#fff;border:none;border-radius:4px;">${content}</textarea>
-              <button style="margin-top:6px;width:100%;background:#ff7ad9;border:none;color:#fff;padding:4px;border-radius:4px;">Save</button>`;
+      body.innerHTML = `<textarea style="width:100%;height:80px;">${content}</textarea>
+                        <button style="margin-top:6px;width:100%;">Save</button>`;
+      body.querySelector('button').onclick = () => {
+        const text = body.querySelector('textarea').value;
+        saveToDocuments(name, text);
+      };
     } else if (type === 'Calendar') {
-      const now = new Date();
-      return `<div><strong>${now.toDateString()}</strong></div>
-              <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:6px;">
-              ${Array.from({ length: 30 }, (_, i) => `<div>${i + 1}</div>`).join('')}</div>`;
+      renderCalendar(body);
     } else if (type === 'Calculator') {
-      return `<input type="text" readonly style="width:100%;margin-bottom:6px;background:#222;color:#fff;border:none;padding:4px;border-radius:4px;">
-              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">
-              ${['7','8','9','/','4','5','6','*','1','2','3','-','0','.','=','+'].map(d => `<button>${d}</button>`).join('')}</div>`;
+      renderCalculator(body);
     } else if (type === 'MiniWeb') {
-      return `<input type="text" placeholder="Enter URL" style="width:100%;margin-bottom:6px;background:#222;color:#fff;border:none;padding:4px;border-radius:4px;">
-              <iframe style="width:100%;height:120px;background:#fff;border:none;"></iframe>`;
+      renderMiniWeb(body);
     } else if (type === 'MiniRun') {
-      return `<input type="text" placeholder="Enter app name" style="width:100%;margin-bottom:6px;background:#222;color:#fff;border:none;padding:4px;border-radius:4px;">
-              <button style="width:100%;background:#ff7ad9;border:none;color:#fff;padding:4px;border-radius:4px;">Run</button>`;
+      renderMiniRun(body);
     } else if (type === 'MiniCPU') {
-      return `<canvas width="200" height="80" style="background:#111;border-radius:4px;"></canvas>`;
+      renderMiniCPU(body);
     } else if (type === 'Custom') {
-      return `<textarea placeholder="Enter HTML" style="width:100%;height:60px;background:#111;color:#fff;border:none;border-radius:4px;"></textarea>
-              <textarea placeholder="Enter JS" style="width:100%;height:60px;background:#111;color:#fff;border:none;border-radius:4px;margin-top:6px;"></textarea>
-              <button style="margin-top:6px;width:100%;background:#ff7ad9;border:none;color:#fff;padding:4px;border-radius:4px;">Create</button>`;
+      body.innerHTML = `<iframe style="width:100%;height:120px;border:none;" srcdoc="${content}"></iframe>`;
     }
-    return `<div>${type} widget</div>`;
+
+    widgetEl.appendChild(body);
+    widgetLayer.appendChild(widgetEl);
+
+    enableDrag(widgetEl, name, type, content);
+    saveWidget({ type, name, content, x, y });
   }
 
   // === Dragging Logic ===
-  function enableDrag(widgetEl, type, content) {
+  function enableDrag(widgetEl, name, type, content) {
     let isDragging = false, offsetX, offsetY;
     widgetEl.addEventListener('mousedown', e => {
       if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
@@ -7228,83 +7313,109 @@ function initWidgetsSystem(currentUser) {
       if (isDragging) {
         isDragging = false;
         widgetEl.style.zIndex = '1000';
-        saveWidget(type, parseInt(widgetEl.style.left), parseInt(widgetEl.style.top), content);
+        saveWidget({ type, name, content, x: parseInt(widgetEl.style.left), y: parseInt(widgetEl.style.top) });
       }
     });
   }
 
-  // === Save Widget State ===
-  function saveWidget(type, x, y, content) {
+  // === Save & Remove Widgets ===
+  function saveWidget(widget) {
     const widgets = JSON.parse(localStorage.getItem(userKey) || '[]');
-    const existingIndex = widgets.findIndex(w => w.type === type && w.x === x && w.y === y);
-    if (existingIndex >= 0) {
-      widgets[existingIndex] = { type, x, y, content };
-    } else {
-      widgets.push({ type, x, y, content });
-    }
+    const idx = widgets.findIndex(w => w.name === widget.name);
+    if (idx >= 0) widgets[idx] = widget;
+    else widgets.push(widget);
     localStorage.setItem(userKey, JSON.stringify(widgets));
   }
 
-  function removeWidget(type, x, y) {
+  function removeWidget(name) {
     let widgets = JSON.parse(localStorage.getItem(userKey) || '[]');
-    widgets = widgets.filter(w => !(w.type === type && w.x === x && w.y === y));
+    widgets = widgets.filter(w => w.name !== name);
     localStorage.setItem(userKey, JSON.stringify(widgets));
   }
 
-  // === Update Widgets Every 3 Seconds ===
-  setInterval(() => {
-    document.querySelectorAll('.desktop-widget').forEach(widget => {
-      const type = widget.querySelector('strong').textContent;
-      if (type === 'Clock') {
-        const clockEl = widget.querySelector('.widget-body div');
-        clockEl.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      } else if (type === 'MiniCPU') {
-        const canvas = widget.querySelector('canvas');
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = '#ff7ad9';
-        ctx.beginPath();
-        for (let i = 0; i < 10; i++) {
-          const x = i * 20;
-          const y = Math.random() * canvas.height;
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-        ctx.fillStyle = '#fff';
-        ctx.font = '12px sans-serif';
-        ctx.fillText('CPU', 10, 15);
+  // === Helper Functions ===
+  function saveToDocuments(name, text) {
+    updateCurrentUser(u => ({
+      ...u,
+      fs: u.fs.concat({ path: '/documents', name: `${name}.txt`, type: 'file', ext: '.txt', content: text })
+    }));
+  }
+
+  function renderCalendar(container) {
+    let currentMonth = new Date();
+    const render = () => {
+      const monthName = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+      const days = Array.from({ length: 30 }, (_, i) => `<div>${i + 1}</div>`).join('');
+      container.innerHTML = `<div style="display:flex;justify-content:space-between;">
+                                <button id="prev">&lt;</button>
+                                <strong>${monthName}</strong>
+                                <button id="next">&gt;</button>
+                              </div>
+                              <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:6px;">${days}</div>`;
+      container.querySelector('#prev').onclick = () => { currentMonth.setMonth(currentMonth.getMonth() - 1); render(); };
+      container.querySelector('#next').onclick = () => { currentMonth.setMonth(currentMonth.getMonth() + 1); render(); };
+    };
+    render();
+  }
+
+  function renderCalculator(container) {
+    container.innerHTML = `<input id="calc-display" type="text" style="width:100%;margin-bottom:6px;">
+                           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">
+                           ${['7','8','9','/','4','5','6','*','1','2','3','-','0','.','=','+'].map(d => `<button>${d}</button>`).join('')}</div>`;
+    const display = container.querySelector('#calc-display');
+    container.querySelectorAll('button').forEach(btn => {
+      btn.onclick = () => {
+        if (btn.textContent === '=') display.value = eval(display.value);
+        else display.value += btn.textContent;
+      };
+    });
+  }
+
+  function renderMiniWeb(container) {
+    container.innerHTML = `<input id="web-url" placeholder="Enter URL or search" style="width:100%;margin-bottom:6px;">
+                           <iframe style="width:100%;height:120px;background:#fff;border:none;"></iframe>`;
+    const iframe = container.querySelector('iframe');
+    container.querySelector('#web-url').addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        const url = e.target.value.startsWith('http') ? e.target.value : `https://www.bing.com/search?q=${encodeURIComponent(e.target.value)}`;
+        iframe.src = url;
       }
     });
-  }, 3000);
+  }
 
-  // === Internal Widget Creation UI ===
-  const addBtn = document.createElement('button');
-  addBtn.textContent = '+ Add Widget';
-  addBtn.style.position = 'fixed';
-  addBtn.style.bottom = '10px';
-  addBtn.style.right = '10px';
-  addBtn.style.zIndex = '2000';
-  addBtn.style.padding = '8px';
-  addBtn.style.background = '#4c8dff';
-  addBtn.style.color = '#fff';
-  addBtn.style.border = 'none';
-  addBtn.style.borderRadius = '6px';
-  addBtn.style.cursor = 'pointer';
-  document.body.appendChild(addBtn);
+  function renderMiniRun(container) {
+    container.innerHTML = `<input id="run-app" placeholder="Enter app name" style="width:100%;margin-bottom:6px;">
+                           <button style="width:100%;">Run</button>`;
+    container.querySelector('button').onclick = () => {
+      const app = container.querySelector('#run-app').value.trim();
+      if (app) showWindow(app);
+    };
+  }
 
-  addBtn.addEventListener('click', () => {
-    const type = prompt('Enter widget type (Clock, Notes, Calendar, Calculator, MiniWeb, MiniRun, MiniCPU, Custom):');
-    if (type) createWidget(type);
-  });
+  function renderMiniCPU(container) {
+    container.innerHTML = `<canvas width="200" height="80" style="background:#111;border-radius:4px;"></canvas>`;
+    const canvas = container.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    setInterval(() => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#ff7ad9';
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const x = i * 20;
+        const y = Math.random() * canvas.height;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }, 2000);
+  }
 }
 
-// Initialize with current user
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
   const currentUser = localStorage.getItem('currentUser') || 'Guest';
   initWidgetsSystem(currentUser);
 });
-
 
       /* initial */
       function initialSetup(){

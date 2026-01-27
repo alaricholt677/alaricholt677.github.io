@@ -7415,7 +7415,7 @@ document.addEventListener('DOMContentLoaded', () => {
     overlay.style.left = '0';
     overlay.style.width = '100vw';
     overlay.style.height = '100vh';
-    overlay.style.background = 'linear-gradient(to bottom, #e0e0e0, #ffffff)';
+    overlay.style.background = 'linear-gradient(to bottom, #2b2b2b, #1a1a1a)';
     overlay.style.display = 'flex';
     overlay.style.flexDirection = 'column';
     overlay.style.alignItems = 'center';
@@ -7426,8 +7426,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const spinner = document.createElement('div');
     spinner.style.width = '50px';
     spinner.style.height = '50px';
-    spinner.style.border = '6px solid #ccc';
-    spinner.style.borderTop = '6px solid #555';
+    spinner.style.border = '6px solid #555';
+    spinner.style.borderTop = '6px solid #aaa';
     spinner.style.borderRadius = '50%';
     spinner.style.animation = 'spin 1s linear infinite';
 
@@ -7435,7 +7435,7 @@ document.addEventListener('DOMContentLoaded', () => {
     text.innerText = actionText + '...';
     text.style.marginTop = '20px';
     text.style.fontSize = '20px';
-    text.style.color = '#444';
+    text.style.color = '#ddd';
     text.style.fontFamily = 'Segoe UI, sans-serif';
 
     overlay.appendChild(spinner);

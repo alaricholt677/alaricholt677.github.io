@@ -7497,7 +7497,6 @@ function initWidgetsSystem(currentUser) {
   }
 }
 
-
 function renderWeather(container) {
   if (!container) return;
 
@@ -7568,6 +7567,7 @@ function renderWeather(container) {
     "Pleasanton": [28.9678, -98.4789]
   };
 
+  // Populate city dropdown
   for (const c in cities) {
     const opt = document.createElement("option");
     opt.value = c;
@@ -7575,14 +7575,15 @@ function renderWeather(container) {
     citySelect.appendChild(opt);
   }
 
-  const savedCity = localStorage.getItem("weatherCity") || "San Antonio";
-  citySelect.value = savedCity;
+  const savedCity = localStorage.getItem("weatherCity") || "Hondo";
+  citySelect.value = cities[savedCity] ? savedCity : "Hondo";
 
   citySelect.onchange = () => {
     localStorage.setItem("weatherCity", citySelect.value);
     loadWeather();
   };
 
+  // Tabs
   tabs.forEach(tab => {
     tab.onclick = () => {
       tabs.forEach(t => t.classList.remove("active"));
@@ -7615,7 +7616,9 @@ function renderWeather(container) {
 
   async function loadWeather() {
     const city = citySelect.value;
-    const [lat, lon] = cities[city];
+    const coords = cities[city];
+    if (!coords) return;
+    const [lat, lon] = coords;
 
     todayBox.textContent = "Loading...";
     panelHourly.textContent = "Loading...";
@@ -7627,27 +7630,30 @@ function renderWeather(container) {
     try {
       const url =
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-        `&hourly=temperature_2m,weathercode&daily=weathercode,temperature_2m_max,temperature_2m_min` +
-        `&current_weather=true&timezone=auto`;
+        `&hourly=temperature_2m,weathercode` +
+        `&daily=weathercode,temperature_2m_max,temperature_2m_min` +
+        `&current_weather=true&timezone=auto&temperature_unit=fahrenheit`;
 
       const data = await fetch(url).then(r => r.json());
 
-      const todayTemp = data.current_weather.temperature;
+      // TODAY (Fahrenheit)
+      const todayTemp = data.current_weather.temperature; // already °F
       const todayCode = data.current_weather.weathercode;
 
       todayBox.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div>
             <div>${city}</div>
-            <div style="font-size:20px;font-weight:bold;">${Math.round(todayTemp)}°</div>
+            <div style="font-size:20px;font-weight:bold;">${Math.round(todayTemp)}°F</div>
           </div>
           <div class="weather-icon-big">${iconFor(todayCode)}</div>
         </div>
       `;
 
+      // HOURLY (next 12 hours, °F)
       panelHourly.innerHTML = "";
       const hours = data.hourly.time;
-      const temps = data.hourly.temperature_2m;
+      const temps = data.hourly.temperature_2m; // °F
       const codes = data.hourly.weathercode;
       const now = Date.now();
       let count = 0;
@@ -7661,16 +7667,17 @@ function renderWeather(container) {
           <div class="weather-row">
             <span>${label}</span>
             <span>${iconFor(codes[i])}</span>
-            <span>${Math.round(temps[i])}°</span>
+            <span>${Math.round(temps[i])}°F</span>
           </div>
         `;
         count++;
       }
 
+      // WEEKLY (°F)
       panelWeekly.innerHTML = "";
       const days = data.daily.time;
-      const max = data.daily.temperature_2m_max;
-      const min = data.daily.temperature_2m_min;
+      const max = data.daily.temperature_2m_max; // °F
+      const min = data.daily.temperature_2m_min; // °F
       const dCodes = data.daily.weathercode;
 
       for (let i = 0; i < days.length; i++) {
@@ -7680,11 +7687,12 @@ function renderWeather(container) {
           <div class="weather-row">
             <span>${d}</span>
             <span>${iconFor(dCodes[i])}</span>
-            <span>${Math.round(min[i])}° / ${Math.round(max[i])}°</span>
+            <span>${Math.round(min[i])}°F / ${Math.round(max[i])}°F</span>
           </div>
         `;
       }
 
+      // ALERTS (now correctly based on °F)
       panelAlerts.innerHTML = "";
       const alerts = [];
       if (todayTemp >= 100) alerts.push("Extreme heat today.");
@@ -7700,12 +7708,14 @@ function renderWeather(container) {
         });
       }
 
+      // RADAR
       panelRadar.innerHTML = `
         <iframe class="weather-map"
           src="https://radar.weather.gov/?settings=v1_eyJhIjp7ImIiOnRydWUsImMiOnRydWUsImYiOnRydWUsImciOnRydWUsImgiOnRydWUsImkiOnRydWV9fQ==">
         </iframe>
       `;
 
+      // TEXAS MAP SELECTOR
       panelMap.innerHTML = `<div class="weather-texas-map"></div>`;
       const mapGrid = panelMap.querySelector(".weather-texas-map");
 
@@ -7722,6 +7732,11 @@ function renderWeather(container) {
 
     } catch (e) {
       todayBox.textContent = "Weather unavailable";
+      panelHourly.textContent = "Error loading data.";
+      panelWeekly.textContent = "";
+      panelAlerts.textContent = "";
+      panelRadar.textContent = "";
+      panelMap.textContent = "";
     }
   }
 

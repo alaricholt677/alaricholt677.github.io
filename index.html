@@ -2193,35 +2193,6 @@
     <div class="ctx-separator"></div>
     <div class="ctx-item" data-action="props"><span>Properties</span></div>
   </div>
-
-      <div style="background:#0b1020;padding:16px;border-radius:12px;width:320px;color:white;">
-        <div style="display:flex;align-items:center;font-size:14px;font-weight:bold;">
-          <svg width="18" height="18" viewBox="0 0 64 64" style="margin-right:6px;">
-            <circle cx="32" cy="32" r="30" fill="#4c8dff"/>
-            <rect x="28" y="16" width="8" height="24" fill="white"/>
-          </svg>
-          Create Widget
-        </div>
-        <div style="margin-top:8px;font-size:12px;">
-          <label>Select Widget Type:</label>
-          <select id="widget-type" style="width:100%;margin-top:6px;">
-            <option>Clock</option>
-            <option>Notes</option>
-            <option>Calendar</option>
-            <option>Calculator</option>
-            <option>MiniWeb</option>
-            <option>MiniRun</option>
-            <option>MiniCPU</option>
-            <option>Weather</option>
-            <option>Custom</option>
-          </select>
-          <div id="widget-extra" style="margin-top:8px;"></div>
-        </div>
-        <div style="margin-top:12px;text-align:right;">
-          <button id="widget-popup-cancel" class="admin-btn">Cancel</button>
-          <button id="widget-popup-create" class="admin-btn primary">Create</button>
-        </div>
-      </div>
   <!-- Admin popup -->
   <div id="admin-popup-backdrop">
     <div id="admin-popup">
@@ -7303,6 +7274,8 @@ function initWidgetsSystem(currentUser) {
       renderMiniRun(body);
     } else if (type === 'MiniCPU') {
       renderMiniCPU(body);
+    } else if (type === 'Weather') {
+      renderWeather(container);
     } else if (type === 'Custom') {
       body.innerHTML = `<iframe style="width:100%;height:120px;border:none;" srcdoc="${content}"></iframe>`;
     }

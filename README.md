@@ -68,7 +68,7 @@ It is not a placeholder. It is a shrine of persistence, closure, and legacy.
 | 6 | Edge viewer | ✅ Done | no 2nd part |
 | 7 | Start menu widgets | ✅ Done | no 2nd part |
 | 8 | Feedback hub | ✅ Done | no 2nd part |
-| 9 | Copilot mini‑chat | ✅ Done | no 2nd part |
+| 9 | Copilot mini‑chat (that is AIM-OS) | ✅ Done | no 2nd part |
 | 10 | Power options |  ✅ Done| no 2nd part |
 | 11 | Persistent pins + session restore |  ✅ Done | ✅ Done |
 | 12 | Advanced widgets (weather, system stats) | ✅ Done | no 2nd part |

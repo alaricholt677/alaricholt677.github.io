@@ -1234,24 +1234,15 @@
 }
 
 .weather-box {
-  width: 180px;
-  padding: 14px;
-  border-radius: 14px;
+  width: 240px;
+  padding: 10px;
+  border-radius: 12px;
   backdrop-filter: blur(14px);
   background: rgba(255,255,255,0.15);
   border: 1px solid rgba(255,255,255,0.25);
   color: white;
   font-family: Segoe UI, sans-serif;
-}
-.weather-box {
-  width: 220px;
-  padding: 12px;
-  border-radius: 14px;
-  backdrop-filter: blur(14px);
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.25);
-  color: white;
-  font-family: Segoe UI, sans-serif;
+  font-size: 12px;
 }
 
 .weather-header {
@@ -1260,26 +1251,80 @@
   align-items: center;
 }
 
-.weather-today {
-  margin-top: 8px;
-  font-size: 14px;
+.weather-header select {
+  background:#0002;
+  color:white;
+  border:1px solid #fff3;
+  border-radius:6px;
 }
 
-.weather-week {
-  margin-top: 10px;
-  font-size: 12px;
+.weather-tabs {
+  display:flex;
+  gap:4px;
+  margin-top:6px;
 }
 
-.weather-day {
-  display: flex;
-  justify-content: space-between;
-  padding: 4px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+.weather-tab {
+  padding:3px 6px;
+  border-radius:6px;
+  background:#111;
+  cursor:pointer;
 }
 
-.weather-icon {
-  font-size: 22px;
-  margin-right: 6px;
+.weather-tab.active {
+  background:#2b5cff;
+}
+
+.weather-panel {
+  margin-top:6px;
+  max-height:140px;
+  overflow:auto;
+  background:#050818;
+  border-radius:6px;
+  padding:6px;
+}
+
+.weather-row {
+  display:flex;
+  justify-content:space-between;
+  padding:3px 0;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
+
+.weather-icon-big {
+  font-size:32px;
+  animation: wxpulse 2s infinite ease-in-out;
+}
+
+@keyframes wxpulse {
+  0%,100% { transform:scale(1); opacity:1; }
+  50% { transform:scale(1.1); opacity:.8; }
+}
+
+.weather-alert {
+  background:#5b1a1a;
+  padding:4px;
+  border-radius:6px;
+  margin-bottom:4px;
+}
+
+.weather-map {
+  width:100%;
+  height:130px;
+  border:none;
+  border-radius:6px;
+}
+
+.weather-texas-map {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:3px;
+  margin-top:6px;
+}
+
+.weather-texas-map button {
+  font-size:10px;
+  padding:3px;
 }
 
   </style>
@@ -7459,21 +7504,37 @@ function renderWeather(container) {
   container.innerHTML = `
     <div class="weather-box">
       <div class="weather-header">
-        <strong>Texas Weather</strong>
-        <select id="wx-city" style="background:#0002;color:white;border:1px solid #fff3;border-radius:6px;">
-        </select>
+        <strong>Weather</strong>
+        <select id="wx-city"></select>
       </div>
 
-      <div class="weather-today" id="wx-today">Loading...</div>
-      <div class="weather-week" id="wx-week"></div>
+      <div id="wx-today" style="margin-top:6px;">Loading...</div>
+
+      <div class="weather-tabs">
+        <div class="weather-tab active" data-panel="hourly">Hourly</div>
+        <div class="weather-tab" data-panel="weekly">Week</div>
+        <div class="weather-tab" data-panel="alerts">Alerts</div>
+        <div class="weather-tab" data-panel="radar">Radar</div>
+        <div class="weather-tab" data-panel="map">Map</div>
+      </div>
+
+      <div class="weather-panel" id="wx-panel-hourly"></div>
+      <div class="weather-panel" id="wx-panel-weekly" style="display:none;"></div>
+      <div class="weather-panel" id="wx-panel-alerts" style="display:none;"></div>
+      <div class="weather-panel" id="wx-panel-radar" style="display:none;"></div>
+      <div class="weather-panel" id="wx-panel-map" style="display:none;"></div>
     </div>
   `;
 
   const citySelect = container.querySelector("#wx-city");
   const todayBox = container.querySelector("#wx-today");
-  const weekBox = container.querySelector("#wx-week");
+  const panelHourly = container.querySelector("#wx-panel-hourly");
+  const panelWeekly = container.querySelector("#wx-panel-weekly");
+  const panelAlerts = container.querySelector("#wx-panel-alerts");
+  const panelRadar = container.querySelector("#wx-panel-radar");
+  const panelMap = container.querySelector("#wx-panel-map");
+  const tabs = container.querySelectorAll(".weather-tab");
 
-  // 30+ Texas cities with coordinates
   const cities = {
     "San Antonio": [29.4241, -98.4936],
     "Hondo": [29.3477, -99.1417],
@@ -7507,7 +7568,6 @@ function renderWeather(container) {
     "Pleasanton": [28.9678, -98.4789]
   };
 
-  // Populate dropdown
   for (const c in cities) {
     const opt = document.createElement("option");
     opt.value = c;
@@ -7515,7 +7575,6 @@ function renderWeather(container) {
     citySelect.appendChild(opt);
   }
 
-  // Load saved city or default to San Antonio
   const savedCity = localStorage.getItem("weatherCity") || "San Antonio";
   citySelect.value = savedCity;
 
@@ -7523,6 +7582,20 @@ function renderWeather(container) {
     localStorage.setItem("weatherCity", citySelect.value);
     loadWeather();
   };
+
+  tabs.forEach(tab => {
+    tab.onclick = () => {
+      tabs.forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+
+      const p = tab.dataset.panel;
+      panelHourly.style.display = p === "hourly" ? "block" : "none";
+      panelWeekly.style.display = p === "weekly" ? "block" : "none";
+      panelAlerts.style.display = p === "alerts" ? "block" : "none";
+      panelRadar.style.display = p === "radar" ? "block" : "none";
+      panelMap.style.display = p === "map" ? "block" : "none";
+    };
+  });
 
   function iconFor(code) {
     const map = {
@@ -7545,43 +7618,106 @@ function renderWeather(container) {
     const [lat, lon] = cities[city];
 
     todayBox.textContent = "Loading...";
-    weekBox.innerHTML = "";
+    panelHourly.textContent = "Loading...";
+    panelWeekly.textContent = "Loading...";
+    panelAlerts.textContent = "";
+    panelRadar.innerHTML = "";
+    panelMap.innerHTML = "";
 
     try {
       const url =
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-        `&daily=weathercode,temperature_2m_max,temperature_2m_min&current_weather=true&timezone=auto`;
+        `&hourly=temperature_2m,weathercode&daily=weathercode,temperature_2m_max,temperature_2m_min` +
+        `&current_weather=true&timezone=auto`;
 
       const data = await fetch(url).then(r => r.json());
 
-      // Today
       const todayTemp = data.current_weather.temperature;
       const todayCode = data.current_weather.weathercode;
 
       todayBox.innerHTML = `
-        <div style="display:flex;align-items:center;">
-          <span class="weather-icon">${iconFor(todayCode)}</span>
-          <span style="font-size:18px;font-weight:bold;">${Math.round(todayTemp)}°</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div>${city}</div>
+            <div style="font-size:20px;font-weight:bold;">${Math.round(todayTemp)}°</div>
+          </div>
+          <div class="weather-icon-big">${iconFor(todayCode)}</div>
         </div>
-        <div>${city}</div>
       `;
 
-      // Weekly forecast
+      panelHourly.innerHTML = "";
+      const hours = data.hourly.time;
+      const temps = data.hourly.temperature_2m;
+      const codes = data.hourly.weathercode;
+      const now = Date.now();
+      let count = 0;
+
+      for (let i = 0; i < hours.length && count < 12; i++) {
+        const t = new Date(hours[i]);
+        if (t.getTime() < now) continue;
+        const label = t.toLocaleTimeString("en-US", { hour: "numeric" });
+
+        panelHourly.innerHTML += `
+          <div class="weather-row">
+            <span>${label}</span>
+            <span>${iconFor(codes[i])}</span>
+            <span>${Math.round(temps[i])}°</span>
+          </div>
+        `;
+        count++;
+      }
+
+      panelWeekly.innerHTML = "";
       const days = data.daily.time;
       const max = data.daily.temperature_2m_max;
       const min = data.daily.temperature_2m_min;
-      const codes = data.daily.weathercode;
+      const dCodes = data.daily.weathercode;
 
       for (let i = 0; i < days.length; i++) {
         const d = new Date(days[i]).toLocaleDateString("en-US", { weekday: "short" });
 
-        weekBox.innerHTML += `
-          <div class="weather-day">
+        panelWeekly.innerHTML += `
+          <div class="weather-row">
             <span>${d}</span>
-            <span>${iconFor(codes[i])}</span>
+            <span>${iconFor(dCodes[i])}</span>
             <span>${Math.round(min[i])}° / ${Math.round(max[i])}°</span>
           </div>
         `;
+      }
+
+      panelAlerts.innerHTML = "";
+      const alerts = [];
+      if (todayTemp >= 100) alerts.push("Extreme heat today.");
+      if (todayTemp <= 32) alerts.push("Freezing temperatures.");
+      if ([61, 63, 65].includes(todayCode)) alerts.push("Rain expected.");
+      if ([95, 96, 99].includes(todayCode)) alerts.push("Thunderstorms possible.");
+
+      if (!alerts.length) {
+        panelAlerts.textContent = "No severe alerts.";
+      } else {
+        alerts.forEach(a => {
+          panelAlerts.innerHTML += `<div class="weather-alert">${a}</div>`;
+        });
+      }
+
+      panelRadar.innerHTML = `
+        <iframe class="weather-map"
+          src="https://radar.weather.gov/?settings=v1_eyJhIjp7ImIiOnRydWUsImMiOnRydWUsImYiOnRydWUsImciOnRydWUsImgiOnRydWUsImkiOnRydWV9fQ==">
+        </iframe>
+      `;
+
+      panelMap.innerHTML = `<div class="weather-texas-map"></div>`;
+      const mapGrid = panelMap.querySelector(".weather-texas-map");
+
+      for (const c in cities) {
+        const btn = document.createElement("button");
+        btn.textContent = c;
+        btn.onclick = () => {
+          citySelect.value = c;
+          localStorage.setItem("weatherCity", c);
+          loadWeather();
+        };
+        mapGrid.appendChild(btn);
       }
 
     } catch (e) {

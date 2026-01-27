@@ -7460,6 +7460,201 @@ document.addEventListener('DOMContentLoaded', () => {
       finalAction();
     }, 3000);
   };
+
+window.onload = function() {
+  createBootUI();
+  runBootSequence();
+};
+
+function createBootUI() {
+  const overlay = document.createElement("div");
+  overlay.id = "boot-overlay";
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100vw";
+  overlay.style.height = "100vh";
+  overlay.style.background = "linear-gradient(to bottom, #2b2b2b, #1a1a1a)";
+  overlay.style.display = "flex";
+  overlay.style.flexDirection = "column";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+  overlay.style.zIndex = "999999999";
+  overlay.style.opacity = "0";
+  overlay.style.transition = "opacity 1s ease";
+
+  // Win12 logo
+  const logo = document.createElement("img");
+  logo.src = "win12-icon.svg";
+  logo.style.width = "140px";
+  logo.style.height = "140px";
+  logo.style.marginBottom = "40px";
+  logo.style.opacity = "0";
+  logo.style.transition = "opacity 1s ease";
+
+  // Spinner container
+  const spinner = document.createElement("div");
+  spinner.id = "boot-spinner";
+  spinner.style.position = "relative";
+  spinner.style.width = "60px";
+  spinner.style.height = "60px";
+  spinner.style.opacity = "0";
+  spinner.style.transition = "opacity 1s ease";
+
+  overlay.appendChild(logo);
+  overlay.appendChild(spinner);
+  document.body.appendChild(overlay);
+
+  // Build spinner dots
+  for (let i = 0; i < 12; i++) {
+    const dot = document.createElement("div");
+    dot.style.position = "absolute";
+    dot.style.width = "10px";
+    dot.style.height = "10px";
+    dot.style.borderRadius = "50%";
+    dot.style.background = "#ccc";
+    dot.style.top = "50%";
+    dot.style.left = "50%";
+    dot.style.transformOrigin = "0 -20px";
+    dot.style.transform = `rotate(${i * 30}deg) translate(-50%, -50%)`;
+    dot.style.animation = "boot-fade 1.2s linear infinite";
+    dot.style.animationDelay = `${i * 0.1}s`;
+    spinner.appendChild(dot);
+  }
+
+  // Keyframes
+  const style = document.createElement("style");
+  style.innerHTML = `
+    @keyframes boot-fade {
+      0% { opacity: 1; }
+      100% { opacity: 0.1; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function runBootSequence() {
+  const overlay = document.getElementById("boot-overlay");
+  const logo = overlay.children[0];
+  const spinner = overlay.children[1];
+
+  requestAnimationFrame(() => {
+    overlay.style.opacity = "1";
+    setTimeout(() => {
+      logo.style.opacity = "1";
+      spinner.style.opacity = "1";
+    }, 300);
+  });
+
+  // Boot duration
+  setTimeout(() => {
+    overlay.style.opacity = "0";
+    setTimeout(() => overlay.remove(), 1200);
+  }, 2500);
+}
+
+
+window.onerror = function(msg, src, line, col, err) {
+  showBSOD(msg);
+};
+
+function showBSOD(errorMessage) {
+  const overlay = document.createElement("div");
+  overlay.id = "bsod-overlay";
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100vw";
+  overlay.style.height = "100vh";
+  overlay.style.background = "linear-gradient(to bottom, #4aa3ff, #0053c7)";
+  overlay.style.display = "flex";
+  overlay.style.flexDirection = "column";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+  overlay.style.zIndex = "999999999";
+  overlay.style.color = "white";
+  overlay.style.fontFamily = "Segoe UI, sans-serif";
+  overlay.style.textAlign = "center";
+  overlay.style.padding = "40px";
+
+  // Sad face
+  const face = document.createElement("h1");
+  face.innerText = "):";
+  face.style.fontSize = "120px";
+  face.style.marginBottom = "20px";
+  face.style.opacity = "0";
+  face.style.transition = "opacity 1s ease";
+  overlay.appendChild(face);
+
+  // Typing text container
+  const text = document.createElement("div");
+  text.style.fontSize = "24px";
+  text.style.maxWidth = "700px";
+  text.style.minHeight = "120px";
+  text.style.whiteSpace = "pre-wrap";
+  overlay.appendChild(text);
+
+  // QR code
+  const qr = document.createElement("img");
+  qr.src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://alaricholt677.github.io";
+  qr.style.marginTop = "30px";
+  qr.style.opacity = "0";
+  qr.style.transition = "opacity 1s ease";
+  overlay.appendChild(qr);
+
+  // Progress bar
+  const progress = document.createElement("div");
+  progress.style.width = "300px";
+  progress.style.height = "10px";
+  progress.style.background = "rgba(255,255,255,0.3)";
+  progress.style.marginTop = "40px";
+  progress.style.borderRadius = "6px";
+  progress.style.overflow = "hidden";
+
+  const bar = document.createElement("div");
+  bar.style.height = "100%";
+  bar.style.width = "0%";
+  bar.style.background = "white";
+  bar.style.transition = "width 0.1s linear";
+  progress.appendChild(bar);
+
+  overlay.appendChild(progress);
+  document.body.appendChild(overlay);
+
+  // Animate face
+  setTimeout(() => face.style.opacity = "1", 200);
+
+  // Typing animation
+  const fullText =
+    "There was an unexpected problem with your simulator.\n\n" +
+    "If you see this error, copy the following message and report it at:\n" +
+    "https://alaricholt677.github.io\n\n" +
+    "Error: " + errorMessage;
+
+  let i = 0;
+  function type() {
+    if (i < fullText.length) {
+      text.innerText = fullText.slice(0, i++);
+      setTimeout(type, 20);
+    } else {
+      qr.style.opacity = "1";
+      runProgress(bar);
+    }
+  }
+  setTimeout(type, 800);
+}
+
+function runProgress(bar) {
+  let p = 0;
+  const interval = setInterval(() => {
+    p++;
+    bar.style.width = p + "%";
+    if (p >= 100) {
+      clearInterval(interval);
+      setTimeout(() => location.reload(), 500);
+    }
+  }, 30);
+}
       /* initial */
       function initialSetup(){
         initWidgetsSystem(currentUser);

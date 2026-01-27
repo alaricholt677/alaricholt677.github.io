@@ -1243,26 +1243,43 @@
   color: white;
   font-family: Segoe UI, sans-serif;
 }
+.weather-box {
+  width: 220px;
+  padding: 12px;
+  border-radius: 14px;
+  backdrop-filter: blur(14px);
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: white;
+  font-family: Segoe UI, sans-serif;
+}
 
-.weather-top {
+.weather-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+}
+
+.weather-today {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.weather-week {
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.weather-day {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
 .weather-icon {
-  font-size: 40px;
-}
-
-.weather-temp {
-  font-size: 32px;
-  font-weight: 600;
-}
-
-.weather-bottom {
-  margin-top: 8px;
-  font-size: 14px;
-  opacity: 0.9;
+  font-size: 22px;
+  margin-right: 6px;
 }
 
   </style>
@@ -7436,89 +7453,144 @@ function initWidgetsSystem(currentUser) {
 }
 
 
-  function renderWeather(container) {
-    container.innerHTML = `
-      <div class="weather-box">
-        <div class="weather-top">
-          <div class="weather-icon" id="wicon">☁</div>
-          <div class="weather-temp" id="wtemp">--°</div>
-        </div>
-        <div class="weather-bottom">
-          <div id="wcity">Loading...</div>
-          <div id="wcond">—</div>
-        </div>
+function renderWeather(container) {
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="weather-box">
+      <div class="weather-header">
+        <strong>Texas Weather</strong>
+        <select id="wx-city" style="background:#0002;color:white;border:1px solid #fff3;border-radius:6px;">
+        </select>
       </div>
-    `;
 
-    const wicon = container.querySelector("#wicon");
-    const wtemp = container.querySelector("#wtemp");
-    const wcity = container.querySelector("#wcity");
-    const wcond = container.querySelector("#wcond");
+      <div class="weather-today" id="wx-today">Loading...</div>
+      <div class="weather-week" id="wx-week"></div>
+    </div>
+  `;
 
-    async function getLocation() {
-      // Check localStorage first
-      const saved = localStorage.getItem("weatherLocation");
-      if (saved) return JSON.parse(saved);
+  const citySelect = container.querySelector("#wx-city");
+  const todayBox = container.querySelector("#wx-today");
+  const weekBox = container.querySelector("#wx-week");
 
-      // Ask user once
-      const loc = await fetch("https://ipapi.co/json/").then(r => r.json());
+  // 30+ Texas cities with coordinates
+  const cities = {
+    "San Antonio": [29.4241, -98.4936],
+    "Hondo": [29.3477, -99.1417],
+    "Austin": [30.2672, -97.7431],
+    "Dallas": [32.7767, -96.7970],
+    "Houston": [29.7604, -95.3698],
+    "El Paso": [31.7619, -106.4850],
+    "Fort Worth": [32.7555, -97.3308],
+    "Lubbock": [33.5779, -101.8552],
+    "Midland": [31.9973, -102.0779],
+    "Odessa": [31.8457, -102.3676],
+    "Waco": [31.5493, -97.1467],
+    "Killeen": [31.1171, -97.7278],
+    "Corpus Christi": [27.8006, -97.3964],
+    "Brownsville": [25.9017, -97.4975],
+    "McAllen": [26.2034, -98.2300],
+    "Harlingen": [26.1906, -97.6961],
+    "Laredo": [27.5306, -99.4803],
+    "New Braunfels": [29.7030, -98.1245],
+    "Seguin": [29.5688, -97.9647],
+    "Boerne": [29.7947, -98.7311],
+    "Bandera": [29.7260, -99.0731],
+    "Castroville": [29.3558, -98.8786],
+    "Devine": [29.1391, -98.9053],
+    "Uvalde": [29.2097, -99.7862],
+    "Eagle Pass": [28.7091, -100.4995],
+    "Del Rio": [29.3709, -100.8959],
+    "Fredericksburg": [30.2752, -98.8719],
+    "Kerrville": [30.0474, -99.1403],
+    "Comfort": [29.9677, -98.9053],
+    "Pleasanton": [28.9678, -98.4789]
+  };
 
-      const data = {
-        lat: loc.latitude,
-        lon: loc.longitude,
-        city: loc.city || "Your Location"
-      };
-
-      localStorage.setItem("weatherLocation", JSON.stringify(data));
-      return data;
-    }
-
-    async function loadWeather() {
-      try {
-        const loc = await getLocation();
-        wcity.textContent = loc.city;
-
-        const url =
-          "https://api.open-meteo.com/v1/forecast?latitude=" +
-          loc.lat +
-          "&longitude=" +
-          loc.lon +
-          "&current_weather=true";
-
-        const data = await fetch(url).then(r => r.json());
-
-        const temp = Math.round(data.current_weather.temperature);
-        const code = data.current_weather.weathercode;
-
-        wtemp.textContent = temp + "°";
-
-        const map = {
-          0: ["☀", "Clear"],
-          1: ["🌤", "Mostly Clear"],
-          2: ["⛅", "Partly Cloudy"],
-          3: ["☁", "Cloudy"],
-          45: ["🌫", "Fog"],
-          48: ["🌫", "Fog"],
-          51: ["🌦", "Light Drizzle"],
-          61: ["🌧", "Rain"],
-          71: ["❄", "Snow"],
-          95: ["⛈", "Thunderstorm"]
-        };
-
-        const entry = map[code] || ["❓", "Unknown"];
-        wicon.textContent = entry[0];
-        wcond.textContent = entry[1];
-
-      } catch (e) {
-        wcity.textContent = "Weather Unavailable";
-        wtemp.textContent = "--°";
-        wicon.textContent = "❓";
-        wcond.textContent = "Error";
-      }
-    }
-
-    loadWeather();
+  // Populate dropdown
+  for (const c in cities) {
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    citySelect.appendChild(opt);
   }
+
+  // Load saved city or default to San Antonio
+  const savedCity = localStorage.getItem("weatherCity") || "San Antonio";
+  citySelect.value = savedCity;
+
+  citySelect.onchange = () => {
+    localStorage.setItem("weatherCity", citySelect.value);
+    loadWeather();
+  };
+
+  function iconFor(code) {
+    const map = {
+      0: "☀",
+      1: "🌤",
+      2: "⛅",
+      3: "☁",
+      45: "🌫",
+      48: "🌫",
+      51: "🌦",
+      61: "🌧",
+      71: "❄",
+      95: "⛈"
+    };
+    return map[code] || "❓";
+  }
+
+  async function loadWeather() {
+    const city = citySelect.value;
+    const [lat, lon] = cities[city];
+
+    todayBox.textContent = "Loading...";
+    weekBox.innerHTML = "";
+
+    try {
+      const url =
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+        `&daily=weathercode,temperature_2m_max,temperature_2m_min&current_weather=true&timezone=auto`;
+
+      const data = await fetch(url).then(r => r.json());
+
+      // Today
+      const todayTemp = data.current_weather.temperature;
+      const todayCode = data.current_weather.weathercode;
+
+      todayBox.innerHTML = `
+        <div style="display:flex;align-items:center;">
+          <span class="weather-icon">${iconFor(todayCode)}</span>
+          <span style="font-size:18px;font-weight:bold;">${Math.round(todayTemp)}°</span>
+        </div>
+        <div>${city}</div>
+      `;
+
+      // Weekly forecast
+      const days = data.daily.time;
+      const max = data.daily.temperature_2m_max;
+      const min = data.daily.temperature_2m_min;
+      const codes = data.daily.weathercode;
+
+      for (let i = 0; i < days.length; i++) {
+        const d = new Date(days[i]).toLocaleDateString("en-US", { weekday: "short" });
+
+        weekBox.innerHTML += `
+          <div class="weather-day">
+            <span>${d}</span>
+            <span>${iconFor(codes[i])}</span>
+            <span>${Math.round(min[i])}° / ${Math.round(max[i])}°</span>
+          </div>
+        `;
+      }
+
+    } catch (e) {
+      todayBox.textContent = "Weather unavailable";
+    }
+  }
+
+  loadWeather();
+}
 
   // Auto-run if widget system mounts it
   const auto = document.querySelector(".widget-content");

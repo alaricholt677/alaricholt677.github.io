@@ -1233,6 +1233,38 @@
   border-radius: 8px;
 }
 
+.weather-box {
+  width: 180px;
+  padding: 14px;
+  border-radius: 14px;
+  backdrop-filter: blur(14px);
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: white;
+  font-family: Segoe UI, sans-serif;
+}
+
+.weather-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.weather-icon {
+  font-size: 40px;
+}
+
+.weather-temp {
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.weather-bottom {
+  margin-top: 8px;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
   </style>
   <style id="theme-style"></style>
 </head>
@@ -2162,38 +2194,34 @@
     <div class="ctx-item" data-action="props"><span>Properties</span></div>
   </div>
 
-  
-<!-- Widget Popup Skeleton -->
-<div id="widget-popup-backdrop" style="display:none;">
-  <div id="widget-popup" style="background:#0b1020;padding:16px;border-radius:12px;width:320px;color:white;">
-    <div id="widget-popup-title" style="display:flex;align-items:center;font-size:14px;font-weight:bold;">
-      <svg width="18" height="18" viewBox="0 0 64 64" style="margin-right:6px;">
-        <circle cx="32" cy="32" r="30" fill="#4c8dff"/>
-        <rect x="28" y="16" width="8" height="24" fill="white"/>
-      </svg>
-      Create Widget
-    </div>
-    <div id="widget-popup-body" style="margin-top:8px;font-size:12px;color:var(--text-soft);">
-      <label>Select Widget Type:</label>
-      <select id="widget-type" style="width:100%;margin-top:6px;">
-        <option>Clock</option>
-        <option>Notes</option>
-        <option>Calendar</option>
-        <option>Calculator</option>
-        <option>MiniWeb</option>
-        <option>MiniRun</option>
-        <option>MiniCPU</option>
-        <option>Custom</option>
-      </select>
-      <div id="widget-extra" style="margin-top:8px;"></div>
-    </div>
-    <div id="widget-popup-buttons" style="margin-top:12px;text-align:right;">
-      <button class="admin-btn" id="widget-popup-cancel">Cancel</button>
-      <button class="admin-btn primary" id="widget-popup-create">Create</button>
-    </div>
-  </div>
-</div>
-
+      <div style="background:#0b1020;padding:16px;border-radius:12px;width:320px;color:white;">
+        <div style="display:flex;align-items:center;font-size:14px;font-weight:bold;">
+          <svg width="18" height="18" viewBox="0 0 64 64" style="margin-right:6px;">
+            <circle cx="32" cy="32" r="30" fill="#4c8dff"/>
+            <rect x="28" y="16" width="8" height="24" fill="white"/>
+          </svg>
+          Create Widget
+        </div>
+        <div style="margin-top:8px;font-size:12px;">
+          <label>Select Widget Type:</label>
+          <select id="widget-type" style="width:100%;margin-top:6px;">
+            <option>Clock</option>
+            <option>Notes</option>
+            <option>Calendar</option>
+            <option>Calculator</option>
+            <option>MiniWeb</option>
+            <option>MiniRun</option>
+            <option>MiniCPU</option>
+            <option>Weather</option>
+            <option>Custom</option>
+          </select>
+          <div id="widget-extra" style="margin-top:8px;"></div>
+        </div>
+        <div style="margin-top:12px;text-align:right;">
+          <button id="widget-popup-cancel" class="admin-btn">Cancel</button>
+          <button id="widget-popup-create" class="admin-btn primary">Create</button>
+        </div>
+      </div>
   <!-- Admin popup -->
   <div id="admin-popup-backdrop">
     <div id="admin-popup">
@@ -7178,6 +7206,7 @@ function initWidgetsSystem(currentUser) {
             <option>MiniWeb</option>
             <option>MiniRun</option>
             <option>MiniCPU</option>
+            <option>Weather</option>
             <option>Custom</option>
           </select>
           <div id="widget-extra" style="margin-top:8px;"></div>
@@ -7402,6 +7431,94 @@ function initWidgetsSystem(currentUser) {
   }
 }
 
+
+  function renderWeather(container) {
+    container.innerHTML = `
+      <div class="weather-box">
+        <div class="weather-top">
+          <div class="weather-icon" id="wicon">☁</div>
+          <div class="weather-temp" id="wtemp">--°</div>
+        </div>
+        <div class="weather-bottom">
+          <div id="wcity">Loading...</div>
+          <div id="wcond">—</div>
+        </div>
+      </div>
+    `;
+
+    const wicon = container.querySelector("#wicon");
+    const wtemp = container.querySelector("#wtemp");
+    const wcity = container.querySelector("#wcity");
+    const wcond = container.querySelector("#wcond");
+
+    async function getLocation() {
+      // Check localStorage first
+      const saved = localStorage.getItem("weatherLocation");
+      if (saved) return JSON.parse(saved);
+
+      // Ask user once
+      const loc = await fetch("https://ipapi.co/json/").then(r => r.json());
+
+      const data = {
+        lat: loc.latitude,
+        lon: loc.longitude,
+        city: loc.city || "Your Location"
+      };
+
+      localStorage.setItem("weatherLocation", JSON.stringify(data));
+      return data;
+    }
+
+    async function loadWeather() {
+      try {
+        const loc = await getLocation();
+        wcity.textContent = loc.city;
+
+        const url =
+          "https://api.open-meteo.com/v1/forecast?latitude=" +
+          loc.lat +
+          "&longitude=" +
+          loc.lon +
+          "&current_weather=true";
+
+        const data = await fetch(url).then(r => r.json());
+
+        const temp = Math.round(data.current_weather.temperature);
+        const code = data.current_weather.weathercode;
+
+        wtemp.textContent = temp + "°";
+
+        const map = {
+          0: ["☀", "Clear"],
+          1: ["🌤", "Mostly Clear"],
+          2: ["⛅", "Partly Cloudy"],
+          3: ["☁", "Cloudy"],
+          45: ["🌫", "Fog"],
+          48: ["🌫", "Fog"],
+          51: ["🌦", "Light Drizzle"],
+          61: ["🌧", "Rain"],
+          71: ["❄", "Snow"],
+          95: ["⛈", "Thunderstorm"]
+        };
+
+        const entry = map[code] || ["❓", "Unknown"];
+        wicon.textContent = entry[0];
+        wcond.textContent = entry[1];
+
+      } catch (e) {
+        wcity.textContent = "Weather Unavailable";
+        wtemp.textContent = "--°";
+        wicon.textContent = "❓";
+        wcond.textContent = "Error";
+      }
+    }
+
+    loadWeather();
+  }
+
+  // Auto-run if widget system mounts it
+  const auto = document.querySelector(".widget-content");
+  if (auto) renderWeather(auto);
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   const currentUser = localStorage.getItem('currentUser') || 'Guest';

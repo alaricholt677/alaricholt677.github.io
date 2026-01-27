@@ -7408,64 +7408,58 @@ document.addEventListener('DOMContentLoaded', () => {
   initWidgetsSystem(currentUser);
 });
 
-function runActionUI(actionText, finalAction) {
-  // Create overlay
-  const overlay = document.createElement('div');
-  overlay.style.position = 'fixed';
-  overlay.style.top = '0';
-  overlay.style.left = '0';
-  overlay.style.width = '100vw';
-  overlay.style.height = '100vh';
-  overlay.style.background = 'linear-gradient(to bottom, #e0e0e0, #ffffff)';
-  overlay.style.display = 'flex';
-  overlay.style.flexDirection = 'column';
-  overlay.style.alignItems = 'center';
-  overlay.style.justifyContent = 'center';
-  overlay.style.zIndex = '999999';
-  overlay.style.transition = 'opacity 0.6s ease';
+  window.runActionUI = function(actionText, finalAction) {
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.background = 'linear-gradient(to bottom, #e0e0e0, #ffffff)';
+    overlay.style.display = 'flex';
+    overlay.style.flexDirection = 'column';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '999999';
+    overlay.style.transition = 'opacity 0.6s ease';
 
-  // Loading circle
-  const spinner = document.createElement('div');
-  spinner.style.width = '50px';
-  spinner.style.height = '50px';
-  spinner.style.border = '6px solid #ccc';
-  spinner.style.borderTop = '6px solid #555';
-  spinner.style.borderRadius = '50%';
-  spinner.style.animation = 'spin 1s linear infinite';
+    const spinner = document.createElement('div');
+    spinner.style.width = '50px';
+    spinner.style.height = '50px';
+    spinner.style.border = '6px solid #ccc';
+    spinner.style.borderTop = '6px solid #555';
+    spinner.style.borderRadius = '50%';
+    spinner.style.animation = 'spin 1s linear infinite';
 
-  // Action text
-  const text = document.createElement('div');
-  text.innerText = actionText + '...';
-  text.style.marginTop = '20px';
-  text.style.fontSize = '20px';
-  text.style.color = '#444';
-  text.style.fontFamily = 'Segoe UI, sans-serif';
+    const text = document.createElement('div');
+    text.innerText = actionText + '...';
+    text.style.marginTop = '20px';
+    text.style.fontSize = '20px';
+    text.style.color = '#444';
+    text.style.fontFamily = 'Segoe UI, sans-serif';
 
-  overlay.appendChild(spinner);
-  overlay.appendChild(text);
-  document.body.appendChild(overlay);
+    overlay.appendChild(spinner);
+    overlay.appendChild(text);
+    document.body.appendChild(overlay);
 
-  // Spinner animation keyframes
-  const style = document.createElement('style');
-  style.innerHTML = `
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-  `;
-  document.head.appendChild(style);
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
 
-  // After 2 seconds, fade out text + spinner
-  setTimeout(() => {
-    spinner.style.opacity = '0';
-    text.style.opacity = '0';
-  }, 2000);
+    setTimeout(() => {
+      spinner.style.opacity = '0';
+      text.style.opacity = '0';
+    }, 2000);
 
-  // After fade, perform action
-  setTimeout(() => {
-    finalAction();
-  }, 3000);
-}
+    setTimeout(() => {
+      finalAction();
+    }, 3000);
+  };
       /* initial */
       function initialSetup(){
         initWidgetsSystem(currentUser);

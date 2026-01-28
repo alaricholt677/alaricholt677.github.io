@@ -1,0 +1,57 @@
+{
+  "articles": [
+    {
+      "id": "win11-end-of-support",
+      "name": "Windows 11 Approaches End of Support",
+      "imageURL": "https://alaricholt677.github.io/news/img/win11-eos.jpg",
+      "content": "Microsoft has officially confirmed that Windows 11 will reach the end of support in late 2028. Devices still running Windows 11 will continue to function, but they will no longer receive security updates, feature improvements, or compatibility patches. Users are encouraged to migrate to newer systems or explore next‑generation environments such as Windows 12 simulators and cloud‑based shells.",
+      "tags": ["windows11", "support", "microsoft", "system"],
+      "date": "2026-01-27"
+    },
+
+    {
+      "id": "win12-simulator-issue-senders",
+      "name": "Windows 12 Simulator Issue Senders Identified",
+      "imageURL": "https://alaricholt677.github.io/news/img/win12-issues.jpg",
+      "content": "A wave of issue reports has been submitted to various Windows 12 simulator projects. Developers have traced many of the reports to automated senders, outdated forks, and users running modified builds. The maintainers recommend verifying simulator integrity, clearing cached assets, and ensuring that the simulator is running the latest stable HTML+JS build. Community maintainers have also introduced new validation tools to help identify false or duplicated issue senders.",
+      "tags": ["windows12", "simulator", "issues", "debug"],
+      "date": "2026-01-26"
+    },
+
+    {
+      "id": "ceal-system-update",
+      "name": "CEAL System Receives Major Stability Update",
+      "imageURL": "https://alaricholt677.github.io/news/img/ceal-update.jpg",
+      "content": "The CEAL subsystem has received a major stability and performance update. The new patch improves memory handling, reduces UI latency, and enhances compatibility with third‑party modules. Developers note that CEAL now supports dynamic panel injection, improved taskbar integration, and smoother transitions between system layers. Users are encouraged to update immediately to benefit from the improved runtime behavior.",
+      "tags": ["ceal", "system", "update"],
+      "date": "2026-01-25"
+    },
+
+    {
+      "id": "simulator-performance-boost",
+      "name": "Simulator Performance Boost Achieved Through New Rendering Pipeline",
+      "imageURL": "https://alaricholt677.github.io/news/img/performance.jpg",
+      "content": "A new rendering pipeline has been introduced for HTML‑based OS simulators, improving frame pacing and reducing layout thrashing. Early benchmarks show up to a 40% improvement in UI responsiveness, especially in systems with heavy blur, transparency, and layered window effects. Developers can enable the new pipeline through the experimental settings panel.",
+      "tags": ["performance", "simulator", "rendering"],
+      "date": "2026-01-23"
+    },
+
+    {
+      "id": "weather-api-expansion",
+      "name": "Weather API Expands With More Accurate Hourly Forecasts",
+      "imageURL": "https://alaricholt677.github.io/news/img/weather-api.jpg",
+      "content": "The integrated weather system now supports enhanced hourly forecasting with improved temperature accuracy and localized timezone adjustments. The update includes expanded city coverage, better fallback handling, and smoother transitions between daily and hourly views. Users can now track temperature changes with greater precision across all supported regions.",
+      "tags": ["weather", "api", "update"],
+      "date": "2026-01-22"
+    },
+
+    {
+      "id": "ui-theme-evolution",
+      "name": "UI Theme Evolution Continues With New Glass Effects",
+      "imageURL": "https://alaricholt677.github.io/news/img/ui-theme.jpg",
+      "content": "A new generation of glass‑blur UI effects has been introduced, offering deeper color diffusion, improved contrast, and more realistic translucency. The updated theme engine supports dynamic tinting, adaptive brightness, and layered glow effects that respond to user interaction. Developers can integrate the new theme presets directly into their simulator builds.",
+      "tags": ["ui", "theme", "design"],
+      "date": "2026-01-20"
+    }
+  ]
+}

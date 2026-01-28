@@ -8248,11 +8248,8 @@ function runProgress(bar) {
       setTimeout(() => location.reload(), 500);
     }
   }, 30);
-}
-
-document.addEventListener("DOMContentLoaded", function() {
+}document.addEventListener("DOMContentLoaded", function () {
   const NEWS_URL = "/news/news.json";
-
   const WEATHER_CITIES = [
     { id: "nyc", name: "New York, USA", lat: 40.7128, lon: -74.0060 },
     { id: "la", name: "Los Angeles, USA", lat: 34.0522, lon: -118.2437 },
@@ -8295,7 +8292,6 @@ document.addEventListener("DOMContentLoaded", function() {
   const searchBtn = document.getElementById("search-button");
   if (!taskbar || !searchBtn) return;
 
-  // ===== News button in taskbar =====
   const newsBtn = document.createElement("button");
   newsBtn.id = "news-button";
   newsBtn.className = "taskbar-btn";
@@ -8303,11 +8299,9 @@ document.addEventListener("DOMContentLoaded", function() {
     <svg width="20" height="20" viewBox="0 0 24 24">
       <path d="M4 5h16v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5z" stroke="currentColor" stroke-width="2"/>
       <path d="M8 9h8M8 13h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    </svg>
-  `;
+    </svg>`;
   searchBtn.insertAdjacentElement("afterend", newsBtn);
 
-  // ===== News panel =====
   const newsPanel = document.createElement("div");
   newsPanel.id = "news-panel";
   newsPanel.className = "hidden";
@@ -8324,20 +8318,18 @@ document.addEventListener("DOMContentLoaded", function() {
       <button id="news-weather-toggle" class="btn-ghost">Weather</button>
     </div>
     <div id="news-bootloader" class="news-bootloader">
-      <div class="boot-logo">Windows 12 News</div>
+      <div class="boot-logo">Windows 11</div>
       <div class="boot-spinner"></div>
       <div class="boot-text">Loading latest articles...</div>
     </div>
     <div id="news-content" class="news-content hidden">
-      <div id="news-list" class="news-list"></div>
+      <div id="news-list" class="news-list scrollable"></div>
       <div id="news-preview" class="news-preview">
         <div class="news-preview-placeholder">Select an article to preview</div>
       </div>
-    </div>
-  `;
+    </div>`;
   taskbar.insertAdjacentElement("beforebegin", newsPanel);
 
-  // ===== Article overlay =====
   const articleOverlay = document.createElement("div");
   articleOverlay.id = "news-article-overlay";
   articleOverlay.className = "hidden";
@@ -8354,11 +8346,9 @@ document.addEventListener("DOMContentLoaded", function() {
         <div id="article-sidebar-name" class="article-sidebar-name"></div>
       </aside>
       <main id="article-content" class="article-content"></main>
-    </div>
-  `;
+    </div>`;
   taskbar.insertAdjacentElement("beforebegin", articleOverlay);
 
-  // ===== Weather panel =====
   const weatherPanel = document.createElement("div");
   weatherPanel.id = "weather-panel";
   weatherPanel.className = "hidden";
@@ -8377,11 +8367,9 @@ document.addEventListener("DOMContentLoaded", function() {
     </div>
     <div id="weather-body" class="weather-body">
       <div class="weather-loading">Loading weather...</div>
-    </div>
-  `;
+    </div>`;
   taskbar.insertAdjacentElement("beforebegin", weatherPanel);
 
-  // ===== News panel control =====
   function showNewsPanel() {
     newsPanel.classList.remove("hidden");
     if (!newsData) loadNewsJson();
@@ -8397,7 +8385,6 @@ document.addEventListener("DOMContentLoaded", function() {
   newsBtn.addEventListener("click", toggleNewsPanel);
   newsPanel.querySelector("#news-close-btn").addEventListener("click", hideNewsPanel);
 
-  // ===== News JSON load =====
   async function loadNewsJson() {
     const boot = document.getElementById("news-bootloader");
     const content = document.getElementById("news-content");
@@ -8415,50 +8402,58 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   }
 
-  // ===== News list + preview =====
   function renderNewsList(list) {
     const listEl = document.getElementById("news-list");
     const previewEl = document.getElementById("news-preview");
     listEl.innerHTML = "";
     if (!list.length) {
-      listEl.innerHTML = `<div>No articles.</div>`;
+      listEl.innerHTML = `<div class="news-empty">No articles available.</div>`;
       previewEl.innerHTML = `<div class="news-preview-placeholder">No article selected.</div>`;
       return;
     }
     list.forEach((item, index) => {
       const card = document.createElement("div");
       card.className = "news-card";
+      card.dataset.index = index;
       card.innerHTML = `
         <div class="news-card-img-wrap">
-          <img src="${item.imageURL || ""}" alt="${escapeHtml(item.name || "")}" />
+          <img src="${item.imageURL || ""}" alt="${escapeHtml(item.name || "")}">
         </div>
         <div class="news-card-body">
           <h2>${escapeHtml(item.name || "Untitled")}</h2>
-          <button class="btn-primary" data-open="${index}">Open article</button>
-        </div>
-      `;
+          <div class="news-card-meta">${item.date || ""}</div>
+          <button class="btn-primary news-open-btn" data-index="${index}">Open</button>
+        </div>`;
       listEl.appendChild(card);
     });
-    listEl.addEventListener("click", e => {
-      const btn = e.target.closest("[data-open]");
+    listEl.onclick = (e) => {
+      const card = e.target.closest(".news-card");
+      if (!card) return;
+      const idx = parseInt(card.dataset.index, 10);
+      renderNewsPreview(list[idx]);
+    };
+    previewEl.onclick = (e) => {
+      const btn = e.target.closest(".news-open-btn-preview");
       if (!btn) return;
-      openArticle(parseInt(btn.dataset.open, 10));
-    }, { once: true });
-    renderPreview(list[0]);
+      const idx = parseInt(btn.dataset.index, 10);
+      openArticle(idx);
+    };
+    renderNewsPreview(list[0]);
   }
 
-  function renderPreview(item) {
-    const preview = document.getElementById("news-preview");
-    preview.innerHTML = `
+  function renderNewsPreview(item) {
+    const previewEl = document.getElementById("news-preview");
+    if (!item) return;
+    const index = newsData ? newsData.indexOf(item) : -1;
+    previewEl.innerHTML = `
       <div class="news-preview-inner">
-        <img class="news-preview-img" src="${item.imageURL || ""}" alt="${escapeHtml(item.name || "")}" />
+        <img class="news-preview-img" src="${item.imageURL || ""}" alt="${escapeHtml(item.name || "")}">
         <h1>${escapeHtml(item.name || "Untitled")}</h1>
         <p>${escapeHtml((item.content || "").slice(0, 220))}...</p>
-      </div>
-    `;
+        ${index >= 0 ? `<button class="btn-primary news-open-btn-preview" data-index="${index}">Open article</button>` : ""}
+      </div>`;
   }
 
-  // ===== Search =====
   function applyNewsSearch(query) {
     if (!newsData) return;
     if (!query) {
@@ -8476,16 +8471,16 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   const searchInput = document.getElementById("news-search-input");
-  const searchBtnConfirm = document.getElementById("news-search-confirm");
-  searchBtnConfirm.addEventListener("click", () => {
+  const searchConfirm = document.getElementById("news-search-confirm");
+  searchConfirm.addEventListener("click", () => {
     applyNewsSearch((searchInput.value || "").trim());
   });
-  searchInput.addEventListener("keydown", e => {
+  searchInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") applyNewsSearch((searchInput.value || "").trim());
   });
 
-  // ===== Article overlay =====
   function openArticle(index) {
+    if (!newsData) return;
     const item = newsData[index];
     if (!item) return;
     articleOverlay.querySelector(".article-title").textContent = item.name || "Article";
@@ -8503,7 +8498,6 @@ document.addEventListener("DOMContentLoaded", function() {
     articleOverlay.classList.add("hidden");
   });
 
-  // ===== Weather panel =====
   function toggleWeatherPanel() {
     if (weatherPanel.classList.contains("hidden")) {
       weatherPanel.classList.remove("hidden");
@@ -8516,7 +8510,7 @@ document.addEventListener("DOMContentLoaded", function() {
   document.getElementById("news-weather-toggle").addEventListener("click", toggleWeatherPanel);
   document.getElementById("weather-close-btn").addEventListener("click", toggleWeatherPanel);
 
-  document.getElementById("weather-city-select").addEventListener("change", e => {
+  document.getElementById("weather-city-select").addEventListener("change", (e) => {
     currentWeatherCityId = e.target.value;
     loadWeather(currentWeatherCityId);
   });
@@ -8580,13 +8574,12 @@ document.addEventListener("DOMContentLoaded", function() {
       <div class="weather-day-card">
         <div>${day}</div>
         <div>${Math.round(d.temperature_2m_max[i])}°F / ${Math.round(d.temperature_2m_min[i])}°F</div>
-        <button class="btn-ghost" data-hourly="${i}">View hourly</button>
-      </div>
-    `).join("");
+        <button class="btn-ghost weather-day-hourly-btn" data-day="${i}">View hourly</button>
+      </div>`).join("");
     container.innerHTML = `<div class="weather-daily-grid">${cards}</div>`;
-    container.querySelectorAll("[data-hourly]").forEach(btn => {
+    container.querySelectorAll(".weather-day-hourly-btn").forEach(btn => {
       btn.addEventListener("click", () => {
-        const idx = parseInt(btn.dataset.hourly, 10);
+        const idx = parseInt(btn.dataset.day, 10);
         renderWeatherHourlyForDay(container, idx);
       });
     });
@@ -8598,8 +8591,7 @@ document.addEventListener("DOMContentLoaded", function() {
       <div class="weather-hour-row">
         <span>${t}</span>
         <span>${Math.round(h.temperature_2m[i])}°F</span>
-      </div>
-    `).join("");
+      </div>`).join("");
     container.innerHTML = `<div class="weather-hourly-list">${rows}</div>`;
   }
 
@@ -8613,15 +8605,13 @@ document.addEventListener("DOMContentLoaded", function() {
         <div class="weather-hour-row">
           <span>${r.t.slice(11)}</span>
           <span>${Math.round(r.temp)}°F</span>
-        </div>
-      `).join("");
+        </div>`).join("");
     container.innerHTML = `
       <div class="weather-day-hourly-header">
         <button class="btn-ghost" id="weather-back-daily">← Back to weekly</button>
         <div>${day}</div>
       </div>
-      <div class="weather-hourly-list">${rows}</div>
-    `;
+      <div class="weather-hourly-list">${rows}</div>`;
     document.getElementById("weather-back-daily").addEventListener("click", () => {
       renderWeatherDaily(container);
     });

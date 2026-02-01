@@ -80,6 +80,7 @@ Everything runs **client‑side** and persists using LocalStorage.
 | **Theme Studio** | Customize colors, UI accents, and system theme |
 | **Host.exe** | Base64 `.exe` launcher for internal apps |
 | **Copilot Mini** | Built‑in assistant with commands and suggestions |
+| **CMD and AIM OS file creation** | these both can play music export/import session and can add and delete files |
 
 ---
 
@@ -158,11 +159,8 @@ Just raw code.
 ### **Planned**
 - More widgets  
 - More apps  
-- Better browser  
-- Real weather API (optional)  
-- Plugin system  
-- Desktop backgrounds  
-- App store (local)  
+- App store (local)
+- and your app requests
 
 ---
 

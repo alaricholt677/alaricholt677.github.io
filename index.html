@@ -2713,7 +2713,9 @@ button:hover{background:#1e293b;}
               ".wav":"media",
               ".ogg":"media",
               ".xml": "browser",
-              ".svg": "browser"
+              ".svg": "browser",
+              ".cmd": "cmd",
+              ".bat": "cmd",
             }
           });
           state.currentUserId = id;
@@ -2768,7 +2770,9 @@ button:hover{background:#1e293b;}
               ".wav":"media",
               ".ogg":"media",
               ".xml": "browser",
-              ".svg": "browser"
+              ".svg": "browser",
+              ".cmd": "cmd",
+              ".bat": "cmd",
           }
         });
         state.currentUserId=id; saveState();
@@ -8865,9 +8869,145 @@ function runProgress(bar) {
       .replace(/'/g, "&#039;");
   }
 });
+function createFullCMDApp() {
 
+  /*──────────────────────────────────────
+      1. CREATE CMD WINDOW
+  ───────────────────────────────────────*/
+  const win = document.createElement("div");
+  win.className = "window";
+  win.id = "window-cmd";
+  win.dataset.app = "cmd";
+  win.dataset.appDesc = "[Win12 CMD] Virtual command console and script runner.";
+  win.style.width = "560px";
+  win.style.height = "380px";
+  win.style.left = "200px";
+  win.style.top = "140px";
+
+  win.innerHTML = `
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-icon">
+          <svg viewBox="0 0 64 64" width="20" height="20">
+            <rect x="4" y="4" width="56" height="56" rx="6" fill="#111" stroke="#fff" stroke-width="2"/>
+            <text x="16" y="38" font-size="26" fill="#0f0" font-family="monospace">C:</text>
+          </svg>
+        </div>
+        <div class="window-title-text">
+          <div class="window-title-main">CMD</div>
+          <div class="window-title-sub">Virtual Terminal</div>
+        </div>
+        <div class="window-fullscreen-toggle">[ ]</div>
+        <div class="window-info-icon">(i)</div>
+        <div class="window-info-tooltip"></div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+
+    <div class="window-body">
+      <div id="cmd-core" style="padding:6px;"></div>
+    </div>
+  `;
+
+  document.body.appendChild(win);
+  windowsMap["cmd"] = win;
+
+  /*──────────────────────────────────────
+      2. ATTACH MINI CMD ENGINE
+  ───────────────────────────────────────*/
+  const container = win.querySelector("#cmd-core");
+  renderMiniCMD(container, "cmd_main");
+
+
+  /*──────────────────────────────────────
+      3. ADD SCRIPT RUNNER (safe virtual)
+  ───────────────────────────────────────*/
+  window.runVirtualScript = function(scriptText, print, runCmd) {
+    print("Running script...");
+    const lines = scriptText.split("\n");
+
+    for (let line of lines) {
+      const cmd = line.trim();
+      if (!cmd) continue;
+
+      try { runCmd(cmd); }
+      catch (err) {
+        print("ERROR: " + err.message, "color:red");
+        break;
+      }
+    }
+    print("Script finished.");
+  };
+
+
+  /*──────────────────────────────────────
+      4. EXTEND CMD COMMAND SET
+  ───────────────────────────────────────*/
+  window.extendCMD = function(cmdInstance) {
+
+    const { print, cwd, currentUser, run } = cmdInstance;
+
+    cmdInstance.commands = {
+      ...cmdInstance.commands,
+
+      echo(args) {
+        print(args.join(" "));
+      },
+
+      clear() {
+        cmdInstance.output.innerHTML = "";
+      },
+
+      run(args) {
+        const filename = args.join(" ");
+        const u = currentUser();
+        const f = u.fs.find(e => e.path === cwd && e.name === filename);
+
+        if (!f) return print("File not found.", "color:red");
+        if (f.ext !== ".cmd" && f.ext !== ".bat")
+          return print("Not a .cmd or .bat file.", "color:red");
+
+        runVirtualScript(f.content, print, run);
+      },
+
+      fetch(args) {
+        const url = args.join(" ");
+        fetch(url)
+          .then(r => r.text())
+          .then(t => print(t))
+          .catch(() => print("Fetch failed.", "color:red"));
+      }
+    };
+  };
+
+
+  /*──────────────────────────────────────
+      5. REGISTER IN START MENU
+  ───────────────────────────────────────*/
+  const sm = document.querySelector("#start-menu .start-apps");
+  if (sm) {
+    const tile = document.createElement("div");
+    tile.className = "start-app";
+    tile.dataset.app = "cmd";
+    tile.innerHTML = `
+      <div class="start-app-icon"></div>
+      <div class="start-app-label">CMD</div>
+    `;
+    tile.addEventListener("click", () => {
+      showWindow("cmd");
+      closeStart();
+    });
+    sm.appendChild(tile);
+  }
+
+  return win;
+}
       /* initial */
       function initialSetup(){
+        createFullCMDApp();
         initWidgetsSystem(currentUser);
         initTaskManager();
         createWordApp();

@@ -3556,46 +3556,100 @@ function mergeImported(entries) {
       function ctxDelete(entry){
         updateCurrentUser(u=>({...u,fs:u.fs.filter(e=>!(e.path===entry.path&&e.name===entry.name))}));
       }
-      function ctxRename(entry){
-        const overlay=document.createElement("div");
-        overlay.style.position="fixed";
-        overlay.style.inset="0";
-        overlay.style.background="rgba(0,0,0,0.4)";
-        overlay.style.backdropFilter="blur(8px)";
-        overlay.style.display="flex";
-        overlay.style.alignItems="center";
-        overlay.style.justifyContent="center";
-        overlay.style.zIndex=1800;
-        const box=document.createElement("div");
-        box.style.background="rgba(8,10,26,0.98)";
-        box.style.borderRadius="12px";
-        box.style.border="1px solid rgba(255,255,255,0.2)";
-        box.style.boxShadow="0 20px 40px rgba(0,0,0,0.9)";
-        box.style.padding="8px 10px";
-        box.style.fontSize="12px";
-        box.innerHTML=`
-          <div style="margin-bottom:4px;color:var(--text-soft);">Rename "${entry.name}"</div>
+      function ctxRename(entry) {
+        const overlay = document.createElement("div");
+        overlay.style.position = "fixed";
+        overlay.style.inset = "0";
+        overlay.style.background = "rgba(0,0,0,0.4)";
+        overlay.style.backdropFilter = "blur(8px)";
+        overlay.style.display = "flex";
+        overlay.style.alignItems = "center";
+        overlay.style.justifyContent = "center";
+        overlay.style.zIndex = 1800;
+
+        const box = document.createElement("div");
+        box.style.background = "rgba(8,10,26,0.98)";
+        box.style.borderRadius = "12px";
+        box.style.border = "1px solid rgba(255,255,255,0.2)";
+        box.style.boxShadow = "0 20px 40px rgba(0,0,0,0.9)";
+        box.style.padding = "8px 10px";
+        box.style.fontSize = "12px";
+
+        box.innerHTML = `
+          <div style="margin-bottom:4px;color:var(--text-soft);">
+            Rename "${entry.name}"
+          </div>
           <div style="display:flex;gap:6px;align-items:center;">
-            <input id="rename-input" style="flex:1;padding:4px 6px;border-radius:999px;border:1px solid rgba(255,255,255,0.24);background:rgba(4,6,18,0.98);color:var(--text-main);font-size:11px;outline:none;" />
+            <input id="rename-input" style="
+              flex:1;padding:4px 6px;border-radius:999px;
+              border:1px solid rgba(255,255,255,0.24);
+              background:rgba(4,6,18,0.98);
+              color:var(--text-main);
+              font-size:11px;outline:none;
+            "/>
             <button class="button-small" id="rename-ok">OK</button>
             <button class="button-small" id="rename-cancel">Cancel</button>
-          </div>`;
+          </div>
+        `;
+
         overlay.appendChild(box);
         document.body.appendChild(overlay);
-        const input=box.querySelector("#rename-input");
-        input.value=entry.name;input.focus();input.select();
-        const cleanup=()=>overlay.remove();
-        box.querySelector("#rename-ok").addEventListener("click",()=>{
-          const newName=input.value.trim();
-          if(newName && newName!==entry.name){
-            updateCurrentUser(u=>({...u,fs:u.fs.map(e=>e.path===entry.path && e.name===entry.name?{...e,name:newName}:e)}));
+
+        const input = box.querySelector("#rename-input");
+        input.value = entry.name;
+        input.focus();
+        input.select();
+
+        const cleanup = () => overlay.remove();
+
+        function getExt(name) {
+          const idx = name.lastIndexOf(".");
+          return idx === -1 ? "" : name.slice(idx).toLowerCase();
+        }
+
+        box.querySelector("#rename-ok").addEventListener("click", () => {
+          const newName = input.value.trim();
+          if (!newName) { cleanup(); return; }
+
+          const oldExt = getExt(entry.name);
+          const newExt = getExt(newName);
+
+          // EXTENSION CHANGED → ask confirmation
+          if (oldExt !== newExt) {
+            const confirmMsg =
+              `You changed the file extension:\n\n` +
+              `Old: ${oldExt || "(none)"}\nNew: ${newExt || "(none)"}\n\n` +
+              `Changing the file type may cause this file to open differently.\n` +
+              `Do you want to continue?`;
+
+            if (!confirm(confirmMsg)) {
+              cleanup();
+              return;
+            }
           }
+
+          // apply rename
+          updateCurrentUser(u => ({
+            ...u,
+            fs: u.fs.map(e =>
+              e.path === entry.path && e.name === entry.name
+                ? {
+                    ...e,
+                    name: newName,
+                    ext: newExt ? newExt : ""
+                  }
+                : e
+            )
+          }));
+
           cleanup();
         });
-        box.querySelector("#rename-cancel").addEventListener("click",cleanup);
+
+        box.querySelector("#rename-cancel").addEventListener("click", cleanup);
       }
       function showProps(entry){
         aiMsg("ai",`Properties: ${entry ? entry.name : "(none)"} (${entry ? (entry.ext||entry.type||"") : ""}) at ${entry ? entry.path : "(background)"}`);
+        showWindow('AIM OS');
       }
 
       /* Notepad */

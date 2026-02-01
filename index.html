@@ -2630,6 +2630,7 @@
         <option>MiniWeb</option>
         <option>MiniRun</option>
         <option>MiniCPU</option>
+        <option>MiniCMD</option>
         <option>Weather</option>
         <option>Custom</option>
       </select>
@@ -7593,6 +7594,7 @@ function initWidgetsSystem(currentUser) {
             <option>MiniWeb</option>
             <option>MiniRun</option>
             <option>MiniCPU</option>
+            <option>MiniCMD</option>
             <option>Weather</option>
             <option>Custom</option>
           </select>
@@ -7692,6 +7694,8 @@ function initWidgetsSystem(currentUser) {
       renderMiniCPU(body);
     } else if (type === 'Weather') {
       renderWeather(body);
+    } else if (type === "MiniCMD") {
+      renderMiniCMD(body, widgetUniqueId);
     } else if (type === 'Custom') {
       body.innerHTML = `<iframe style="width:100%;height:120px;border:none;" srcdoc="${content}"></iframe>`;
     }
@@ -7820,6 +7824,167 @@ function initWidgetsSystem(currentUser) {
   }
 }
 
+function renderMiniCMD(container, widgetUniqueId) {
+  // Per-widget working directory stored in localStorage
+  const CMDKEY = `cmd_path_${widgetUniqueId}`;
+  let cwd = localStorage.getItem(CMDKEY) || "/desktop";
+
+  // Create UI layout
+  container.innerHTML = `
+    <div class="cmd-output" style="
+      background:#000;
+      color:#0f0;
+      height:150px;
+      overflow-y:auto;
+      padding:6px;
+      font-family:monospace;
+      font-size:12px;
+      white-space:pre-wrap;
+    "></div>
+
+    <div style="display:flex;align-items:center;margin-top:4px;">
+      <span id="cmd-prompt" style="font-family:monospace;color:#0f0;margin-right:4px;"></span>
+      <input id="cmd-input" style="
+        flex:1;
+        background:#111;
+        border:none;
+        color:#0f0;
+        font-family:monospace;
+        padding:4px;
+      ">
+    </div>
+  `;
+
+  const out = container.querySelector(".cmd-output");
+  const input = container.querySelector("#cmd-input");
+  const prompt = container.querySelector("#cmd-prompt");
+
+  updatePrompt();
+
+  function updatePrompt() {
+    prompt.textContent = `thisWin12${cwd}>`;
+  }
+
+  function print(text) {
+    out.textContent += text + "\n";
+    out.scrollTop = out.scrollHeight;
+  }
+
+  // ---- COMMAND HANDLER ----
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      const raw = input.value.trim();
+      input.value = "";
+      handleCommand(raw);
+    }
+  });
+
+  function handleCommand(raw) {
+    print(prompt.textContent + raw);
+
+    // HELP
+    if (/^help$/i.test(raw)) {
+      print(
+`Commands:
+  add "filename" "content"
+  del "filename"
+  cd folder
+  dir
+  help`
+      );
+      return;
+    }
+
+    // DIR
+    if (/^dir$/i.test(raw)) {
+      const u = currentUser();
+      const items = u.fs.filter(f => f.path === cwd);
+      if (!items.length) print("  <empty>");
+      else items.forEach(e => print("  " + (e.type === "folder" ? `[${e.name}]` : e.name)));
+      return;
+    }
+
+    // CD
+    if (raw.toLowerCase().startsWith("cd ")) {
+      const folderName = raw.slice(3).trim().replace(/\/+/g, "");
+
+      if (folderName === "..") {
+        // go up
+        if (cwd !== "/") {
+          cwd = cwd.substring(0, cwd.lastIndexOf("/")) || "/";
+        }
+        localStorage.setItem(CMDKEY, cwd);
+        updatePrompt();
+        return;
+      }
+
+      const u = currentUser();
+      const targetPath = cwd === "/" ? `/${folderName}` : `${cwd}/${folderName}`;
+
+      // auto-create if missing
+      if (!u.fs.some(f => f.path === cwd && f.name === folderName && f.type === "folder")) {
+        updateCurrentUser(user => ({
+          ...user,
+          fs: user.fs.concat({ path: cwd, name: folderName, type: "folder", ext:"" })
+        }));
+      }
+
+      cwd = targetPath;
+      localStorage.setItem(CMDKEY, cwd);
+      updatePrompt();
+      return;
+    }
+
+    // ADD "file" "content"
+    if (raw.toLowerCase().startsWith("add ")) {
+      const match = raw.match(/add\s+"([^"]+)"\s*"([^"]*)"?/i);
+      if (!match) {
+        print('Usage: add "filename" "content"');
+        return;
+      }
+      const filename = match[1];
+      const content = match[2];
+
+      updateCurrentUser(u => ({
+        ...u,
+        fs: u.fs.concat({
+          path: cwd,
+          name: filename,
+          type: "file",
+          ext: filename.includes(".") ? filename.slice(filename.lastIndexOf(".")) : "",
+          content
+        })
+      }));
+
+      print(`Created file: ${filename}`);
+      return;
+    }
+
+    // DEL "file"
+    if (raw.toLowerCase().startsWith("del ")) {
+      const match = raw.match(/del\s+"([^"]+)"/i);
+      if (!match) {
+        print('Usage: del "filename"');
+        return;
+      }
+      const filename = match[1];
+
+      updateCurrentUser(u => ({
+        ...u,
+        fs: u.fs.filter(f => !(f.path === cwd && f.name === filename))
+      }));
+
+      print(`Deleted: ${filename}`);
+      return;
+    }
+
+    // UNKNOWN COMMAND
+    print(`Unknown command: ${raw}`);
+  }
+
+  // Initial message
+  print("MiniCMD — type 'help' for commands.");
+}
 function renderWeather(container) {
   if (!container) return;
 

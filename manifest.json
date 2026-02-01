@@ -1,7 +1,7 @@
 {
   "name": "Win12 Simulator",
   "short_name": "Win12",
-  "start_url": "/",
+  "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0c0c0c",

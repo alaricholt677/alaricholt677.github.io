@@ -5193,6 +5193,98 @@ function aiMsg(role, text){
   aiLog.scrollTop = aiLog.scrollHeight;
 }
 
+function aiHandleFileCreateCommand(text) {
+  const u = currentUser();
+
+  // ---- Extract quoted values ----
+  const fileNameMatch = text.match(/"([^"]+)"\s*(?=with the extension)/i);
+  const extMatch = text.match(/extension\s+"([^"]+)"/i);
+  const folderMatch = text.match(/in the ([^"]+?) folder/i);
+  const contentMatch = text.match(/content\s+"([^"]*)"/i);
+
+  // Clean extracted values
+  const name = fileNameMatch ? fileNameMatch[1].trim() : null;
+  const ext = extMatch ? ("." + extMatch[1].trim().replace(/^\./, "")) : null;
+  const folderRaw = folderMatch ? folderMatch[1].trim().toLowerCase() : null;
+  const content = contentMatch ? contentMatch[1] : "";
+
+  // ---- Error: missing name or extension ----
+  if (!name || !ext) {
+    return `I understand you want to create a file, but I need both a **name** and **extension** inside quotes. Example:
+
+"create \\"hello\\" with the extension \\"txt\\" in the documents folder"`;
+  }
+
+  // ---- Validate extension association ----
+  const associations = u.regAssociations || {};
+  const knownExts = Object.keys(associations);
+
+  if (!knownExts.includes(ext)) {
+    let assocList = knownExts.length
+      ? knownExts.map(e => `${e} → ${associations[e]}`).join("\n")
+      : "(none registered)";
+
+    return `The extension **${ext}** is not known in your associations.
+
+Your associations are:
+${assocList}
+
+You can register new extensions inside the Regedit app.`;
+  }
+
+  // ---- Determine folder path ----
+  let path = "/documents"; // default
+  if (folderRaw) {
+    path = "/" + folderRaw.replace(/[^a-z0-9/ -]/gi, "").replace(/\s+/g, "-");
+  }
+
+  // ---- Auto-create nested folders ----
+  ensureFolderPath(path, u);
+
+  // ---- Create the file ----
+  const fileEntry = {
+    path,
+    name,
+    type: "file",
+    ext,
+    content
+  };
+
+  // Write to FS
+  updateCurrentUser(user => ({
+    ...user,
+    fs: user.fs.concat(fileEntry)
+  }));
+
+  return `Created **${name}${ext}** in **${path}**, with ${content ? "content" : "no content"}.`;
+}
+
+// ========== Helper: Create Folder Path Recursively ==========
+function ensureFolderPath(path, u) {
+  const cleanPath = path.replace(/\/+/g, "/").trim();
+  const parts = cleanPath.split("/").filter(Boolean);
+
+  let current = "";
+  parts.forEach((folder) => {
+    const next = "/" + folder;
+
+    if (!u.fs.some(e => e.path === current && e.name === folder && e.type === "folder")) {
+
+      // Make folder
+      updateCurrentUser(user => ({
+        ...user,
+        fs: user.fs.concat({
+          path: current || "/", // parent folder
+          name: folder,
+          type: "folder",
+          ext: ""
+        })
+      }));
+    }
+
+    current = next;
+  });
+}
 function aiAnswer(q){
   const u = currentUser();
   const lower = q.toLowerCase();
@@ -5209,34 +5301,15 @@ function aiAnswer(q){
   if(/how.*(my|ur|your).*day/.test(lower))
     return "My day is whatever you make inside this shrine. Yours matters more though";
 
+if (/create/i.test(lower) && /extension/i.test(lower)) {
+  return aiHandleFileCreateCommand(q);
+}
   if(/thank(s| you)/.test(lower))
     return "Always, traveler. This relic grows because of you";
 
 if(/troubleshoot|help menu|support center/.test(lower)){
   return `<<PLAY_TROUBLESHOOTER_SOUND>>
-=== TROUBLESHOOTING MENU ===
-
-• View folders:
-  - /desktop
-  - /documents
-  - /imported
-  - /recommended-files
-
-• How to inspect a folder:
-  Type: file:///folder-name
-  Example: file:///documents
-
-• App help:
-  Explorer, Notepad, Browser, Host.exe, Paint, Media Player
-
-• Hidden features:
-  - Right‑click context menus
-  - Fullscreen toggle [ ]
-  - Start → Recommended files
-  - Start → Imported dropdown
-  - .exe payloads via Host.exe
-
-Ask about any item above to learn more.`;
+=== TROUBLESHOOTING MENU === \n • View folders:\n  - /desktop \n  - /documents \n  - /imported  - /recommended-files \n \n • How to inspect a folder: \n  Type: file:///folder-name \n  Example: file:///documents \n \n • App help: \n  Explorer, Notepad, Browser, Host.exe, Paint, Media Player \n \n• Hidden features: \n   - Right‑click context menus \n  - Fullscreen toggle [ ] \n  - Start → Recommended files \n  - Start → Imported dropdown \n  - .exe payloads via Host.exe \n  \n Ask about any item above to learn more. \n type: "i want to create "notes" with the extension "txt" in the documents folder with content "hello world". " to create a file`;
 }
 
   if(/help|what can you do|assist|commands|features/.test(lower))

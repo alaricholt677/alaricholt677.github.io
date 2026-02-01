@@ -4,7 +4,12 @@ self.addEventListener("install", event => {
       return cache.addAll([
         "/index.html",
         "/win12-icon.svg",
-        "/search.svg"
+        "/search.svg",
+
+        // News system files
+        "/news/news.json",
+        "/news/img/eos.jpg",
+        "/news/img/win12-issues.jpg"
       ]);
     })
   );
@@ -17,3 +22,4 @@ self.addEventListener("fetch", event => {
     })
   );
 });
+

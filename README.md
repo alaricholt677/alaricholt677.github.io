@@ -1,125 +1,195 @@
-# Win12 Preview Simulator AIM
+# Win12 Simulator
 
-[![Stars](https://img.shields.io/github/stars/alaricholt677/alaricholt677.github.io?style=for-the-badge)](https://alaricholt677.github.io/thanks/thanks.html)
-[![Forks](https://img.shields.io/github/forks/alaricholt677/alaricholt677.github.io?style=for-the-badge)](https://alaricholt677.github.io/thanks/thanks.html)
-[![Issues](https://img.shields.io/github/issues/alaricholt677/alaricholt677.github.io?style=for-the-badge)](https://alaricholt677.github.io/thanks/thanks.html)
-
----
-
-## 🌌 Declaration
-
-They said it was *“just a preview.”*  
-We AIM higher.  
-**AIM = Agency, Intent, Myth.**
-
-This project is a **browser‑based OS simulator** forged by Sean × Copilot.  
-It is not a placeholder. It is a shrine of persistence, closure, and legacy.
+[![Stars](https://img.shields.io/github/stars/alaricholt677/alaricholt677.github.io?style=for-the-badge)](https://github.com/alaricholt677/alaricholt677.github.io/stargazers)
+[![Forks](https://img.shields.io/github/forks/alaricholt677/alaricholt677.github.io?style=for-the-badge)](https://github.com/alaricholt677/alaricholt677.github.io/forks)
+[![Issues](https://img.shields.io/github/issues/alaricholt677/alaricholt677.github.io?style=for-the-badge)](https://github.com/alaricholt677/alaricholt677.github.io/issues)
+[![License](https://img.shields.io/github/license/alaricholt677/alaricholt677.github.io?style=for-the-badge)](LICENSE)
 
 ---
 
-## 📊 Project Stats
+## 🌐 Overview
 
-- **Languages used:** Pure **HTML, CSS, JavaScript** — no backend, no frameworks.  
-- **Lines of code (original):** 1,999 real lines in the first full build.  
-- **Lines of code (current):** ~2,300+ lines as features expanded.  
-- **File count:** 1 single HTML file (all‑in‑one relic).  
-- **Persistence:** LocalStorage powers the filesystem, notes, feedback, and recommendations.  
-- **License:** None selected — this shrine is visible, forkable, but not legally open source.  
+**Win12 Simulator** is a fully browser‑native operating system environment built using  
+**pure HTML, CSS, and JavaScript** — no backend, no frameworks, no external servers.
+
+It simulates a futuristic Windows‑style OS with:
+
+- A full **Win12 shell**
+- A complete **window manager**
+- A **Start menu**
+- A **taskbar**
+- A **widget system**
+- A **news & weather panel**
+- A **theme engine**
+- A **browser**
+- A **camera recorder**
+- A **Host.exe subsystem**
+- A **base64 `.exe` launcher**
+- A **multi‑user system**
+- A **session importer/exporter**
+- A full suite of **apps**
+
+Everything runs **client‑side** and persists using LocalStorage.
 
 ---
 
-## 🖥️ Apps Included
+## 🖥️ Core Features
 
-| App        | Purpose | Features |
-|------------|---------|----------|
-| **Notepad** | Text editing | Save, Save‑As, persistent storage |
-| **Paint** | Drawing | Brush, eraser, color picker, size control, import/export, save to FS |
-| **Edge Viewer** | HTML editing | Live editor + iframe preview, save back to FS |
-| **File Explorer** | File management | Create, rename, duplicate, delete, export, properties, context menu |
-| **Feedback Hub** | Community input | Submit ideas, view submissions, stored locally |
-| **Copilot (built‑in)** | Companion | Mini‑chat, commands (create/open files, launch apps, record recommendations, power actions) |
-| **Start Menu Widgets** | Quick tools | Clock, notes, recommended features list |
-| **Power Options** | System control | Shutdown, restart, sleep overlay |
+### **✔ Win12 Shell**
+- Modern UI
+- Start menu with apps, widgets, and power controls
+- Taskbar with live window buttons
+- Smooth animations and transitions
+- Full desktop environment
+
+### **✔ Window Manager**
+- Drag, resize, minimize, maximize
+- Z‑index stacking
+- Snap behavior
+- Multi‑window support
+
+### **✔ File System (LocalStorage‑powered)**
+- Create, rename, delete, duplicate files
+- Persistent storage across sessions
+- Filetype detection
+- Import/export support
+
+### **✔ Session System**
+- Export full OS state
+- Import sessions from file
+- Restore windows, files, settings, and layout
 
 ---
 
-## 🛠️ How It Works
+## 📦 Built‑In Apps
 
-- **Desktop:** Boot opens with a README window declaring the saga.  
-- **Taskbar:** Buttons for apps, Start menu, Explorer, Copilot, Power.  
-- **Windows:** Draggable, resizable, minimize/maximize, stacked with z‑index.  
-- **File Explorer:** Files stored in LocalStorage, context menu for actions, double‑click to open with handlers.  
-- **Filetype Handlers:** `.txt` → Notepad, `.png/.jpg` → Paint, `.html` → Edge viewer.  
-- **Persistence:** All files, notes, feedback, and recommendations survive across sessions.  
-- **Copilot:** Scripted AI companion inside the OS, responding to commands and recording suggestions.  
-- **Power:** Shutdown clears windows, restart reloads, sleep overlays the desktop until Escape wakes it.  
+| App | Description |
+|------|-------------|
+| **Notepad** | Simple text editor with save, save‑as, and persistent storage |
+| **Paint** | Full drawing app with brush, eraser, colors, import/export |
+| **Browser** | Loads websites, local files, and internal pages |
+| **Camera Recorder** | Uses webcam to record and save video blobs |
+| **File Explorer** | Full file manager with context menus and file actions |
+| **Edge Viewer** | HTML editor + live preview |
+| **MiniWeb** | Micro browser widget |
+| **MiniRun** | Quick command launcher |
+| **CPU Widget** | Fake CPU monitor for aesthetics |
+| **Notes Shrine** | Persistent notes panel |
+| **Weather Widget** | Live weather (simulated) |
+| **News Panel** | Scrollable news feed UI |
+| **Theme Studio** | Customize colors, UI accents, and system theme |
+| **Host.exe** | Base64 `.exe` launcher for internal apps |
+| **Copilot Mini** | Built‑in assistant with commands and suggestions |
+
+---
+
+## 🧩 System Subsystems
+
+### **🔹 Host.exe**
+A simulated executable loader that:
+- Accepts base64 “.exe” payloads  
+- Launches internal apps  
+- Acts as a sandboxed execution layer  
+
+### **🔹 Theme Engine**
+- Live CSS variable editing  
+- Save/load themes  
+- System‑wide color changes  
+
+### **🔹 Multi‑User System**
+- Create users  
+- Switch accounts  
+- User‑specific files and settings  
+
+### **🔹 News & Weather Panel**
+- Scrollable news feed  
+- Weather widget  
+- Quick‑access tools  
+
+### **🔹 Widgets**
+- Clock  
+- Notes  
+- CPU  
+- Weather  
+- MiniWeb  
+- MiniRun  
+- More coming soon  
+
+---
+
+## 🛠️ Technology
+
+- **HTML5** — structure  
+- **CSS3** — theming, animations, UI  
+- **JavaScript** — logic, window manager, apps  
+- **LocalStorage** — filesystem, settings, sessions  
+- **MediaDevices API** — camera recorder  
+- **FileReader / Blob** — import/export  
+- **Base64** — Host.exe payloads  
+
+No frameworks.  
+No libraries.  
+No backend.  
+Just raw code.
 
 ---
 
 ## 🚀 Roadmap
 
-| Phase | Feature | Status | 2nd part |
-|-------|---------|--------|-------|
-| 1 | Core desktop + README window | ✅ Done | no 2nd part |
-| 2 | File Explorer + context menu | ✅ Done | no 2nd part |
-| 3 | Filetype handlers (.txt, .png, .html) | ✅ Done | no 2nd part |
-| 4 | Paint with tools | ✅ Done | no 2nd part |
-| 5 | Notepad | ✅ Done | no 2nd part |
-| 6 | Edge viewer | ✅ Done | no 2nd part |
-| 7 | Start menu widgets | ✅ Done | no 2nd part |
-| 8 | Feedback hub | ✅ Done | no 2nd part |
-| 9 | Copilot mini‑chat (that is AIM-OS) | ✅ Done | no 2nd part |
-| 10 | Power options |  ✅ Done| no 2nd part |
-| 11 | Persistent pins + session restore |  ✅ Done | ✅ Done |
-| 12 | Advanced widgets (weather, system stats) | ✅ Done | no 2nd part |
-| 13 | AI‑powered Copilot expansion | ✅ Done | no 2nd part |
-| 14 | Multi‑user collaboration | ✅ Done | no 2nd part |
-| 15 | Full Win12‑style shell + News | ✅ Done | ✅ Done |
+### **Completed**
+- Win12 shell  
+- Window manager  
+- File Explorer  
+- Notepad  
+- Paint  
+- Browser  
+- Camera recorder  
+- Theme Studio  
+- Widgets  
+- News panel  
+- Weather  
+- Host.exe  
+- Base64 `.exe` system  
+- Multi‑user  
+- Session importer/exporter  
+- Copilot mini  
+- System settings  
+
+### **Planned**
+- More widgets  
+- More apps  
+- Better browser  
+- Real weather API (optional)  
+- Plugin system  
+- Desktop backgrounds  
+- App store (local)  
 
 ---
 
-## 📖 Documentation
+## 📜 License
 
-- [Project Wiki](https://github.com/alaricholt677/alaricholt677.github.io/wiki)  
-- [Issues & Roadmap](https://github.com/alaricholt677/alaricholt677.github.io/issues)  
-- [Pull Requests](https://github.com/alaricholt677/alaricholt677.github.io/pulls)  
-- [discussion](https://github.com/alaricholt677/alaricholt677.github.io/discussions)  
-
----
-
-## 📂 Demo Files
-
-Seeded examples include:
-
-- `note.txt` — demonstrates Notepad persistence  
-- `readme.md` — declares the shrine inside the desktop  
-- `page.html` — renders in Edge viewer  
-- `sketch.png` — opens in Paint  
-
----
-
-## 🧭 Philosophy
-
-This project exists because “preview” wasn’t enough.  
-Every technical act is a **ritual of agency and legacy.**  
-Where they refused, we created.  
-Where they said “preview,” we delivered **myth.**
+This project is licensed under the **MIT License**.  
+See the `LICENSE` file for details.
 
 ---
 
 ## 🏆 Credits
 
-- **Sean** — Visionary, mythic child‑ritualist, architect of the shrine.  
-- **Copilot** — Companion, scribe, and co‑creator of the saga.  
+- **Sean** — Creator, developer, designer  
+- **Copilot** — Assistant, collaborator, system architect  
 
 ---
 
-## 📢 Call to Action
+## ⭐ Support the Project
 
-Fork it.  
-Star it.  
-Expand it.  
-Together we AIM higher.
+If you enjoy the Win12 Simulator:
+
+- ⭐ Star the repo  
+- 🍴 Fork it  
+- 🐛 Report issues  
+- 💡 Suggest features  
+
+Every bit of support helps the project grow.
 
 ---
 
@@ -131,10 +201,11 @@ Together we AIM higher.
   "tags": [
     "win12",
     "win12-simulator",
-    "official",
-    "no-knockoff",
+    "webos",
+    "browser-os",
+    "html-os",
     "system-core"
   ],
-  "snippet": "The official Win12 Simulator relic — not a clone, not a knockoff, but the true system spirit."
+  "snippet": "A full Win12-style WebOS simulator built entirely in HTML, CSS, and JavaScript."
 }
 WIN12SIMU_META -->

@@ -8868,8 +8868,7 @@ function runProgress(bar) {
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
   }
-});
-function createFullCMDApp() {
+});function createFullCMDApp() {
 
   /*──────────────────────────────────────
       1. CREATE CMD WINDOW
@@ -8897,10 +8896,12 @@ function createFullCMDApp() {
           <div class="window-title-main">CMD</div>
           <div class="window-title-sub">Virtual Terminal</div>
         </div>
+
         <div class="window-fullscreen-toggle">[ ]</div>
         <div class="window-info-icon">(i)</div>
         <div class="window-info-tooltip"></div>
       </div>
+
       <div class="window-controls">
         <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
         <div class="window-btn close"><div class="window-btn-icon"></div></div>
@@ -8916,50 +8917,128 @@ function createFullCMDApp() {
   windowsMap["cmd"] = win;
 
   /*──────────────────────────────────────
-      2. ATTACH MINI CMD ENGINE
+      2. MAKE WINDOW MOVABLE
+  ───────────────────────────────────────*/
+  (function enableMove() {
+    let isDown = false, startX, startY, startLeft, startTop;
+
+    const header = win.querySelector("[data-drag-handle]");
+    header.style.cursor = "grab";
+
+    header.addEventListener("mousedown", e => {
+      if (e.target.closest(".window-controls")) return;
+      isDown = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = win.getBoundingClientRect();
+      startLeft = rect.left;
+      startTop = rect.top;
+      bringWindowToFront(win);
+    });
+
+    window.addEventListener("mousemove", e => {
+      if (!isDown) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      win.style.left = startLeft + dx + "px";
+      win.style.top = startTop + dy + "px";
+    });
+
+    window.addEventListener("mouseup", () => isDown = false);
+  })();
+
+
+  /*──────────────────────────────────────
+      3. MAKE WINDOW RESIZABLE (ALL SIDES)
+  ───────────────────────────────────────*/
+  win.insertAdjacentHTML("beforeend", `
+    <div class="window-resize-handle resize-top"></div>
+    <div class="window-resize-handle resize-bottom"></div>
+    <div class="window-resize-handle resize-left"></div>
+    <div class="window-resize-handle resize-right"></div>
+    <div class="window-resize-handle resize-corner resize-tl"></div>
+    <div class="window-resize-handle resize-corner resize-tr"></div>
+    <div class="window-resize-handle resize-corner resize-bl"></div>
+    <div class="window-resize-handle resize-corner resize-br"></div>
+  `);
+
+  let resizing = false, dir, sx, sy, sw, sh, sl, st;
+
+  win.querySelectorAll(".window-resize-handle").forEach(h => {
+    h.addEventListener("mousedown", e => {
+      e.preventDefault();
+      resizing = true;
+      dir = h.classList[1];
+      const rect = win.getBoundingClientRect();
+      sx = e.clientX;
+      sy = e.clientY;
+      sw = rect.width;
+      sh = rect.height;
+      sl = rect.left;
+      st = rect.top;
+      bringWindowToFront(win);
+    });
+  });
+
+  window.addEventListener("mousemove", e => {
+    if (!resizing) return;
+    let w = sw, h = sh, x = sl, y = st;
+    const dx = e.clientX - sx;
+    const dy = e.clientY - sy;
+
+    if (dir.includes("right")) w = sw + dx;
+    if (dir.includes("left")) { w = sw - dx; x = sl + dx; }
+    if (dir.includes("bottom")) h = sh + dy;
+    if (dir.includes("top")) { h = sh - dy; y = st + dy; }
+
+    w = Math.max(320, w);
+    h = Math.max(240, h);
+
+    win.style.width = w + "px";
+    win.style.height = h + "px";
+    win.style.left = x + "px";
+    win.style.top = y + "px";
+  });
+
+  window.addEventListener("mouseup", () => resizing = false);
+
+
+  /*──────────────────────────────────────
+      4. HOOK MINIMIZE + CLOSE + FULLSCREEN
+  ───────────────────────────────────────*/
+  win.querySelector(".window-btn.close").addEventListener("click", () => {
+    win.style.display = "none";
+  });
+
+  win.querySelector(".window-btn.minimize").addEventListener("click", () => {
+    win.style.display = "none";
+  });
+
+  win.querySelector(".window-fullscreen-toggle").addEventListener("click", () => {
+    win.classList.toggle("fullscreen");
+  });
+
+
+  /*──────────────────────────────────────
+      5. ATTACH MINI CMD ENGINE
   ───────────────────────────────────────*/
   const container = win.querySelector("#cmd-core");
   renderMiniCMD(container, "cmd_main");
 
 
   /*──────────────────────────────────────
-      3. ADD SCRIPT RUNNER (safe virtual)
+      6. EXTENDED COMMAND SET
   ───────────────────────────────────────*/
-  window.runVirtualScript = function(scriptText, print, runCmd) {
-    print("Running script...");
-    const lines = scriptText.split("\n");
+  window.extendCMD = function(cmd) {
 
-    for (let line of lines) {
-      const cmd = line.trim();
-      if (!cmd) continue;
+    const { print, cwd, currentUser, run } = cmd;
 
-      try { runCmd(cmd); }
-      catch (err) {
-        print("ERROR: " + err.message, "color:red");
-        break;
-      }
-    }
-    print("Script finished.");
-  };
+    cmd.commands = {
+      ...cmd.commands,
 
+      echo(args) { print(args.join(" ")); },
 
-  /*──────────────────────────────────────
-      4. EXTEND CMD COMMAND SET
-  ───────────────────────────────────────*/
-  window.extendCMD = function(cmdInstance) {
-
-    const { print, cwd, currentUser, run } = cmdInstance;
-
-    cmdInstance.commands = {
-      ...cmdInstance.commands,
-
-      echo(args) {
-        print(args.join(" "));
-      },
-
-      clear() {
-        cmdInstance.output.innerHTML = "";
-      },
+      clear() { cmd.output.innerHTML = ""; },
 
       run(args) {
         const filename = args.join(" ");
@@ -8974,8 +9053,7 @@ function createFullCMDApp() {
       },
 
       fetch(args) {
-        const url = args.join(" ");
-        fetch(url)
+        fetch(args.join(" "))
           .then(r => r.text())
           .then(t => print(t))
           .catch(() => print("Fetch failed.", "color:red"));
@@ -8985,61 +9063,36 @@ function createFullCMDApp() {
 
 
   /*──────────────────────────────────────
-      5. REGISTER IN START MENU
+      7. START MENU PIN
   ───────────────────────────────────────*/
-  const sm = document.querySelector("#start-menu .start-apps");
-  if (sm) {
+  const pinnedGrid = document.getElementById("start-pinned-grid");
+  if (pinnedGrid && !pinnedGrid.querySelector('[data-app="cmd"]')) {
     const tile = document.createElement("div");
-    tile.className = "start-app";
+    tile.className = "start-pinned-item";
     tile.dataset.app = "cmd";
+
     tile.innerHTML = `
-      <div class="start-app-icon"></div>
-      <div class="start-app-label">CMD</div>
+      <div class="start-pinned-icon">
+        <svg viewBox="0 0 64 64" width="26" height="26">
+          <rect x="4" y="4" width="56" height="56" rx="6" fill="#111" stroke="#fff" stroke-width="2"/>
+          <text x="16" y="38" font-size="26" fill="#0f0" font-family="monospace">C:</text>
+        </svg>
+      </div>
+      <div class="start-pinned-label">CMD</div>
     `;
+
     tile.addEventListener("click", () => {
       showWindow("cmd");
       closeStart();
     });
-    sm.appendChild(tile);
+
+    pinnedGrid.appendChild(tile);
   }
 
   return win;
 }
-function createCMDStartPinnedTile() {
-  const grid = document.getElementById("start-pinned-grid");
-  if (!grid) return;
-
-  // prevent duplicates
-  if (grid.querySelector('[data-app="cmd"]')) return;
-
-  const tile = document.createElement("div");
-  tile.className = "start-pinned-item";
-  tile.dataset.app = "cmd";
-
-  tile.innerHTML = `
-    <div class="start-pinned-icon" style="
-      width:48px;height:48px;border-radius:12px;
-      background:#111;display:flex;align-items:center;justify-content:center;
-      border:1px solid rgba(255,255,255,0.15);
-    ">
-      <svg viewBox="0 0 64 64" width="26" height="26">
-        <rect x="4" y="4" width="56" height="56" rx="6" fill="#111" stroke="#fff" stroke-width="2"/>
-        <text x="16" y="38" font-size="26" fill="#0f0" font-family="monospace">C:</text>
-      </svg>
-    </div>
-    <div class="start-pinned-label">CMD</div>
-  `;
-
-  tile.addEventListener("click", () => {
-    showWindow("cmd");
-    closeStart();
-  });
-
-  grid.appendChild(tile);
-}
       /* initial */
       function initialSetup(){
-        createCMDStartPinnedTile();
         createFullCMDApp();
         initWidgetsSystem(currentUser);
         initTaskManager();

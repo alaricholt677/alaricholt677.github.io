@@ -1,0 +1,17 @@
+{
+  "name": "Win12 Simulator",
+  "short_name": "Win12",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0c0c0c",
+  "theme_color": "#1f1f1f",
+  "icons": [
+    {
+      "src": "https://alaricholt677.github.io/wwin12-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

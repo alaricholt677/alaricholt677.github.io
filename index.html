@@ -7695,7 +7695,8 @@ function initWidgetsSystem(currentUser) {
     } else if (type === 'Weather') {
       renderWeather(body);
     } else if (type === "MiniCMD") {
-      renderMiniCMD(body, widgetUniqueId);
+      const widgetId = Date.now().toString(36) + Math.random().toString(36).slice(2);
+      renderMiniCMD(body, widgetId);
     } else if (type === 'Custom') {
       body.innerHTML = `<iframe style="width:100%;height:120px;border:none;" srcdoc="${content}"></iframe>`;
     }

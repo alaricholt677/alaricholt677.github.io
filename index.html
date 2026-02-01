@@ -9005,8 +9005,41 @@ function createFullCMDApp() {
 
   return win;
 }
+function createCMDStartPinnedTile() {
+  const grid = document.getElementById("start-pinned-grid");
+  if (!grid) return;
+
+  // prevent duplicates
+  if (grid.querySelector('[data-app="cmd"]')) return;
+
+  const tile = document.createElement("div");
+  tile.className = "start-pinned-item";
+  tile.dataset.app = "cmd";
+
+  tile.innerHTML = `
+    <div class="start-pinned-icon" style="
+      width:48px;height:48px;border-radius:12px;
+      background:#111;display:flex;align-items:center;justify-content:center;
+      border:1px solid rgba(255,255,255,0.15);
+    ">
+      <svg viewBox="0 0 64 64" width="26" height="26">
+        <rect x="4" y="4" width="56" height="56" rx="6" fill="#111" stroke="#fff" stroke-width="2"/>
+        <text x="16" y="38" font-size="26" fill="#0f0" font-family="monospace">C:</text>
+      </svg>
+    </div>
+    <div class="start-pinned-label">CMD</div>
+  `;
+
+  tile.addEventListener("click", () => {
+    showWindow("cmd");
+    closeStart();
+  });
+
+  grid.appendChild(tile);
+}
       /* initial */
       function initialSetup(){
+        createCMDStartPinnedTile();
         createFullCMDApp();
         initWidgetsSystem(currentUser);
         initTaskManager();

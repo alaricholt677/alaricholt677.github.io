@@ -5,21 +5,27 @@ self.addEventListener("install", event => {
         "/index.html",
         "/win12-icon.svg",
         "/search.svg",
-
-        // News system files
-        "/news/news.json",
-        "/news/img/eos.jpg",
-        "/news/img/win12-issues.jpg"
+        "/news/news.json"
       ]);
     })
   );
 });
 
+// Cache big images only when they are requested
 self.addEventListener("fetch", event => {
   event.respondWith(
-    caches.match(event.request).then(response => {
-      return response || fetch(event.request);
+    caches.match(event.request).then(cached => {
+      const fetchPromise = fetch(event.request).then(networkResponse => {
+        // Only cache images inside /news/img/
+        if (event.request.url.includes("/news/img/")) {
+          caches.open("win12-cache").then(cache => {
+            cache.put(event.request, networkResponse.clone());
+          });
+        }
+        return networkResponse;
+      });
+
+      return cached || fetchPromise;
     })
   );
 });
-

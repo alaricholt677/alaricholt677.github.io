@@ -5094,7 +5094,26 @@ function openFile(entry, chooseApp) {
   } else if (app === "media" && (ext === ".mp4" || ext === ".webm" || ext === ".mp3" || ext === ".wav" || ext === ".ogg")) {
     showWindow("media");
     renderMediaInPlayer(entry);
+  } else if (app === "cmd" && (ext === ".cmd" || ext === ".bat")) {
+      showWindow("cmd");
 
+      // optional: auto-run script after opening CMD
+      const u = currentUser();
+      const f = u.fs.find(e => e.path === entry.path && e.name === entry.name);
+
+      if (f && typeof window.runVirtualScript === "function") {
+            const win = windowsMap["cmd"];
+            const container = win.querySelector("#cmd-core");
+
+            // wait for MiniCMD initialization
+            setTimeout(() => {
+                  if (window.cmdInstances && window.cmdInstances["cmd_main"]) {
+                        const inst = window.cmdInstances["cmd_main"];
+                        inst.print(`Executing ${entry.name}...`);
+                        window.runVirtualScript(f.content, inst.print, inst.run);
+                  }
+            }, 60);
+      }
   } else {
     // Fallback for unsupported types
     showWindow("assistant");

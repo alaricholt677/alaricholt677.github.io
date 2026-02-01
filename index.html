@@ -9220,6 +9220,9 @@ function runProgress(bar) {
 
       initialSetup();
 
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/service-worker.js");
+      }
       console.log("%cWin12 AIM FS full ctx relic + Notes + Paint + Media","color:#4c8dff;font-size:14px;font-weight:bold;");
 console.log(`%c
 ■■■■   Win12 AIM OS — Relic Boot

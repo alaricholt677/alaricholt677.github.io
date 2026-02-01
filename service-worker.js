@@ -2,11 +2,9 @@ self.addEventListener("install", event => {
   event.waitUntil(
     caches.open("win12-cache").then(cache => {
       return cache.addAll([
-        "/",
         "/index.html",
-        "/style.css",
-        "/script.js",
-        "/win12-icon.svg"
+        "/win12-icon.svg",
+        "/search.svg"
       ]);
     })
   );

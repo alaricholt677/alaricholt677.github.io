@@ -2728,15 +2728,88 @@ button:hover{background:#1e293b;}
             createdAt:new Date().toISOString(),
             notes:"Welcome to your Win12 AIM filesystem.\n\nThis Notes window is per-user, independent of files.\nDesktop icons = /desktop.\nRecommended = /recommended-files.\nImported = /imported.\n.exe files run in Host.exe via base64 HTML payloads.\nClock shows a flyout when clicked.\nRight-click anywhere: desktop, Explorer, files, folders, recommended, imported.",
             themeCss:"",
-            fs:[
-              { path:"/desktop", name:"Welcome.txt", type:"file", ext:".txt", content:"Hello from the Win12 AIM relic.\n\nThis is your desktop Welcome.txt file."},
-              { path:"/desktop", name:"Readme.md", type:"file", ext:".md", content:"# Readme\n\nThis is a markdown file in /desktop."},
-              { path:"/desktop", name:"SampleApp.exe", type:"file", ext:".exe", content:"(Unsupported type or Binary)", exePayloadBase64 },
-              { path:"/documents", name:"Session.log", type:"file", ext:".log", content:"Session started.\nUser created.\nExplorer, Notepad, Browser, and Host.exe online."},
-              { path:"/recommended-files", name:"win12PreviewPlans.txt", type:"file", ext:".txt", content:"Ideas: \n make url tjy-gitnub.github.io/win12/desktop.html \n make AIM preview \n avoid simulator requests ex: \n File:/// localstorage for FS and much much more" },
-              { path:"/recommended-files", name:"RecommendedFS.txt", type:"file", ext:".txt", content:"Most of us started as a coca cola employ and I and most of us like coca cola so yeah It will be coca cola plans." },
-              { path:"/recommended-files", name:"win12PreviewFinal.html", type:"file", ext:".html", content:"<iframe src=https://tjy-gitnub.github.io/win12/desktop.html></iframe>" }
-            ],
+fs:[
+  { path:"/desktop", name:"Welcome.txt", type:"file", ext:".txt", content:"Hello from the Win12 AIM relic.\n\nThis is your desktop Welcome.txt file."},
+  { path:"/desktop", name:"Readme.md", type:"file", ext:".md", content:"# Readme\n\nThis is a markdown file in /desktop."},
+  { path:"/desktop", name:"SampleApp.exe", type:"file", ext:".exe", content:"(Unsupported type or Binary)"},
+
+  { path:"/Windows/System32/BootHelper", name:"Boot.bat", type:"file", ext:".bat", content:"@echo off\nstart https://alaricholt677.github.io\nexit" },
+
+  { path:"/documents", name:"Session.log", type:"file", ext:".log",
+    content:
+"Session initialized.\n"+
+"User profile mounted: /Users/Default\n"+
+"LocalStorage FS loaded (21 associations detected)\n"+
+"Registry hive emulated: OK\n"+
+"Explorer.exe subsystem online\n"+
+"Notepad.exe text engine online\n"+
+"Browser.exe webview sandbox online\n"+
+"Host.exe payload interpreter online\n"+
+"AIM OS assistant: control channel established\n"+
+"CMD subsystem: available\n"+
+"Verifying association assets...\n"+
+"  [ 1/21 ] .txt → Notepad\n"+
+"  [ 4/21 ] .html → Browser\n"+
+"  [ 8/21 ] .exe → Host.exe\n"+
+"  [14/21 ] .reg → Regedit\n"+
+"  [18/21 ] .png → Paint\n"+
+"  [21/21 ] .lnk → ShellLink\n"+
+"All associations verified.\n\n"+
+"System32 integrity scan...\n"+
+"  BootHelper: OK\n"+
+"  KernelShim.sys: OK\n"+
+"  VirtualFS.dll: OK\n"+
+"  AIMCore.dll: OK\n\n"+
+"Executing Boot.bat...\n"+
+"  start https://alaricholt677.github.io\n"+
+"Boot sequence handed off to Browser.exe\n\n"+
+"System activation: COMPLETE"
+  },
+
+  { path:"/recommended-files", name:"win12PreviewPlans.txt", type:"file", ext:".txt", content:"Ideas: \n make url tjy-gitnub.github.io/win12/desktop.html \n make AIM preview \n avoid simulator requests ex: \n File:/// localstorage for FS and much much more" },
+  { path:"/recommended-files", name:"RecommendedFS.txt", type:"file", ext:".txt", content:"Most of us started as a coca cola employ and I and most of us like coca cola so yeah It will be coca cola plans." },
+  { path:"/recommended-files", name:"win12PreviewFinal.html", type:"file", ext:".html", content:"<iframe src=https://tjy-gitnub.github.io/win12/desktop.html></iframe>" },
+
+  /* -------------------------
+     NEW WINDOWS + SYSTEM32 FILES
+     ------------------------- */
+
+  { path:"/Windows", name:"Win12Config.ini", type:"file", ext:".ini",
+    content:"[System]\nTheme=Dark\nAIMEnabled=true\nFSMode=Virtual\n" },
+
+  { path:"/Windows/System32", name:"KernelShim.sys", type:"file", ext:".sys",
+    content:"// Win12 Kernel Shim\n// Provides compatibility layer for virtualized FS and window manager.\nversion=1.0.0\n" },
+
+  { path:"/Windows/System32", name:"AIMCore.dll", type:"file", ext:".dll",
+    content:"// AIM Core Runtime\n// Handles intent routing, assistant hooks, and system messages.\nexports: InitAIM, RouteIntent, ShutdownAIM\n" },
+
+  { path:"/Windows/System32", name:"VirtualFS.dll", type:"file", ext:".dll",
+    content:"// Virtual FileSystem Handler\n// Maps localStorage → FS model.\nexports: ReadEntry, WriteEntry, ResolvePath\n" },
+
+  { path:"/Windows/System32", name:"Host.exe", type:"file", ext:".exe",
+    content:"// Host.exe\n// Decodes exePayloadBase64 and renders HTML in iframe srcdoc.\n" },
+
+  { path:"/Windows/System32", name:"Regedit.exe", type:"file", ext:".exe",
+    content:"// Registry Editor mock\n// Reads/writes registry.json in localStorage.\n" },
+
+  { path:"/Windows/System32", name:"ShellLink.lnk", type:"file", ext:".lnk",
+    content:"Shortcut: /Windows/System32/Host.exe" },
+
+  { path:"/Windows/System32/BootHelper", name:"BootSequence.cfg", type:"file", ext:".cfg",
+    content:"boot=Boot.bat\nfallback=SafeMode.bat\n" },
+
+  { path:"/Windows/System32/BootHelper", name:"SafeMode.bat", type:"file", ext:".bat",
+    content:"@echo off\ncls\necho Starting Win12 in Safe Mode...\n" },
+
+  { path:"/Windows/Fonts", name:"Win12Sans.ttf", type:"file", ext:".ttf",
+    content:"(Binary font placeholder)" },
+
+  { path:"/Windows/Resources", name:"ThemeColors.json", type:"file", ext:".json",
+    content:'{ "accent":"#b400ff", "background":"#0c0c0c", "taskbar":"#1a1a1a" }' },
+
+  { path:"/Windows/Logs", name:"SystemBoot.log", type:"file", ext:".log",
+    content:"BootHelper invoked.\nKernelShim loaded.\nAIMCore initialized.\n" }
+],
             regAssociations:{
               ".txt":"notepad",
               ".md":"notepad",
@@ -3329,6 +3402,12 @@ window.addEventListener("mouseup", () => {
             {path:"/",name:"Documents",type:"folder",ext:"",target:"/documents"},
             {path:"/",name:"Recommended files",type:"folder",ext:"",target:"/recommended-files"},
             {path:"/",name:"Imported",type:"folder",ext:"",target:"/imported"}
+            {path:"/", name:"Windows", type:"folder", ext:"", target:"/Windows" },
+            {path:"/Windows", name:"System32", type:"folder", ext:"", target:"/Windows/System32" },
+            {path:"/Windows", name:"Fonts", type:"folder", ext:"", target:"/Windows/Fonts" },
+            {path:"/Windows", name:"Resources", type:"folder", ext:"", target:"/Windows/Resources" },
+            {path:"/Windows", name:"Logs", type:"folder", ext:"", target:"/Windows/Logs" },
+            {path:"/Windows/System32", name:"BootHelper", type:"folder", ext:"", target:"/Windows/System32/BootHelper" }
           ];
         }else entries=u.fs.filter(e=>e.path===path);
         if(!entries.length){

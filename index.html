@@ -6093,7 +6093,7 @@ function renderMediaInPlayer(entry) {
   }
 }
 
-/* AIM OS */
+/* AIM OS — RECODED HTML‑SAFE VERSION */
 function aiMsg(role, text){
   if(!aiLog) return;
 
@@ -6131,7 +6131,6 @@ function aiMsg(role, text){
 
     URL.revokeObjectURL(url);
 
-    // AI speaks
     aiMsg("aim", "Your session has been exported as session.win12.lock.");
 
     text = text.replace("<<AIM_EXPORT_SESSION>>", "");
@@ -6168,7 +6167,7 @@ function aiMsg(role, text){
     text = text.replace("<<AIM_IMPORT_SESSION>>", "");
   }
 
-  // --- RENDER MESSAGE ---
+  // --- RENDER MESSAGE (HTML‑SAFE VERSION) ---
   const div = document.createElement("div");
   div.className = "ai-message " + role;
 
@@ -6177,13 +6176,16 @@ function aiMsg(role, text){
   roleSpan.textContent = role==="user" ? "User" : "AIM OS";
 
   const body = document.createElement("div");
-  body.textContent = text;
+
+  // IMPORTANT: allow HTML safely
+  body.innerHTML = text;
 
   div.appendChild(roleSpan);
   div.appendChild(body);
   aiLog.appendChild(div);
   aiLog.scrollTop = aiLog.scrollHeight;
 }
+
 
 function aiHandleFileCreateCommand(text) {
   const u = currentUser();

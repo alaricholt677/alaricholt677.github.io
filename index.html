@@ -4208,629 +4208,364 @@ function mergeImported(entries) {
         showWindow('AIM OS');
       }
 
-// === Win11-style custom media player JS ===
-// Assumes the HTML you posted already exists and CSS above is loaded.
-  var win = document.getElementById('window-media');
-  if (!win) return;
 
-  var openBtn = document.getElementById('media-open');
-  var surface = document.getElementById('media-surface');
-  var filenameLabel = document.getElementById('media-filename');
+  const win = document.getElementById("window-media");
+  const surface = document.getElementById("media-surface");
+  const filenameLabel = document.getElementById("media-filename");
 
-  var mediaElement = null;      // <video> | <audio> | <img>
-  var videoCanvas = null;
-  var videoCtx = null;
-  var videoFrameTimer = null;
+  // NEW UI ELEMENTS
+  const timeCurrent = document.getElementById("media-time-current");
+  const timeTotal = document.getElementById("media-time-total");
+  const timeRange = document.getElementById("media-time-range");
 
-  var state = {
-    duration: 0,
-    draggingTime: false,
-    loop: false,
-    shuffle: false
-  };
+  const btnPlay = document.getElementById("media-play");
+  const btnPrev1 = document.getElementById("media-prev-1s");
+  const btnBack10 = document.getElementById("media-back-10s");
+  const btnNext1 = document.getElementById("media-next-1s");
+  const btnFwd30 = document.getElementById("media-fwd-30s");
 
-  var LS_KEY_GROUPS = 'media-control-groups-layout-v1';
+  const btnLoop = document.getElementById("media-loop");
+  const btnShuffle = document.getElementById("media-shuffle");
 
-  function formatTime(sec) {
-    if (!isFinite(sec) || sec < 0) sec = 0;
-    var m = Math.floor(sec / 60);
-    var s = Math.floor(sec % 60);
-    return (m < 10 ? '0' + m : '' + m) + ':' + (s < 10 ? '0' + s : '' + s);
+  const btnFullscreen = document.getElementById("media-fullscreen");
+  const btnMini = document.getElementById("media-mini");
+  const btnImport = document.getElementById("media-import");
+
+  const volumeWrapper = document.getElementById("media-volume-wrapper");
+  const btnVolume = document.getElementById("media-volume-btn");
+  const volumeRange = document.getElementById("media-volume-range");
+
+  const controlsRow = document.getElementById("media-controls-row");
+  const dragLine = document.getElementById("media-drag-line");
+
+  const videoFrame = document.getElementById("media-video-frame");
+
+  let media = null;
+  let frameTimer = null;
+
+  /* ---------------------------------------------------------
+     UTILITIES
+  --------------------------------------------------------- */
+
+  function fmt(t) {
+    if (!t || t < 0) t = 0;
+    const m = Math.floor(t / 60);
+    const s = Math.floor(t % 60);
+    return (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
   }
 
-  function clearSurface() {
-    while (surface.firstChild) surface.removeChild(surface.firstChild);
-    mediaElement = null;
-    stopVideoFrameLoop();
+  function stopFrameLoop() {
+    if (frameTimer) cancelAnimationFrame(frameTimer);
+    frameTimer = null;
   }
 
-  function createVideoFrameCanvas() {
-    var frameWrapper = document.createElement('div');
-    frameWrapper.className = 'media-video-frame';
+  function startFrameLoop() {
+    stopFrameLoop();
+    if (!media || media.tagName !== "VIDEO") return;
 
-    videoCanvas = document.createElement('canvas');
-    frameWrapper.appendChild(videoCanvas);
-
-    surface.appendChild(frameWrapper);
-  }
-
-  function startVideoFrameLoop() {
-    stopVideoFrameLoop();
-    if (!mediaElement || mediaElement.tagName !== 'VIDEO' || !videoCanvas) return;
-
-    videoCtx = videoCanvas.getContext('2d');
+    const canvas = document.createElement("canvas");
+    videoFrame.innerHTML = "";
+    videoFrame.appendChild(canvas);
+    const ctx = canvas.getContext("2d");
 
     function draw() {
-      if (!mediaElement || mediaElement.readyState < 2) {
-        videoFrameTimer = requestAnimationFrame(draw);
+      if (!media || media.readyState < 2) {
+        frameTimer = requestAnimationFrame(draw);
         return;
       }
-      var w = mediaElement.videoWidth || 640;
-      var h = mediaElement.videoHeight || 360;
-      var rect = surface.getBoundingClientRect();
-      var targetW = rect.width;
-      var ratio = h / w;
-      var targetH = targetW * ratio;
 
-      videoCanvas.width = targetW;
-      videoCanvas.height = targetH;
+      const w = media.videoWidth;
+      const h = media.videoHeight;
+      const rect = videoFrame.getBoundingClientRect();
+      const targetW = rect.width;
+      const targetH = targetW * (h / w);
 
-      videoCtx.drawImage(mediaElement, 0, 0, targetW, targetH);
-      videoFrameTimer = requestAnimationFrame(draw);
+      canvas.width = targetW;
+      canvas.height = targetH;
+
+      ctx.drawImage(media, 0, 0, targetW, targetH);
+      frameTimer = requestAnimationFrame(draw);
     }
 
     draw();
   }
 
-  function stopVideoFrameLoop() {
-    if (videoFrameTimer != null) {
-      cancelAnimationFrame(videoFrameTimer);
-      videoFrameTimer = null;
-    }
+  function updateTimeUI() {
+    if (!media || !media.duration) return;
+    timeCurrent.textContent = fmt(media.currentTime);
+    timeTotal.textContent = fmt(media.duration);
+    timeRange.max = media.duration;
+    timeRange.value = media.currentTime;
+
+    const pct = (media.currentTime / media.duration) * 100;
+    timeRange.style.background =
+      `linear-gradient(to right, var(--media-accent) 0%, var(--media-accent) ${pct}%, #374151 ${pct}%, #374151 100%)`;
   }
 
-  function loadFile(file) {
+  /* ---------------------------------------------------------
+     LOAD FILE
+  --------------------------------------------------------- */
+
+  function loadMedia(file) {
     if (!file) return;
-    var url = URL.createObjectURL(file);
+
     filenameLabel.textContent = file.name;
+    surface.innerHTML = "";
+    videoFrame.innerHTML = "";
+    stopFrameLoop();
 
-    clearSurface();
+    const url = URL.createObjectURL(file);
+    const type = file.type;
 
-    var type = file.type || '';
-    var isVideo = type.indexOf('video') === 0;
-    var isAudio = type.indexOf('audio') === 0;
-    var isImage = type.indexOf('image') === 0;
-
-    if (isImage) {
-      var img = document.createElement('img');
+    if (type.startsWith("image/")) {
+      const img = document.createElement("img");
       img.src = url;
-      img.style.maxWidth = '100%';
-      img.style.maxHeight = '260px';
-      img.style.display = 'block';
-      img.style.borderRadius = '12px';
-      img.style.objectFit = 'contain';
+      img.style.maxWidth = "100%";
+      img.style.borderRadius = "12px";
       surface.appendChild(img);
-      mediaElement = img;
-      updateTitleFromFile(file.name);
-      updateTimeLabels(0, 0);
-      setTimeRange(0, 0);
+      media = img;
+      timeCurrent.textContent = "00:00";
+      timeTotal.textContent = "00:00";
       return;
     }
 
-    if (isVideo || isAudio) {
-      var el = document.createElement(isVideo ? 'video' : 'audio');
-      el.src = url;
-      el.controls = false; // keep original element, but hide native controls
-      el.preload = 'metadata';
+    const isVideo = type.startsWith("video/");
+    const el = document.createElement(isVideo ? "video" : "audio");
+    el.src = url;
+    el.controls = false;
+    el.preload = "metadata";
+    surface.appendChild(el);
+    media = el;
 
-      mediaElement = el;
+    el.addEventListener("loadedmetadata", () => {
+      updateTimeUI();
+      if (isVideo) startFrameLoop();
+    });
 
-      if (isVideo) {
-        createVideoFrameCanvas();
+    el.addEventListener("timeupdate", updateTimeUI);
+
+    el.addEventListener("ended", () => {
+      if (state.loop) {
+        el.currentTime = 0;
+        el.play();
+      } else {
+        btnPlay.textContent = "▶";
       }
-
-      surface.appendChild(el);
-
-      el.addEventListener('loadedmetadata', function () {
-        state.duration = el.duration || 0;
-        updateTimeLabels(0, state.duration);
-        setTimeRange(0, state.duration);
-        if (isVideo) startVideoFrameLoop();
-      });
-
-      el.addEventListener('timeupdate', function () {
-        if (!state.draggingTime) {
-          updateTimeLabels(el.currentTime, state.duration || el.duration || 0);
-          setTimeRange(el.currentTime, state.duration || el.duration || 0);
-        }
-      });
-
-      el.addEventListener('ended', function () {
-        if (state.loop) {
-          el.currentTime = 0;
-          el.play();
-        } else {
-          setPlayState(false);
-        }
-      });
-
-      updateTitleFromFile(file.name);
-    }
+    });
   }
 
-  function updateTitleFromFile(name) {
-    var titleMain = win.querySelector('.media-title-main');
-    if (titleMain) {
-      titleMain.textContent = '[Media Player] ' + (name || '');
-    }
-  }
+  /* ---------------------------------------------------------
+     PLAYBACK CONTROLS
+  --------------------------------------------------------- */
 
-  // === Build custom UI ===
-
-  var shell = document.createElement('div');
-  shell.className = 'media-custom-shell';
-
-  // Title row
-  var titleRow = document.createElement('div');
-  titleRow.className = 'media-title-row';
-
-  var titleLeft = document.createElement('div');
-  var titleMain = document.createElement('div');
-  titleMain.className = 'media-title-main';
-  titleMain.textContent = '[Media Player]';
-
-  var titleSecondary = document.createElement('div');
-  titleSecondary.className = 'media-title-secondary';
-  titleSecondary.textContent = 'Video · audio · images';
-
-  titleLeft.appendChild(titleMain);
-  titleLeft.appendChild(titleSecondary);
-
-  var titleRight = document.createElement('div');
-  titleRight.style.fontWeight = '600';
-  titleRight.style.fontSize = '11px';
-  titleRight.textContent = 'P'; // bold P name marker
-
-  titleRow.appendChild(titleLeft);
-  titleRow.appendChild(titleRight);
-
-  // Progress row
-  var progressRow = document.createElement('div');
-  progressRow.className = 'media-progress-row';
-
-  var currentTimeLabel = document.createElement('span');
-  currentTimeLabel.className = 'media-time-label current';
-  currentTimeLabel.textContent = '00:00';
-
-  var timeRange = document.createElement('input');
-  timeRange.type = 'range';
-  timeRange.min = '0';
-  timeRange.max = '0';
-  timeRange.value = '0';
-  timeRange.step = '0.01';
-  timeRange.className = 'media-range media-range-time';
-
-  var totalTimeLabel = document.createElement('span');
-  totalTimeLabel.className = 'media-time-label total';
-  totalTimeLabel.textContent = '00:00';
-
-  progressRow.appendChild(currentTimeLabel);
-  progressRow.appendChild(timeRange);
-  progressRow.appendChild(totalTimeLabel);
-
-  // Drag line indicator
-  var dragLine = document.createElement('div');
-  dragLine.className = 'media-drag-line';
-  shell.appendChild(dragLine);
-
-  // Controls row (draggable groups)
-  var controlsRow = document.createElement('div');
-  controlsRow.className = 'media-controls-row';
-
-  // Helper to create group
-  function createGroup(id) {
-    var g = document.createElement('div');
-    g.className = 'media-control-group';
-    g.setAttribute('data-group-id', id);
-    return g;
-  }
-
-  // Helper to create button
-  function createBtn(label, title, extraClass) {
-    var b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'media-btn' + (extraClass ? ' ' + extraClass : '');
-    b.title = title || '';
-    b.textContent = label;
-    return b;
-  }
-
-  // === Group A: backward controls + primary play/pause + forward controls ===
-  var groupA = createGroup('groupA');
-
-  var btnPrev1s = createBtn('⟲1s', 'Go back 1 second');
-  var btnBack10 = createBtn('⟲10s', 'Skip back 10 seconds');
-
-  var btnPlay = createBtn('▶', 'Play / Pause', 'media-btn-primary');
-
-  var btnFwd30 = createBtn('30s⟳', 'Skip forward 30 seconds');
-  var btnNext1s = createBtn('1s⟳', 'Go forward 1 second');
-
-  groupA.appendChild(btnPrev1s);
-  groupA.appendChild(btnBack10);
-  groupA.appendChild(btnPlay);
-  groupA.appendChild(btnFwd30);
-  groupA.appendChild(btnNext1s);
-
-  // === Group B: loop + shuffle ===
-  var groupB = createGroup('groupB');
-
-  var btnLoop = createBtn('∞', 'Enable loop', 'media-btn-toggle');
-  var btnShuffle = createBtn('⤮', 'Shuffle (visual only)', 'media-btn-toggle');
-
-  groupB.appendChild(btnLoop);
-  groupB.appendChild(btnShuffle);
-
-  // === Group C: side symbol + volume popout ===
-  var groupC = createGroup('groupC');
-
-  var btnSymbol = createBtn('◎', 'Symbol (no action)');
-  btnSymbol.className += ' media-btn-symbol';
-
-  var volumeWrapper = document.createElement('div');
-  volumeWrapper.className = 'media-volume-wrapper';
-
-  var btnVolume = createBtn('🔊', 'Volume');
-  var volumePopout = document.createElement('div');
-  volumePopout.className = 'media-volume-popout';
-
-  var volumeRange = document.createElement('input');
-  volumeRange.type = 'range';
-  volumeRange.min = '0';
-  volumeRange.max = '1';
-  volumeRange.step = '0.01';
-  volumeRange.value = '1';
-  volumeRange.className = 'media-range media-range-volume';
-
-  volumePopout.appendChild(volumeRange);
-  volumeWrapper.appendChild(btnVolume);
-  volumeWrapper.appendChild(volumePopout);
-
-  groupC.appendChild(btnSymbol);
-  groupC.appendChild(volumeWrapper);
-
-  // === Group D: fullscreen + mini-player + import ===
-  var groupD = createGroup('groupD');
-
-  var btnFullscreen = createBtn('⛶', 'Toggle fullscreen');
-  var btnMini = createBtn('▢', 'Mini player', 'media-btn-toggle');
-  var btnImport = createBtn('Import', 'Import media file');
-
-  groupD.appendChild(btnFullscreen);
-  groupD.appendChild(btnMini);
-  groupD.appendChild(btnImport);
-
-  controlsRow.appendChild(groupA);
-  controlsRow.appendChild(groupB);
-  controlsRow.appendChild(groupC);
-  controlsRow.appendChild(groupD);
-
-  shell.appendChild(titleRow);
-  shell.appendChild(progressRow);
-  shell.appendChild(controlsRow);
-
-  // Attach shell under media-surface
-  var body = win.querySelector('.window-body');
-  if (body) {
-    body.appendChild(shell);
-  }
-
-  // === Time + range sync ===
-
-  function updateTimeLabels(current, total) {
-    currentTimeLabel.textContent = formatTime(current || 0);
-    totalTimeLabel.textContent = formatTime(total || 0);
-  }
-
-  function setTimeRange(current, total) {
-    total = total || 0;
-    timeRange.max = total.toString();
-    if (!state.draggingTime) {
-      timeRange.value = current.toString();
-    }
-    // update filled background
-    var pct = total > 0 ? (current / total) * 100 : 0;
-    timeRange.style.background = 'linear-gradient(to right,' +
-      'var(--media-accent) 0%,' +
-      'var(--media-accent) ' + pct + '%,' +
-      '#374151 ' + pct + '%,' +
-      '#374151 100%)';
-  }
-
-  timeRange.addEventListener('input', function () {
-    state.draggingTime = true;
-    var val = parseFloat(timeRange.value || '0');
-    updateTimeLabels(val, state.duration || (mediaElement && mediaElement.duration) || 0);
-    setTimeRange(val, state.duration || (mediaElement && mediaElement.duration) || 0);
-  });
-
-  timeRange.addEventListener('change', function () {
-    var val = parseFloat(timeRange.value || '0');
-    if (mediaElement && (mediaElement.tagName === 'VIDEO' || mediaElement.tagName === 'AUDIO')) {
-      mediaElement.currentTime = val;
-    }
-    state.draggingTime = false;
-  });
-
-  // === Play state ===
-
-  function setPlayState(playing) {
-    if (!mediaElement || (mediaElement.tagName !== 'VIDEO' && mediaElement.tagName !== 'AUDIO')) return;
-    if (playing) {
-      mediaElement.play();
-      btnPlay.textContent = '⏸';
+  btnPlay.addEventListener("click", () => {
+    if (!media || media.tagName === "IMG") return;
+    if (media.paused) {
+      media.play();
+      btnPlay.textContent = "⏸";
     } else {
-      mediaElement.pause();
-      btnPlay.textContent = '▶';
+      media.pause();
+      btnPlay.textContent = "▶";
     }
-  }
-
-  btnPlay.addEventListener('click', function () {
-    if (!mediaElement || (mediaElement.tagName !== 'VIDEO' && mediaElement.tagName !== 'AUDIO')) return;
-    var isPlaying = !mediaElement.paused && !mediaElement.ended;
-    setPlayState(!isPlaying);
   });
 
-  // === Skip helpers ===
+  btnPrev1.addEventListener("click", () => {
+    if (media && media.currentTime != null) media.currentTime -= 1;
+  });
 
-  function seekBy(delta) {
-    if (!mediaElement || (mediaElement.tagName !== 'VIDEO' && mediaElement.tagName !== 'AUDIO')) return;
-    var t = mediaElement.currentTime + delta;
-    if (t < 0) t = 0;
-    if (mediaElement.duration && t > mediaElement.duration) t = mediaElement.duration;
-    mediaElement.currentTime = t;
-  }
+  btnBack10.addEventListener("click", () => {
+    if (media && media.currentTime != null) media.currentTime -= 10;
+  });
 
-  btnPrev1s.addEventListener('click', function () { seekBy(-1); });
-  btnBack10.addEventListener('click', function () { seekBy(-10); });
-  btnFwd30.addEventListener('click', function () { seekBy(30); });
-  btnNext1s.addEventListener('click', function () { seekBy(1); });
+  btnNext1.addEventListener("click", () => {
+    if (media && media.currentTime != null) media.currentTime += 1;
+  });
 
-  // === Loop + shuffle toggles ===
+  btnFwd30.addEventListener("click", () => {
+    if (media && media.currentTime != null) media.currentTime += 30;
+  });
 
-  btnLoop.addEventListener('click', function () {
+  /* ---------------------------------------------------------
+     TIME SCRUBBER
+  --------------------------------------------------------- */
+
+  timeRange.addEventListener("input", () => {
+    if (!media || media.tagName === "IMG") return;
+    media.currentTime = parseFloat(timeRange.value);
+    updateTimeUI();
+  });
+
+  /* ---------------------------------------------------------
+     LOOP + SHUFFLE
+  --------------------------------------------------------- */
+
+  btnLoop.addEventListener("click", () => {
     state.loop = !state.loop;
-    btnLoop.classList.toggle('active', state.loop);
-    if (mediaElement && (mediaElement.tagName === 'VIDEO' || mediaElement.tagName === 'AUDIO')) {
-      mediaElement.loop = state.loop;
-    }
+    btnLoop.classList.toggle("active", state.loop);
+    if (media && media.loop !== undefined) media.loop = state.loop;
   });
 
-  btnShuffle.addEventListener('click', function () {
+  btnShuffle.addEventListener("click", () => {
     state.shuffle = !state.shuffle;
-    btnShuffle.classList.toggle('active', state.shuffle);
-    // visual only for now (no playlist context)
+    btnShuffle.classList.toggle("active", state.shuffle);
   });
 
-  // === Volume ===
+  /* ---------------------------------------------------------
+     VOLUME
+  --------------------------------------------------------- */
 
-  btnVolume.addEventListener('click', function () {
-    var open = volumeWrapper.classList.contains('open');
-    volumeWrapper.classList.toggle('open', !open);
+  btnVolume.addEventListener("click", () => {
+    volumeWrapper.classList.toggle("open");
   });
 
-  volumeRange.addEventListener('input', function () {
-    var v = parseFloat(volumeRange.value || '1');
-    if (mediaElement && (mediaElement.tagName === 'VIDEO' || mediaElement.tagName === 'AUDIO')) {
-      mediaElement.volume = v;
+  volumeRange.addEventListener("input", () => {
+    if (media && media.volume !== undefined) {
+      media.volume = parseFloat(volumeRange.value);
     }
-    var pct = v * 100;
-    volumeRange.style.background = 'linear-gradient(to right,' +
-      'var(--media-accent-alt) 0%,' +
-      'var(--media-accent-alt) ' + pct + '%,' +
-      '#374151 ' + pct + '%,' +
-      '#374151 100%)';
+    const pct = volumeRange.value * 100;
+    volumeRange.style.background =
+      `linear-gradient(to right, var(--media-accent-alt) 0%, var(--media-accent-alt) ${pct}%, #374151 ${pct}%, #374151 100%)`;
   });
 
-  // Close volume popout when clicking outside
-  document.addEventListener('click', function (e) {
+  document.addEventListener("click", (e) => {
     if (!volumeWrapper.contains(e.target)) {
-      volumeWrapper.classList.remove('open');
+      volumeWrapper.classList.remove("open");
     }
   });
 
-  // === Fullscreen ===
+  /* ---------------------------------------------------------
+     FULLSCREEN
+  --------------------------------------------------------- */
 
-  function toggleFullscreen() {
-    if (!surface) return;
-    var doc = document;
-    var fsEl = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement;
-    if (!fsEl) {
-      if (surface.requestFullscreen) surface.requestFullscreen();
-      else if (surface.webkitRequestFullscreen) surface.webkitRequestFullscreen();
-      else if (surface.mozRequestFullScreen) surface.mozRequestFullScreen();
+  btnFullscreen.addEventListener("click", () => {
+    const el = surface;
+    if (!document.fullscreenElement) {
+      el.requestFullscreen?.();
     } else {
-      if (doc.exitFullscreen) doc.exitFullscreen();
-      else if (doc.webkitExitFullscreen) doc.webkitExitFullscreen();
-      else if (doc.mozCancelFullScreen) doc.mozCancelFullScreen();
+      document.exitFullscreen?.();
     }
-  }
-
-  btnFullscreen.addEventListener('click', toggleFullscreen);
-
-  // === Mini player ===
-
-  btnMini.addEventListener('click', function () {
-    var isMini = win.classList.toggle('media-mini');
-    btnMini.classList.toggle('active', isMini);
   });
 
-  // === Import button (reuses existing file input) ===
+  /* ---------------------------------------------------------
+     MINI PLAYER
+  --------------------------------------------------------- */
 
-  btnImport.addEventListener('click', function () {
-    if (fileInput) fileInput.click();
+  btnMini.addEventListener("click", () => {
+    const isMini = win.classList.toggle("media-mini");
+    btnMini.classList.toggle("active", isMini);
   });
 
-  // === Original "Open media…" button ===
+  /* ---------------------------------------------------------
+     IMPORT (same as open)
+  --------------------------------------------------------- */
 
-  if (openBtn && fileInput) {
-    openBtn.addEventListener('click', function () {
-      fileInput.click();
+  btnImport.addEventListener("click", () => fileInput.click());
+
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files?.[0];
+    loadMedia(file);
+  });
+
+  /* ---------------------------------------------------------
+     DRAGGABLE GROUPS (order saved)
+  --------------------------------------------------------- */
+
+  const LS_KEY = "media-groups-layout-v1";
+
+  function saveOrder() {
+    const ids = [...controlsRow.children].map(g => g.dataset.groupId);
+    localStorage.setItem(LS_KEY, JSON.stringify(ids));
+  }
+
+  function loadOrder() {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const ids = JSON.parse(raw);
+    const map = {};
+    [...controlsRow.children].forEach(g => map[g.dataset.groupId] = g);
+    ids.forEach(id => map[id] && controlsRow.appendChild(map[id]));
+  }
+
+  loadOrder();
+
+  let dragging = null;
+
+  controlsRow.addEventListener("pointerdown", (e) => {
+    const g = e.target.closest(".media-control-group");
+    if (!g) return;
+
+    dragging = g;
+    dragging.classList.add("dragging");
+
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up);
+  });
+
+  function move(e) {
+    if (!dragging) return;
+
+    const groups = [...controlsRow.children];
+    let closest = null;
+    let closestDist = Infinity;
+
+    groups.forEach(g => {
+      if (g === dragging) return;
+      const r = g.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const dx = cx - e.clientX;
+      const dy = cy - e.clientY;
+      const d = dx * dx + dy * dy;
+      if (d < closestDist) {
+        closestDist = d;
+        closest = g;
+      }
     });
 
-    fileInput.addEventListener('change', function () {
-      var file = fileInput.files && fileInput.files[0];
-      loadFile(file);
+    if (closest) {
+      const rect = closest.getBoundingClientRect();
+      dragLine.style.opacity = "1";
+      dragLine.style.width = rect.width + "px";
+      dragLine.style.transform =
+        `translate(${rect.left}px, ${rect.bottom + 2}px)`;
+    }
+  }
+
+  function up(e) {
+    if (!dragging) return;
+
+    const groups = [...controlsRow.children];
+    let closest = null;
+    let closestDist = Infinity;
+
+    groups.forEach(g => {
+      if (g === dragging) return;
+      const r = g.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const dx = cx - e.clientX;
+      const dy = cy - e.clientY;
+      const d = dx * dx + dy * dy;
+      if (d < closestDist) {
+        closestDist = d;
+        closest = g;
+      }
     });
+
+    if (closest) {
+      controlsRow.insertBefore(dragging, closest.nextSibling);
+      saveOrder();
+    }
+
+    dragging.classList.remove("dragging");
+    dragging = null;
+    dragLine.style.opacity = "0";
+
+    document.removeEventListener("pointermove", move);
+    document.removeEventListener("pointerup", up);
   }
 
-  // === Draggable groups (x/y-ish, order saved) ===
 
-  var groups = [groupA, groupB, groupC, groupD];
-
-  function loadGroupLayout() {
-    try {
-      var raw = localStorage.getItem(LS_KEY_GROUPS);
-      if (!raw) return;
-      var data = JSON.parse(raw);
-      if (!data || !data.order) return;
-
-      // Reorder groups
-      var idToGroup = {};
-      for (var i = 0; i < groups.length; i++) {
-        idToGroup[groups[i].getAttribute('data-group-id')] = groups[i];
-      }
-      for (var j = 0; j < data.order.length; j++) {
-        var id = data.order[j];
-        if (idToGroup[id]) {
-          controlsRow.appendChild(idToGroup[id]);
-        }
-      }
-    } catch (e) { }
-  }
-
-  function saveGroupLayout() {
-    var order = [];
-    var children = controlsRow.querySelectorAll('.media-control-group');
-    for (var i = 0; i < children.length; i++) {
-      order.push(children[i].getAttribute('data-group-id'));
-    }
-    var payload = { order: order };
-    try {
-      localStorage.setItem(LS_KEY_GROUPS, JSON.stringify(payload));
-    } catch (e) { }
-  }
-
-  loadGroupLayout();
-
-  // Drag & reorder with line indicator (mobile friendly)
-  (function setupDrag() {
-    var dragging = null;
-    var startX = 0;
-    var startY = 0;
-
-    function onPointerDown(e) {
-      var target = e.target;
-      while (target && !target.classList.contains('media-control-group')) {
-        target = target.parentNode;
-      }
-      if (!target) return;
-
-      dragging = target;
-      dragging.classList.add('dragging');
-
-      var rect = dragging.getBoundingClientRect();
-      startX = e.clientX - rect.left;
-      startY = e.clientY - rect.top;
-
-      dragLine.style.opacity = '1';
-      dragLine.style.transform = 'translate(' + rect.left + 'px,' + (rect.bottom + 2) + 'px)';
-
-      document.addEventListener('pointermove', onPointerMove);
-      document.addEventListener('pointerup', onPointerUp);
-    }
-
-    function onPointerMove(e) {
-      if (!dragging) return;
-      e.preventDefault();
-
-      var children = Array.prototype.slice.call(
-        controlsRow.querySelectorAll('.media-control-group')
-      );
-
-      var x = e.clientX;
-      var y = e.clientY;
-
-      var closest = null;
-      var closestDist = Infinity;
-
-      for (var i = 0; i < children.length; i++) {
-        var c = children[i];
-        var r = c.getBoundingClientRect();
-        var cx = r.left + r.width / 2;
-        var cy = r.top + r.height / 2;
-        var dx = cx - x;
-        var dy = cy - y;
-        var dist = dx * dx + dy * dy;
-        if (dist < closestDist) {
-          closestDist = dist;
-          closest = c;
-        }
-      }
-
-      if (closest && closest !== dragging) {
-        var rect = closest.getBoundingClientRect();
-        dragLine.style.opacity = '1';
-        dragLine.style.width = rect.width + 'px';
-        dragLine.style.transform = 'translate(' + rect.left + 'px,' + (rect.bottom + 2) + 'px)';
-      }
-    }
-
-    function onPointerUp(e) {
-      if (!dragging) return;
-
-      var children = Array.prototype.slice.call(
-        controlsRow.querySelectorAll('.media-control-group')
-      );
-      var x = e.clientX;
-      var y = e.clientY;
-
-      var closest = null;
-      var closestDist = Infinity;
-
-      for (var i = 0; i < children.length; i++) {
-        var c = children[i];
-        var r = c.getBoundingClientRect();
-        var cx = r.left + r.width / 2;
-        var cy = r.top + r.height / 2;
-        var dx = cx - x;
-        var dy = cy - y;
-        var dist = dx * dx + dy * dy;
-        if (dist < closestDist) {
-          closestDist = dist;
-          closest = c;
-        }
-      }
-
-      if (closest && closest !== dragging) {
-        if (closest.nextSibling) {
-          controlsRow.insertBefore(dragging, closest.nextSibling);
-        } else {
-          controlsRow.appendChild(dragging);
-        }
-        saveGroupLayout();
-      }
-
-      dragging.classList.remove('dragging');
-      dragging = null;
-      dragLine.style.opacity = '0';
-
-      document.removeEventListener('pointermove', onPointerMove);
-      document.removeEventListener('pointerup', onPointerUp);
-    }
-
-    controlsRow.addEventListener('pointerdown', onPointerDown);
-  })();
 
       /* Notepad */
       let notepadCurrentFile=null;

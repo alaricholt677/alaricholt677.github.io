@@ -1620,6 +1620,292 @@
   font-size: 13px;
 }
 
+/* === Win11-style media player custom UI (added only) === */
+
+#window-media {
+  --media-accent: #f97316;          /* orange */
+  --media-accent-alt: #a855f7;      /* purple */
+  --media-bg: #050816;
+  --media-surface: #0b1020;
+  --media-border: #1f2937;
+  --media-soft: #9ca3af;
+  --media-dim: #6b7280;
+}
+
+/* Custom controls shell */
+.media-custom-shell {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: radial-gradient(circle at top left, #111827, #020617);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Title row */
+.media-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--media-soft);
+}
+
+.media-title-main {
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #e5e7eb;
+}
+
+.media-title-secondary {
+  font-size: 10px;
+  color: var(--media-dim);
+}
+
+/* Progress area */
+.media-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.media-time-label {
+  font-size: 10px;
+  color: var(--media-soft);
+  min-width: 46px;
+  text-align: right;
+}
+
+.media-time-label.total {
+  text-align: left;
+}
+
+/* Range base style (time + volume share this) */
+.media-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: #374151;
+  outline: none;
+  position: relative;
+}
+
+/* Track (unfilled) */
+.media-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: #374151;
+}
+.media-range::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: #374151;
+}
+
+/* Thumb (dot) */
+.media-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 2px solid #020617;
+  background: radial-gradient(circle at 30% 30%, #fed7aa, #f97316);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.7);
+  margin-top: -4px;
+}
+.media-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 2px solid #020617;
+  background: radial-gradient(circle at 30% 30%, #fed7aa, #f97316);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.7);
+}
+
+/* Filled portion (orange) */
+.media-range.media-range-time {
+  background: linear-gradient(
+      to right,
+      var(--media-accent) 0%,
+      var(--media-accent) 0%,
+      #374151 0%,
+      #374151 100%
+  );
+}
+
+/* Volume range uses same style but different class so JS can target it */
+.media-range.media-range-volume {
+  background: linear-gradient(
+      to right,
+      var(--media-accent-alt) 0%,
+      var(--media-accent-alt) 0%,
+      #374151 0%,
+      #374151 100%
+  );
+}
+
+/* Controls row with draggable groups */
+.media-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+/* Draggable group “chips” */
+.media-control-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #020617, #020617);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  cursor: grab;
+  position: relative;
+  touch-action: none;
+}
+
+.media-control-group.dragging {
+  opacity: 0.85;
+  cursor: grabbing;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  z-index: 10;
+}
+
+/* Buttons inside groups */
+.media-btn {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #e5e7eb;
+  font-size: 11px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.media-btn:hover {
+  background: rgba(148, 163, 184, 0.18);
+}
+
+.media-btn:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+/* Primary play/pause button */
+.media-btn-primary {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 12px;
+  background: linear-gradient(135deg, var(--media-accent), var(--media-accent-alt));
+  color: #020617;
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.4);
+}
+
+.media-btn-primary:hover {
+  box-shadow: 0 10px 26px rgba(168, 85, 247, 0.5);
+}
+
+/* Toggle buttons (loop, shuffle, mini, etc.) */
+.media-btn-toggle {
+  border: 1px solid transparent;
+}
+
+.media-btn-toggle.active {
+  border-color: rgba(249, 115, 22, 0.9);
+  background: radial-gradient(circle at top left, rgba(249, 115, 22, 0.18), transparent);
+}
+
+/* Icon-ish text */
+.media-btn-symbol {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Volume popout */
+.media-volume-wrapper {
+  position: relative;
+}
+
+.media-volume-popout {
+  position: absolute;
+  bottom: 120%;
+  right: 0;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: #020617;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.7);
+  width: 140px;
+  display: none;
+}
+
+.media-volume-wrapper.open .media-volume-popout {
+  display: block;
+}
+
+/* Drag line indicator */
+.media-drag-line {
+  position: absolute;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--media-accent), var(--media-accent-alt));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease, transform 0.08s ease;
+}
+
+/* Mini-player mode */
+#window-media.media-mini {
+  width: 320px !important;
+  min-width: 280px;
+}
+
+#window-media.media-mini .media-custom-shell {
+  padding: 6px 8px;
+}
+
+#window-media.media-mini .media-title-secondary {
+  display: none;
+}
+
+/* Canvas frame for video */
+.media-video-frame {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: radial-gradient(circle at top, #020617, #020617);
+}
+
+.media-video-frame canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Hide native controls of injected media element (we keep original element, just no controls) */
+#media-surface video,
+#media-surface audio {
+  width: 100%;
+  max-height: 260px;
+  background: #000;
+}
+
   </style>
   <style id="theme-style"></style>
 </head>
@@ -2303,38 +2589,112 @@
     </div>
   </div>
 
-  <!-- Media Player -->
-  <div class="window" id="window-media" data-app="media" data-app-desc="[Media Player] Win11-style media player. Opens any local video, audio, or image file via the host browser.">
-    <div class="window-header" data-drag-handle>
-      <div class="window-title">
-        <div class="window-title-icon" style="background:linear-gradient(135deg,#8b5cf6,#ec4899);"></div>
-        <div class="window-title-text">
-          <div class="window-title-main">[Media Player]</div>
-          <div class="window-title-sub">Video · audio · images</div>
-        </div>
-        <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
-        <div class="window-info-icon">(i)</div>
-        <div class="window-info-tooltip"></div>
+<div class="window" id="window-media" data-app="media" data-app-desc="[Media Player] Win11-style media player. Opens any local video, audio, or image file via the host browser.">
+
+  <!-- HEADER -->
+  <div class="window-header" data-drag-handle>
+    <div class="window-title">
+      <div class="window-title-icon" style="background:linear-gradient(135deg,#8b5cf6,#ec4899);"></div>
+      <div class="window-title-text">
+        <div class="window-title-main">[Media Player]</div>
+        <div class="window-title-sub">Video · audio · images</div>
       </div>
-      <div class="window-controls">
-        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
-        <div class="window-btn close"><div class="window-btn-icon"></div></div>
-      </div>
+      <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+      <div class="window-info-icon">(i)</div>
+      <div class="window-info-tooltip"></div>
     </div>
-    <div class="window-body">
-      <div class="media-controls">
-        <button class="button-small" id="media-open">Open media…</button>
-        <input type="file" id="media-file-input" style="display:none;" accept="video/*,audio/*,image/*" />
-        <span id="media-filename" style="color:var(--text-soft);font-size:11px;">No file loaded.</span>
-      </div>
-      <div class="media-surface" id="media-surface">
-        <span style="font-size:11px;color:var(--text-soft);">Open any video, audio, or image file from your device. Playback is handled by the browser.</span>
-      </div>
-      <div style="margin-top:4px;font-size:10px;color:var(--text-dim);">
-        This player does not touch your filesystem; it only creates temporary object URLs in your browser.
-      </div>
+    <div class="window-controls">
+      <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+      <div class="window-btn close"><div class="window-btn-icon"></div></div>
     </div>
   </div>
+
+  <!-- BODY -->
+  <div class="window-body">
+
+    <!-- ORIGINAL OPEN BUTTON + FILE INPUT -->
+    <div class="media-controls">
+      <button class="button-small" id="media-open">Open media…</button>
+      <input type="file" id="media-file-input" style="display:none;" accept="video/*,audio/*,image/*" />
+      <span id="media-filename" style="color:var(--text-soft);font-size:11px;">No file loaded.</span>
+    </div>
+
+    <!-- ORIGINAL MEDIA SURFACE (kept exactly as-is) -->
+    <div class="media-surface" id="media-surface">
+      <span style="font-size:11px;color:var(--text-soft);">Open any video, audio, or image file from your device. Playback is handled by the browser.</span>
+    </div>
+
+    <div style="margin-top:4px;font-size:10px;color:var(--text-dim);">
+      This player does not touch your filesystem; it only creates temporary object URLs in your browser.
+    </div>
+
+    <!-- NEW VIDEO FRAME WRAPPER (canvas inserted by JS) -->
+    <div class="media-video-frame" id="media-video-frame"></div>
+
+    <!-- NEW CUSTOM PLAYER UI -->
+    <div class="media-custom-shell" id="media-custom-shell">
+
+      <!-- TITLE ROW -->
+      <div class="media-title-row">
+        <div class="media-title-left">
+          <div class="media-title-main">[Media Player]</div>
+          <div class="media-title-secondary">Video · audio · images</div>
+        </div>
+        <div class="media-title-symbol">P</div>
+      </div>
+
+      <!-- PROGRESS BAR ROW -->
+      <div class="media-progress-row">
+        <span class="media-time-label current" id="media-time-current">00:00</span>
+        <input type="range" class="media-range media-range-time" id="media-time-range" min="0" max="0" value="0" step="0.01">
+        <span class="media-time-label total" id="media-time-total">00:00</span>
+      </div>
+
+      <!-- DRAG LINE INDICATOR -->
+      <div class="media-drag-line" id="media-drag-line"></div>
+
+      <!-- DRAGGABLE CONTROL GROUPS -->
+      <div class="media-controls-row" id="media-controls-row">
+
+        <!-- GROUP A -->
+        <div class="media-control-group" data-group-id="groupA">
+          <button class="media-btn" id="media-prev-1s">⟲1s</button>
+          <button class="media-btn" id="media-back-10s">⟲10s</button>
+          <button class="media-btn media-btn-primary" id="media-play">▶</button>
+          <button class="media-btn" id="media-fwd-30s">30s⟳</button>
+          <button class="media-btn" id="media-next-1s">1s⟳</button>
+        </div>
+
+        <!-- GROUP B -->
+        <div class="media-control-group" data-group-id="groupB">
+          <button class="media-btn media-btn-toggle" id="media-loop">∞</button>
+          <button class="media-btn media-btn-toggle" id="media-shuffle">⤮</button>
+        </div>
+
+        <!-- GROUP C -->
+        <div class="media-control-group" data-group-id="groupC">
+          <button class="media-btn media-btn-symbol" id="media-symbol">◎</button>
+
+          <div class="media-volume-wrapper" id="media-volume-wrapper">
+            <button class="media-btn" id="media-volume-btn">🔊</button>
+            <div class="media-volume-popout" id="media-volume-popout">
+              <input type="range" class="media-range media-range-volume" id="media-volume-range" min="0" max="1" step="0.01" value="1">
+            </div>
+          </div>
+        </div>
+
+        <!-- GROUP D -->
+        <div class="media-control-group" data-group-id="groupD">
+          <button class="media-btn" id="media-fullscreen">⛶</button>
+          <button class="media-btn media-btn-toggle" id="media-mini">▢</button>
+          <button class="media-btn" id="media-import">Import</button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
 
 <!-- Win12 Camera App -->
 <div class="window" id="window-camera" data-app="camera" data-app-desc="[Win12 Camera] Record, pause, stop, edit, and export.">
@@ -3847,6 +4207,631 @@ function mergeImported(entries) {
         aiMsg("ai",`Properties: ${entry ? entry.name : "(none)"} (${entry ? (entry.ext||entry.type||"") : ""}) at ${entry ? entry.path : "(background)"}`);
         showWindow('AIM OS');
       }
+
+// === Win11-style custom media player JS ===
+// Assumes the HTML you posted already exists and CSS above is loaded.
+  var win = document.getElementById('window-media');
+  if (!win) return;
+
+  var openBtn = document.getElementById('media-open');
+  var fileInput = document.getElementById('media-file-input');
+  var surface = document.getElementById('media-surface');
+  var filenameLabel = document.getElementById('media-filename');
+
+  var mediaElement = null;      // <video> | <audio> | <img>
+  var videoCanvas = null;
+  var videoCtx = null;
+  var videoFrameTimer = null;
+
+  var state = {
+    duration: 0,
+    draggingTime: false,
+    loop: false,
+    shuffle: false
+  };
+
+  var LS_KEY_GROUPS = 'media-control-groups-layout-v1';
+
+  function formatTime(sec) {
+    if (!isFinite(sec) || sec < 0) sec = 0;
+    var m = Math.floor(sec / 60);
+    var s = Math.floor(sec % 60);
+    return (m < 10 ? '0' + m : '' + m) + ':' + (s < 10 ? '0' + s : '' + s);
+  }
+
+  function clearSurface() {
+    while (surface.firstChild) surface.removeChild(surface.firstChild);
+    mediaElement = null;
+    stopVideoFrameLoop();
+  }
+
+  function createVideoFrameCanvas() {
+    var frameWrapper = document.createElement('div');
+    frameWrapper.className = 'media-video-frame';
+
+    videoCanvas = document.createElement('canvas');
+    frameWrapper.appendChild(videoCanvas);
+
+    surface.appendChild(frameWrapper);
+  }
+
+  function startVideoFrameLoop() {
+    stopVideoFrameLoop();
+    if (!mediaElement || mediaElement.tagName !== 'VIDEO' || !videoCanvas) return;
+
+    videoCtx = videoCanvas.getContext('2d');
+
+    function draw() {
+      if (!mediaElement || mediaElement.readyState < 2) {
+        videoFrameTimer = requestAnimationFrame(draw);
+        return;
+      }
+      var w = mediaElement.videoWidth || 640;
+      var h = mediaElement.videoHeight || 360;
+      var rect = surface.getBoundingClientRect();
+      var targetW = rect.width;
+      var ratio = h / w;
+      var targetH = targetW * ratio;
+
+      videoCanvas.width = targetW;
+      videoCanvas.height = targetH;
+
+      videoCtx.drawImage(mediaElement, 0, 0, targetW, targetH);
+      videoFrameTimer = requestAnimationFrame(draw);
+    }
+
+    draw();
+  }
+
+  function stopVideoFrameLoop() {
+    if (videoFrameTimer != null) {
+      cancelAnimationFrame(videoFrameTimer);
+      videoFrameTimer = null;
+    }
+  }
+
+  function loadFile(file) {
+    if (!file) return;
+    var url = URL.createObjectURL(file);
+    filenameLabel.textContent = file.name;
+
+    clearSurface();
+
+    var type = file.type || '';
+    var isVideo = type.indexOf('video') === 0;
+    var isAudio = type.indexOf('audio') === 0;
+    var isImage = type.indexOf('image') === 0;
+
+    if (isImage) {
+      var img = document.createElement('img');
+      img.src = url;
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '260px';
+      img.style.display = 'block';
+      img.style.borderRadius = '12px';
+      img.style.objectFit = 'contain';
+      surface.appendChild(img);
+      mediaElement = img;
+      updateTitleFromFile(file.name);
+      updateTimeLabels(0, 0);
+      setTimeRange(0, 0);
+      return;
+    }
+
+    if (isVideo || isAudio) {
+      var el = document.createElement(isVideo ? 'video' : 'audio');
+      el.src = url;
+      el.controls = false; // keep original element, but hide native controls
+      el.preload = 'metadata';
+
+      mediaElement = el;
+
+      if (isVideo) {
+        createVideoFrameCanvas();
+      }
+
+      surface.appendChild(el);
+
+      el.addEventListener('loadedmetadata', function () {
+        state.duration = el.duration || 0;
+        updateTimeLabels(0, state.duration);
+        setTimeRange(0, state.duration);
+        if (isVideo) startVideoFrameLoop();
+      });
+
+      el.addEventListener('timeupdate', function () {
+        if (!state.draggingTime) {
+          updateTimeLabels(el.currentTime, state.duration || el.duration || 0);
+          setTimeRange(el.currentTime, state.duration || el.duration || 0);
+        }
+      });
+
+      el.addEventListener('ended', function () {
+        if (state.loop) {
+          el.currentTime = 0;
+          el.play();
+        } else {
+          setPlayState(false);
+        }
+      });
+
+      updateTitleFromFile(file.name);
+    }
+  }
+
+  function updateTitleFromFile(name) {
+    var titleMain = win.querySelector('.media-title-main');
+    if (titleMain) {
+      titleMain.textContent = '[Media Player] ' + (name || '');
+    }
+  }
+
+  // === Build custom UI ===
+
+  var shell = document.createElement('div');
+  shell.className = 'media-custom-shell';
+
+  // Title row
+  var titleRow = document.createElement('div');
+  titleRow.className = 'media-title-row';
+
+  var titleLeft = document.createElement('div');
+  var titleMain = document.createElement('div');
+  titleMain.className = 'media-title-main';
+  titleMain.textContent = '[Media Player]';
+
+  var titleSecondary = document.createElement('div');
+  titleSecondary.className = 'media-title-secondary';
+  titleSecondary.textContent = 'Video · audio · images';
+
+  titleLeft.appendChild(titleMain);
+  titleLeft.appendChild(titleSecondary);
+
+  var titleRight = document.createElement('div');
+  titleRight.style.fontWeight = '600';
+  titleRight.style.fontSize = '11px';
+  titleRight.textContent = 'P'; // bold P name marker
+
+  titleRow.appendChild(titleLeft);
+  titleRow.appendChild(titleRight);
+
+  // Progress row
+  var progressRow = document.createElement('div');
+  progressRow.className = 'media-progress-row';
+
+  var currentTimeLabel = document.createElement('span');
+  currentTimeLabel.className = 'media-time-label current';
+  currentTimeLabel.textContent = '00:00';
+
+  var timeRange = document.createElement('input');
+  timeRange.type = 'range';
+  timeRange.min = '0';
+  timeRange.max = '0';
+  timeRange.value = '0';
+  timeRange.step = '0.01';
+  timeRange.className = 'media-range media-range-time';
+
+  var totalTimeLabel = document.createElement('span');
+  totalTimeLabel.className = 'media-time-label total';
+  totalTimeLabel.textContent = '00:00';
+
+  progressRow.appendChild(currentTimeLabel);
+  progressRow.appendChild(timeRange);
+  progressRow.appendChild(totalTimeLabel);
+
+  // Drag line indicator
+  var dragLine = document.createElement('div');
+  dragLine.className = 'media-drag-line';
+  shell.appendChild(dragLine);
+
+  // Controls row (draggable groups)
+  var controlsRow = document.createElement('div');
+  controlsRow.className = 'media-controls-row';
+
+  // Helper to create group
+  function createGroup(id) {
+    var g = document.createElement('div');
+    g.className = 'media-control-group';
+    g.setAttribute('data-group-id', id);
+    return g;
+  }
+
+  // Helper to create button
+  function createBtn(label, title, extraClass) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'media-btn' + (extraClass ? ' ' + extraClass : '');
+    b.title = title || '';
+    b.textContent = label;
+    return b;
+  }
+
+  // === Group A: backward controls + primary play/pause + forward controls ===
+  var groupA = createGroup('groupA');
+
+  var btnPrev1s = createBtn('⟲1s', 'Go back 1 second');
+  var btnBack10 = createBtn('⟲10s', 'Skip back 10 seconds');
+
+  var btnPlay = createBtn('▶', 'Play / Pause', 'media-btn-primary');
+
+  var btnFwd30 = createBtn('30s⟳', 'Skip forward 30 seconds');
+  var btnNext1s = createBtn('1s⟳', 'Go forward 1 second');
+
+  groupA.appendChild(btnPrev1s);
+  groupA.appendChild(btnBack10);
+  groupA.appendChild(btnPlay);
+  groupA.appendChild(btnFwd30);
+  groupA.appendChild(btnNext1s);
+
+  // === Group B: loop + shuffle ===
+  var groupB = createGroup('groupB');
+
+  var btnLoop = createBtn('∞', 'Enable loop', 'media-btn-toggle');
+  var btnShuffle = createBtn('⤮', 'Shuffle (visual only)', 'media-btn-toggle');
+
+  groupB.appendChild(btnLoop);
+  groupB.appendChild(btnShuffle);
+
+  // === Group C: side symbol + volume popout ===
+  var groupC = createGroup('groupC');
+
+  var btnSymbol = createBtn('◎', 'Symbol (no action)');
+  btnSymbol.className += ' media-btn-symbol';
+
+  var volumeWrapper = document.createElement('div');
+  volumeWrapper.className = 'media-volume-wrapper';
+
+  var btnVolume = createBtn('🔊', 'Volume');
+  var volumePopout = document.createElement('div');
+  volumePopout.className = 'media-volume-popout';
+
+  var volumeRange = document.createElement('input');
+  volumeRange.type = 'range';
+  volumeRange.min = '0';
+  volumeRange.max = '1';
+  volumeRange.step = '0.01';
+  volumeRange.value = '1';
+  volumeRange.className = 'media-range media-range-volume';
+
+  volumePopout.appendChild(volumeRange);
+  volumeWrapper.appendChild(btnVolume);
+  volumeWrapper.appendChild(volumePopout);
+
+  groupC.appendChild(btnSymbol);
+  groupC.appendChild(volumeWrapper);
+
+  // === Group D: fullscreen + mini-player + import ===
+  var groupD = createGroup('groupD');
+
+  var btnFullscreen = createBtn('⛶', 'Toggle fullscreen');
+  var btnMini = createBtn('▢', 'Mini player', 'media-btn-toggle');
+  var btnImport = createBtn('Import', 'Import media file');
+
+  groupD.appendChild(btnFullscreen);
+  groupD.appendChild(btnMini);
+  groupD.appendChild(btnImport);
+
+  controlsRow.appendChild(groupA);
+  controlsRow.appendChild(groupB);
+  controlsRow.appendChild(groupC);
+  controlsRow.appendChild(groupD);
+
+  shell.appendChild(titleRow);
+  shell.appendChild(progressRow);
+  shell.appendChild(controlsRow);
+
+  // Attach shell under media-surface
+  var body = win.querySelector('.window-body');
+  if (body) {
+    body.appendChild(shell);
+  }
+
+  // === Time + range sync ===
+
+  function updateTimeLabels(current, total) {
+    currentTimeLabel.textContent = formatTime(current || 0);
+    totalTimeLabel.textContent = formatTime(total || 0);
+  }
+
+  function setTimeRange(current, total) {
+    total = total || 0;
+    timeRange.max = total.toString();
+    if (!state.draggingTime) {
+      timeRange.value = current.toString();
+    }
+    // update filled background
+    var pct = total > 0 ? (current / total) * 100 : 0;
+    timeRange.style.background = 'linear-gradient(to right,' +
+      'var(--media-accent) 0%,' +
+      'var(--media-accent) ' + pct + '%,' +
+      '#374151 ' + pct + '%,' +
+      '#374151 100%)';
+  }
+
+  timeRange.addEventListener('input', function () {
+    state.draggingTime = true;
+    var val = parseFloat(timeRange.value || '0');
+    updateTimeLabels(val, state.duration || (mediaElement && mediaElement.duration) || 0);
+    setTimeRange(val, state.duration || (mediaElement && mediaElement.duration) || 0);
+  });
+
+  timeRange.addEventListener('change', function () {
+    var val = parseFloat(timeRange.value || '0');
+    if (mediaElement && (mediaElement.tagName === 'VIDEO' || mediaElement.tagName === 'AUDIO')) {
+      mediaElement.currentTime = val;
+    }
+    state.draggingTime = false;
+  });
+
+  // === Play state ===
+
+  function setPlayState(playing) {
+    if (!mediaElement || (mediaElement.tagName !== 'VIDEO' && mediaElement.tagName !== 'AUDIO')) return;
+    if (playing) {
+      mediaElement.play();
+      btnPlay.textContent = '⏸';
+    } else {
+      mediaElement.pause();
+      btnPlay.textContent = '▶';
+    }
+  }
+
+  btnPlay.addEventListener('click', function () {
+    if (!mediaElement || (mediaElement.tagName !== 'VIDEO' && mediaElement.tagName !== 'AUDIO')) return;
+    var isPlaying = !mediaElement.paused && !mediaElement.ended;
+    setPlayState(!isPlaying);
+  });
+
+  // === Skip helpers ===
+
+  function seekBy(delta) {
+    if (!mediaElement || (mediaElement.tagName !== 'VIDEO' && mediaElement.tagName !== 'AUDIO')) return;
+    var t = mediaElement.currentTime + delta;
+    if (t < 0) t = 0;
+    if (mediaElement.duration && t > mediaElement.duration) t = mediaElement.duration;
+    mediaElement.currentTime = t;
+  }
+
+  btnPrev1s.addEventListener('click', function () { seekBy(-1); });
+  btnBack10.addEventListener('click', function () { seekBy(-10); });
+  btnFwd30.addEventListener('click', function () { seekBy(30); });
+  btnNext1s.addEventListener('click', function () { seekBy(1); });
+
+  // === Loop + shuffle toggles ===
+
+  btnLoop.addEventListener('click', function () {
+    state.loop = !state.loop;
+    btnLoop.classList.toggle('active', state.loop);
+    if (mediaElement && (mediaElement.tagName === 'VIDEO' || mediaElement.tagName === 'AUDIO')) {
+      mediaElement.loop = state.loop;
+    }
+  });
+
+  btnShuffle.addEventListener('click', function () {
+    state.shuffle = !state.shuffle;
+    btnShuffle.classList.toggle('active', state.shuffle);
+    // visual only for now (no playlist context)
+  });
+
+  // === Volume ===
+
+  btnVolume.addEventListener('click', function () {
+    var open = volumeWrapper.classList.contains('open');
+    volumeWrapper.classList.toggle('open', !open);
+  });
+
+  volumeRange.addEventListener('input', function () {
+    var v = parseFloat(volumeRange.value || '1');
+    if (mediaElement && (mediaElement.tagName === 'VIDEO' || mediaElement.tagName === 'AUDIO')) {
+      mediaElement.volume = v;
+    }
+    var pct = v * 100;
+    volumeRange.style.background = 'linear-gradient(to right,' +
+      'var(--media-accent-alt) 0%,' +
+      'var(--media-accent-alt) ' + pct + '%,' +
+      '#374151 ' + pct + '%,' +
+      '#374151 100%)';
+  });
+
+  // Close volume popout when clicking outside
+  document.addEventListener('click', function (e) {
+    if (!volumeWrapper.contains(e.target)) {
+      volumeWrapper.classList.remove('open');
+    }
+  });
+
+  // === Fullscreen ===
+
+  function toggleFullscreen() {
+    if (!surface) return;
+    var doc = document;
+    var fsEl = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement;
+    if (!fsEl) {
+      if (surface.requestFullscreen) surface.requestFullscreen();
+      else if (surface.webkitRequestFullscreen) surface.webkitRequestFullscreen();
+      else if (surface.mozRequestFullScreen) surface.mozRequestFullScreen();
+    } else {
+      if (doc.exitFullscreen) doc.exitFullscreen();
+      else if (doc.webkitExitFullscreen) doc.webkitExitFullscreen();
+      else if (doc.mozCancelFullScreen) doc.mozCancelFullScreen();
+    }
+  }
+
+  btnFullscreen.addEventListener('click', toggleFullscreen);
+
+  // === Mini player ===
+
+  btnMini.addEventListener('click', function () {
+    var isMini = win.classList.toggle('media-mini');
+    btnMini.classList.toggle('active', isMini);
+  });
+
+  // === Import button (reuses existing file input) ===
+
+  btnImport.addEventListener('click', function () {
+    if (fileInput) fileInput.click();
+  });
+
+  // === Original "Open media…" button ===
+
+  if (openBtn && fileInput) {
+    openBtn.addEventListener('click', function () {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', function () {
+      var file = fileInput.files && fileInput.files[0];
+      loadFile(file);
+    });
+  }
+
+  // === Draggable groups (x/y-ish, order saved) ===
+
+  var groups = [groupA, groupB, groupC, groupD];
+
+  function loadGroupLayout() {
+    try {
+      var raw = localStorage.getItem(LS_KEY_GROUPS);
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      if (!data || !data.order) return;
+
+      // Reorder groups
+      var idToGroup = {};
+      for (var i = 0; i < groups.length; i++) {
+        idToGroup[groups[i].getAttribute('data-group-id')] = groups[i];
+      }
+      for (var j = 0; j < data.order.length; j++) {
+        var id = data.order[j];
+        if (idToGroup[id]) {
+          controlsRow.appendChild(idToGroup[id]);
+        }
+      }
+    } catch (e) { }
+  }
+
+  function saveGroupLayout() {
+    var order = [];
+    var children = controlsRow.querySelectorAll('.media-control-group');
+    for (var i = 0; i < children.length; i++) {
+      order.push(children[i].getAttribute('data-group-id'));
+    }
+    var payload = { order: order };
+    try {
+      localStorage.setItem(LS_KEY_GROUPS, JSON.stringify(payload));
+    } catch (e) { }
+  }
+
+  loadGroupLayout();
+
+  // Drag & reorder with line indicator (mobile friendly)
+  (function setupDrag() {
+    var dragging = null;
+    var startX = 0;
+    var startY = 0;
+
+    function onPointerDown(e) {
+      var target = e.target;
+      while (target && !target.classList.contains('media-control-group')) {
+        target = target.parentNode;
+      }
+      if (!target) return;
+
+      dragging = target;
+      dragging.classList.add('dragging');
+
+      var rect = dragging.getBoundingClientRect();
+      startX = e.clientX - rect.left;
+      startY = e.clientY - rect.top;
+
+      dragLine.style.opacity = '1';
+      dragLine.style.transform = 'translate(' + rect.left + 'px,' + (rect.bottom + 2) + 'px)';
+
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup', onPointerUp);
+    }
+
+    function onPointerMove(e) {
+      if (!dragging) return;
+      e.preventDefault();
+
+      var children = Array.prototype.slice.call(
+        controlsRow.querySelectorAll('.media-control-group')
+      );
+
+      var x = e.clientX;
+      var y = e.clientY;
+
+      var closest = null;
+      var closestDist = Infinity;
+
+      for (var i = 0; i < children.length; i++) {
+        var c = children[i];
+        var r = c.getBoundingClientRect();
+        var cx = r.left + r.width / 2;
+        var cy = r.top + r.height / 2;
+        var dx = cx - x;
+        var dy = cy - y;
+        var dist = dx * dx + dy * dy;
+        if (dist < closestDist) {
+          closestDist = dist;
+          closest = c;
+        }
+      }
+
+      if (closest && closest !== dragging) {
+        var rect = closest.getBoundingClientRect();
+        dragLine.style.opacity = '1';
+        dragLine.style.width = rect.width + 'px';
+        dragLine.style.transform = 'translate(' + rect.left + 'px,' + (rect.bottom + 2) + 'px)';
+      }
+    }
+
+    function onPointerUp(e) {
+      if (!dragging) return;
+
+      var children = Array.prototype.slice.call(
+        controlsRow.querySelectorAll('.media-control-group')
+      );
+      var x = e.clientX;
+      var y = e.clientY;
+
+      var closest = null;
+      var closestDist = Infinity;
+
+      for (var i = 0; i < children.length; i++) {
+        var c = children[i];
+        var r = c.getBoundingClientRect();
+        var cx = r.left + r.width / 2;
+        var cy = r.top + r.height / 2;
+        var dx = cx - x;
+        var dy = cy - y;
+        var dist = dx * dx + dy * dy;
+        if (dist < closestDist) {
+          closestDist = dist;
+          closest = c;
+        }
+      }
+
+      if (closest && closest !== dragging) {
+        if (closest.nextSibling) {
+          controlsRow.insertBefore(dragging, closest.nextSibling);
+        } else {
+          controlsRow.appendChild(dragging);
+        }
+        saveGroupLayout();
+      }
+
+      dragging.classList.remove('dragging');
+      dragging = null;
+      dragLine.style.opacity = '0';
+
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', onPointerUp);
+    }
+
+    controlsRow.addEventListener('pointerdown', onPointerDown);
+  })();
 
       /* Notepad */
       let notepadCurrentFile=null;

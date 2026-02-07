@@ -6386,34 +6386,17 @@ if(/factory reset/.test(lower)){
   if(/import session/.test(lower)){
     return `<<AIM_IMPORT_SESSION>> Choose a .win12.lock file to restore your session.`;
   }
-  // --- OPEN APP COMMAND ---
+// --- OPEN APP (NO CHECKING, ALWAYS RUNS) ---
 if(/open\s+([a-z0-9._-]+)/i.test(lower)){
   const appName = lower.match(/open\s+([a-z0-9._-]+)/i)[1];
 
-  // Tell the user we're attempting to open it
+  // Narrate the action
   aiMsg("aim", `Opening ${appName}…`);
 
-  // Try to open the app by ID
-  const el = document.getElementById(appName);
+  // Always attempt to open the window
+  showWindow(appName);
 
-  // If no element was found or nothing changed visually
-  if(!el){
-    return `
-<div style="
-  background:#2b0000;
-  color:#ffb3b3;
-  padding:12px;
-  border-radius:8px;
-  margin-top:10px;
-  border:1px solid #ff4d4d;
-">
-  Sorry — our AI sometimes opens the wrong app IDs.
-</div>`;
-  }
-
-  // If the element exists, reveal it
-  el.style.display = "block";
-
+  // Return styled confirmation
   return `
 <div style="
   background:#001a33;
@@ -6426,6 +6409,7 @@ if(/open\s+([a-z0-9._-]+)/i.test(lower)){
   Opened app: <strong>${appName}</strong>
 </div>`;
 }
+
 
   // -----------------------------
   // FALLBACK (updated)

@@ -3344,6 +3344,7 @@ fs:[
       const newUserInput = document.getElementById("new-user-name");
       const createUserBtn = document.getElementById("create-user");
 
+      const LS_KEY = "win12_aim_fs_state_exe_ctx_full_v3";
       const desktopEl = document.getElementById("desktop");
       const desktopIconsEl = document.getElementById("desktop-icons");
 
@@ -4204,8 +4205,8 @@ function mergeImported(entries) {
             box.querySelector("#rename-cancel").addEventListener("click", cleanup);
       }
       function showProps(entry){
-        aiMsg("ai",`Properties: ${entry ? entry.name : "(none)"} (${entry ? (entry.ext||entry.type||"") : ""}) at ${entry ? entry.path : "(background)"}`);
         showWindow('AIM OS');
+        aiMsg("ai",`Properties: ${entry ? entry.name : "(none)"} (${entry ? (entry.ext||entry.type||"") : ""}) at ${entry ? entry.path : "(background)"}`);
       }
 
   const win = document.getElementById("window-media");
@@ -4469,15 +4470,15 @@ function mergeImported(entries) {
      DRAGGABLE GROUPS (order saved)
   --------------------------------------------------------- */
 
-  const LS_KEY = "media-groups-layout-v1";
+  const LS_KEY_GROUPS = "media-groups-layout-v1";
 
   function saveOrder() {
     const ids = [...controlsRow.children].map(g => g.dataset.groupId);
-    localStorage.setItem(LS_KEY, JSON.stringify(ids));
+    localStorage.setItem(LS_KEY_GROUPS, JSON.stringify(ids));
   }
 
   function loadOrder() {
-    const raw = localStorage.getItem(LS_KEY);
+    const raw = localStorage.getItem(LS_KEY_GROUPS);
     if (!raw) return;
     const ids = JSON.parse(raw);
     const map = {};

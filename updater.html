@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Win12 Updater</title>
+</head>
+<body>
+
+<script>
+// --- Boot UI from your code ---
+function createBootUI() {
+  const overlay = document.createElement("div");
+  overlay.id = "boot-overlay";
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100vw";
+  overlay.style.height = "100vh";
+  overlay.style.background = "linear-gradient(to bottom, #2b2b2b, #1a1a1a)";
+  overlay.style.display = "flex";
+  overlay.style.flexDirection = "column";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+  overlay.style.zIndex = "999999999";
+  overlay.style.opacity = "0";
+  overlay.style.transition = "opacity 1s ease";
+
+  const logo = document.createElement("img");
+  logo.src = "win12-icon.svg";
+  logo.style.width = "140px";
+  logo.style.height = "140px";
+  logo.style.marginBottom = "40px";
+  logo.style.opacity = "0";
+  logo.style.transition = "opacity 1s ease";
+
+  const spinner = document.createElement("div");
+  spinner.id = "boot-spinner";
+  spinner.style.position = "relative";
+  spinner.style.width = "60px";
+  spinner.style.height = "60px";
+  spinner.style.opacity = "0";
+  spinner.style.transition = "opacity 1s ease";
+
+  overlay.appendChild(logo);
+  overlay.appendChild(spinner);
+  document.body.appendChild(overlay);
+
+  for (let i = 0; i < 12; i++) {
+    const dot = document.createElement("div");
+    dot.style.position = "absolute";
+    dot.style.width = "10px";
+    dot.style.height = "10px";
+    dot.style.borderRadius = "50%";
+    dot.style.background = "#ccc";
+    dot.style.top = "50%";
+    dot.style.left = "50%";
+    dot.style.transformOrigin = "0 -20px";
+    dot.style.transform = `rotate(${i * 30}deg) translate(-50%, -50%)`;
+    dot.style.animation = "boot-fade 1.2s linear infinite";
+    dot.style.animationDelay = `${i * 0.1}s`;
+    spinner.appendChild(dot);
+  }
+
+  const style = document.createElement("style");
+  style.innerHTML = `
+    @keyframes boot-fade {
+      0% { opacity: 1; }
+      100% { opacity: 0.1; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function runBootSequence(callback) {
+  const overlay = document.getElementById("boot-overlay");
+  const logo = overlay.children[0];
+  const spinner = overlay.children[1];
+
+  requestAnimationFrame(() => {
+    overlay.style.opacity = "1";
+    setTimeout(() => {
+      logo.style.opacity = "1";
+      spinner.style.opacity = "1";
+    }, 300);
+  });
+
+  setTimeout(() => {
+    callback();
+  }, 2000);
+}
+
+// --- Download new HTML and replace page ---
+async function performUpdate() {
+  try {
+    const response = await fetch("https://alaricholt677.github.io/index.html", {
+      cache: "no-store"
+    });
+
+    const newHTML = await response.text();
+
+    // Remove boot UI
+    const overlay = document.getElementById("boot-overlay");
+    overlay.style.opacity = "0";
+
+    setTimeout(() => {
+      document.open();
+      document.write(newHTML);
+      document.close();
+    }, 1000);
+
+  } catch (err) {
+    alert("Update failed.");
+  }
+}
+
+// --- Start ---
+createBootUI();
+runBootSequence(performUpdate);
+</script>
+
+</body>
+</html>

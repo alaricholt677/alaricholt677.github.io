@@ -10171,7 +10171,148 @@ if (localStorage.getItem("win12_Update") === "yes") {
     updateBtn.textContent = "Update Now";
     updateStatus.textContent = "Update available!";
 }
+document.querySelectorAll(".window").forEach(win => {
+  
+  let dragging = false;
+  let offsetX = 0, offsetY = 0;
+  let previewBox = null;
 
+  win.addEventListener("mousedown", e => {
+    if (!e.target.closest("[data-drag-handle]")) return;
+    dragging = true;
+    const rect = win.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+    createPreviewBox();
+  });
+
+  window.addEventListener("mousemove", e => {
+    if (!dragging) return;
+
+    // Move window
+    win.style.left = e.clientX - offsetX + "px";
+    win.style.top  = e.clientY - offsetY + "px";
+
+    updateSnapPreview(e.clientX, e.clientY);
+  });
+
+  window.addEventListener("mouseup", e => {
+    if (!dragging) return;
+    dragging = false;
+
+    applySnap(win, e.clientX, e.clientY);
+    removePreviewBox();
+  });
+
+  function createPreviewBox() {
+    if (previewBox) return;
+    previewBox = document.createElement("div");
+    previewBox.style.position = "fixed";
+    previewBox.style.borderRadius = "12px";
+    previewBox.style.border = "2px solid rgba(255,255,255,0.45)";
+    previewBox.style.background = "rgba(180,180,180,0.25)";
+    previewBox.style.pointerEvents = "none";
+    previewBox.style.zIndex = 9999;
+    previewBox.style.display = "none";
+    document.body.appendChild(previewBox);
+  }
+
+  function removePreviewBox() {
+    if (previewBox) previewBox.style.display = "none";
+  }
+
+  function updateSnapPreview(x, y) {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const size = 60; // distance from edges to trigger
+
+    previewBox.style.display = "block";
+
+    // LEFT
+    if (x < size) {
+      setPreview(0, 0, w/2, h);
+      return;
+    }
+    // RIGHT
+    if (x > w - size) {
+      setPreview(w/2, 0, w/2, h);
+      return;
+    }
+    // TOP (maximize)
+    if (y < size) {
+      setPreview(0, 0, w, h);
+      return;
+    }
+    // BOTTOM
+    if (y > h - size) {
+      setPreview(0, h/2, w, h/2);
+      return;
+    }
+
+    // CORNERS (quadrants)
+    if (x < size && y < size) {
+      setPreview(0, 0, w/2, h/2);
+      return;
+    }
+    if (x > w - size && y < size) {
+      setPreview(w/2, 0, w/2, h/2);
+      return;
+    }
+    if (x < size && y > h - size) {
+      setPreview(0, h/2, w/2, h/2);
+      return;
+    }
+    if (x > w - size && y > h - size) {
+      setPreview(w/2, h/2, w/2, h/2);
+      return;
+    }
+
+    previewBox.style.display = "none";
+  }
+
+  function setPreview(left, top, width, height) {
+    previewBox.style.left = left + "px";
+    previewBox.style.top = top + "px";
+    previewBox.style.width = width + "px";
+    previewBox.style.height = height + "px";
+  }
+
+  function applySnap(win, x, y) {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const size = 60;
+
+    const rect = { l: 0, t: 0, w: w/2, h: h };
+    const rectTop = { l: 0, t: 0, w: w, h: h };
+    const rectBottom = { l: 0, t: h/2, w: w, h: h/2 };
+    const half = w / 2;
+
+    // LEFT
+    if (x < size) snapTo(win, 0, 0, half, h);
+    // RIGHT
+    else if (x > w - size) snapTo(win, half, 0, half, h);
+    // TOP maximize
+    else if (y < size) snapTo(win, 0, 0, w, h);
+    // BOTTOM
+    else if (y > h - size) snapTo(win, 0, h/2, w, h/2);
+    // CORNERS
+    else if (x < size && y < size) snapTo(win, 0, 0, half, h/2);
+    else if (x > w-size && y < size) snapTo(win, half, 0, half, h/2);
+    else if (x < size && y > h-size) snapTo(win, 0, h/2, half, h/2);
+    else if (x > w-size && y > h-size) snapTo(win, half, h/2, half, h/2);
+  }
+
+  function snapTo(win, left, top, width, height) {
+    win.style.transition = "0.18s ease";
+    win.style.left = left + "px";
+    win.style.top = top + "px";
+    win.style.width = width + "px";
+    win.style.height = height + "px";
+
+    setTimeout(() => win.style.transition = "", 180);
+  }
+
+});
       /* initial */
       function initialSetup(){
         createFullCMDApp();

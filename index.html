@@ -7293,7 +7293,6 @@ measurePing();
 
 
 function createWordApp() {
-  // === Create Word Window ===
   const wordWin = document.createElement("div");
   wordWin.className = "window";
   wordWin.id = "window-word";
@@ -7317,6 +7316,7 @@ function createWordApp() {
         <div class="window-btn close"><div class="window-btn-icon"></div></div>
       </div>
     </div>
+
     <div class="window-body" style="display:flex;flex-direction:column;height:100%;">
       <div class="word-toolbar" style="display:flex;gap:6px;margin-bottom:6px;">
         <button class="button-small" id="word-bold">Bold</button>
@@ -7326,7 +7326,10 @@ function createWordApp() {
         <button class="button-small" id="word-export">Export to FS</button>
         <button class="button-small" id="word-import">Import from FS</button>
       </div>
-      <div id="word-editor" contenteditable="true" style="flex:1;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:10px;background:rgba(8,11,30,0.98);color:var(--text-main);overflow:auto;">
+
+      <div id="word-editor" contenteditable="true"
+           style="flex:1;border:1px solid rgba(255,255,255,0.2);border-radius:6px;
+           padding:10px;background:rgba(8,11,30,0.98);color:var(--text-main);overflow:auto;">
         Start typing here...
       </div>
     </div>
@@ -7335,36 +7338,20 @@ function createWordApp() {
   document.body.appendChild(wordWin);
   windowsMap["word"] = wordWin;
 
-  // === Add Start Menu Tile ===
-  const startGrid = document.getElementById("start-pinned-grid");
-  const wordTile = document.createElement("div");
-  wordTile.className = "start-app";
-  wordTile.dataset.app = "word";
-  wordTile.innerHTML = `
-    <div class="start-app-icon" style="background:linear-gradient(135deg,#4c8dff,#94a3ff);"></div>
-    <div>Word</div>
-    <div class="start-app-sub">Rich text editor</div>
-  `;
-  startGrid.appendChild(wordTile);
-  wordTile.addEventListener("click", () => showWindow("word"));
-
-  // === Add Taskbar Button ===
-  const taskbarStrip = document.querySelector(".taskbar-app-strip");
-  const wordBtn = document.createElement("div");
-  wordBtn.className = "taskbar-app";
-  wordBtn.dataset.app = "word";
-  wordBtn.title = "Word";
-  taskbarStrip.appendChild(wordBtn);
-  wordBtn.addEventListener("click", () => {
-    if (wordWin.classList.contains("visible")) hideWindow("word");
-    else showWindow("word");
-  });
-
   // === Toolbar Actions ===
   const editor = wordWin.querySelector("#word-editor");
-  wordWin.querySelector("#word-bold").addEventListener("click", () => document.execCommand("bold"));
-  wordWin.querySelector("#word-italic").addEventListener("click", () => document.execCommand("italic"));
-  wordWin.querySelector("#word-big").addEventListener("click", () => document.execCommand("fontSize", false, "5"));
+
+  wordWin.querySelector("#word-bold").addEventListener("click", () =>
+    document.execCommand("bold")
+  );
+
+  wordWin.querySelector("#word-italic").addEventListener("click", () =>
+    document.execCommand("italic")
+  );
+
+  wordWin.querySelector("#word-big").addEventListener("click", () =>
+    document.execCommand("fontSize", false, "5")
+  );
 
   // Insert Image
   wordWin.querySelector("#word-insert-img").addEventListener("click", () => {
@@ -7372,25 +7359,32 @@ function createWordApp() {
     if (url) editor.innerHTML += `<img src="${url}" style="max-width:100%;">`;
   });
 
-  // Export to FS (/documents)
+  // Export to FS
   wordWin.querySelector("#word-export").addEventListener("click", () => {
     const htmlContent = editor.innerHTML;
     const fileName = `WordDoc_${Date.now()}.html`;
-    const u = currentUser();
-    const newFile = { path: "/documents", name: fileName, type: "file", ext: ".html", content: htmlContent };
-    updateCurrentUser(user => ({ ...user, fs: user.fs.concat(newFile) }));
+
+    updateCurrentUser(u => ({
+      ...u,
+      fs: u.fs.concat({
+        path: "/documents",
+        name: fileName,
+        type: "file",
+        ext: ".html",
+        content: htmlContent
+      })
+    }));
+
     alert(`Document exported to /documents as ${fileName}`);
   });
 
-  // Import from FS
+  // Import from FS — NOW WORKS
   wordWin.querySelector("#word-import").addEventListener("click", () => {
     createImportExplorer(editor);
   });
 
-  // Enable drag, resize, fullscreen, minimize, close
   enableWindowControls(wordWin);
 }
-
 // === Enable Window Controls ===
 function enableWindowControls(win) {
   let dragging = false, sx, sy, sl, st;

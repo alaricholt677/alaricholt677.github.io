@@ -8853,6 +8853,9 @@ function initWidgetsSystem(currentUser) {
       renderMiniCMD(body, widgetId);
     } else if (type === 'Custom') {
       body.innerHTML = `<iframe style="width:100%;height:120px;border:none;" srcdoc="${content}"></iframe>`;
+    } else if (type === 'MiniWord') {
+      const widgetId = Date.now().toString(36) + Math.random().toString(36).slice(2);
+      renderMiniWordWidget(body, widgetId);
     }
 
     widgetEl.appendChild(body);
@@ -8979,6 +8982,70 @@ function initWidgetsSystem(currentUser) {
   }
 }
 
+function renderMiniWordWidget(body, widgetId) {
+  body.innerHTML = `
+    <div class="mw-toolbar" style="display:flex;gap:6px;font-size:10px;margin-bottom:4px;">
+      <button class="button-small" data-act="bold">B</button>
+      <button class="button-small" data-act="italic">I</button>
+      <button class="button-small" data-act="big">A+</button>
+      <button class="button-small" data-act="img">IMG</button>
+      <button class="button-small" data-act="export">EXP</button>
+      <button class="button-small" data-act="import">IMP</button>
+    </div>
+
+    <div class="mw-editor"
+         contenteditable="true"
+         style="
+           height:100px;
+           padding:6px;
+           border-radius:6px;
+           background:#0b1020;
+           border:1px solid rgba(255,255,255,0.2);
+           color:white;
+           overflow:auto;
+           font-size:11px;
+         ">
+      Mini Word…
+    </div>
+  `;
+
+  const editor = body.querySelector(".mw-editor");
+
+  // === TOOLBAR ACTIONS ===
+  body.querySelector("[data-act='bold']").onclick   = () => document.execCommand("bold");
+  body.querySelector("[data-act='italic']").onclick = () => document.execCommand("italic");
+  body.querySelector("[data-act='big']").onclick    = () => document.execCommand("fontSize", false, 5);
+
+  // Insert image
+  body.querySelector("[data-act='img']").onclick = () => {
+    const url = prompt("Image URL:");
+    if (url) editor.innerHTML += `<img src="${url}" style="max-width:100%;">`;
+  };
+
+  // EXPORT TO FS
+  body.querySelector("[data-act='export']").onclick = () => {
+    const html = editor.innerHTML;
+    const fileName = `MiniWord_${Date.now()}.html`;
+
+    updateCurrentUser(u => ({
+      ...u,
+      fs: [...u.fs, {
+        path: "/documents",
+        name: fileName,
+        type: "file",
+        ext: ".html",
+        content: html
+      }]
+    }));
+
+    alert(`Saved to /documents as ${fileName}`);
+  };
+
+  // IMPORT (opens your Import Explorer)
+  body.querySelector("[data-act='import']").onclick = () => {
+    createImportExplorer(editor);
+  };
+}
 function renderMiniCMD(container, widgetUniqueId) {
   // Per-widget working directory stored in localStorage
   const CMDKEY = `cmd_path_${widgetUniqueId}`;

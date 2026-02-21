@@ -7433,49 +7433,124 @@ function enableWindowControls(win) {
   win.querySelector(".window-btn.minimize").addEventListener("click", () => win.classList.remove("visible"));
 }
 
-// === Create Import Explorer ===
 function createImportExplorer(editor) {
-  const explorerWin = document.createElement("div");
-  explorerWin.className = "window";
-  explorerWin.id = "window-import-explorer";
-  explorerWin.innerHTML = `
+  const win = document.createElement("div");
+  win.className = "window";
+  win.dataset.app = "import-explorer";
+
+  win.innerHTML = `
     <div class="window-header" data-drag-handle>
-      <div class="window-title"><div class="window-title-main">[Import Explorer]</div></div>
+      <div class="window-title">
+        <div class="window-title-main">[Import Explorer]</div>
+        <div class="window-title-sub">Choose HTML from /documents</div>
+      </div>
       <div class="window-controls">
+        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
         <div class="window-btn close"><div class="window-btn-icon"></div></div>
       </div>
     </div>
-    <div class="window-body" style="display:flex;flex-direction:column;height:100%;">
-      <div style="font-size:12px;margin-bottom:6px;">Select an HTML file from /documents:</div>
-      <div id="import-file-list" style="flex:1;overflow:auto;border:1px solid rgba(255,255,255,0.2);padding:6px;"></div>
+
+    <div class="window-body" style="display:flex;height:100%;">
+      <div style="width:180px;border-right:1px solid rgba(255,255,255,0.15);padding:6px;">
+        <div class="explorer-tab" data-path="/documents">Documents</div>
+      </div>
+
+      <div style="flex:1;padding:8px;overflow:auto;">
+        <div id="import-explorer-path"
+             style="margin-bottom:6px;font-size:11px;color:var(--text-soft);">
+        </div>
+        <div id="import-explorer-items" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      </div>
     </div>
   `;
-  document.body.appendChild(explorerWin);
-  enableWindowControls(explorerWin);
 
-  const fileList = explorerWin.querySelector("#import-file-list");
-  const u = currentUser();
-  const htmlFiles = u.fs.filter(f => f.path === "/documents" && f.ext === ".html");
+  document.body.appendChild(win);
+  enableWindowControls(win);
 
-  if (!htmlFiles.length) {
-    fileList.textContent = "No HTML files found.";
-    return;
-  }
+  const pathEl   = win.querySelector("#import-explorer-path");
+  const itemsEl  = win.querySelector("#import-explorer-items");
 
-  htmlFiles.forEach(file => {
-    const btn = document.createElement("div");
-    btn.textContent = file.name;
-    btn.style.cursor = "pointer";
-    btn.style.padding = "4px";
-    btn.style.borderBottom = "1px solid rgba(255,255,255,0.1)";
-    btn.addEventListener("click", () => {
-      editor.innerHTML = file.content; // Render HTML
-      explorerWin.remove(); // Close explorer
+  const closeBtn = win.querySelector(".window-btn.close");
+  closeBtn.onclick = () => win.remove();
+
+  render("/documents");
+
+  // -------------------------------------------------------
+  // RENDER FOLDER (Explorer-style)
+  // -------------------------------------------------------
+
+  function render(path) {
+    pathEl.textContent = path;
+
+    const u = currentUser();
+    let files = u.fs.filter(e => e.path === path);
+
+    itemsEl.innerHTML = "";
+
+    if (!files.length) {
+      itemsEl.textContent = "No files here.";
+      return;
+    }
+
+    files.forEach(entry => {
+      const card = document.createElement("div");
+      card.className = "explorer-card";
+      card.style.borderRadius = "8px";
+      card.style.background = "rgba(12,15,36,0.98)";
+      card.style.border = "1px solid rgba(255,255,255,0.08)";
+      card.style.padding = "6px";
+      card.style.cursor = "pointer";
+      card.style.width = "90px";
+
+      // ICON
+      const icon = document.createElement("div");
+      icon.style.width = "22px";
+      icon.style.height = "22px";
+      icon.style.marginBottom = "4px";
+      icon.style.background = entry.type === "folder"
+        ? "linear-gradient(135deg,#4c8dff,#94a3ff)"
+        : "radial-gradient(circle at 30% 20%,#fff,#4c8dff)";
+      icon.style.borderRadius = entry.type === "folder" ? "4px" : "6px";
+
+      // NAME
+      const name = document.createElement("div");
+      name.textContent = entry.name;
+      name.style.fontSize = "11px";
+      name.style.color = "var(--text-main)";
+      name.style.whiteSpace = "nowrap";
+      name.style.overflow = "hidden";
+      name.style.textOverflow = "ellipsis";
+
+      // META
+      const meta = document.createElement("div");
+      meta.textContent = entry.type === "folder" ? "Folder" : entry.ext;
+      meta.style.fontSize = "10px";
+      meta.style.color = "var(--text-soft)";
+
+      card.appendChild(icon);
+      card.appendChild(name);
+      card.appendChild(meta);
+
+      // OPEN / PREVIEW
+      card.ondblclick = () => {
+        if (entry.type === "folder") {
+          // not used yet, but folders are supported
+          render(`${entry.path}/${entry.name}`);
+        } else if (entry.ext === ".html") {
+          editor.innerHTML = entry.content;
+          win.remove();
+        }
+      };
+
+      // CONTEXT MENU
+      card.oncontextmenu = e => {
+        e.preventDefault();
+        showCtxMenu(e, entry, entry.type === "folder");
+      };
+
+      itemsEl.appendChild(card);
     });
-    fileList.appendChild(btn);
-  });
-
-  explorerWin.querySelector(".window-btn.close").addEventListener("click", () => explorerWin.remove());
+  }
 }
 
 

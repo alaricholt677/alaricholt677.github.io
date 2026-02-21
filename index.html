@@ -7293,24 +7293,30 @@ measurePing();
 
 
 function createWordApp() {
+
+  // --- CREATE WINDOW ---
   const wordWin = document.createElement("div");
   wordWin.className = "window";
-  wordWin.id = "window-word";
   wordWin.dataset.app = "word";
+  wordWin.id = "window-word";
   wordWin.dataset.appDesc = "[Word] Rich text editor with FS integration.";
 
   wordWin.innerHTML = `
     <div class="window-header" data-drag-handle>
       <div class="window-title">
-        <div class="window-title-icon" style="background:linear-gradient(135deg,#4c8dff,#94a3ff);"></div>
+        <div class="window-title-icon"
+             style="background:linear-gradient(135deg,#4c8dff,#94a3ff);"></div>
+
         <div class="window-title-text">
           <div class="window-title-main">[Word]</div>
           <div class="window-title-sub">Rich text editor</div>
         </div>
+
         <div class="window-fullscreen-toggle">[ ]</div>
         <div class="window-info-icon">(i)</div>
         <div class="window-info-tooltip"></div>
       </div>
+
       <div class="window-controls">
         <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
         <div class="window-btn close"><div class="window-btn-icon"></div></div>
@@ -7318,6 +7324,7 @@ function createWordApp() {
     </div>
 
     <div class="window-body" style="display:flex;flex-direction:column;height:100%;">
+
       <div class="word-toolbar" style="display:flex;gap:6px;margin-bottom:6px;">
         <button class="button-small" id="word-bold">Bold</button>
         <button class="button-small" id="word-italic">Italic</button>
@@ -7327,62 +7334,98 @@ function createWordApp() {
         <button class="button-small" id="word-import">Import from FS</button>
       </div>
 
-      <div id="word-editor" contenteditable="true"
-           style="flex:1;border:1px solid rgba(255,255,255,0.2);border-radius:6px;
-           padding:10px;background:rgba(8,11,30,0.98);color:var(--text-main);overflow:auto;">
+      <div id="word-editor"
+           contenteditable="true"
+           style="
+             flex:1;
+             border:1px solid rgba(255,255,255,0.2);
+             border-radius:6px;
+             padding:10px;
+             background:rgba(8,11,30,0.98);
+             color:var(--text-main);
+             overflow:auto;
+           ">
         Start typing here...
       </div>
+
     </div>
   `;
 
   document.body.appendChild(wordWin);
+
+  // Register window so showWindow("word") works
   windowsMap["word"] = wordWin;
 
-  // === Toolbar Actions ===
+  // --- ADD TO START MENU ---
+  const startGrid = document.getElementById("start-pinned-grid");
+  const tile = document.createElement("div");
+  tile.className = "start-app";
+  tile.dataset.app = "word";
+  tile.innerHTML = `
+    <div class="start-app-icon"
+         style="background:linear-gradient(135deg,#4c8dff,#94a3ff);"></div>
+    <div>Word</div>
+    <div class="start-app-sub">Rich text editor</div>
+  `;
+  startGrid.appendChild(tile);
+  tile.addEventListener("click", () => showWindow("word"));
+
+  // --- ADD TO TASKBAR ---
+  const taskbarStrip = document.querySelector(".taskbar-app-strip");
+  const taskBtn = document.createElement("div");
+  taskBtn.className = "taskbar-app";
+  taskBtn.dataset.app = "word";
+  taskBtn.title = "Word";
+  taskbarStrip.appendChild(taskBtn);
+
+  taskBtn.addEventListener("click", () => {
+    if (wordWin.classList.contains("visible")) hideWindow("word");
+    else showWindow("word");
+  });
+
+  // --- TOOLBAR BUTTONS ---
   const editor = wordWin.querySelector("#word-editor");
 
-  wordWin.querySelector("#word-bold").addEventListener("click", () =>
-    document.execCommand("bold")
-  );
+  wordWin.querySelector("#word-bold")
+    .addEventListener("click", () => document.execCommand("bold"));
 
-  wordWin.querySelector("#word-italic").addEventListener("click", () =>
-    document.execCommand("italic")
-  );
+  wordWin.querySelector("#word-italic")
+    .addEventListener("click", () => document.execCommand("italic"));
 
-  wordWin.querySelector("#word-big").addEventListener("click", () =>
-    document.execCommand("fontSize", false, "5")
-  );
+  wordWin.querySelector("#word-big")
+    .addEventListener("click", () => document.execCommand("fontSize", false, 5));
 
-  // Insert Image
-  wordWin.querySelector("#word-insert-img").addEventListener("click", () => {
-    const url = prompt("Enter image URL:");
-    if (url) editor.innerHTML += `<img src="${url}" style="max-width:100%;">`;
-  });
+  wordWin.querySelector("#word-insert-img")
+    .addEventListener("click", () => {
+      const url = prompt("Enter image URL:");
+      if (url) editor.innerHTML += `<img src="${url}" style="max-width:100%;">`;
+    });
 
-  // Export to FS
-  wordWin.querySelector("#word-export").addEventListener("click", () => {
-    const htmlContent = editor.innerHTML;
-    const fileName = `WordDoc_${Date.now()}.html`;
+  wordWin.querySelector("#word-export")
+    .addEventListener("click", () => {
+      const html = editor.innerHTML;
+      const filename = `WordDoc_${Date.now()}.html`;
 
-    updateCurrentUser(u => ({
-      ...u,
-      fs: u.fs.concat({
-        path: "/documents",
-        name: fileName,
-        type: "file",
-        ext: ".html",
-        content: htmlContent
-      })
-    }));
+      updateCurrentUser(u => ({
+        ...u,
+        fs: [...u.fs, {
+          path: "/documents",
+          name: filename,
+          type: "file",
+          ext: ".html",
+          content: html
+        }]
+      }));
 
-    alert(`Document exported to /documents as ${fileName}`);
-  });
+      alert(`Saved to /documents as ${filename}`);
+    });
 
-  // Import from FS — NOW WORKS
-  wordWin.querySelector("#word-import").addEventListener("click", () => {
-    createImportExplorer(editor);
-  });
+  wordWin.querySelector("#word-import")
+    .addEventListener("click", () => {
+      createImportExplorer(editor); // works now
+    });
 
+  // Enable drag/maximize/minimize/close
   enableWindowControls(wordWin);
 }
 // === Enable Window Controls ===

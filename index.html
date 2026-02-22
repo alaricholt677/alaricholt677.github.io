@@ -6134,129 +6134,26 @@ function openFile(entry, chooseApp) {
     `I would open "${entry.name}" with the "${app}" app in a fuller build. Here I log it instead.`
   );
 }
-function openShortcutWizard(targetEntry) {
-  const win = document.createElement("div");
-  win.className = "window";
-  win.dataset.app = "shortcut-wizard";
 
-  win.innerHTML = `
-    <div class="window-header" data-drag-handle>
-      <div class="window-title">
-        <div class="window-title-main">Create Shortcut</div>
-        <div class="window-title-sub">Choose location</div>
-      </div>
-      <div class="window-controls">
-        <div class="window-btn close"><div class="window-btn-icon"></div></div>
-      </div>
-    </div>
+  if (!ctxMenu) return;
 
-    <div class="window-body" style="padding:12px;font-size:12px;">
-      
-      <div id="sw-step1">
-        <div style="margin-bottom:6px;">Type the location of the item:</div>
-        <input id="sw-path" style="
-          width:100%;padding:6px;border-radius:6px;
-          border:1px solid rgba(255,255,255,0.25);
-          background:#0b1020;color:white;
-        ">
+  // 1. Create button as an element
+  const shortcutBtn = document.createElement("div");
+  shortcutBtn.className = "ctx-item";
+  shortcutBtn.dataset.action = "createShortcut";
+  shortcutBtn.innerHTML = `<span>Create shortcut</span>`;
 
-        <div style="margin-top:8px;text-align:right;">
-          <button class="button-small" id="sw-browse">Browse…</button>
-          <button class="button-small" id="sw-next">Next</button>
-        </div>
-      </div>
+  // 2. Append FIRST
+  ctxMenu.appendChild(shortcutBtn);
 
-      <div id="sw-step2" style="display:none;">
-        <div style="margin-bottom:6px;">Type a name for this shortcut:</div>
-        <input id="sw-name" style="
-          width:100%;padding:6px;border-radius:6px;
-          border:1px solid rgba(255,255,255,0.25);
-          background:#0b1020;color:white;
-        ">
-
-        <div style="margin-top:8px;text-align:right;">
-          <button class="button-small" id="sw-create">Create</button>
-        </div>
-      </div>
-
-    </div>
-  `;
-
-  document.body.appendChild(win);
-  enableWindowControls(win);
-
-  const step1 = win.querySelector("#sw-step1");
-  const step2 = win.querySelector("#sw-step2");
-
-  const pathInput = win.querySelector("#sw-path");
-  const nameInput = win.querySelector("#sw-name");
-
-  // Auto-fill if the user clicked a file
-  if (targetEntry)
-    pathInput.value = `${targetEntry.path}/${targetEntry.name}`;
-
-  // Browse just opens Explorer
-  win.querySelector("#sw-browse").onclick = () => {
-    showWindow("explorer");
-    aiMsg("ai", "Browse to your target file and copy the path into the wizard.");
-  };
-
-  // Next button
-  win.querySelector("#sw-next").onclick = () => {
-    const value = pathInput.value.trim();
-    if (!value) return alert("Enter a valid path.");
-
-    step1.style.display = "none";
-    step2.style.display = "block";
-
-    // Suggested filename
-    nameInput.value = value.split("/").pop() + ".lnk";
-  };
-
-  // Create Shortcut
-  win.querySelector("#sw-create").onclick = () => {
-    const target = pathInput.value.trim();
-    const name = nameInput.value.trim();
-
-    if (!name || !target) {
-      alert("Missing information.");
+  // 3. Add event listener AFTER append
+  shortcutBtn.addEventListener("click", () => {
+    if (!ctxTargetEntry) {
+      aiMsg("ai", "No item selected to create shortcut for.");
       return;
     }
-
-    updateCurrentUser(u => ({
-      ...u,
-      fs: [
-        ...u.fs,
-        {
-          path: "/desktop", // create shortcut on desktop
-          name,
-          type: "file",
-          ext: ".lnk",
-          content: JSON.stringify({ target })
-        }
-      ]
-    }));
-
-    alert(`Shortcut '${name}' created on desktop.`);
-    win.remove();
-  };
-
-  win.querySelector(".window-btn.close").onclick = () => win.remove();
-}
-  if (!ctx) return;
-
-  const item = document.createElement("div");
-  item.className = "ctx-item";
-  item.dataset.action = "createShortcut";
-  item.innerHTML = `<span>Create shortcut</span>`;
-  ctx.appendChild(item);
-
-  ctx.addEventListener("click", (e) => {
-    const btn = e.target.closest(".ctx-item");
-    if (!btn) return;
-    if (btn.dataset.action === "createShortcut") {
-      openShortcutWizard(ctxTargetEntry);
-    }
+    openShortcutWizard(ctxTargetEntry);
+    hideCtxMenu();
   });
 
 function openShortcutWizard(targetEntry) {
@@ -6264,11 +6161,12 @@ function openShortcutWizard(targetEntry) {
   win.className = "window";
   win.dataset.app = "shortcut-wizard";
 
+  // 1. Minimal HTML block
   win.innerHTML = `
     <div class="window-header" data-drag-handle>
       <div class="window-title">
         <div class="window-title-main">Create Shortcut</div>
-        <div class="window-title-sub">Choose location</div>
+        <div class="window-title-sub">Choose target</div>
       </div>
       <div class="window-controls">
         <div class="window-btn close"><div class="window-btn-icon"></div></div>
@@ -6276,39 +6174,34 @@ function openShortcutWizard(targetEntry) {
     </div>
 
     <div class="window-body" style="padding:12px;font-size:12px;">
-      
       <div id="sw-step1">
-        <div style="margin-bottom:6px;">Type the location of the item:</div>
-        <input id="sw-path" style="
-          width:100%;padding:6px;border-radius:6px;
-          border:1px solid rgba(255,255,255,0.25);
-          background:#0b1020;color:white;
-        ">
-
-        <div style="margin-top:8px;text-align:right;">
-          <button class="button-small" id="sw-browse">Browse…</button>
-          <button class="button-small" id="sw-next">Next</button>
+        <div>Enter the path of the file:</div>
+        <input id="sw-path" style="width:100%;margin:6px 0;padding:6px;">
+        <div style="text-align:right;">
+          <button id="sw-browse" class="button-small">Browse…</button>
+          <button id="sw-next" class="button-small">Next</button>
         </div>
       </div>
 
       <div id="sw-step2" style="display:none;">
-        <div style="margin-bottom:6px;">Type a name for this shortcut:</div>
-        <input id="sw-name" style="
-          width:100%;padding:6px;border-radius:6px;
-          border:1px solid rgba(255,255,255,0.25);
-          background:#0b1020;color:white;
-        ">
-
-        <div style="margin-top:8px;text-align:right;">
-          <button class="button-small" id="sw-create">Create</button>
+        <div>Name your shortcut:</div>
+        <input id="sw-name" style="width:100%;margin:6px 0;padding:6px;">
+        <div style="text-align:right;">
+          <button id="sw-create" class="button-small">Create</button>
         </div>
       </div>
-
     </div>
   `;
 
+  // 2. Append FIRST
   document.body.appendChild(win);
   enableWindowControls(win);
+
+  // 3. THEN safely get buttons
+  const browseBtn = win.querySelector("#sw-browse");
+  const nextBtn   = win.querySelector("#sw-next");
+  const createBtn = win.querySelector("#sw-create");
+  const closeBtn  = win.querySelector(".window-btn.close");
 
   const step1 = win.querySelector("#sw-step1");
   const step2 = win.querySelector("#sw-step2");
@@ -6316,59 +6209,50 @@ function openShortcutWizard(targetEntry) {
   const pathInput = win.querySelector("#sw-path");
   const nameInput = win.querySelector("#sw-name");
 
-  // Auto-fill if the user clicked a file
-  if (targetEntry)
+  if (targetEntry) {
     pathInput.value = `${targetEntry.path}/${targetEntry.name}`;
+  }
 
-  // Browse just opens Explorer
-  win.querySelector("#sw-browse").onclick = () => {
+  // Now attach events
+  browseBtn.onclick = () => {
     showWindow("explorer");
-    aiMsg("ai", "Browse to your target file and copy the path into the wizard.");
+    aiMsg("ai", "Browse in Explorer, then type the path manually here.");
   };
 
-  // Next button
-  win.querySelector("#sw-next").onclick = () => {
-    const value = pathInput.value.trim();
-    if (!value) return alert("Enter a valid path.");
-
+  nextBtn.onclick = () => {
+    const path = pathInput.value.trim();
+    if (!path) return alert("Enter a valid path.");
     step1.style.display = "none";
     step2.style.display = "block";
-
-    // Suggested filename
-    nameInput.value = value.split("/").pop() + ".lnk";
+    nameInput.value = path.split("/").pop() + ".lnk";
   };
 
-  // Create Shortcut
-  win.querySelector("#sw-create").onclick = () => {
-    const target = pathInput.value.trim();
+  createBtn.onclick = () => {
+    const path = pathInput.value.trim();
     const name = nameInput.value.trim();
-
-    if (!name || !target) {
-      alert("Missing information.");
-      return;
-    }
+    if (!path || !name) return alert("Invalid shortcut.");
 
     updateCurrentUser(u => ({
       ...u,
       fs: [
         ...u.fs,
         {
-          path: "/desktop", // create shortcut on desktop
+          path: "/desktop",
           name,
           type: "file",
           ext: ".lnk",
-          content: JSON.stringify({ target })
+          content: JSON.stringify({ target: path })
         }
       ]
     }));
 
-    alert(`Shortcut '${name}' created on desktop.`);
+    alert("Shortcut created!");
     win.remove();
   };
 
-  win.querySelector(".window-btn.close").onclick = () => win.remove();
+  closeBtn.onclick = () => win.remove();
 }
-
+      
 function renderImageInPaint(entry) {
   if (!paintCanvas || !entry.content) {
     aiMsg("ai", `Paint opened, but ${entry.name} has no image data.`);

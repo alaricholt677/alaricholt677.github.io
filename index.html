@@ -11214,7 +11214,9 @@ function createDefenderApp() {
     });
   }
 
-  // ====== GLOBAL CONNECTIVITY SIMULATION (document-wide) ======
+  if (!networkPanel) return;
+
+  // ====== STATE ======
   const sysNetSim = {
     wifiOn: true,
     airplane: false,
@@ -11226,74 +11228,51 @@ function createDefenderApp() {
     latencyMs: 35
   };
 
-  // Overlay to block interaction + visually “offline”, including iframes
-  let offlineOverlay = null;
-
-  function ensureOfflineOverlay() {
-    if (offlineOverlay) return offlineOverlay;
-    offlineOverlay = document.createElement("div");
-    offlineOverlay.id = "sys-offline-overlay";
-    offlineOverlay.style.cssText = `
-      position:fixed; inset:0; z-index:999999;
-      background:rgba(0,0,0,0.35);
-      backdrop-filter: blur(2px);
-      display:none;
-      pointer-events:auto;
-    `;
-    offlineOverlay.innerHTML = `
-      <div style="position:absolute; right:14px; bottom:64px; width:260px;
-                  background:rgba(8,11,30,0.98); border:1px solid rgba(255,255,255,0.2);
-                  border-radius:10px; padding:10px; font-size:12px;">
-        <div style="font-weight:700; margin-bottom:6px;">Offline simulation</div>
-        <div style="opacity:0.9; line-height:1.35;">
-          Wi‑Fi is off. Connectivity is blocked for this document layer.
-        </div>
-      </div>
-    `;
-    document.body.appendChild(offlineOverlay);
-    return offlineOverlay;
-  }
-
-  // Hard-block fetch + XHR when offline simulation is active
+  // ====== NETWORK BLOCKING ONLY (NO OVERLAY, NO ERRORS/WARNINGS) ======
   const _fetch = window.fetch ? window.fetch.bind(window) : null;
+
   if (_fetch) {
     window.fetch = function (...args) {
       if (!sysNetSim.wifiOn || sysNetSim.airplane) {
-        return Promise.reject(new Error("Offline simulation: fetch blocked"));
+        // Silent offline simulation: never throw, never reject
+        return Promise.resolve(new Response("", { status: 204, statusText: "No Content" }));
       }
       return _fetch(...args);
     };
   }
 
-  const _open = XMLHttpRequest.prototype.open;
+  const _xhrOpen = XMLHttpRequest.prototype.open;
+  const _xhrSend = XMLHttpRequest.prototype.send;
+
   XMLHttpRequest.prototype.open = function (...args) {
-    this.__sysNetSimBlocked = (!sysNetSim.wifiOn || sysNetSim.airplane);
-    return _open.apply(this, args);
+    this.__netBlocked = (!sysNetSim.wifiOn || sysNetSim.airplane);
+    return _xhrOpen.apply(this, args);
   };
-  const _send = XMLHttpRequest.prototype.send;
+
   XMLHttpRequest.prototype.send = function (...args) {
-    if (this.__sysNetSimBlocked) {
-      this.onerror && this.onerror(new Error("Offline simulation: XHR blocked"));
+    if (this.__netBlocked) {
+      // Silent offline simulation: do not call onerror
+      try {
+        this.readyState = 4;
+        this.status = 0;
+        this.responseText = "";
+        this.response = "";
+      } catch (_) {}
+      if (typeof this.onreadystatechange === "function") this.onreadystatechange();
+      if (typeof this.onload === "function") this.onload();
+      if (typeof this.onloadend === "function") this.onloadend();
       return;
     }
-    return _send.apply(this, args);
+    return _xhrSend.apply(this, args);
   };
 
-  function applyConnectivityState() {
-    const ov = ensureOfflineOverlay();
-    const offline = (!sysNetSim.wifiOn || sysNetSim.airplane);
-    ov.style.display = offline ? "block" : "none";
-    document.documentElement.dataset.offlineSim = offline ? "1" : "0";
-  }
-
-  // ====== BRIGHTNESS (document-wide) ======
+  // ====== BRIGHTNESS (DOCUMENT-WIDE) ======
   function applyBrightness(pct) {
     sysNetSim.brightness = pct;
-    // affects all existing CSS visually without rewriting styles
     document.documentElement.style.filter = `brightness(${pct}%)`;
   }
 
-  // ====== BATTERY ICON (same style as your pill: white body, black bolt) ======
+  // ====== BATTERY SVG (WHITE BODY, BLACK BOLT) ======
   function renderBatterySvg(pct, charging) {
     const w = 22, h = 12, pad = 2, capW = 3;
     const innerW = w - capW - pad * 2;
@@ -11315,64 +11294,63 @@ function createDefenderApp() {
     `;
   }
 
-  // ====== PANEL WIRING ======
-  const panel = document.getElementById("network-panel");
-  if (!panel) return;
+  // ====== ELEMENTS ======
+  const titleEl = networkPanel.querySelector("#sys-panel-title");
+  const closeBtn = networkPanel.querySelector("#sys-panel-close");
 
-  const titleEl = panel.querySelector("#sys-panel-title");
-  const closeBtn = panel.querySelector("#sys-panel-close");
+  const viewMain = networkPanel.querySelector("#sys-view-main");
+  const viewNet  = networkPanel.querySelector("#sys-view-net");
+  const viewBt   = networkPanel.querySelector("#sys-view-bt");
+  const viewLat  = networkPanel.querySelector("#sys-view-lat");
+  const viewBatt = networkPanel.querySelector("#sys-view-batt");
 
-  const viewMain = panel.querySelector("#sys-view-main");
-  const viewNet  = panel.querySelector("#sys-view-net");
-  const viewBt   = panel.querySelector("#sys-view-bt");
-  const viewLat  = panel.querySelector("#sys-view-lat");
-  const viewBatt = panel.querySelector("#sys-view-batt");
+  const btnNet  = networkPanel.querySelector("#btn-net");
+  const btnBt   = networkPanel.querySelector("#btn-bt");
+  const btnAir  = networkPanel.querySelector("#btn-air");
+  const btnBatt = networkPanel.querySelector("#btn-batt");
+  const btnLat  = networkPanel.querySelector("#btn-lat");
 
-  const btnNet  = panel.querySelector("#btn-net");
-  const btnBt   = panel.querySelector("#btn-bt");
-  const btnAir  = panel.querySelector("#btn-air");
-  const btnBatt = panel.querySelector("#btn-batt");
-  const btnLat  = panel.querySelector("#btn-lat");
+  const wifiToggle = networkPanel.querySelector("#wifi-toggle");
+  const wifiStatus = networkPanel.querySelector("#wifi-status");
+  const wifiList   = networkPanel.querySelector("#wifi-list");
 
-  const wifiToggle = panel.querySelector("#wifi-toggle");
-  const wifiStatus = panel.querySelector("#wifi-status");
-  const wifiList   = panel.querySelector("#wifi-list");
+  const volSlider = networkPanel.querySelector("#sys-volume");
+  const volText   = networkPanel.querySelector("#sys-volume-text");
 
-  const volSlider = panel.querySelector("#sys-volume");
-  const volText   = panel.querySelector("#sys-volume-text");
+  const briSlider = networkPanel.querySelector("#sys-brightness");
+  const briText   = networkPanel.querySelector("#sys-brightness-text");
 
-  const briSlider = panel.querySelector("#sys-brightness");
-  const briText   = panel.querySelector("#sys-brightness-text");
+  const pingSlider = networkPanel.querySelector("#ping-slider");
+  const pingText   = networkPanel.querySelector("#ping-text");
 
-  const pingSlider = panel.querySelector("#ping-slider");
-  const pingText   = panel.querySelector("#ping-text");
+  const btTileName = networkPanel.querySelector("#bt-tile-name");
+  const btName     = networkPanel.querySelector("#bt-name");
+  const btSub      = networkPanel.querySelector("#bt-sub");
+  const btPair     = networkPanel.querySelector("#bt-pair");
+  const btDisc     = networkPanel.querySelector("#bt-disconnect");
 
-  const btTileName = panel.querySelector("#bt-tile-name");
-  const btName     = panel.querySelector("#bt-name");
-  const btSub      = panel.querySelector("#bt-sub");
-  const btPair     = panel.querySelector("#bt-pair");
-  const btDisc     = panel.querySelector("#bt-disconnect");
+  const battIcon   = networkPanel.querySelector("#batt-icon");
+  const battPct    = networkPanel.querySelector("#batt-pct");
+  const battState  = networkPanel.querySelector("#batt-state");
+  const battBar    = networkPanel.querySelector("#batt-bar");
+  const battSaver  = networkPanel.querySelector("#batt-saver");
 
-  const battIcon   = panel.querySelector("#batt-icon");
-  const battPct    = panel.querySelector("#batt-pct");
-  const battState  = panel.querySelector("#batt-state");
-  const battBar    = panel.querySelector("#batt-bar");
-  const battSaver  = panel.querySelector("#batt-saver");
-
+  // ====== VIEW NAV ======
   function showView(which) {
     const map = { main: viewMain, net: viewNet, bt: viewBt, lat: viewLat, batt: viewBatt };
     Object.keys(map).forEach(k => {
       map[k].style.transform = (k === which) ? "translateX(0)" : "translateX(110%)";
     });
-    titleEl.textContent = (which === "main") ? "Quick settings" :
-      (which === "net") ? "Network" :
-      (which === "bt") ? "Bluetooth" :
-      (which === "lat") ? "Network latency" :
+    titleEl.textContent =
+      which === "main" ? "Quick settings" :
+      which === "net"  ? "Network" :
+      which === "bt"   ? "Bluetooth" :
+      which === "lat"  ? "Network latency" :
       "Battery";
   }
 
-  panel.querySelectorAll("[data-back]").forEach(b => b.onclick = () => showView("main"));
-  closeBtn.onclick = () => { panel.style.display = "none"; };
+  networkPanel.querySelectorAll("[data-back]").forEach(b => (b.onclick = () => showView("main")));
+  closeBtn.onclick = () => { networkPanel.style.display = "none"; };
 
   // ====== NETWORK LIST (ip_checksum_lorum) ======
   const networks = [
@@ -11385,13 +11363,15 @@ function createDefenderApp() {
     wifiList.innerHTML = "";
     networks.forEach(n => {
       const row = document.createElement("div");
-      row.style.cssText = "padding:8px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; display:flex; justify-content:space-between; align-items:center; gap:8px;";
+      row.style.cssText =
+        "padding:8px;border:1px solid rgba(255,255,255,0.12);border-radius:8px;" +
+        "display:flex;justify-content:space-between;align-items:center;gap:8px;";
       row.innerHTML = `
-        <div style="display:flex; align-items:center; gap:8px;">
-          <div style="width:26px; height:26px; border-radius:8px; background:rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center;">📶</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;">📶</div>
           <div>
             <div style="font-weight:600;">${n.ssid}</div>
-            <div style="font-size:11px; opacity:0.85;">Enter PIN: <span style="font-weight:700;">${n.pin}</span></div>
+            <div style="font-size:11px;opacity:0.85;">Enter PIN: <span style="font-weight:700;">${n.pin}</span></div>
           </div>
         </div>
         <button class="button-small">Access</button>
@@ -11405,42 +11385,44 @@ function createDefenderApp() {
     });
   }
 
-  // ====== WIFI TOGGLE + DEFAULT STATE (example.com probe) ======
   function setWifi(on) {
     sysNetSim.wifiOn = !!on;
     wifiToggle.setAttribute("aria-pressed", sysNetSim.wifiOn ? "true" : "false");
+
+    if (sysNetSim.airplane) {
+      wifiStatus.textContent = "Airplane mode";
+      return;
+    }
+
     wifiStatus.textContent = sysNetSim.wifiOn
       ? (sysNetSim.connectedSsid ? `Connected: ${sysNetSim.connectedSsid}` : "Wi‑Fi on")
-      : "Wi‑Fi off (connectivity blocked)";
-    applyConnectivityState();
+      : "Wi‑Fi off";
   }
 
   async function probeDefaultWifiState() {
-    // Default OFF if we can’t get anything from example.com, else ON
-    if (!window.fetch) { setWifi(true); return; }
+    if (!_fetch) { setWifi(true); return; }
     try {
       await _fetch("https://example.com", { mode: "no-cors", cache: "no-store" });
       setWifi(true);
-    } catch (e) {
+    } catch {
       setWifi(false);
     }
   }
 
   wifiToggle.onclick = () => setWifi(!sysNetSim.wifiOn);
 
-  // ====== AIRPLANE MODE (kills connectivity regardless of wifi toggle) ======
   function setAirplane(on) {
     sysNetSim.airplane = !!on;
     btnAir.style.background = sysNetSim.airplane ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.06)";
     btnAir.style.borderColor = sysNetSim.airplane ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.12)";
-    applyConnectivityState();
-    if (sysNetSim.airplane) wifiStatus.textContent = "Airplane mode (connectivity blocked)";
-    else wifiStatus.textContent = sysNetSim.wifiOn ? "Wi‑Fi on" : "Wi‑Fi off (connectivity blocked)";
+    wifiStatus.textContent = sysNetSim.airplane
+      ? "Airplane mode"
+      : (sysNetSim.wifiOn ? "Wi‑Fi on" : "Wi‑Fi off");
   }
 
   btnAir.onclick = () => setAirplane(!sysNetSim.airplane);
 
-  // ====== VOLUME (self-contained; no external dependency) ======
+  // ====== VOLUME (SELF-CONTAINED) ======
   function setVolume(v) {
     sysNetSim.volume = v;
     volText.textContent = `${v}%`;
@@ -11448,7 +11430,7 @@ function createDefenderApp() {
   }
   volSlider.oninput = () => setVolume(parseInt(volSlider.value, 10));
 
-  // ====== BRIGHTNESS (document-wide) ======
+  // ====== BRIGHTNESS ======
   function setBrightness(v) {
     briText.textContent = `${v}%`;
     applyBrightness(v);
@@ -11463,7 +11445,7 @@ function createDefenderApp() {
   }
   pingSlider.oninput = () => setLatency(parseInt(pingSlider.value, 10));
 
-  // ====== BLUETOOTH (Web Bluetooth API) ======
+  // ====== BLUETOOTH (WEB BLUETOOTH API) ======
   function syncBluetoothUI() {
     const name = sysNetSim.bluetoothName;
     btTileName.textContent = name ? name : "Bluetooth";
@@ -11473,7 +11455,7 @@ function createDefenderApp() {
 
   btPair.onclick = async () => {
     if (!navigator.bluetooth || !navigator.bluetooth.requestDevice) {
-      sysNetSim.bluetoothName = "Bluetooth unsupported";
+      sysNetSim.bluetoothName = "Unsupported";
       syncBluetoothUI();
       return;
     }
@@ -11481,8 +11463,7 @@ function createDefenderApp() {
       const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
       sysNetSim.bluetoothName = device?.name || "Unnamed device";
       syncBluetoothUI();
-    } catch (e) {
-      // user cancelled—keep state
+    } catch {
       syncBluetoothUI();
     }
   };
@@ -11492,7 +11473,7 @@ function createDefenderApp() {
     syncBluetoothUI();
   };
 
-  // ====== BATTERY PANEL ======
+  // ====== BATTERY ======
   function setBatteryUI(pct, charging) {
     battIcon.innerHTML = renderBatterySvg(pct, charging);
     battPct.textContent = `${pct}%`;
@@ -11505,7 +11486,7 @@ function createDefenderApp() {
     if (!navigator.getBattery) {
       battIcon.innerHTML = renderBatterySvg(0, false);
       battPct.textContent = "N/A";
-      battState.textContent = "Battery API unavailable";
+      battState.textContent = "Unavailable";
       battBar.style.width = "0%";
       return;
     }
@@ -11536,11 +11517,12 @@ function createDefenderApp() {
   syncBluetoothUI();
   initBattery();
   probeDefaultWifiState();
-  applyConnectivityState();
+  showView("main");
 
-  // Optional: expose a tiny toggle hook if you open panel from taskbar
+  // Optional external toggle hook (remove if you already wire it elsewhere)
   window.toggleNetworkPanel = function () {
-    panel.style.display = (panel.style.display === "none" || !panel.style.display) ? "block" : "none";
+    networkPanel.style.display =
+      (networkPanel.style.display === "none" || !networkPanel.style.display) ? "block" : "none";
     showView("main");
   };
 

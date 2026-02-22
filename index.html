@@ -10691,7 +10691,12 @@ function createDefenderApp() {
     sidebarCollapsed: false,
     bluetoothConnected: false,
     lastRefresh: null,
-    networkLog: []
+    networkLog: [],
+    battery: {
+      supported: !!navigator.getBattery,
+      level: null,
+      charging: null
+    }
   };
 
   // === CREATE WINDOW ===
@@ -10729,20 +10734,28 @@ function createDefenderApp() {
       <div id="defender-sidebar"
         style="width:180px;background:rgba(8,12,26,0.98);
                border-right:1px solid rgba(255,255,255,0.15);
-               display:flex;flex-direction:column;padding:8px;">
+               display:flex;flex-direction:column;padding:8px;gap:6px;">
 
-        <button id="def-hamburger" class="button-small">☰</button>
+        <button id="def-hamburger" class="button-small" style="margin-bottom:4px;">☰</button>
 
-        <div class="def-side-label">STATUS</div>
-        <div id="def-time">Time: --:--</div>
-        <div id="def-batt">Battery: --%</div>
-        <div id="def-wifi">WiFi: Unknown</div>
-        <div id="def-ping">Ping: -- ms</div>
+        <div class="def-side-label" style="font-size:11px;margin-top:2px;color:#6aa9ff;">STATUS</div>
 
-        <div class="def-side-label">TASKS</div>
-        <div id="def-tasks">Idle</div>
+        <div id="def-time" style="font-size:11px;">Time: --:--</div>
 
-        <div class="def-side-label">DEVICES</div>
+        <!-- UPDATED BATTERY ROW -->
+        <div id="def-batt" style="font-size:11px;display:flex;align-items:center;gap:6px;">
+          <span style="opacity:0.9;">Battery:</span>
+          <span id="def-batt-icon" aria-hidden="true"></span>
+          <span id="def-batt-text">--%</span>
+        </div>
+
+        <div id="def-wifi" style="font-size:11px;">WiFi: Unknown</div>
+        <div id="def-ping" style="font-size:11px;">Ping: -- ms</div>
+
+        <div class="def-side-label" style="font-size:11px;margin-top:8px;color:#6aa9ff;">TASKS</div>
+        <div id="def-tasks" style="font-size:11px;">Idle</div>
+
+        <div class="def-side-label" style="font-size:11px;margin-top:8px;color:#6aa9ff;">DEVICES</div>
         <button id="def-bluetooth" class="button-small">Bluetooth: Disconnected</button>
       </div>
 
@@ -10755,14 +10768,14 @@ function createDefenderApp() {
           <button id="def-refresh" class="button-small">Refresh</button>
         </div>
 
-        <div id="def-overview" class="panel">
-          <div class="panel-title">Overview</div>
+        <div id="def-overview" style="padding:10px;border:1px solid rgba(255,255,255,0.12);border-radius:8px;">
+          <div style="font-size:13px;margin-bottom:6px;color:#6aa9ff;">Overview</div>
           <div id="def-overview-text">No telemetry loaded.</div>
         </div>
 
-        <div id="def-network" class="panel">
-          <div class="panel-title">Network History</div>
-          <div id="def-net-list">No activity recorded.</div>
+        <div id="def-network" style="padding:10px;border:1px solid rgba(255,255,255,0.12);border-radius:8px;">
+          <div style="font-size:13px;margin-bottom:6px;color:#6aa9ff;">Network History</div>
+          <div id="def-net-list" style="font-size:11px;">No activity recorded.</div>
         </div>
 
       </div>
@@ -10792,35 +10805,100 @@ function createDefenderApp() {
   document.querySelector(".taskbar-app-strip").appendChild(bar);
 
   bar.onclick = () => {
-    defWin.classList.contains("visible")
-      ? hideWindow("defender")
-      : showWindow("defender");
+    defWin.classList.contains("visible") ? hideWindow("defender") : showWindow("defender");
   };
 
   enableWindowControls(defWin);
 
-  // === LOGIC IMPLEMENTATIONS ===
+  // === BATTERY SVG RENDER ===
+  function batteryColor(pct, charging) {
+    if (charging) return "#4cd964";          // green while charging
+    if (pct <= 15) return "#ff3b30";         // red
+    if (pct <= 35) return "#ffcc00";         // yellow
+    return "#5bc5ff";                        // defender blue
+  }
 
+  function renderBatteryIcon(pct, charging) {
+    const w = 26, h = 14;
+    const pad = 2;
+    const capW = 3;
+    const innerW = w - capW - pad * 2;
+    const innerH = h - pad * 2;
+
+    const clamped = Math.max(0, Math.min(100, pct));
+    const fillW = Math.round((innerW * clamped) / 100);
+
+    const fill = batteryColor(clamped, charging);
+    const stroke = "rgba(255,255,255,0.75)";
+    const bg = "rgba(255,255,255,0.10)";
+
+    // Optional tiny bolt when charging (kept subtle)
+    const bolt = charging ? `
+      <path d="M14 3 L11 8 H14 L12 12 L18 6 H15 Z"
+            fill="rgba(255,255,255,0.85)" opacity="0.9"/>
+    ` : "";
+
+    return `
+      <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block;">
+        <!-- body -->
+        <rect x="0.5" y="0.5" width="${w - capW - 1}" height="${h - 1}" rx="3"
+              fill="${bg}" stroke="${stroke}" stroke-width="1"/>
+        <!-- cap -->
+        <rect x="${w - capW}" y="${Math.round(h / 3)}" width="${capW - 0.5}" height="${Math.round(h / 3)}"
+              rx="1" fill="${stroke}" opacity="0.85"/>
+        <!-- fill -->
+        <rect x="${pad}" y="${pad}" width="${fillW}" height="${innerH}" rx="2"
+              fill="${fill}" />
+        ${bolt}
+      </svg>
+    `;
+  }
+
+  function setBatteryUI(pct, charging) {
+    const iconEl = defWin.querySelector("#def-batt-icon");
+    const textEl = defWin.querySelector("#def-batt-text");
+
+    if (pct == null) {
+      iconEl.innerHTML = renderBatteryIcon(0, false);
+      textEl.textContent = "N/A";
+      return;
+    }
+
+    iconEl.innerHTML = renderBatteryIcon(pct, charging);
+    textEl.textContent = `${pct}%${charging ? " ⚡" : ""}`;
+  }
+
+  async function initBattery() {
+    if (!navigator.getBattery) {
+      setBatteryUI(null, null);
+      return;
+    }
+
+    const batt = await navigator.getBattery();
+
+    function sync() {
+      const pct = Math.round(batt.level * 100);
+      defenderState.battery.level = pct;
+      defenderState.battery.charging = batt.charging;
+      setBatteryUI(pct, batt.charging);
+    }
+
+    batt.addEventListener("levelchange", sync);
+    batt.addEventListener("chargingchange", sync);
+    sync();
+  }
+
+  // === OTHER LOGIC ===
   function updateStatus() {
     const now = new Date();
-    defWin.querySelector("#def-time").textContent =
-      "Time: " + now.toLocaleTimeString();
-
-    defWin.querySelector("#def-batt").textContent =
-      "Battery: " + (navigator.getBattery ? "Detected" : "Unavailable");
-
-    defWin.querySelector("#def-wifi").textContent =
-      navigator.onLine ? "WiFi: Online" : "WiFi: Offline";
-
-    defWin.querySelector("#def-ping").textContent =
-      "Ping: " + Math.floor(Math.random() * 40 + 10) + " ms";
+    defWin.querySelector("#def-time").textContent = "Time: " + now.toLocaleTimeString();
+    defWin.querySelector("#def-wifi").textContent = navigator.onLine ? "WiFi: Online" : "WiFi: Offline";
+    defWin.querySelector("#def-ping").textContent = "Ping: " + Math.floor(Math.random() * 40 + 10) + " ms";
   }
 
   function refreshTelemetry() {
     defenderState.lastRefresh = new Date();
-    defenderState.networkLog.push(
-      defenderState.lastRefresh.toLocaleTimeString() + " — Telemetry scan completed"
-    );
+    defenderState.networkLog.push(defenderState.lastRefresh.toLocaleTimeString() + " — Telemetry scan completed");
 
     defWin.querySelector("#def-overview-text").textContent =
       "Last scan: " + defenderState.lastRefresh.toLocaleString();
@@ -10848,8 +10926,10 @@ function createDefenderApp() {
   defWin.querySelector("#def-bluetooth").onclick = toggleBluetooth;
   defWin.querySelector("#def-hamburger").onclick = toggleSidebar;
 
+  // === BOOT ===
   updateStatus();
   setInterval(updateStatus, 10000);
+  initBattery();
 }
 
 

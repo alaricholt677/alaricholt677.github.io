@@ -2132,14 +2132,203 @@
     </button>
 
   </div>
+<!-- System Panel (keeps your skeleton id + positioning) -->
+<div id="network-panel"
+  style="display:none; position:absolute; bottom:40px; right:10px;
+         background:rgba(8,11,30,0.98); border:1px solid rgba(255,255,255,0.2);
+         border-radius:8px; padding:10px; width:260px; font-size:12px;
+         overflow:hidden;">
 
+  <div style="font-weight:bold; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+    <span id="sys-panel-title">Quick settings</span>
+    <button id="sys-panel-close" class="button-small">✕</button>
+  </div>
 
-<!-- Network Panel -->
-<div id="network-panel" style="display:none; position:absolute; bottom:40px; right:10px; background:rgba(8,11,30,0.98); border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:10px; width:220px; font-size:12px;">
-  <div style="font-weight:bold; margin-bottom:6px;">Network Status</div>
-  <input type="range" id="ping-slider" min="1" max="100" value="0" style="width:100%;">
-  <div id="ping-text" style="margin-top:6px; color:var(--text-main);">Ping: -- ms</div>
+  <!-- Sliding views container -->
+  <div id="sys-panel-views" style="position:relative; width:100%; height:260px;">
+    <div id="sys-view-main" class="sys-view" style="position:absolute; inset:0; transform:translateX(0); transition:transform 180ms ease;">
+      <!-- MAIN HUB -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+        <div id="btn-net" class="sys-tile">
+          <div class="sys-tile-icon">📶</div>
+          <div class="sys-tile-text">Network</div>
+        </div>
+        <div id="btn-bt" class="sys-tile">
+          <div class="sys-tile-icon">🟦</div>
+          <div class="sys-tile-text" id="bt-tile-name">Bluetooth</div>
+        </div>
+        <div id="btn-air" class="sys-tile">
+          <div class="sys-tile-icon">✈️</div>
+          <div class="sys-tile-text">Airplane</div>
+        </div>
+        <div id="btn-batt" class="sys-tile">
+          <div class="sys-tile-icon">🔋</div>
+          <div class="sys-tile-text">Battery</div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div>
+          <div style="opacity:0.85; margin-bottom:6px;">Volume</div>
+          <input id="sys-volume" type="range" min="0" max="100" value="60" style="width:100%;">
+          <div id="sys-volume-text" style="margin-top:6px; opacity:0.9;">60%</div>
+        </div>
+
+        <div>
+          <div style="opacity:0.85; margin-bottom:6px;">Brightness</div>
+          <input id="sys-brightness" type="range" min="40" max="140" value="100" style="width:100%;">
+          <div id="sys-brightness-text" style="margin-top:6px; opacity:0.9;">100%</div>
+        </div>
+
+        <div>
+          <div style="opacity:0.85; margin-bottom:6px;">Latency</div>
+          <button id="btn-lat" class="button-small" style="width:100%;">Open latency panel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- NETWORK VIEW -->
+    <div id="sys-view-net" class="sys-view" style="position:absolute; inset:0; transform:translateX(110%); transition:transform 180ms ease;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <button class="button-small" data-back>← Back</button>
+        <div style="font-weight:600;">Network</div>
+        <div style="width:44px;"></div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; border:1px solid rgba(255,255,255,0.12); border-radius:8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="width:26px; height:26px; border-radius:8px; background:rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center;">📶</div>
+          <div>
+            <div style="font-weight:600;">Wi‑Fi</div>
+            <div id="wifi-status" style="font-size:11px; opacity:0.85;">Checking…</div>
+          </div>
+        </div>
+
+        <!-- Android-style toggle -->
+        <button id="wifi-toggle" class="sys-toggle" aria-pressed="false">
+          <span class="sys-toggle-knob"></span>
+        </button>
+      </div>
+
+      <div style="margin-top:10px; opacity:0.85; font-size:11px;">Available networks</div>
+      <div id="wifi-list" style="margin-top:6px; display:flex; flex-direction:column; gap:6px;"></div>
+    </div>
+
+    <!-- BLUETOOTH VIEW -->
+    <div id="sys-view-bt" class="sys-view" style="position:absolute; inset:0; transform:translateX(110%); transition:transform 180ms ease;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <button class="button-small" data-back>← Back</button>
+        <div style="font-weight:600;">Bluetooth</div>
+        <div style="width:44px;"></div>
+      </div>
+
+      <div style="padding:8px; border:1px solid rgba(255,255,255,0.12); border-radius:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:600;" id="bt-name">No device paired</div>
+            <div style="font-size:11px; opacity:0.85;" id="bt-sub">Use Pair to request a device.</div>
+          </div>
+          <button id="bt-pair" class="button-small">Pair</button>
+        </div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <button id="bt-disconnect" class="button-small" style="width:100%;">Disconnect</button>
+      </div>
+    </div>
+
+    <!-- LATENCY VIEW -->
+    <div id="sys-view-lat" class="sys-view" style="position:absolute; inset:0; transform:translateX(110%); transition:transform 180ms ease;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <button class="button-small" data-back>← Back</button>
+        <div style="font-weight:600;">Network latency</div>
+        <div style="width:44px;"></div>
+      </div>
+
+      <input type="range" id="ping-slider" min="1" max="100" value="35" style="width:100%;">
+      <div id="ping-text" style="margin-top:8px; opacity:0.9;">Ping: 35 ms</div>
+
+      <div style="margin-top:10px; font-size:11px; opacity:0.85;">
+        This is a simulated latency control for your OS layer.
+      </div>
+    </div>
+
+    <!-- BATTERY VIEW -->
+    <div id="sys-view-batt" class="sys-view" style="position:absolute; inset:0; transform:translateX(110%); transition:transform 180ms ease;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <button class="button-small" data-back>← Back</button>
+        <div style="font-weight:600;">Battery</div>
+        <div style="width:44px;"></div>
+      </div>
+
+      <div style="padding:8px; border:1px solid rgba(255,255,255,0.12); border-radius:8px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span id="batt-icon"></span>
+            <div>
+              <div style="font-weight:600;" id="batt-pct">--%</div>
+              <div style="font-size:11px; opacity:0.85;" id="batt-state">Unknown</div>
+            </div>
+          </div>
+          <button id="batt-saver" class="button-small">Battery saver: Off</button>
+        </div>
+
+        <!-- Uneditable custom range (display-only) -->
+        <div style="margin-top:10px;">
+          <div style="height:8px; border-radius:999px; background:rgba(255,255,255,0.10); overflow:hidden;">
+            <div id="batt-bar" style="height:100%; width:0%; background:#5bc5ff;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Minimal internal styles (scoped by ids/classes) -->
+  <style>
+    #network-panel .sys-tile{
+      cursor:pointer;
+      padding:10px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(255,255,255,0.06);
+      display:flex;
+      gap:10px;
+      align-items:center;
+      transition:transform 120ms ease, background 120ms ease;
+      user-select:none;
+    }
+    #network-panel .sys-tile:hover{ transform:translateY(-1px); background:rgba(255,255,255,0.08); }
+    #network-panel .sys-tile-icon{
+      width:28px; height:28px; border-radius:10px;
+      background:rgba(255,255,255,0.08);
+      display:flex; align-items:center; justify-content:center;
+      font-size:14px;
+    }
+    #network-panel .sys-tile-text{ font-weight:600; }
+
+    #network-panel .sys-toggle{
+      width:44px; height:24px; border-radius:999px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(255,255,255,0.10);
+      position:relative;
+      cursor:pointer;
+      padding:0;
+    }
+    #network-panel .sys-toggle .sys-toggle-knob{
+      position:absolute; top:2px; left:2px;
+      width:20px; height:20px; border-radius:999px;
+      background:white;
+      transition:left 140ms ease, background 140ms ease;
+    }
+    #network-panel .sys-toggle[aria-pressed="true"]{
+      background:rgba(91,197,255,0.35);
+      border-color:rgba(91,197,255,0.55);
+    }
+    #network-panel .sys-toggle[aria-pressed="true"] .sys-toggle-knob{ left:22px; }
+  </style>
 </div>
+
 
   <!-- start -->
   <div id="start-backdrop"></div>
@@ -7489,9 +7678,6 @@ function createRunWindow() {
 }
 
 const networkIcon = document.getElementById("network-icon");
-const networkPanel = document.getElementById("network-panel");
-const pingSlider = document.getElementById("ping-slider");
-const pingText = document.getElementById("ping-text");
 
 let pingHistory = [];
 let currentPing = 0;
@@ -7512,7 +7698,6 @@ async function measurePing() {
   if (pingHistory.length > 100) pingHistory.shift();
 
   updateNetworkIcon(currentPing);
-  updateNetworkPanel();
 }
 
 // Update SVG based on ping
@@ -7526,12 +7711,6 @@ function updateNetworkIcon(ping) {
   } else {
     networkIcon.innerHTML = `<path d="M2 20h20" />`; // Poor
   }
-}
-
-// Update panel
-function updateNetworkPanel() {
-  pingSlider.value = pingHistory.length;
-  pingText.textContent = currentPing === -1 ? "Ping: No connection" : `Ping: ${currentPing} ms`;
 }
 
 // Toggle panel on click
@@ -11034,6 +11213,336 @@ function createDefenderApp() {
       update();
     });
   }
+
+  // ====== GLOBAL CONNECTIVITY SIMULATION (document-wide) ======
+  const sysNetSim = {
+    wifiOn: true,
+    airplane: false,
+    connectedSsid: null,
+    bluetoothName: null,
+    batterySaver: false,
+    brightness: 100,
+    volume: 60,
+    latencyMs: 35
+  };
+
+  // Overlay to block interaction + visually “offline”, including iframes
+  let offlineOverlay = null;
+
+  function ensureOfflineOverlay() {
+    if (offlineOverlay) return offlineOverlay;
+    offlineOverlay = document.createElement("div");
+    offlineOverlay.id = "sys-offline-overlay";
+    offlineOverlay.style.cssText = `
+      position:fixed; inset:0; z-index:999999;
+      background:rgba(0,0,0,0.35);
+      backdrop-filter: blur(2px);
+      display:none;
+      pointer-events:auto;
+    `;
+    offlineOverlay.innerHTML = `
+      <div style="position:absolute; right:14px; bottom:64px; width:260px;
+                  background:rgba(8,11,30,0.98); border:1px solid rgba(255,255,255,0.2);
+                  border-radius:10px; padding:10px; font-size:12px;">
+        <div style="font-weight:700; margin-bottom:6px;">Offline simulation</div>
+        <div style="opacity:0.9; line-height:1.35;">
+          Wi‑Fi is off. Connectivity is blocked for this document layer.
+        </div>
+      </div>
+    `;
+    document.body.appendChild(offlineOverlay);
+    return offlineOverlay;
+  }
+
+  // Hard-block fetch + XHR when offline simulation is active
+  const _fetch = window.fetch ? window.fetch.bind(window) : null;
+  if (_fetch) {
+    window.fetch = function (...args) {
+      if (!sysNetSim.wifiOn || sysNetSim.airplane) {
+        return Promise.reject(new Error("Offline simulation: fetch blocked"));
+      }
+      return _fetch(...args);
+    };
+  }
+
+  const _open = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function (...args) {
+    this.__sysNetSimBlocked = (!sysNetSim.wifiOn || sysNetSim.airplane);
+    return _open.apply(this, args);
+  };
+  const _send = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.send = function (...args) {
+    if (this.__sysNetSimBlocked) {
+      this.onerror && this.onerror(new Error("Offline simulation: XHR blocked"));
+      return;
+    }
+    return _send.apply(this, args);
+  };
+
+  function applyConnectivityState() {
+    const ov = ensureOfflineOverlay();
+    const offline = (!sysNetSim.wifiOn || sysNetSim.airplane);
+    ov.style.display = offline ? "block" : "none";
+    document.documentElement.dataset.offlineSim = offline ? "1" : "0";
+  }
+
+  // ====== BRIGHTNESS (document-wide) ======
+  function applyBrightness(pct) {
+    sysNetSim.brightness = pct;
+    // affects all existing CSS visually without rewriting styles
+    document.documentElement.style.filter = `brightness(${pct}%)`;
+  }
+
+  // ====== BATTERY ICON (same style as your pill: white body, black bolt) ======
+  function renderBatterySvg(pct, charging) {
+    const w = 22, h = 12, pad = 2, capW = 3;
+    const innerW = w - capW - pad * 2;
+    const innerH = h - pad * 2;
+    const clamped = Math.max(0, Math.min(100, pct));
+    const fillW = Math.round((innerW * clamped) / 100);
+
+    return `
+      <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block;">
+        <rect x="0.5" y="0.5" width="${w - capW - 1}" height="${h - 1}" rx="3"
+              fill="none" stroke="white" stroke-width="1"/>
+        <rect x="${w - capW}" y="${Math.round(h / 3)}" width="${capW - 0.5}" height="${Math.round(h / 3)}"
+              rx="1" fill="white" opacity="0.9"/>
+        <rect x="${pad}" y="${pad}" width="${Math.max(2, fillW)}" height="${innerH}" rx="2"
+              fill="white"/>
+        <path d="M11 2 L8 7 H11 L9 10 L15 5 H12 Z"
+              fill="black" style="display:${charging ? "block" : "none"}"/>
+      </svg>
+    `;
+  }
+
+  // ====== PANEL WIRING ======
+  const panel = document.getElementById("network-panel");
+  if (!panel) return;
+
+  const titleEl = panel.querySelector("#sys-panel-title");
+  const closeBtn = panel.querySelector("#sys-panel-close");
+
+  const viewMain = panel.querySelector("#sys-view-main");
+  const viewNet  = panel.querySelector("#sys-view-net");
+  const viewBt   = panel.querySelector("#sys-view-bt");
+  const viewLat  = panel.querySelector("#sys-view-lat");
+  const viewBatt = panel.querySelector("#sys-view-batt");
+
+  const btnNet  = panel.querySelector("#btn-net");
+  const btnBt   = panel.querySelector("#btn-bt");
+  const btnAir  = panel.querySelector("#btn-air");
+  const btnBatt = panel.querySelector("#btn-batt");
+  const btnLat  = panel.querySelector("#btn-lat");
+
+  const wifiToggle = panel.querySelector("#wifi-toggle");
+  const wifiStatus = panel.querySelector("#wifi-status");
+  const wifiList   = panel.querySelector("#wifi-list");
+
+  const volSlider = panel.querySelector("#sys-volume");
+  const volText   = panel.querySelector("#sys-volume-text");
+
+  const briSlider = panel.querySelector("#sys-brightness");
+  const briText   = panel.querySelector("#sys-brightness-text");
+
+  const pingSlider = panel.querySelector("#ping-slider");
+  const pingText   = panel.querySelector("#ping-text");
+
+  const btTileName = panel.querySelector("#bt-tile-name");
+  const btName     = panel.querySelector("#bt-name");
+  const btSub      = panel.querySelector("#bt-sub");
+  const btPair     = panel.querySelector("#bt-pair");
+  const btDisc     = panel.querySelector("#bt-disconnect");
+
+  const battIcon   = panel.querySelector("#batt-icon");
+  const battPct    = panel.querySelector("#batt-pct");
+  const battState  = panel.querySelector("#batt-state");
+  const battBar    = panel.querySelector("#batt-bar");
+  const battSaver  = panel.querySelector("#batt-saver");
+
+  function showView(which) {
+    const map = { main: viewMain, net: viewNet, bt: viewBt, lat: viewLat, batt: viewBatt };
+    Object.keys(map).forEach(k => {
+      map[k].style.transform = (k === which) ? "translateX(0)" : "translateX(110%)";
+    });
+    titleEl.textContent = (which === "main") ? "Quick settings" :
+      (which === "net") ? "Network" :
+      (which === "bt") ? "Bluetooth" :
+      (which === "lat") ? "Network latency" :
+      "Battery";
+  }
+
+  panel.querySelectorAll("[data-back]").forEach(b => b.onclick = () => showView("main"));
+  closeBtn.onclick = () => { panel.style.display = "none"; };
+
+  // ====== NETWORK LIST (ip_checksum_lorum) ======
+  const networks = [
+    { ssid: "ip_checksum_lorum", pin: "1234" },
+    { ssid: "ip_checksum_lorum-5G", pin: "1234" },
+    { ssid: "ip_checksum_lorum-guest", pin: "1234" }
+  ];
+
+  function renderWifiList() {
+    wifiList.innerHTML = "";
+    networks.forEach(n => {
+      const row = document.createElement("div");
+      row.style.cssText = "padding:8px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; display:flex; justify-content:space-between; align-items:center; gap:8px;";
+      row.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="width:26px; height:26px; border-radius:8px; background:rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center;">📶</div>
+          <div>
+            <div style="font-weight:600;">${n.ssid}</div>
+            <div style="font-size:11px; opacity:0.85;">Enter PIN: <span style="font-weight:700;">${n.pin}</span></div>
+          </div>
+        </div>
+        <button class="button-small">Access</button>
+      `;
+      row.querySelector("button").onclick = () => {
+        if (!sysNetSim.wifiOn || sysNetSim.airplane) return;
+        sysNetSim.connectedSsid = n.ssid;
+        wifiStatus.textContent = `Connected: ${n.ssid}`;
+      };
+      wifiList.appendChild(row);
+    });
+  }
+
+  // ====== WIFI TOGGLE + DEFAULT STATE (example.com probe) ======
+  function setWifi(on) {
+    sysNetSim.wifiOn = !!on;
+    wifiToggle.setAttribute("aria-pressed", sysNetSim.wifiOn ? "true" : "false");
+    wifiStatus.textContent = sysNetSim.wifiOn
+      ? (sysNetSim.connectedSsid ? `Connected: ${sysNetSim.connectedSsid}` : "Wi‑Fi on")
+      : "Wi‑Fi off (connectivity blocked)";
+    applyConnectivityState();
+  }
+
+  async function probeDefaultWifiState() {
+    // Default OFF if we can’t get anything from example.com, else ON
+    if (!window.fetch) { setWifi(true); return; }
+    try {
+      await _fetch("https://example.com", { mode: "no-cors", cache: "no-store" });
+      setWifi(true);
+    } catch (e) {
+      setWifi(false);
+    }
+  }
+
+  wifiToggle.onclick = () => setWifi(!sysNetSim.wifiOn);
+
+  // ====== AIRPLANE MODE (kills connectivity regardless of wifi toggle) ======
+  function setAirplane(on) {
+    sysNetSim.airplane = !!on;
+    btnAir.style.background = sysNetSim.airplane ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.06)";
+    btnAir.style.borderColor = sysNetSim.airplane ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.12)";
+    applyConnectivityState();
+    if (sysNetSim.airplane) wifiStatus.textContent = "Airplane mode (connectivity blocked)";
+    else wifiStatus.textContent = sysNetSim.wifiOn ? "Wi‑Fi on" : "Wi‑Fi off (connectivity blocked)";
+  }
+
+  btnAir.onclick = () => setAirplane(!sysNetSim.airplane);
+
+  // ====== VOLUME (self-contained; no external dependency) ======
+  function setVolume(v) {
+    sysNetSim.volume = v;
+    volText.textContent = `${v}%`;
+    document.documentElement.style.setProperty("--sys-volume", String(v));
+  }
+  volSlider.oninput = () => setVolume(parseInt(volSlider.value, 10));
+
+  // ====== BRIGHTNESS (document-wide) ======
+  function setBrightness(v) {
+    briText.textContent = `${v}%`;
+    applyBrightness(v);
+  }
+  briSlider.oninput = () => setBrightness(parseInt(briSlider.value, 10));
+
+  // ====== LATENCY ======
+  function setLatency(v) {
+    sysNetSim.latencyMs = v;
+    pingText.textContent = `Ping: ${v} ms`;
+    document.documentElement.style.setProperty("--sys-latency-ms", String(v));
+  }
+  pingSlider.oninput = () => setLatency(parseInt(pingSlider.value, 10));
+
+  // ====== BLUETOOTH (Web Bluetooth API) ======
+  function syncBluetoothUI() {
+    const name = sysNetSim.bluetoothName;
+    btTileName.textContent = name ? name : "Bluetooth";
+    btName.textContent = name ? name : "No device paired";
+    btSub.textContent = name ? "Paired (simulated session)" : "Use Pair to request a device.";
+  }
+
+  btPair.onclick = async () => {
+    if (!navigator.bluetooth || !navigator.bluetooth.requestDevice) {
+      sysNetSim.bluetoothName = "Bluetooth unsupported";
+      syncBluetoothUI();
+      return;
+    }
+    try {
+      const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+      sysNetSim.bluetoothName = device?.name || "Unnamed device";
+      syncBluetoothUI();
+    } catch (e) {
+      // user cancelled—keep state
+      syncBluetoothUI();
+    }
+  };
+
+  btDisc.onclick = () => {
+    sysNetSim.bluetoothName = null;
+    syncBluetoothUI();
+  };
+
+  // ====== BATTERY PANEL ======
+  function setBatteryUI(pct, charging) {
+    battIcon.innerHTML = renderBatterySvg(pct, charging);
+    battPct.textContent = `${pct}%`;
+    battState.textContent = charging ? "Charging" : "On battery";
+    battBar.style.width = `${pct}%`;
+    battBar.style.background = charging ? "#4cd964" : (pct <= 15 ? "#ff3b30" : (pct <= 35 ? "#ffcc00" : "#5bc5ff"));
+  }
+
+  async function initBattery() {
+    if (!navigator.getBattery) {
+      battIcon.innerHTML = renderBatterySvg(0, false);
+      battPct.textContent = "N/A";
+      battState.textContent = "Battery API unavailable";
+      battBar.style.width = "0%";
+      return;
+    }
+    const b = await navigator.getBattery();
+    const sync = () => setBatteryUI(Math.round(b.level * 100), b.charging);
+    b.addEventListener("levelchange", sync);
+    b.addEventListener("chargingchange", sync);
+    sync();
+  }
+
+  battSaver.onclick = () => {
+    sysNetSim.batterySaver = !sysNetSim.batterySaver;
+    battSaver.textContent = `Battery saver: ${sysNetSim.batterySaver ? "On" : "Off"}`;
+    document.documentElement.dataset.batterySaver = sysNetSim.batterySaver ? "1" : "0";
+  };
+
+  // ====== NAV BUTTONS ======
+  btnNet.onclick  = () => showView("net");
+  btnBt.onclick   = () => showView("bt");
+  btnLat.onclick  = () => showView("lat");
+  btnBatt.onclick = () => showView("batt");
+
+  // ====== BOOT ======
+  renderWifiList();
+  setVolume(parseInt(volSlider.value, 10));
+  setBrightness(parseInt(briSlider.value, 10));
+  setLatency(parseInt(pingSlider.value, 10));
+  syncBluetoothUI();
+  initBattery();
+  probeDefaultWifiState();
+  applyConnectivityState();
+
+  // Optional: expose a tiny toggle hook if you open panel from taskbar
+  window.toggleNetworkPanel = function () {
+    panel.style.display = (panel.style.display === "none" || !panel.style.display) ? "block" : "none";
+    showView("main");
+  };
 
   // After inserting the pill into the taskbar:
   const pill = document.querySelector(".taskbar-battery-pill");

@@ -1925,6 +1925,40 @@
     display: none;
 }
 
+.taskbar-battery-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+
+  background: linear-gradient(
+    135deg,
+    #7b5cff,
+    #c77dff,
+    #ff6ec7
+  );
+
+  box-shadow:
+    0 0 6px rgba(199,125,255,0.6),
+    inset 0 0 4px rgba(255,255,255,0.25);
+
+  font-size: 11px;
+  font-weight: 500;
+  color: white;
+  user-select: none;
+}
+
+.battery-icon {
+  display: flex;
+  align-items: center;
+}
+
+.battery-text {
+  min-width: 28px;
+  text-align: right;
+}
+
   </style>
   <style id="theme-style"></style>
 </head>
@@ -2048,6 +2082,33 @@
         <span id="user-chip-name">User</span>
       </div>
       <div class="taskbar-network" id="taskbar-network" style="cursor:pointer;">
+        <div class="taskbar-battery-pill">
+          <div class="battery-icon">
+            <svg width="22" height="12" viewBox="0 0 22 12">
+              <!-- Battery body -->
+              <rect x="0.5" y="0.5" width="18" height="11" rx="3"
+                    fill="none" stroke="white" stroke-width="1"/>
+
+              <!-- Battery cap -->
+              <rect x="18.5" y="4" width="3" height="4" rx="1"
+                            fill="white"/>
+
+                      <!-- Battery fill (set width dynamically) -->
+                      <rect id="battery-fill"
+                            x="2" y="2" width="12" height="8" rx="2"
+                            fill="white"/>
+
+              <!-- Charging bolt (toggle visibility) -->
+                    <path id="battery-bolt"
+                          d="M10 2 L7 7 H10 L8 10 L14 5 H11 Z"
+                          fill="black"
+                          style="display:none"/>
+            </svg>
+          </div>
+
+          <div class="battery-text">87%</div>
+        </div>
+
         <svg id="network-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M2 20h20M6 16h12M10 12h4M12 8h0" />
         </svg>
@@ -10093,6 +10154,27 @@ function runProgress(bar) {
     renderNewsPreview(list[0]);
   }
 
+async function initTaskbarBattery(pillEl) {
+  if (!navigator.getBattery) return;
+
+  const batt = await navigator.getBattery();
+  const fill = pillEl.querySelector("#battery-fill");
+  const bolt = pillEl.querySelector("#battery-bolt");
+  const text = pillEl.querySelector(".battery-text");
+
+  function update() {
+    const pct = Math.round(batt.level * 100);
+    const maxFill = 14; // inner width
+    fill.setAttribute("width", Math.max(2, (pct / 100) * maxFill));
+    text.textContent = pct + "%";
+    bolt.style.display = batt.charging ? "block" : "none";
+  }
+
+  batt.addEventListener("levelchange", update);
+  batt.addEventListener("chargingchange", update);
+  update();
+}
+
   function renderNewsPreview(item) {
     const previewEl = document.getElementById("news-preview");
     if (!item) return;
@@ -10935,6 +11017,7 @@ function createDefenderApp() {
 
       /* initial */
       function initialSetup(){
+        initTaskbarBattery(document.querySelector(".taskbar-battery-pill"));
         createDefenderApp();
         createFullCMDApp();
         initWidgetsSystem(currentUser);

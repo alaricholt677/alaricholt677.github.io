@@ -6000,9 +6000,40 @@ async function renderBrowserView(url) {
 
 function openFile(entry, chooseApp) {
   const ext = (entry.ext || "").toLowerCase();
+
+  // ============================================================
+  // 1. SHORTCUT RESOLVER ALWAYS COMES FIRST — LIKE WINDOWS
+  // ============================================================
+  if (ext === ".lnk") {
+    try {
+      const data = JSON.parse(entry.content);
+      const target = data.target;
+
+      const parts = target.split("/");
+      const name = parts.pop();
+      const path = parts.join("/") || "/";
+
+      const u = currentUser();
+      const real = u.fs.find(f => f.path === path && f.name === name);
+
+      if (!real) {
+        aiMsg("ai", `Shortcut target not found: ${target}`);
+        return;
+      }
+
+      return openFile(real, false);
+    } catch {
+      aiMsg("ai", "Invalid shortcut file.");
+      return;
+    }
+  }
+
+  // ============================================================
+  // 2. GET DEFAULT APP FOR EXTENSION
+  // ============================================================
   let app = defaultAppForExt(ext);
 
-  // Cycle through apps if "Open with..." was chosen
+  // Cycle app when "Open with..." is used
   if (chooseApp) {
     if (app === "notepad") app = "paint";
     else if (app === "paint") app = "media";
@@ -6011,57 +6042,331 @@ function openFile(entry, chooseApp) {
     else app = "notepad";
   }
 
-  // === Handle each app type ===
+  // ============================================================
+  // 3. APP ROUTING
+  // ============================================================
+
+  // NOTEPAD (text-like)
   if (app === "notepad") {
     openInNotepad(entry);
+    return;
+  }
 
-  } else if (app === "browser" && (ext === ".html" || ext === ".htm" || ext === ".txt" || ext === ".md" || ext === ".log" || ext===".png" || ext===".svg" || ext===".xml" || ext===".js" || ext===".css" || ext===".jpg" || ext===".json")) {
+  // BROWSER (text, html, code, images)
+  if (
+    app === "browser" &&
+    (ext === ".html" || ext === ".htm" || ext === ".txt" || ext === ".md" ||
+     ext === ".log"  || ext === ".png" || ext === ".svg" || ext === ".xml" ||
+     ext === ".js"   || ext === ".css" || ext === ".jpg" || ext === ".json")
+  ) {
     showWindow("browser");
     openInBrowser(entry);
+    return;
+  }
 
-  } else if (app === "host" && ext === ".exe") {
+  // EXE (Host.exe)
+  if (app === "host" && ext === ".exe") {
     runExe(entry);
+    return;
+  }
 
-  } else if (app === "settings" && ext === ".css") {
+  // SETTINGS (CSS theme import)
+  if (app === "settings" && ext === ".css") {
     showWindow("settings");
     if (themeCssInput) {
-      themeCssInput.value = `/* from ${entry.name} */\n` + (themeCssInput.value || "");
+      themeCssInput.value =
+        `/* from ${entry.name} */\n` + (themeCssInput.value || "");
     }
+    return;
+  }
 
-  } else if (app === "paint" && (ext === ".png" || ext === ".jpg" || ext === ".jpeg" || ext === ".gif")) {
+  // PAINT (images)
+  if (
+    app === "paint" &&
+    (ext === ".png" || ext === ".jpg" || ext === ".jpeg" || ext === ".gif")
+  ) {
     showWindow("paint");
     renderImageInPaint(entry);
+    return;
+  }
 
-  } else if (app === "media" && (ext === ".mp4" || ext === ".webm" || ext === ".mp3" || ext === ".wav" || ext === ".ogg")) {
+  // MEDIA PLAYER (video, audio)
+  if (
+    app === "media" &&
+    (ext === ".mp4" || ext === ".webm" || ext === ".mp3" ||
+     ext === ".wav" || ext === ".ogg")
+  ) {
     showWindow("media");
     renderMediaInPlayer(entry);
-  } else if (app === "cmd" && (ext === ".cmd" || ext === ".bat")) {
-      showWindow("cmd");
-
-      // optional: auto-run script after opening CMD
-      const u = currentUser();
-      const f = u.fs.find(e => e.path === entry.path && e.name === entry.name);
-
-      if (f && typeof window.runVirtualScript === "function") {
-            const win = windowsMap["cmd"];
-            const container = win.querySelector("#cmd-core");
-
-            // wait for MiniCMD initialization
-            setTimeout(() => {
-                  if (window.cmdInstances && window.cmdInstances["cmd_main"]) {
-                        const inst = window.cmdInstances["cmd_main"];
-                        inst.print(`Executing ${entry.name}...`);
-                        window.runVirtualScript(f.content, inst.print, inst.run);
-                  }
-            }, 60);
-      }
-  } else {
-    // Fallback for unsupported types
-    showWindow("assistant");
-    aiMsg("ai", `I would open "${entry.name}" with app "${app}" in a fuller build. Here I log it instead.`);
+    return;
   }
-}
 
+  // CMD / BAT / SCRIPT FILES
+  if (app === "cmd" && (ext === ".cmd" || ext === ".bat")) {
+    showWindow("cmd");
+
+    const u = currentUser();
+    const f = u.fs.find(e => e.path === entry.path && e.name === entry.name);
+
+    if (f && typeof window.runVirtualScript === "function") {
+      const win = windowsMap["cmd"];
+      const container = win.querySelector("#cmd-core");
+
+      setTimeout(() => {
+        if (window.cmdInstances && window.cmdInstances["cmd_main"]) {
+          const inst = window.cmdInstances["cmd_main"];
+          inst.print(`Executing ${entry.name}...`);
+          window.runVirtualScript(f.content, inst.print, inst.run);
+        }
+      }, 60);
+    }
+
+    return;
+  }
+
+  // ============================================================
+  // 4. FALLBACK — OPEN IN ASSISTANT
+  // ============================================================
+  showWindow("assistant");
+  aiMsg(
+    "ai",
+    `I would open "${entry.name}" with the "${app}" app in a fuller build. Here I log it instead.`
+  );
+}
+function openShortcutWizard(targetEntry) {
+  const win = document.createElement("div");
+  win.className = "window";
+  win.dataset.app = "shortcut-wizard";
+
+  win.innerHTML = `
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-main">Create Shortcut</div>
+        <div class="window-title-sub">Choose location</div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+
+    <div class="window-body" style="padding:12px;font-size:12px;">
+      
+      <div id="sw-step1">
+        <div style="margin-bottom:6px;">Type the location of the item:</div>
+        <input id="sw-path" style="
+          width:100%;padding:6px;border-radius:6px;
+          border:1px solid rgba(255,255,255,0.25);
+          background:#0b1020;color:white;
+        ">
+
+        <div style="margin-top:8px;text-align:right;">
+          <button class="button-small" id="sw-browse">Browse…</button>
+          <button class="button-small" id="sw-next">Next</button>
+        </div>
+      </div>
+
+      <div id="sw-step2" style="display:none;">
+        <div style="margin-bottom:6px;">Type a name for this shortcut:</div>
+        <input id="sw-name" style="
+          width:100%;padding:6px;border-radius:6px;
+          border:1px solid rgba(255,255,255,0.25);
+          background:#0b1020;color:white;
+        ">
+
+        <div style="margin-top:8px;text-align:right;">
+          <button class="button-small" id="sw-create">Create</button>
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  document.body.appendChild(win);
+  enableWindowControls(win);
+
+  const step1 = win.querySelector("#sw-step1");
+  const step2 = win.querySelector("#sw-step2");
+
+  const pathInput = win.querySelector("#sw-path");
+  const nameInput = win.querySelector("#sw-name");
+
+  // Auto-fill if the user clicked a file
+  if (targetEntry)
+    pathInput.value = `${targetEntry.path}/${targetEntry.name}`;
+
+  // Browse just opens Explorer
+  win.querySelector("#sw-browse").onclick = () => {
+    showWindow("explorer");
+    aiMsg("ai", "Browse to your target file and copy the path into the wizard.");
+  };
+
+  // Next button
+  win.querySelector("#sw-next").onclick = () => {
+    const value = pathInput.value.trim();
+    if (!value) return alert("Enter a valid path.");
+
+    step1.style.display = "none";
+    step2.style.display = "block";
+
+    // Suggested filename
+    nameInput.value = value.split("/").pop() + ".lnk";
+  };
+
+  // Create Shortcut
+  win.querySelector("#sw-create").onclick = () => {
+    const target = pathInput.value.trim();
+    const name = nameInput.value.trim();
+
+    if (!name || !target) {
+      alert("Missing information.");
+      return;
+    }
+
+    updateCurrentUser(u => ({
+      ...u,
+      fs: [
+        ...u.fs,
+        {
+          path: "/desktop", // create shortcut on desktop
+          name,
+          type: "file",
+          ext: ".lnk",
+          content: JSON.stringify({ target })
+        }
+      ]
+    }));
+
+    alert(`Shortcut '${name}' created on desktop.`);
+    win.remove();
+  };
+
+  win.querySelector(".window-btn.close").onclick = () => win.remove();
+}
+  if (!ctx) return;
+
+  const item = document.createElement("div");
+  item.className = "ctx-item";
+  item.dataset.action = "createShortcut";
+  item.innerHTML = `<span>Create shortcut</span>`;
+  ctx.appendChild(item);
+
+  ctx.addEventListener("click", (e) => {
+    const btn = e.target.closest(".ctx-item");
+    if (!btn) return;
+    if (btn.dataset.action === "createShortcut") {
+      openShortcutWizard(ctxTargetEntry);
+    }
+  });
+
+function openShortcutWizard(targetEntry) {
+  const win = document.createElement("div");
+  win.className = "window";
+  win.dataset.app = "shortcut-wizard";
+
+  win.innerHTML = `
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-main">Create Shortcut</div>
+        <div class="window-title-sub">Choose location</div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+
+    <div class="window-body" style="padding:12px;font-size:12px;">
+      
+      <div id="sw-step1">
+        <div style="margin-bottom:6px;">Type the location of the item:</div>
+        <input id="sw-path" style="
+          width:100%;padding:6px;border-radius:6px;
+          border:1px solid rgba(255,255,255,0.25);
+          background:#0b1020;color:white;
+        ">
+
+        <div style="margin-top:8px;text-align:right;">
+          <button class="button-small" id="sw-browse">Browse…</button>
+          <button class="button-small" id="sw-next">Next</button>
+        </div>
+      </div>
+
+      <div id="sw-step2" style="display:none;">
+        <div style="margin-bottom:6px;">Type a name for this shortcut:</div>
+        <input id="sw-name" style="
+          width:100%;padding:6px;border-radius:6px;
+          border:1px solid rgba(255,255,255,0.25);
+          background:#0b1020;color:white;
+        ">
+
+        <div style="margin-top:8px;text-align:right;">
+          <button class="button-small" id="sw-create">Create</button>
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  document.body.appendChild(win);
+  enableWindowControls(win);
+
+  const step1 = win.querySelector("#sw-step1");
+  const step2 = win.querySelector("#sw-step2");
+
+  const pathInput = win.querySelector("#sw-path");
+  const nameInput = win.querySelector("#sw-name");
+
+  // Auto-fill if the user clicked a file
+  if (targetEntry)
+    pathInput.value = `${targetEntry.path}/${targetEntry.name}`;
+
+  // Browse just opens Explorer
+  win.querySelector("#sw-browse").onclick = () => {
+    showWindow("explorer");
+    aiMsg("ai", "Browse to your target file and copy the path into the wizard.");
+  };
+
+  // Next button
+  win.querySelector("#sw-next").onclick = () => {
+    const value = pathInput.value.trim();
+    if (!value) return alert("Enter a valid path.");
+
+    step1.style.display = "none";
+    step2.style.display = "block";
+
+    // Suggested filename
+    nameInput.value = value.split("/").pop() + ".lnk";
+  };
+
+  // Create Shortcut
+  win.querySelector("#sw-create").onclick = () => {
+    const target = pathInput.value.trim();
+    const name = nameInput.value.trim();
+
+    if (!name || !target) {
+      alert("Missing information.");
+      return;
+    }
+
+    updateCurrentUser(u => ({
+      ...u,
+      fs: [
+        ...u.fs,
+        {
+          path: "/desktop", // create shortcut on desktop
+          name,
+          type: "file",
+          ext: ".lnk",
+          content: JSON.stringify({ target })
+        }
+      ]
+    }));
+
+    alert(`Shortcut '${name}' created on desktop.`);
+    win.remove();
+  };
+
+  win.querySelector(".window-btn.close").onclick = () => win.remove();
+}
 
 function renderImageInPaint(entry) {
   if (!paintCanvas || !entry.content) {

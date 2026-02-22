@@ -10684,8 +10684,137 @@ document.querySelectorAll(".window").forEach(win => {
   }
 
 });
+
+function createDefenderApp() {
+
+  // === CREATE WINDOW ===
+  const defWin = document.createElement("div");
+  defWin.className = "window";
+  defWin.id = "window-defender";
+  defWin.dataset.app = "defender";
+  defWin.dataset.appDesc = "[MS Defender 12] System security and telemetry dashboard.";
+
+  defWin.innerHTML = `
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-icon" style="background:linear-gradient(135deg,#2ea3ff,#5bc5ff);"></div>
+        <div class="window-title-text">
+          <div class="window-title-main">[MS Defender 12]</div>
+          <div class="window-title-sub">System monitor & protections</div>
+        </div>
+        <div class="window-fullscreen-toggle">[ ]</div>
+        <div class="window-info-icon">(i)</div>
+        <div class="window-info-tooltip">System security dashboard</div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+
+    <div class="window-body" style="display:flex;height:100%;">
+
+      <!-- SIDEBAR -->
+      <div id="defender-sidebar"
+        style="width:180px;background:rgba(8,12,26,0.98);border-right:1px solid rgba(255,255,255,0.15);
+               display:flex;flex-direction:column;padding:8px;">
+
+        <button id="def-hamburger"
+          style="margin-bottom:10px;padding:6px;border-radius:6px;background:#111;color:white;">
+          ☰
+        </button>
+
+        <div class="def-side-label" style="font-size:11px;margin-bottom:6px;color:#6aa9ff;">STATUS</div>
+
+        <div id="def-time"   style="font-size:11px;margin-bottom:6px;">Time: --:--</div>
+        <div id="def-batt"   style="font-size:11px;margin-bottom:6px;">Battery: --%</div>
+        <div id="def-wifi"   style="font-size:11px;margin-bottom:6px;">WiFi: Unknown</div>
+        <div id="def-ping"   style="font-size:11px;margin-bottom:6px;">Ping: -- ms</div>
+
+        <div class="def-side-label" style="font-size:11px;margin:10px 0 6px;color:#6aa9ff;">TASKS</div>
+        <div id="def-tasks" style="font-size:11px;">No active tasks.</div>
+
+        <div class="def-side-label" style="font-size:11px;margin:10px 0 6px;color:#6aa9ff;">DEVICES</div>
+        <button id="def-bluetooth" class="button-small">Connect Bluetooth</button>
+
+      </div>
+
+      <!-- MAIN AREA -->
+      <div id="defender-main"
+        style="flex:1;padding:12px;display:flex;flex-direction:column;gap:10px;overflow:auto;">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:14px;color:#77c3ff;">MS Defender 12 Dashboard</div>
+          <button id="def-refresh" class="button-small">Refresh data</button>
+        </div>
+
+        <div id="def-overview"
+          style="padding:10px;border:1px solid rgba(255,255,255,0.12);border-radius:8px;">
+          <div style="font-size:13px;margin-bottom:6px;color:#6aa9ff;">Overview</div>
+          <div>Monthly stats will load here from <b>/documents/data/msdefender12.json</b></div>
+        </div>
+
+        <div id="def-network"
+          style="padding:10px;border:1px solid rgba(255,255,255,0.12);border-radius:8px;">
+          <div style="font-size:13px;margin-bottom:6px;color:#6aa9ff;">Network History</div>
+          <div id="def-net-list" style="font-size:11px;">No history yet.</div>
+        </div>
+
+      </div>
+
+    </div>
+  `;
+
+  document.body.appendChild(defWin);
+  windowsMap["defender"] = defWin;
+
+  // === CREATE START MENU TILE ===
+  const startGrid = document.getElementById("start-pinned-grid");
+  const tile = document.createElement("div");
+  tile.className = "start-app";
+  tile.dataset.app = "defender";
+  tile.innerHTML = `
+    <div class="start-app-icon" style="background:linear-gradient(135deg,#2ea3ff,#5bc5ff);"></div>
+    <div>MS Defender 12</div>
+    <div class="start-app-sub">Security & Monitor</div>
+  `;
+  startGrid.appendChild(tile);
+  tile.addEventListener("click", () => showWindow("defender"));
+
+  // === TASKBAR BUTTON ===
+  const taskbarStrip = document.querySelector(".taskbar-app-strip");
+  const bar = document.createElement("div");
+  bar.className = "taskbar-app";
+  bar.dataset.app = "defender";
+  bar.title = "MS Defender 12";
+  taskbarStrip.appendChild(bar);
+
+  bar.addEventListener("click", () => {
+    if (defWin.classList.contains("visible")) hideWindow("defender");
+    else showWindow("defender");
+  });
+
+  // === MAKE WINDOW USABLE ===
+  enableWindowControls(defWin);
+
+  // === PLACEHOLDER CLICK EVENTS ===
+  defWin.querySelector("#def-refresh").onclick = () => {
+    aiMsg("ai", "[MS Defender 12] Refresh requested (logic coming later).");
+  };
+
+  defWin.querySelector("#def-bluetooth").onclick = () => {
+    aiMsg("ai", "[MS Defender 12] Bluetooth scan requested (logic coming later).");
+  };
+
+  defWin.querySelector("#def-hamburger").onclick = () => {
+    const sb = defWin.querySelector("#defender-sidebar");
+    sb.style.width = sb.style.width === "50px" ? "180px" : "50px";
+  };
+}
+
       /* initial */
       function initialSetup(){
+        createDefenderApp();
         createFullCMDApp();
         initWidgetsSystem(currentUser);
         initTaskManager();
@@ -10693,8 +10822,9 @@ document.querySelectorAll(".window").forEach(win => {
         createRunWindow();
         refreshAll();
         hideLogin();
-        showWindow("explorer");
         showWindow("notes");
+        showWindow("AIM OS");
+        aiMsg("ai", "Hello Kind Traveler, If You Mind, Sense You Stumbled On My Project, Can You Star And Do Everything Needed To Make Someone popular.");
       }
 
       initialSetup();

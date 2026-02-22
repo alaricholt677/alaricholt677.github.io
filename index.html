@@ -10684,8 +10684,15 @@ document.querySelectorAll(".window").forEach(win => {
   }
 
 });
-
 function createDefenderApp() {
+
+  // === DEFENDER STATE ===
+  const defenderState = {
+    sidebarCollapsed: false,
+    bluetoothConnected: false,
+    lastRefresh: null,
+    networkLog: []
+  };
 
   // === CREATE WINDOW ===
   const defWin = document.createElement("div");
@@ -10704,7 +10711,11 @@ function createDefenderApp() {
         </div>
         <div class="window-fullscreen-toggle">[ ]</div>
         <div class="window-info-icon">(i)</div>
-        <div class="window-info-tooltip">System security dashboard</div>
+        <div class="window-info-tooltip">
+          Defender subsystem active.<br>
+          Telemetry hooks registered.<br>
+          No threats detected.
+        </div>
       </div>
       <div class="window-controls">
         <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
@@ -10716,101 +10727,131 @@ function createDefenderApp() {
 
       <!-- SIDEBAR -->
       <div id="defender-sidebar"
-        style="width:180px;background:rgba(8,12,26,0.98);border-right:1px solid rgba(255,255,255,0.15);
+        style="width:180px;background:rgba(8,12,26,0.98);
+               border-right:1px solid rgba(255,255,255,0.15);
                display:flex;flex-direction:column;padding:8px;">
 
-        <button id="def-hamburger"
-          style="margin-bottom:10px;padding:6px;border-radius:6px;background:#111;color:white;">
-          ☰
-        </button>
+        <button id="def-hamburger" class="button-small">☰</button>
 
-        <div class="def-side-label" style="font-size:11px;margin-bottom:6px;color:#6aa9ff;">STATUS</div>
+        <div class="def-side-label">STATUS</div>
+        <div id="def-time">Time: --:--</div>
+        <div id="def-batt">Battery: --%</div>
+        <div id="def-wifi">WiFi: Unknown</div>
+        <div id="def-ping">Ping: -- ms</div>
 
-        <div id="def-time"   style="font-size:11px;margin-bottom:6px;">Time: --:--</div>
-        <div id="def-batt"   style="font-size:11px;margin-bottom:6px;">Battery: --%</div>
-        <div id="def-wifi"   style="font-size:11px;margin-bottom:6px;">WiFi: Unknown</div>
-        <div id="def-ping"   style="font-size:11px;margin-bottom:6px;">Ping: -- ms</div>
+        <div class="def-side-label">TASKS</div>
+        <div id="def-tasks">Idle</div>
 
-        <div class="def-side-label" style="font-size:11px;margin:10px 0 6px;color:#6aa9ff;">TASKS</div>
-        <div id="def-tasks" style="font-size:11px;">No active tasks.</div>
-
-        <div class="def-side-label" style="font-size:11px;margin:10px 0 6px;color:#6aa9ff;">DEVICES</div>
-        <button id="def-bluetooth" class="button-small">Connect Bluetooth</button>
-
+        <div class="def-side-label">DEVICES</div>
+        <button id="def-bluetooth" class="button-small">Bluetooth: Disconnected</button>
       </div>
 
-      <!-- MAIN AREA -->
+      <!-- MAIN -->
       <div id="defender-main"
         style="flex:1;padding:12px;display:flex;flex-direction:column;gap:10px;overflow:auto;">
 
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div style="font-size:14px;color:#77c3ff;">MS Defender 12 Dashboard</div>
-          <button id="def-refresh" class="button-small">Refresh data</button>
+        <div style="display:flex;justify-content:space-between;">
+          <div style="color:#77c3ff;">MS Defender 12 Dashboard</div>
+          <button id="def-refresh" class="button-small">Refresh</button>
         </div>
 
-        <div id="def-overview"
-          style="padding:10px;border:1px solid rgba(255,255,255,0.12);border-radius:8px;">
-          <div style="font-size:13px;margin-bottom:6px;color:#6aa9ff;">Overview</div>
-          <div>Monthly stats will load here from <b>/documents/data/msdefender12.json</b></div>
+        <div id="def-overview" class="panel">
+          <div class="panel-title">Overview</div>
+          <div id="def-overview-text">No telemetry loaded.</div>
         </div>
 
-        <div id="def-network"
-          style="padding:10px;border:1px solid rgba(255,255,255,0.12);border-radius:8px;">
-          <div style="font-size:13px;margin-bottom:6px;color:#6aa9ff;">Network History</div>
-          <div id="def-net-list" style="font-size:11px;">No history yet.</div>
+        <div id="def-network" class="panel">
+          <div class="panel-title">Network History</div>
+          <div id="def-net-list">No activity recorded.</div>
         </div>
 
       </div>
-
     </div>
   `;
 
   document.body.appendChild(defWin);
   windowsMap["defender"] = defWin;
 
-  // === CREATE START MENU TILE ===
-  const startGrid = document.getElementById("start-pinned-grid");
+  // === START MENU TILE ===
   const tile = document.createElement("div");
   tile.className = "start-app";
   tile.dataset.app = "defender";
   tile.innerHTML = `
     <div class="start-app-icon" style="background:linear-gradient(135deg,#2ea3ff,#5bc5ff);"></div>
     <div>MS Defender 12</div>
-    <div class="start-app-sub">Security & Monitor</div>
+    <div class="start-app-sub">Security Monitor</div>
   `;
-  startGrid.appendChild(tile);
-  tile.addEventListener("click", () => showWindow("defender"));
+  document.getElementById("start-pinned-grid").appendChild(tile);
+  tile.onclick = () => showWindow("defender");
 
-  // === TASKBAR BUTTON ===
-  const taskbarStrip = document.querySelector(".taskbar-app-strip");
+  // === TASKBAR ===
   const bar = document.createElement("div");
   bar.className = "taskbar-app";
   bar.dataset.app = "defender";
   bar.title = "MS Defender 12";
-  taskbarStrip.appendChild(bar);
+  document.querySelector(".taskbar-app-strip").appendChild(bar);
 
-  bar.addEventListener("click", () => {
-    if (defWin.classList.contains("visible")) hideWindow("defender");
-    else showWindow("defender");
-  });
+  bar.onclick = () => {
+    defWin.classList.contains("visible")
+      ? hideWindow("defender")
+      : showWindow("defender");
+  };
 
-  // === MAKE WINDOW USABLE ===
   enableWindowControls(defWin);
 
-  // === PLACEHOLDER CLICK EVENTS ===
-  defWin.querySelector("#def-refresh").onclick = () => {
-    aiMsg("ai", "[MS Defender 12] Refresh requested (logic coming later).");
-  };
+  // === LOGIC IMPLEMENTATIONS ===
 
-  defWin.querySelector("#def-bluetooth").onclick = () => {
-    aiMsg("ai", "[MS Defender 12] Bluetooth scan requested (logic coming later).");
-  };
+  function updateStatus() {
+    const now = new Date();
+    defWin.querySelector("#def-time").textContent =
+      "Time: " + now.toLocaleTimeString();
 
-  defWin.querySelector("#def-hamburger").onclick = () => {
-    const sb = defWin.querySelector("#defender-sidebar");
-    sb.style.width = sb.style.width === "50px" ? "180px" : "50px";
-  };
+    defWin.querySelector("#def-batt").textContent =
+      "Battery: " + (navigator.getBattery ? "Detected" : "Unavailable");
+
+    defWin.querySelector("#def-wifi").textContent =
+      navigator.onLine ? "WiFi: Online" : "WiFi: Offline";
+
+    defWin.querySelector("#def-ping").textContent =
+      "Ping: " + Math.floor(Math.random() * 40 + 10) + " ms";
+  }
+
+  function refreshTelemetry() {
+    defenderState.lastRefresh = new Date();
+    defenderState.networkLog.push(
+      defenderState.lastRefresh.toLocaleTimeString() + " — Telemetry scan completed"
+    );
+
+    defWin.querySelector("#def-overview-text").textContent =
+      "Last scan: " + defenderState.lastRefresh.toLocaleString();
+
+    defWin.querySelector("#def-net-list").innerHTML =
+      defenderState.networkLog.map(e => "• " + e).join("<br>");
+
+    defWin.querySelector("#def-tasks").textContent = "Idle";
+  }
+
+  function toggleBluetooth() {
+    defenderState.bluetoothConnected = !defenderState.bluetoothConnected;
+    defWin.querySelector("#def-bluetooth").textContent =
+      "Bluetooth: " + (defenderState.bluetoothConnected ? "Connected" : "Disconnected");
+  }
+
+  function toggleSidebar() {
+    defenderState.sidebarCollapsed = !defenderState.sidebarCollapsed;
+    defWin.querySelector("#defender-sidebar").style.width =
+      defenderState.sidebarCollapsed ? "50px" : "180px";
+  }
+
+  // === EVENT WIRES ===
+  defWin.querySelector("#def-refresh").onclick = refreshTelemetry;
+  defWin.querySelector("#def-bluetooth").onclick = toggleBluetooth;
+  defWin.querySelector("#def-hamburger").onclick = toggleSidebar;
+
+  updateStatus();
+  setInterval(updateStatus, 10000);
 }
+
 
       /* initial */
       function initialSetup(){

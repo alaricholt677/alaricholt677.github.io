@@ -11013,7 +11013,31 @@ function createDefenderApp() {
   setInterval(updateStatus, 10000);
   initBattery();
 }
+  function initTaskbarBattery(pillEl) {
+    if (!navigator.getBattery) return;
 
+    navigator.getBattery().then(batt => {
+      const fill = pillEl.querySelector("#battery-fill");
+      const bolt = pillEl.querySelector("#battery-bolt");
+      const text = pillEl.querySelector(".battery-text");
+
+      function update() {
+        const pct = Math.round(batt.level * 100);
+        const maxFill = 14; // inner width
+        fill.setAttribute("width", Math.max(2, (pct / 100) * maxFill));
+        text.textContent = pct + "%";
+        bolt.style.display = batt.charging ? "block" : "none";
+      }
+
+      batt.addEventListener("levelchange", update);
+      batt.addEventListener("chargingchange", update);
+      update();
+    });
+  }
+
+  // After inserting the pill into the taskbar:
+  const pill = document.querySelector(".taskbar-battery-pill");
+  if (pill) initTaskbarBattery(pill);
 
       /* initial */
       function initialSetup(){

@@ -11529,9 +11529,391 @@ function createDefenderApp() {
   // After inserting the pill into the taskbar:
   const pill = document.querySelector(".taskbar-battery-pill");
   if (pill) initTaskbarBattery(pill);
+// =====================================================
+// Explorer Tabs: single init function, self-looping, idempotent
+// =====================================================
 
+function initExplorerTabs() {
+  // ---------- CONFIG ----------
+  const LOOP_MS = 500;                   // how often to re-check / re-bind
+  const MIN_TAB_PATH = "/desktop";
+  const STATE_KEY = "__explorerTabsState"; // stored on window so it persists
+
+  // ---------- GLOBAL STATE ----------
+  // Keep everything in one place; safe across reinits.
+  const S = window[STATE_KEY] || (window[STATE_KEY] = {
+    bound: false,
+    uiInjected: false,
+    tabs: [],
+    activeId: null,
+    // to avoid double-binding handlers
+    handlers: {},
+  });
+
+  // ---------- HELPERS ----------
+  const $ = (sel) => document.querySelector(sel);
+
+  function logOnce(msg) {
+    // optional debug; comment out if you don't want logs
+    // console.log("[ExplorerTabs]", msg);
+  }
+
+  function ensureWindowsMap() {
+    // Some builds store windows in windowsMap; not required, but we avoid crashing if missing.
+    return typeof window.windowsMap === "object" && window.windowsMap;
+  }
+
+  function getExplorerWindow() {
+    return $("#window-explorer");
+  }
+
+  function getExplorerBody() {
+    const win = getExplorerWindow();
+    return win ? win.querySelector(".window-body") : null;
+  }
+
+  function labelFromPath(path) {
+    if (!path || path === "/") return "This PC";
+    const parts = path.split("/").filter(Boolean);
+    return parts[parts.length - 1] || path;
+  }
+
+  function makeId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+
+  function ensureUI() {
+    const body = getExplorerBody();
+    if (!body) return false;
+
+    if ($("#explorer-tabs-bar")) {
+      S.uiInjected = true;
+      return true;
+    }
+
+    // Inject tabs bar at top of Explorer body
+    const bar = document.createElement("div");
+    bar.id = "explorer-tabs-bar";
+    bar.style.display = "flex";
+    bar.style.alignItems = "center";
+    bar.style.gap = "6px";
+    bar.style.padding = "6px 8px";
+    bar.style.borderBottom = "1px solid rgba(255,255,255,0.12)";
+    bar.style.background = "rgba(8,10,26,0.55)";
+    bar.style.position = "relative";
+    bar.style.zIndex = "2";
+
+    const strip = document.createElement("div");
+    strip.id = "explorer-tabs";
+    strip.style.display = "flex";
+    strip.style.gap = "6px";
+    strip.style.flex = "1";
+    strip.style.overflowX = "auto";
+    strip.style.paddingBottom = "2px";
+
+    const plus = document.createElement("button");
+    plus.id = "explorer-tab-plus";
+    plus.className = "button-small";
+    plus.textContent = "+";
+    plus.style.borderRadius = "999px";
+    plus.style.padding = "2px 10px";
+    plus.title = "New tab";
+
+    bar.appendChild(strip);
+    bar.appendChild(plus);
+
+    body.insertBefore(bar, body.firstChild);
+
+    S.uiInjected = true;
+    logOnce("UI injected");
+    return true;
+  }
+
+  function renderTabs() {
+    const strip = $("#explorer-tabs");
+    const plus = $("#explorer-tab-plus");
+    if (!strip || !plus) return;
+
+    strip.innerHTML = "";
+
+    S.tabs.forEach((tab) => {
+      const pill = document.createElement("div");
+      pill.className = "explorer-tab-pill";
+      pill.dataset.id = tab.id;
+      pill.style.display = "flex";
+      pill.style.alignItems = "center";
+      pill.style.gap = "6px";
+      pill.style.padding = "4px 10px";
+      pill.style.borderRadius = "999px";
+      pill.style.border = "1px solid rgba(255,255,255,0.18)";
+      pill.style.cursor = "pointer";
+      pill.style.userSelect = "none";
+      pill.style.whiteSpace = "nowrap";
+      pill.style.maxWidth = "180px";
+      pill.style.overflow = "hidden";
+      pill.style.textOverflow = "ellipsis";
+
+      const isActive = tab.id === S.activeId;
+      pill.style.background = isActive ? "rgba(76,141,255,0.35)" : "rgba(8,10,26,0.85)";
+
+      const label = document.createElement("span");
+      label.textContent = labelFromPath(tab.path);
+
+      const x = document.createElement("span");
+      x.textContent = "×";
+      x.style.opacity = "0.75";
+      x.style.fontSize = "12px";
+      x.style.cursor = "pointer";
+
+      x.addEventListener("click", (e) => {
+        e.stopPropagation();
+        closeTab(tab.id);
+      });
+
+      pill.addEventListener("click", () => setActiveTab(tab.id));
+
+      pill.appendChild(label);
+      pill.appendChild(x);
+      strip.appendChild(pill);
+    });
+
+    plus.onclick = () => newTab(MIN_TAB_PATH);
+  }
+
+  // --- Wrap renderExplorer so we can intercept navigation ---
+  function ensureExplorerHook() {
+    // If renderExplorer doesn't exist yet, wait.
+    if (typeof window.renderExplorer !== "function") return false;
+
+    // Avoid wrapping twice
+    if (window.renderExplorer.__tabsWrapped) return true;
+
+    const original = window.renderExplorer;
+
+    function wrappedRenderExplorer(path) {
+      // Call original first (so currentExplorerPath updates properly in your implementation)
+      const res = original.apply(this, arguments);
+
+      // Sync active tab path after render, if possible
+      if (S.activeId) {
+        const idx = S.tabs.findIndex(t => t.id === S.activeId);
+        if (idx !== -1) {
+          S.tabs[idx].path = path;
+          renderTabs();
+        }
+      }
+      return res;
+    }
+
+    wrappedRenderExplorer.__tabsWrapped = true;
+    wrappedRenderExplorer.__tabsOriginal = original;
+
+    window.renderExplorer = wrappedRenderExplorer;
+    logOnce("renderExplorer wrapped");
+    return true;
+  }
+
+  function openPath(path, opts = {}) {
+    const { silentTabUpdate = false, newTab: forceNewTab = false } = opts;
+
+    // Ensure a tab exists
+    if (!S.activeId || forceNewTab) {
+      newTab(path);
+      return;
+    }
+
+    // Update active tab unless silent
+    if (!silentTabUpdate) {
+      const idx = S.tabs.findIndex(t => t.id === S.activeId);
+      if (idx !== -1) S.tabs[idx].path = path;
+      renderTabs();
+    }
+
+    // Use real explorer renderer
+    if (typeof window.renderExplorer === "function") {
+      window.currentExplorerPath = path; // keep your global in sync
+      window.renderExplorer(path);
+    }
+  }
+
+  function newTab(path = MIN_TAB_PATH) {
+    const id = makeId();
+    S.tabs.push({ id, path });
+    S.activeId = id;
+    renderTabs();
+    openPath(path, { silentTabUpdate: true });
+  }
+
+  function closeTab(id) {
+    S.tabs = S.tabs.filter(t => t.id !== id);
+
+    if (S.activeId === id) {
+      S.activeId = S.tabs[0]?.id || null;
+    }
+
+    if (!S.activeId) {
+      newTab(MIN_TAB_PATH);
+      return;
+    }
+
+    renderTabs();
+    const active = S.tabs.find(t => t.id === S.activeId);
+    if (active) openPath(active.path, { silentTabUpdate: true });
+  }
+
+  function setActiveTab(id) {
+    const tab = S.tabs.find(t => t.id === id);
+    if (!tab) return;
+    S.activeId = id;
+    renderTabs();
+    openPath(tab.path, { silentTabUpdate: true });
+  }
+
+  // --- Bind navigation sources (sidebar/up/refresh/openLocation/cards) ---
+  function bindNavigation() {
+    // Avoid rebinding repeatedly
+    if (S.bound) return true;
+
+    // We need these elements to exist
+    const sidebar = window.explorerSidebar || $("#window-explorer .explorer-sidebar") || $(".explorer-sidebar");
+    const upBtn = window.explorerUpBtn || $("#explorer-up-btn") || $(".explorer-up");
+    const refreshBtn = window.explorerRefreshBtn || $("#explorer-refresh-btn") || $(".explorer-refresh");
+    const items = window.explorerItemsEl || $("#explorer-items") || $("#window-explorer .explorer-items");
+
+    // If your globals exist, great. If not, we can still bind by selectors if they match.
+    // But at minimum, Explorer window must exist:
+    if (!getExplorerWindow()) return false;
+
+    // Sidebar click => openPath(tab.dataset.path)
+    if (sidebar && !sidebar.__tabsBound) {
+      sidebar.addEventListener("click", (e) => {
+        const tab = e.target.closest(".explorer-tab");
+        if (!tab) return;
+        openPath(tab.dataset.path);
+      });
+      sidebar.__tabsBound = true;
+      logOnce("Sidebar bound");
+    }
+
+    // Up button
+    if (upBtn && !upBtn.__tabsBound) {
+      upBtn.addEventListener("click", () => {
+        const cur = window.currentExplorerPath || MIN_TAB_PATH;
+        if (cur === "/" || cur === "/desktop") return;
+        openPath("/");
+      });
+      upBtn.__tabsBound = true;
+      logOnce("Up bound");
+    }
+
+    // Refresh button
+    if (refreshBtn && !refreshBtn.__tabsBound) {
+      refreshBtn.addEventListener("click", () => {
+        const cur = window.currentExplorerPath || MIN_TAB_PATH;
+        openPath(cur, { silentTabUpdate: true });
+      });
+      refreshBtn.__tabsBound = true;
+      logOnce("Refresh bound");
+    }
+
+    // Intercept openLocation to use tabs
+    if (typeof window.openLocation === "function" && !window.openLocation.__tabsWrapped) {
+      const originalOpenLocation = window.openLocation;
+      window.openLocation = function(entry) {
+        try {
+          if (entry && entry.path) openPath(entry.path);
+          if (typeof window.showWindow === "function") window.showWindow("explorer");
+        } catch {}
+        return originalOpenLocation.apply(this, arguments);
+      };
+      window.openLocation.__tabsWrapped = true;
+      logOnce("openLocation wrapped");
+    }
+
+    // Folder cards: dblclick folder => openPath(newPath)
+    // We bind on the container with event delegation so it works for re-renders.
+    if (items && !items.__tabsBound) {
+      items.addEventListener("dblclick", (e) => {
+        const card = e.target.closest(".explorer-card");
+        if (!card) return;
+
+        // Try to infer entry from DOM; if your cards don't store metadata, fallback is no-op.
+        // Best: your code can set: card.dataset.type, card.dataset.target, card.dataset.path, card.dataset.name
+        const type = card.dataset.type;
+        if (type !== "folder") return;
+
+        const target = card.dataset.target;
+        const basePath = card.dataset.path;
+        const name = card.dataset.name;
+
+        if (target) openPath(target);
+        else if (basePath && name) openPath(basePath + "/" + name);
+      });
+
+      // Optional Ctrl+Click => new tab
+      items.addEventListener("click", (e) => {
+        if (!e.ctrlKey) return;
+        const card = e.target.closest(".explorer-card");
+        if (!card) return;
+        const type = card.dataset.type;
+        if (type !== "folder") return;
+
+        const target = card.dataset.target;
+        const basePath = card.dataset.path;
+        const name = card.dataset.name;
+
+        const next = target ? target : (basePath && name ? basePath + "/" + name : null);
+        if (next) openPath(next, { newTab: true });
+      });
+
+      items.__tabsBound = true;
+      logOnce("Cards bound");
+    }
+
+    S.bound = true;
+    return true;
+  }
+
+  // --- Ensure at least one tab exists ---
+  function ensureFirstTab() {
+    if (!S.tabs.length) {
+      newTab(MIN_TAB_PATH);
+      return true;
+    }
+    // If active missing, fix
+    if (!S.activeId || !S.tabs.find(t => t.id === S.activeId)) {
+      S.activeId = S.tabs[0].id;
+    }
+    renderTabs();
+    return true;
+  }
+
+  // ---------- MAIN LOOP ----------
+  // We run in a loop to handle dynamic UI creation, script replacement, user switching, etc.
+  try {
+    // 1) UI
+    ensureUI();
+
+    // 2) Hook renderExplorer (so any render updates active tab)
+    ensureExplorerHook();
+
+    // 3) Ensure tabs exist and render
+    if (S.uiInjected) ensureFirstTab();
+
+    // 4) Bind navigation sources once
+    bindNavigation();
+
+  } catch (err) {
+    // swallow errors so loop continues
+    // console.warn("[ExplorerTabs] init error", err);
+  }
+
+  // Loop itself forever
+  setTimeout(initExplorerTabs, LOOP_MS);
+}
       /* initial */
       function initialSetup(){
+        initExplorerTabs();
         initTaskbarBattery(document.querySelector(".taskbar-battery-pill"));
         createDefenderApp();
         createFullCMDApp();

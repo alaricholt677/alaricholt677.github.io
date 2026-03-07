@@ -1,22 +1,71 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
-  <title>Example domain x2</title>
+  <meta charset="utf-8" />
+  <title>WebView Demo</title>
   <style>
-    .nicebtn {
-      color: #ffffff;
-      background-color: #0077ff;
-    }
+    body { color: #e6e6e6; background: #0e1117; margin: 6px; padding: 4px; }
+    h1 { color: #ffffff; margin: 6px; }
+    p { margin: 6px; }
+    a { color: #4c78ff; }
+    button { background: #101a33; border: 1px solid #22304a; color: #ffffff; margin: 6px; padding: 2px; }
+    input { margin: 6px; }
+    textarea { margin: 6px; }
+    table { margin: 6px; }
+    td, th { margin: 2px; }
   </style>
 </head>
+
 <body>
-  <h1 class="nicebtn">H‑B test heading</h1>
-  <p class="nicebtn">CSS class text test</p>
-  <button class="nicebtn">Plain button (no JS)</button>
-  <a href="https://example.com" class="nicebtn">Link test</a>
-  <br>
-  <img src="https://via.placeholder.com/150" alt="IMG‑C test">
-  <input type="text" class="nicebtn">
-  <input type="range" class="nicebtn">
+  <h1>WebView Demo</h1>
+  <p>This page uses only tags your renderer supports: text, <a>, <button>, <input>, <textarea>, range, img, svg, iframe, table.</p>
+
+  <p>
+    Support link:
+    <a href="https://example.com/support">A support</a>
+  </p>
+
+  <p>
+    <button onclick="console.log('Open in browser clicked');">Open in default browser</button>
+    <button onclick="console.log('Visit here clicked');">Visit URL here</button>
+  </p>
+
+  <p>Inputs:</p>
+  <input type="text" value="Hello" placeholder="Type here" />
+  <input type="range" min="0" max="100" value="50" />
+
+  <p>Textarea:</p>
+  <textarea placeholder="Write something...">This is a textarea.</textarea>
+
+  <p>Image (use a direct image URL):</p>
+  <img src="https://via.placeholder.com/128" />
+
+  <p>SVG (basic):</p>
+  <svg>
+    <p>SVG placeholder (your engine may treat this as a container).</p>
+  </svg>
+
+  <p>Iframe (source URL):</p>
+  <iframe src="https://example.com"></iframe>
+
+  <p>Table:</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Key</th>
+        <th>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Status</td>
+        <td>OK</td>
+      </tr>
+      <tr>
+        <td>Mode</td>
+        <td>Demo</td>
+      </tr>
+    </tbody>
+  </table>
 </body>
 </html>

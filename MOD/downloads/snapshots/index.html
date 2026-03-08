@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Snapshots</title>
+</head>
+<body>
+  <h1>Snapshots</h1>
+  <div id="list"></div>
+
+  <script>
+    fetch('snapshots.json')
+      .then(r => r.json())
+      .then(data => {
+        const list = document.getElementById('list');
+        data.entries.forEach(e => {
+          const div = document.createElement('div');
+          div.innerHTML = `
+            <h3>${e.id}</h3>
+            <p>Minecraft: ${e.mc}</p>
+            <p>Branch: ${e.branch}</p>
+            <p style="color:red;">Unstable build</p>
+            <a href="${e.file}">Download</a>
+            <hr>
+          `;
+          list.appendChild(div);
+        });
+      });
+  </script>
+
+  <a href="../">Back</a>
+</body>
+</html>

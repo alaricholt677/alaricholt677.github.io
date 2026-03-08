@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Releases</title>
+</head>
+<body>
+  <h1>Releases</h1>
+  <div id="list"></div>
+
+  <script>
+    fetch('releases.json')
+      .then(r => r.json())
+      .then(data => {
+        const list = document.getElementById('list');
+        data.entries.forEach(e => {
+          const div = document.createElement('div');
+          div.innerHTML = `
+            <h3>${e.version}</h3>
+            <p>Minecraft: ${e.mc}</p>
+            <p>Loader: ${e.loader}</p>
+            <p>Date: ${e.date}</p>
+            <p>${e.notes || ''}</p>
+            <a href="${e.file}">Download</a>
+            <hr>
+          `;
+          list.appendChild(div);
+        });
+      });
+  </script>
+
+  <a href="../">Back</a>
+</body>
+</html>

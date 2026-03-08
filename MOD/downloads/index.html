@@ -1,17 +1,59 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Downloads</title>
+<meta charset="UTF-8">
+<title>Downloads</title>
+<style>
+body{margin:0;font-family:system-ui;background:#0e0e11;color:#eaeaf0;display:flex}
+nav{width:220px;background:#15151c;padding:20px}
+nav h2{margin-top:0}
+nav a{display:block;color:#9aa0ff;text-decoration:none;margin:10px 0}
+main{flex:1;padding:24px}
+aside{width:320px;background:#111118;padding:20px;overflow-y:auto}
+.article img{width:100%;border-radius:6px}
+button{background:#4b5cff;color:white;border:none;padding:8px 14px;border-radius:6px;cursor:pointer}
+button:hover{background:#6a78ff}
+</style>
 </head>
 <body>
-  <h1>Downloads</h1>
 
-  <ul>
-    <li><a href="releases/">Releases</a></li>
-    <li><a href="snapshots/">Snapshots</a></li>
-  </ul>
+<nav>
+<h2>MOD</h2>
+<a href="/MOD/">Home</a>
+<a href="/MOD/downloads/">Downloads</a>
+<a href="/MOD/downloads/releases/">Releases</a>
+<a href="/MOD/downloads/snapshots/">Snapshots</a>
+<hr>
+<a href="/win12/">Windows 12 Simulator</a>
+<a href="/thanks/">Thanks</a>
+</nav>
 
-  <a href="../">Back</a>
+<main>
+<h1>Downloads</h1>
+<p>Select a channel:</p>
+<button onclick="location.href='releases/'">Releases</button>
+<button onclick="location.href='snapshots/'">Snapshots</button>
+</main>
+
+<aside>
+<h3>Latest News</h3>
+<div id="news"></div>
+<script>
+fetch('https://alaricholt677.github.io/news/news.json')
+.then(r=>r.json())
+.then(d=>{
+d.articles.slice(0,4).forEach(a=>{
+news.innerHTML+=`
+<div class="article">
+<img src="${a.imageURL}">
+<h4>${a.name}</h4>
+<small>${a.date}</small>
+<p>${a.content.substring(0,120)}...</p>
+</div>`;
+});
+});
+</script>
+</aside>
+
 </body>
 </html>

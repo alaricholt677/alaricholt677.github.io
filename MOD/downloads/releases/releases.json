@@ -3,19 +3,11 @@
   "latest": "1.1.0",
   "entries": [
     {
-      "version": "1.1.0",
-      "mc": "1.21.8",
-      "loader": "NeoForge",
-      "date": "2026-03-08",
-      "file": "files/mod-1.1.0.jar",
-      "notes": "Stability improvements and bug fixes"
-    },
-    {
       "version": "1.0.0",
       "mc": "1.21.8",
       "loader": "NeoForge",
       "date": "2026-02-20",
-      "file": "files/mod-1.0.0.jar",
+      "file": "my_first_mod-1.0.0-neoforge-1.21.8.jar",
       "notes": "Initial release"
     }
   ]

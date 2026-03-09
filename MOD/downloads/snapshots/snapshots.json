@@ -5,8 +5,8 @@
       "id": "2026-03-08-a",
       "mc": "1.21.8",
       "branch": "dev",
-      "file": "files/mod-1.2.0-SNAPSHOT.jar",
-      "unstable": true
+      "file": "my_first_mod-1.0.0-neoforge-1.21.8.jar",
+      "unstable": false
     }
   ]
 }

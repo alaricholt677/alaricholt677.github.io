@@ -1,0 +1,60 @@
+{
+  "Games": [
+    {
+      "appId": "mini-craft",
+      "name": "Mini Craft",
+      "desc": "A lightweight sandbox survival game inspired by classic block worlds.",
+      "category": "Sandbox",
+      "js": "data:text/javascript;base64,cmVnaXN0ZXJTdG9yZUFwcCh7YXBwSWQ6Im1pbmktY3JhZnQiLG5hbWU6Ik1pbmkgQ3JhZnQiLGRlc2M6IkEgYmxvY2stYmFzZWQgc2FuZGJveCBnYW1lLiIsYm9keUh0bWw6IjxkaXY+TWluaSBDcmFmdCBsb2FkZWQuPC9kaXY+In0pOw=="
+    },
+    {
+      "appId": "ping-pong",
+      "name": "Ping Pong",
+      "desc": "Classic two-paddle arcade ping pong.",
+      "category": "Arcade",
+      "js": "data:text/javascript;base64,cmVnaXN0ZXJTdG9yZUFwcCh7YXBwSWQ6InBpbmctcG9uZyIsbmFtZToiUGluZyBQb25nIixkZXNjOiJDbGFzc2ljIGFyY2FkZSBwaW5nIHBvbmcgZ2FtZS4iLGJvZHlIdG1sOiI8ZGl2PlBpbmcgUG9uZyBsb2FkZWQuPC9kaXY+In0pOw=="
+    },
+    {
+      "appId": "2040",
+      "name": "2040",
+      "desc": "A futuristic number-merging puzzle game.",
+      "category": "Puzzle",
+      "js": "data:text/javascript;base64,cmVnaXN0ZXJTdG9yZUFwcCh7YXBwSWQ6IjIwNDAiLG5hbWU6IjIwNDAiLGRlc2M6IkEgMjA0OC1zdHlsZSBudW1iZXIgcHV6emxlLiIsYm9keUh0bWw6IjxkaXY+MjA0MCBsb2FkZWQuPC9kaXY+In0pOw=="
+    },
+    {
+      "appId": "brick-breaker",
+      "name": "Brick Breaker",
+      "desc": "Break all the bricks using a bouncing ball.",
+      "category": "Arcade",
+      "js": "data:text/javascript;base64,cmVnaXN0ZXJTdG9yZUFwcCh7YXBwSWQ6ImJyaWNrLWJyZWFrZXIiLG5hbWU6IkJyaWNrIEJyZWFrZXIiLGRlc2M6IkNsYXNzaWMgYnJpY2stYnJlYWtpbmcgZ2FtZS4iLGJvZHlIdG1sOiI8ZGl2PkJyaWNrIEJyZWFrZXIgbG9hZGVkLjwvZGl2PiJ9KTs="
+    },
+    {
+      "appId": "asteroid-shooter",
+      "name": "Asteroid Shooter",
+      "desc": "Survive waves of incoming asteroids.",
+      "category": "Shooter",
+      "js": "data:text/javascript;base64,cmVnaXN0ZXJTdG9yZUFwcCh7YXBwSWQ6ImFzdGVyb2lkLXNob290ZXIiLG5hbWU6IkFzdGVyb2lkIFNob290ZXIiLGRlc2M6IlNwYWNlIHNob290ZXIgc3Vydml2YWwuIixib2R5SHRtbDoiPGRpdj5Bc3Rlcm9pZCBTaG9vdGVyIGxvYWRlZC48L2Rpdj4ifSk7"
+    },
+    {
+      "appId": "snake",
+      "name": "Snake",
+      "desc": "The classic snake game.",
+      "category": "Classic",
+      "js": "data:text/javascript;base64,cmVnaXN0ZXJTdG9yZUFwcCh7YXBwSWQ6InNuYWtlIixuYW1lOiJTbmFrZSIsZGVzYzoiQ2xhc3NpYyBzbmFrZSBnYW1lLiIsYm9keUh0bWw6IjxkaXY+U25ha2UgbG9hZGVkLjwvZGl2PiJ9KTs="
+    },
+    {
+      "appId": "blocks",
+      "name": "Blocks",
+      "desc": "A falling-block puzzle game.",
+      "category": "Puzzle",
+      "js": "data:text/javascript;base64,cmVnaXN0ZXJTdG9yZUFwcCh7YXBwSWQ6ImJsb2NrcyIsbmFtZToiQmxvY2tzIixkZXNjOiJGYWxsaW5nIGJsb2NrIHB1enpsZS4iLGJvZHlIdG1sOiI8ZGl2PkJsb2NrcyBsb2FkZWQuPC9kaXY+In0pOw=="
+    },
+    {
+      "appId": "memory",
+      "name": "Memory",
+      "desc": "Flip cards and test your memory.",
+      "category": "Classic",
+      "js": "data:text/javascript;base64,cmVnaXN0ZXJTdG9yZUFwcCh7YXBwSWQ6Im1lbW9yeSIsbmFtZToiTWVtb3J5IixkZXNjOiJNYXRjaCB0aGUgY2FyZHMuIixib2R5SHRtbDoiPGRpdj5NZW1vcnkgbG9hZGVkLjwvZGl2PiJ9KTs="
+    }
+  ]
+}

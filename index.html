@@ -11921,75 +11921,97 @@ function initExplorerTabs() {
   setTimeout(initExplorerTabs, LOOP_MS);
 }
 function createMicrosoftStoreApp() {
-  // ==============================
-  // Microsoft Store (Win12 Shrine)
-  // ==============================
+  // Prevent duplicate creation
+  if (window.windowsMap && window.windowsMap["ms-store"]) return;
 
-  // ---- Constants ----
-  const STORE_APP_ID = "ms-store";
-  const STORE_TITLE = "Microsoft Store";
-  const STORE_ACCENT = "#ff2fb2"; // hot pink
-  const STORE_JSON_URL = "https://alaricholt677.github.io/store/downloads.json";
-  const ONLINE_TEST_URL = "https://example.com/"; // requested strict check
+  if (!window.windowsMap) window.windowsMap = {};
 
-  // ---- Ensure global registries ----
-  window.__storeInstalledApps = window.__storeInstalledApps || {}; // appId -> true
-  window.__storeRegisteredApps = window.__storeRegisteredApps || {}; // appId -> manifest
-  window.__storeScriptCache = window.__storeScriptCache || {}; // url -> true
+  // -----------------------------
+  // Create the window
+  // -----------------------------
+  const win = document.createElement("div");
+  win.className = "window";
+  win.id = "window-ms-store";
+  win.dataset.app = "ms-store";
+  win.dataset.appDesc = "[Microsoft Store] Download apps.";
 
-  // ---- Helper: find Start pinned grid ----
-  function getStartGrid() {
-    return document.getElementById("start-pinned-grid");
+  win.innerHTML = `
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-icon"
+             style="background:linear-gradient(135deg,#ff2fb2,#ff77d9);">
+        </div>
+        <div class="window-title-text">
+          <div class="window-title-main">Microsoft Store</div>
+          <div class="window-title-sub">Apps & games</div>
+        </div>
+        <div class="window-fullscreen-toggle">[ ]</div>
+        <div class="window-info-icon">(i)</div>
+        <div class="window-info-tooltip"></div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
+    </div>
+
+    <div class="window-body" id="ms-store-body" style="height:100%; padding:12px;">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;">
+        
+        <!-- PUT SVG HERE -->
+        <div style="width:64px;height:64px;">
+          <!-- MS STORE SVG GOES HERE -->
+        </div>
+
+        <!-- Windows 11 style spinner -->
+        <div class="msstore-spinner"></div>
+
+        <div style="font-size:12px;color:var(--text-soft);">
+          Loading Microsoft Store…
+        </div>
+
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(win);
+  window.windowsMap["ms-store"] = win;
+
+  // -----------------------------
+  // Make it draggable / closable
+  // -----------------------------
+  if (typeof makeWindowInteractive === "function") {
+    makeWindowInteractive(win);
+  } else if (typeof enableWindowControls === "function") {
+    enableWindowControls(win);
   }
 
-  // ---- Helper: make window interactive using whichever helper exists ----
-  function wireWindow(win) {
-    try {
-      if (typeof makeWindowInteractive === "function") {
-        makeWindowInteractive(win);
-        return;
-      }
-    } catch {}
-    try {
-      if (typeof enableWindowControls === "function") {
-        enableWindowControls(win);
-        return;
-      }
-    } catch {}
+  // -----------------------------
+  // Add Start menu tile ONLY
+  // -----------------------------
+  const startGrid = document.getElementById("start-pinned-grid");
+  if (startGrid && !startGrid.querySelector('[data-app="ms-store"]')) {
+    const tile = document.createElement("div");
+    tile.className = "start-app";
+    tile.dataset.app = "ms-store";
 
-    // fallback minimal close/minimize handlers + drag
-    const header = win.querySelector("[data-drag-handle]");
-    const closeBtn = win.querySelector(".window-btn.close");
-    const minBtn = win.querySelector(".window-btn.minimize");
+    tile.innerHTML = `
+      <div class="start-app-icon"
+           style="background:linear-gradient(135deg,#ff2fb2,#ff77d9);">
+        <!-- PUT SVG HERE -->
+      </div>
+      <div>Microsoft Store</div>
+      <div class="start-app-sub">Download apps</div>
+    `;
 
-    if (closeBtn) closeBtn.addEventListener("click", () => {
-      if (typeof hideWindow === "function") hideWindow(win.dataset.app);
-      else win.classList.remove("visible");
+    tile.addEventListener("click", () => {
+      showWindow("ms-store");
+      bootMicrosoftStore(); // start loading
     });
-    if (minBtn) minBtn.addEventListener("click", () => win.classList.remove("visible"));
 
-    if (header) {
-      let dragging = false, sx=0, sy=0, sl=0, st=0;
-      header.addEventListener("mousedown", (e) => {
-        if (e.target.closest(".window-controls")) return;
-        dragging = true;
-        const rect = win.getBoundingClientRect();
-        sx = e.clientX; sy = e.clientY; sl = rect.left; st = rect.top;
-        document.body.style.cursor = "move";
-        try { if (typeof bringWindowToFront === "function") bringWindowToFront(win); } catch {}
-      });
-      window.addEventListener("mousemove", (e) => {
-        if (!dragging) return;
-        win.style.left = sl + (e.clientX - sx) + "px";
-        win.style.top  = st + (e.clientY - sy) + "px";
-      });
-      window.addEventListener("mouseup", () => {
-        dragging = false;
-        document.body.style.cursor = "default";
-      });
-    }
+    startGrid.appendChild(tile);
   }
-
+}
   // ---- Helper: create/update a <style> for store UI ----
   function ensureStoreStyles() {
     if (document.getElementById("ms-store-style")) return;
@@ -12604,6 +12626,26 @@ console.log(`%c
 `, "background:#ff4da6;color:white;font-size:12px;line-height:1.4;padding:12px;border-radius:8px;");
 
     })();
+    (function ensureMsStoreSpinnerCSS(){
+  if (document.getElementById("msstore-css")) return;
+  const s = document.createElement("style");
+  s.id = "msstore-css";
+  s.textContent = `
+    .msstore-spinner {
+      width:40px;
+      height:40px;
+      border-radius:50%;
+      border:3px solid rgba(255,255,255,0.2);
+      border-top-color:#ff2fb2;
+      animation: msSpin 0.9s linear infinite;
+    }
+    @keyframes msSpin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+  `;
+  document.head.appendChild(s);
+})();
   </script>
 </body>
 </html>

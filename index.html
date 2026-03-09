@@ -12579,26 +12579,6 @@ function createMicrosoftStoreApp() {
     if (root && !root.children.length) bootStoreUI();
   });
 }
-function ensureMsStoreSpinnerCSS() {
-  if (document.getElementById("msstore-css")) return;
-  const s = document.createElement("style");
-  s.id = "msstore-css";
-  s.textContent = `
-    .msstore-spinner {
-      width:40px;
-      height:40px;
-      border-radius:50%;
-      border:3px solid rgba(255,255,255,0.2);
-      border-top-color:#ff2fb2;
-      animation: msSpin 0.9s linear infinite;
-    }
-    @keyframes msSpin {
-      from { transform: rotate(0deg); }
-      to   { transform: rotate(360deg); }
-    }
-  `;
-}
-  document.head.appendChild(s);
       /* initial */
       function initialSetup(){
         createMicrosoftStoreApp();

@@ -12212,7 +12212,7 @@ const SUGGESTIONS = ['hello','hi','help','troubleshoot','export session','import
 const conList = document.getElementById('mini-convos');
 const newBtn = document.getElementById('mini-new-chat');
 const importBtn = document.getElementById('mini-import-btn');
-const importFile = document.getElementById('mini-import-file');
+const importFile2 = document.getElementById('mini-import-file');
 const sendBtn = document.getElementById('ai-send');
 const suggestionsEl = document.getElementById('suggestions');
 const inputHint = document.getElementById('input-hint');
@@ -12402,8 +12402,8 @@ if (sendBtn) {
 }
 
 // import handling (keeps import; export intentionally omitted because export button is used elsewhere)
-if (importBtn && importFile) {
-  importBtn.addEventListener('click', () => importFile.click());
+if (importBtn2 && importFile) {
+  importBtn2.addEventListener('click', () => importFile.click());
   importFile.addEventListener('change', (e) => {
     const f = e.target.files[0]; if (!f) return;
     const r = new FileReader();

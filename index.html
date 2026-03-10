@@ -3388,7 +3388,7 @@
   const inputEl = document.getElementById('todo-input');
   const form = document.getElementById('todo-form');
   const filtersEl = document.querySelector('.filters');
-  const exportBtn = document.getElementById('export-json');
+  const exportBtnTodo = document.getElementById('export-json');
   const importFile = document.getElementById('import-file');
 
   let todos = [];
@@ -3447,7 +3447,7 @@
     render();
   });
 
-  exportBtn.addEventListener('click', () => {
+  exportBtnTodo.addEventListener('click', () => {
     const blob = new Blob([JSON.stringify(todos, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'todos.json'; a.click(); URL.revokeObjectURL(url);

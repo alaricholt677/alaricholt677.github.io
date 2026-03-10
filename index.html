@@ -12187,7 +12187,7 @@ function initExplorerTabs() {
   // Loop itself forever
   setTimeout(initExplorerTabs, LOOP_MS);
 }
-  const STORAGE_KEY = 'miniAim_conversations_v1';
+  const STORAGE_KEY_LS = 'miniAim_conversations_v1';
   const ACTIVE_KEY = 'miniAim_active_v1';
   const SUGGESTIONS = ['hello','hi','help','troubleshoot','export session','import session','open file','list users','diagnose','restart app'];
 
@@ -12209,13 +12209,13 @@ function initExplorerTabs() {
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
   function loadConvosFromStorage(){
-    try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; } catch(e){ return []; }
+    try { const raw = localStorage.getItem(STORAGE_KEY_LS); return raw ? JSON.parse(raw) : []; } catch(e){ return []; }
   }
 
   function saveConvos(persist = false){
     // always update in-memory; persist only when requested
     if (persist) {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(convos)); } catch(e){}
+      try { localStorage.setItem(STORAGE_KEY_LS, JSON.stringify(convos)); } catch(e){}
       if (activeId) localStorage.setItem(ACTIVE_KEY, activeId);
     }
   }

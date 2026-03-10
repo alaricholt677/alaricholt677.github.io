@@ -3383,7 +3383,7 @@
         }
       }
       let state = loadState();
-  const STORAGE_KEY = 'site_todos_v1';
+  const STORAGE_KEY_TODOS = 'site_todos_v1';
   const listEl = document.getElementById('todo-list');
   const inputEl = document.getElementById('todo-input');
   const form = document.getElementById('todo-form');
@@ -3396,13 +3396,13 @@
 
   function loadFromStorage() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(STORAGE_KEY_TODOS);
       todos = raw ? JSON.parse(raw) : [];
     } catch (e) { todos = []; }
   }
 
   function saveToStorage() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(todos)); } catch (e) {}
+    try { localStorage.setItem(STORAGE_KEY_TODOS, JSON.stringify(todos)); } catch (e) {}
   }
 
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }

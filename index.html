@@ -12209,14 +12209,15 @@ const ACTIVE_KEY = 'miniAim_active_v1';
 const SUGGESTIONS = ['hello','hi','help','troubleshoot','export session','import session','open file','list users','diagnose','restart app'];
 
 // DOM references (assumes these exist in the page)
+// NOTE: import button and sidebar IDs expected to have "2" suffix in the DOM
 const conList = document.getElementById('mini-convos');
 const newBtn = document.getElementById('mini-new-chat');
-const importBtn = document.getElementById('mini-import-btn');
-const importFile2 = document.getElementById('mini-import-file');
+const importBtn2 = document.getElementById('mini-import-btn2');
+const importFile = document.getElementById('mini-import-file');
 const sendBtn = document.getElementById('ai-send');
 const suggestionsEl = document.getElementById('suggestions');
 const inputHint = document.getElementById('input-hint');
-const sidebar = document.getElementById('mini-aim-sidebar');
+const sidebar2 = document.getElementById('mini-aim-sidebar2');
 
 // in-memory state (load from localStorage if present)
 let convos = (function loadFromLS(){
@@ -12401,7 +12402,7 @@ if (sendBtn) {
   if (input) input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) e.preventDefault(); });
 }
 
-// import handling (keeps import; export intentionally omitted because export button is used elsewhere)
+// import handling (uses importBtn2 and importFile; export intentionally omitted)
 if (importBtn2 && importFile) {
   importBtn2.addEventListener('click', () => importFile.click());
   importFile.addEventListener('change', (e) => {
@@ -12427,16 +12428,16 @@ document.addEventListener('click', (e) => {
   setTimeout(() => { if (el && el.parentNode) el.parentNode.removeChild(el); }, 900);
 });
 
-// observe sidebar .hidden state: when shown, focus input and fill logs
-if (sidebar) {
+// observe sidebar2 .hidden state: when shown, focus input and fill logs
+if (sidebar2) {
   const obs = new MutationObserver(() => {
-    if (!sidebar.classList.contains('hidden')) {
+    if (!sidebar2.classList.contains('hidden')) {
       const input = document.getElementById('ai-input');
       if (input) input.focus();
       fillAllAiLogs();
     }
   });
-  obs.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
+  obs.observe(sidebar2, { attributes: true, attributeFilter: ['class'] });
 }
 
 // bootstrap

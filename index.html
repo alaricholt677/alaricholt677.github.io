@@ -1959,6 +1959,73 @@
   text-align: right;
 }
 
+/* Toggle button styling (keeps visual weight low and matches Mini AIM theme) */
+.mini-aim-toggle {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.06);
+  background:linear-gradient(180deg,#071025,#0b1220);
+  color:#e6eef6;
+  font-size:13px;
+  cursor:pointer;
+  transition:transform .12s ease, box-shadow .12s ease;
+  box-shadow:0 2px 6px rgba(2,6,23,0.6);
+}
+.mini-aim-toggle:active { transform:translateY(1px) scale(.998); }
+.mini-aim-toggle:focus { outline:2px solid rgba(14,165,132,0.18); outline-offset:2px; }
+
+/* small icon sizing */
+.mini-aim-toggle-icon { display:inline-flex; width:20px; height:20px; align-items:center; justify-content:center; }
+
+/* optional compact label hide on very small screens */
+@media (max-width:420px) {
+  .mini-aim-toggle-label { display:none; }
+}
+
+/* visible state hook for the sidebar (sidebar should respond to .visible) */
+#mini-aim-sidebar.visible { transform: translateX(0); opacity:1; pointer-events:auto; }
+    /* Mini AIM OS sidebar CSS — excludes .ai-log and #ai-input rules */
+#mini-aim-sidebar { width:360px; max-width:36ch; background:#0f1724; color:#e6eef6; border-left:1px solid rgba(255,255,255,0.04); display:flex; flex-direction:column; font-family:Inter,system-ui,Segoe UI,Roboto,Arial; position:fixed; right:0; top:0; bottom:0; z-index:60; }
+.slide-in { animation: slideIn .28s ease both; }
+@keyframes slideIn { from { transform: translateX(14px); opacity:0 } to { transform: translateX(0); opacity:1 } }
+
+.mini-aim-header { display:flex; gap:10px; align-items:center; padding:12px; border-bottom:1px solid rgba(255,255,255,0.03); }
+.mini-aim-icon { width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#06b6d4,#0ea5a4); border-radius:8px; }
+.mini-aim-title h1 { margin:0; font-size:14px; font-weight:700; color:#f8fafc; line-height:1; }
+.mini-aim-sub { font-size:11px; color:rgba(255,255,255,0.65); margin-top:2px; }
+
+.mini-aim-actions { margin-left:auto; display:flex; gap:6px; align-items:center; }
+.btn.small { background:transparent; border:1px solid rgba(255,255,255,0.06); color:#e6eef6; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:12px; }
+.btn.tiny { padding:4px 6px; font-size:12px; }
+
+.mini-aim-body { display:flex; gap:12px; padding:12px; height:calc(100% - 72px); box-sizing:border-box; }
+.convo-list { width:140px; min-width:120px; overflow:auto; border-right:1px solid rgba(255,255,255,0.02); padding-right:8px; }
+.convo-list-header { font-size:12px; color:rgba(255,255,255,0.7); margin-bottom:8px; }
+#mini-convos { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px; }
+#mini-convos li { background:transparent; padding:8px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:8px; color:#dbeafe; font-size:13px; justify-content:space-between; }
+#mini-convos li.active { background:linear-gradient(90deg, rgba(99,102,241,0.12), rgba(14,165,132,0.06)); }
+
+.convo-item-label { flex:1; margin-right:6px; outline:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.convo-item-meta { font-size:11px; color:rgba(255,255,255,0.45); margin-left:6px; white-space:nowrap; }
+
+.chat-area { flex:1; display:flex; flex-direction:column; gap:8px; }
+.ai-default { display:flex; gap:8px; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.02); padding:8px; border-radius:8px; }
+.ai-default-text { font-size:13px; color:rgba(255,255,255,0.85); line-height:1.2; }
+
+.input-hint { position:absolute; right:86px; top:8px; font-size:12px; color:rgba(255,255,255,0.45); display:none; pointer-events:none; }
+.suggestions { position:absolute; left:8px; bottom:44px; right:8px; background:#071025; border:1px solid rgba(255,255,255,0.03); border-radius:6px; padding:6px; display:flex; gap:6px; flex-wrap:wrap; z-index:10; }
+.suggestions button { background:transparent; border:1px solid rgba(255,255,255,0.04); color:#dbeafe; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:12px; }
+
+.button-small { padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:linear-gradient(180deg,#0b1220,#071025); color:#e6eef6; cursor:pointer; }
+
+.fly-away.animate { animation: flyAway .9s ease forwards; }
+@keyframes flyAway { to { transform: translateY(-120px) rotate(-8deg) scale(.9); opacity:0 } }
+
+/* responsive tweak */
+@media (max-width:720px){ #mini-aim-sidebar{ width:100%; max-width:100vw; } .convo-list{ display:none; } }
   </style>
   <style id="theme-style"></style>
 </head>
@@ -2041,6 +2108,55 @@
 
   </div>
 
+<!-- Sidebar markup (paste into your layout) -->
+<aside id="mini-aim-sidebar" class="mini-aim slide-in" aria-label="Mini AIM OS sidebar">
+  <header class="mini-aim-header">
+    <div class="mini-aim-icon" aria-hidden="true">
+      <!-- simple AIM icon -->
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" focusable="false" aria-hidden="true">
+        <rect x="2" y="3" width="20" height="18" rx="3" fill="#0ea5a4"/>
+        <path d="M7 9h10M7 13h6" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="mini-aim-title">
+      <h1>Mini AIM OS</h1>
+      <div class="mini-aim-sub">A friendly assistant that saves chats locally</div>
+    </div>
+    <div class="mini-aim-actions">
+      <button id="mini-new-chat" class="btn small">New</button>
+      <button id="mini-export" class="btn small">Export</button>
+      <button id="mini-import-btn" class="btn small">Import</button>
+      <input id="mini-import-file" type="file" accept="application/json" style="display:none" />
+    </div>
+  </header>
+
+  <div class="mini-aim-body">
+    <nav class="convo-list" aria-label="Conversations">
+      <div class="convo-list-header">Conversations</div>
+      <ul id="mini-convos"></ul>
+    </nav>
+
+    <section class="chat-area" aria-label="Chat area">
+      <div class="ai-log" id="ai-log" role="log" aria-live="polite">
+        <!-- default friendly message -->
+        <div class="ai-default" id="ai-default">
+          <div class="ai-default-text">
+            Hello human. AIM OS is an AI. Take a break and look away from the PC for an hour or a few, then look back — recommendation.
+          </div>
+          <button class="btn tiny fly-away" id="fly-away">Tap to make it fly away</button>
+        </div>
+      </div>
+
+      <div class="ai-input-row">
+        <input id="ai-input" class="ai-input" autocomplete="off"
+               placeholder="Ask about files, users, .exe, Host, AIM, Paint, or Media Player..." />
+        <div class="input-hint" id="input-hint" aria-hidden="true">Enter message</div>
+        <div class="suggestions" id="suggestions" role="listbox" aria-label="Suggestions"></div>
+        <button class="button-small" id="ai-send">Send</button>
+      </div>
+    </section>
+  </div>
+</aside>
 
 <!-- App hover preview strip -->
 <div id="app-previews"></div>
@@ -2056,6 +2172,18 @@
       <button class="taskbar-button" id="search-button">
         <img src="search.svg" alt="Search Icon" width="24" height="24">
       </button>
+
+  <!-- Toggle button (place where you want the control) -->
+<button id="mini-aim-toggle" class="mini-aim-toggle" aria-controls="mini-aim-sidebar" aria-expanded="false" title="Open Mini AIM OS">
+  <span class="mini-aim-toggle-icon" aria-hidden="true">
+    <!-- compact icon -->
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" focusable="false" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="16" rx="2" fill="#06b6d4"/>
+      <path d="M7 9h10M7 13h6" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </span>
+  <span class="mini-aim-toggle-label">Mini AIM</span>
+</button>
 
     </div>
     <div class="taskbar-center">
@@ -12059,6 +12187,310 @@ function initExplorerTabs() {
   // Loop itself forever
   setTimeout(initExplorerTabs, LOOP_MS);
 }
+
+/* Mini AIM OS — conversation manager and suggestions
+   - Assumes #ai-log and #ai-input exist elsewhere and are managed by the host/AIMSG system.
+   - Does not create AI responses; when sending it calls AIMSG if available.
+*/
+(() => {
+  const STORAGE_KEY = 'miniAim_conversations_v1';
+  const ACTIVE_KEY = 'miniAim_active_v1';
+  const SUGGESTIONS = ['hello','hi','help','troubleshoot','export session','import session','open file','list users','diagnose','restart app'];
+
+  // DOM refs (must exist in page)
+  const conList = document.getElementById('mini-convos');
+  const newBtn = document.getElementById('mini-new-chat');
+  const exportBtn = document.getElementById('mini-export');
+  const importBtn = document.getElementById('mini-import-btn');
+  const importFile = document.getElementById('mini-import-file');
+  const aiLog = document.getElementById('ai-log'); // intentionally not defined here
+  const aiInput = document.getElementById('ai-input'); // intentionally not defined here
+  const sendBtn = document.getElementById('ai-send');
+  const suggestionsEl = document.getElementById('suggestions');
+  const inputHint = document.getElementById('input-hint');
+  const flyBtn = document.getElementById('fly-away');
+
+  let convos = loadConvos();
+  let activeId = localStorage.getItem(ACTIVE_KEY) || null;
+
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+  function loadConvos(){
+    try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; } catch(e){ return []; }
+  }
+
+  function saveConvos(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(convos)); }
+
+  function createConvo(name = 'New chat'){
+    const id = uid();
+    const convo = { id, name, createdAt: Date.now(), messages: [] };
+    convos.unshift(convo);
+    saveConvos();
+    setActive(id);
+    renderConvos();
+    return convo;
+  }
+
+  function setActive(id){
+    activeId = id;
+    localStorage.setItem(ACTIVE_KEY, id);
+    renderConvos();
+    loadActiveIntoLog();
+  }
+
+  function deleteConvo(id){
+    convos = convos.filter(c => c.id !== id);
+    if (activeId === id) activeId = convos.length ? convos[0].id : null;
+    saveConvos();
+    localStorage.setItem(ACTIVE_KEY, activeId || '');
+    renderConvos();
+    loadActiveIntoLog();
+  }
+
+  function renameConvo(id, newName){
+    const c = convos.find(x => x.id === id); if (!c) return;
+    c.name = newName; saveConvos(); renderConvos();
+  }
+
+  function renderConvos(){
+    if (!conList) return;
+    conList.innerHTML = '';
+    convos.forEach(c => {
+      const li = document.createElement('li');
+      li.dataset.id = c.id;
+      li.className = (c.id === activeId) ? 'active' : '';
+      const label = document.createElement('span');
+      label.className = 'convo-item-label';
+      label.textContent = c.name;
+      label.contentEditable = true;
+      label.spellcheck = false;
+      label.addEventListener('blur', () => renameConvo(c.id, label.textContent.trim() || 'Untitled'));
+      label.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); label.blur(); } });
+
+      const meta = document.createElement('span');
+      meta.className = 'convo-item-meta';
+      const last = c.messages.length ? c.messages[c.messages.length - 1] : null;
+      meta.textContent = last ? timeAgo(last.ts) : '';
+
+      const actions = document.createElement('div');
+      actions.style.display = 'flex';
+      actions.style.gap = '6px';
+      const openBtn = document.createElement('button'); openBtn.textContent = 'Open'; openBtn.className='btn small';
+      openBtn.addEventListener('click', (ev) => { ev.stopPropagation(); setActive(c.id); });
+      const delBtn = document.createElement('button'); delBtn.textContent = 'Del'; delBtn.className='btn small';
+      delBtn.addEventListener('click', (ev) => { ev.stopPropagation(); if (confirm('Delete conversation?')) deleteConvo(c.id); });
+
+      actions.appendChild(openBtn); actions.appendChild(delBtn);
+      li.appendChild(label); li.appendChild(meta); li.appendChild(actions);
+      li.addEventListener('click', (e) => { if (e.target === li || e.target === label) setActive(c.id); });
+      conList.appendChild(li);
+    });
+  }
+
+  function loadActiveIntoLog(){
+    if (!aiLog) return;
+    aiLog.innerHTML = '';
+    const convo = convos.find(c => c.id === activeId);
+    if (!convo) {
+      const h = document.createElement('div'); h.className='ai-default';
+      h.innerHTML = `<div class="ai-default-text">Start a new chat or select a conversation.</div>`;
+      aiLog.appendChild(h);
+      return;
+    }
+    // render stored messages (saved messages are plain text objects)
+    convo.messages.forEach(m => {
+      const el = document.createElement('div');
+      el.className = 'message ' + (m.from === 'user' ? 'from-user' : 'from-ai');
+      el.textContent = m.text || '';
+      aiLog.appendChild(el);
+    });
+    aiLog.scrollTop = aiLog.scrollHeight;
+  }
+
+  function appendMessageLocal(from, text){
+    let convo = convos.find(c => c.id === activeId);
+    if (!convo) convo = createConvo('Chat');
+    const msg = { id: uid(), from, text: text || '', ts: Date.now() };
+    convo.messages.push(msg);
+    saveConvos();
+    if (aiLog) {
+      const el = document.createElement('div');
+      el.className = 'message ' + (from === 'user' ? 'from-user' : 'from-ai');
+      el.textContent = text || '';
+      aiLog.appendChild(el);
+      aiLog.scrollTop = aiLog.scrollHeight;
+    }
+  }
+
+  // send handler: local echo + hand off to AIMSG if available
+  if (sendBtn && aiInput) {
+    sendBtn.addEventListener('click', () => {
+      const v = aiInput.value.trim(); if (!v) return;
+      appendMessageLocal('user', v);
+      aiInput.value = '';
+      if (inputHint) inputHint.style.display = 'none';
+      // hand off to host AIM system if present; do not implement AI responses here
+      try {
+        if (typeof AIMSG === 'function') {
+          // AIMSG is expected to handle generating and inserting AI responses into #ai-log
+          AIMSG('ai', v);
+        } else if (window.AIM && typeof window.AIM.send === 'function') {
+          window.AIM.send(v);
+        }
+      } catch (e) {
+        // silent fail — AIM system not present
+      }
+    });
+
+    aiInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); return; }
+    });
+
+    aiInput.addEventListener('input', () => {
+      if (inputHint) inputHint.style.display = aiInput.value.trim() ? 'block' : 'none';
+      updateSuggestions(aiInput.value.trim());
+    });
+  } else {
+    if (sendBtn) sendBtn.addEventListener('click', () => alert('Input field not found.'));
+  }
+
+  function updateSuggestions(q){
+    if (!suggestionsEl) return;
+    suggestionsEl.innerHTML = '';
+    const list = (!q) ? SUGGESTIONS.slice(0,6) : SUGGESTIONS.filter(s => s.includes(q.toLowerCase()) || q.toLowerCase().includes(s)).slice(0,8);
+    list.forEach(s => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = s;
+      b.addEventListener('click', () => {
+        if (aiInput) { aiInput.value = s; aiInput.focus(); updateSuggestions(s); }
+      });
+      suggestionsEl.appendChild(b);
+    });
+  }
+
+  // export/import
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(convos, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'miniAim_sessions.json'; a.click(); URL.revokeObjectURL(url);
+    });
+  }
+
+  if (importBtn && importFile) {
+    importBtn.addEventListener('click', () => importFile.click());
+    importFile.addEventListener('change', (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => {
+        try {
+          const data = JSON.parse(r.result);
+          if (Array.isArray(data)) { convos = data; saveConvos(); renderConvos(); setActive(convos[0]?.id || createConvo().id); }
+        } catch (err) { alert('Invalid file'); }
+      };
+      r.readAsText(f);
+      e.target.value = '';
+    });
+  }
+
+  if (newBtn) newBtn.addEventListener('click', () => { const c = createConvo('New chat'); renderConvos(); setActive(c.id); });
+
+  if (flyBtn) {
+    flyBtn.addEventListener('click', () => {
+      const el = document.getElementById('ai-default');
+      if (!el) return;
+      el.classList.add('animate');
+      setTimeout(() => { if (el && el.parentNode) el.parentNode.removeChild(el); }, 900);
+    });
+  }
+
+  function timeAgo(ts){
+    if (!ts) return '';
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 60) return `${s}s`;
+    const m = Math.floor(s/60); if (m < 60) return `${m}m`;
+    const h = Math.floor(m/60); if (h < 24) return `${h}h`;
+    const d = Math.floor(h/24); return `${d}d`;
+  }
+
+  // init
+  if (!convos.length) createConvo('Welcome');
+  renderConvos();
+  if (!activeId) setActive(convos[0].id);
+  else loadActiveIntoLog();
+  updateSuggestions('');
+
+  // public API (safe wrappers)
+  window.MiniAIM = {
+    getConversations: () => JSON.parse(JSON.stringify(convos)),
+    openConversation: (id) => setActive(id),
+    newConversation: () => createConvo('New chat'),
+    appendMessageLocal // allows host to push AI messages into storage/log if desired
+  };
+})();
+  const TOGGLE_ID = 'mini-aim-toggle';
+  const SIDEBAR_ID = 'mini-aim-sidebar';
+  const STORAGE_KEY = 'miniAim_sidebar_open_v1';
+
+  const btn = document.getElementById(TOGGLE_ID);
+  const sidebar = document.getElementById(SIDEBAR_ID);
+
+  if (!btn || !sidebar) {
+    // graceful no-op if elements are missing
+    console.warn('Mini AIM toggle or sidebar not found.');
+    return;
+  }
+
+  // restore previous state
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved === '1') {
+    sidebar.classList.add('visible');
+    btn.setAttribute('aria-expanded', 'true');
+  }
+
+  function openSidebar() {
+    sidebar.classList.add('visible');
+    btn.setAttribute('aria-expanded', 'true');
+    localStorage.setItem(STORAGE_KEY, '1');
+    // focus the input if present
+    const input = document.getElementById('ai-input');
+    if (input) input.focus();
+  }
+
+  function closeSidebar() {
+    sidebar.classList.remove('visible');
+    btn.setAttribute('aria-expanded', 'false');
+    localStorage.setItem(STORAGE_KEY, '0');
+    btn.focus();
+  }
+
+  function toggleSidebar() {
+    if (sidebar.classList.contains('visible')) closeSidebar();
+    else openSidebar();
+  }
+
+  // click toggle
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleSidebar();
+  });
+
+  // close on Escape when sidebar is open
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebar.classList.contains('visible')) {
+      closeSidebar();
+    }
+  });
+
+  // click outside to close (ignores clicks inside sidebar)
+  document.addEventListener('click', (e) => {
+    if (!sidebar.classList.contains('visible')) return;
+    if (!sidebar.contains(e.target) && !btn.contains(e.target)) closeSidebar();
+  });
+
+  // expose small API
+  window.MiniAIMToggle = { open: openSidebar, close: closeSidebar, toggle: toggleSidebar };
       /* initial */
       function initialSetup(){
         initExplorerTabs();

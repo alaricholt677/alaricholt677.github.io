@@ -2791,10 +2791,10 @@
       </div>
     </div>
     <div class="window-body">
-      <div class="ai-log" id="ai-log"></div>
+      <div class="ai-log" id="ai-log2"></div>
       <div class="ai-input-row">
-        <input id="ai-input" class="ai-input" placeholder="Ask about files, users, .exe, Host, AIM, Paint, or Media Player..." />
-        <button class="button-small" id="ai-send">Send</button>
+        <input id="ai-input2" class="ai-input" placeholder="Ask about files, users, .exe, Host, AIM, Paint, or Media Player..." />
+        <button class="button-small" id="ai-send2">Send</button>
       </div>
     </div>
   </div>
@@ -6851,6 +6851,7 @@ function renderMediaInPlayer(entry) {
 /* AIM OS — RECODED HTML‑SAFE VERSION */
 function aiMsg(role, text){
   if(!aiLog) return;
+  if(!aiLog2) return;
 
   // --- PLAY TROUBLESHOOTER SOUND ---
   if(text.includes("<<PLAY_TROUBLESHOOTER_SOUND>>")){
@@ -6938,7 +6939,9 @@ function aiMsg(role, text){
   div.appendChild(roleSpan);
   div.appendChild(body);
   aiLog.appendChild(div);
+  aiLog2.appendChild(div);
   aiLog.scrollTop = aiLog.scrollHeight;
+  aiLog2.scrollTop = aiLog.scrollHeight;
 }
 
 
@@ -7183,7 +7186,9 @@ if(/open\s+([a-z0-9._-]+)/i.test(lower)){
         aiInput.value="";
       }
       if(aiSend) aiSend.addEventListener("click",aiSendNow);
+      if(aiSend2) aiSend2.addEventListener("click",aiSendNow);
       if(aiInput) aiInput.addEventListener("keydown",(e)=>{if(e.key==="Enter")aiSendNow();});
+      if(aiInput2) aiInput.addEventListener("keydown",(e)=>{if(e.key==="Enter")aiSendNow();});
       aiMsg("ai","AIM OS online. Right-click everywhere. Ask about FS, .exe, Host.exe, clock, fullscreen, context menus, Notes, Paint, or Media Player.");
 
       /* Regedit admin */

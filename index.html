@@ -1984,6 +1984,20 @@
 @media (max-width:420px) {
   .mini-aim-toggle-label { display:none; }
 }
+/* Hide the Mini AIM sidebar when .hidden is present */
+#mini-aim-sidebar.hidden {
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform .22s ease, opacity .22s ease;
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  #mini-aim-sidebar.hidden {
+    transition: none;
+  }
+}
 
 /* visible state hook for the sidebar (sidebar should respond to .visible) */
 #mini-aim-sidebar.visible { transform: translateX(0); opacity:1; pointer-events:auto; }
@@ -12187,267 +12201,262 @@ function initExplorerTabs() {
   // Loop itself forever
   setTimeout(initExplorerTabs, LOOP_MS);
 }
-  const STORAGE_KEY_LS = 'miniAim_conversations_v1';
-  const ACTIVE_KEY = 'miniAim_active_v1';
-  const SUGGESTIONS = ['hello','hi','help','troubleshoot','export session','import session','open file','list users','diagnose','restart app'];
+// STORAGE KEY constant
+const STORAGE_KEY_LS = 'miniAim_conversations_v1';
+const ACTIVE_KEY = 'miniAim_active_v1';
 
-  // DOM refs (may be defined elsewhere)
-  const conList = document.getElementById('mini-convos');
-  const newBtn = document.getElementById('mini-new-chat');
-  const exportBtn = document.getElementById('mini-export');
-  const importBtn = document.getElementById('mini-import-btn');
-  const importFile = document.getElementById('mini-import-file');
-  const sendBtn = document.getElementById('ai-send');
-  const suggestionsEl = document.getElementById('suggestions');
-  const inputHint = document.getElementById('input-hint');
-  const sidebar = document.getElementById('mini-aim-sidebar');
+// suggestion list (UI-only)
+const SUGGESTIONS = ['hello','hi','help','troubleshoot','export session','import session','open file','list users','diagnose','restart app'];
 
-  // in-memory state (not automatically persisted)
-  let convos = loadConvosFromStorage() || [];
-  let activeId = localStorage.getItem(ACTIVE_KEY) || (convos[0] && convos[0].id) || null;
+// DOM references (assumes these exist in the page)
+const conList = document.getElementById('mini-convos');
+const newBtn = document.getElementById('mini-new-chat');
+const importBtn = document.getElementById('mini-import-btn');
+const importFile = document.getElementById('mini-import-file');
+const sendBtn = document.getElementById('ai-send');
+const suggestionsEl = document.getElementById('suggestions');
+const inputHint = document.getElementById('input-hint');
+const sidebar = document.getElementById('mini-aim-sidebar');
 
-  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+// in-memory state (load from localStorage if present)
+let convos = (function loadFromLS(){
+  try { const raw = localStorage.getItem(STORAGE_KEY_LS); return raw ? JSON.parse(raw) : []; } catch(e){ return []; }
+})();
+let activeId = localStorage.getItem(ACTIVE_KEY) || (convos[0] && convos[0].id) || null;
 
-  function loadConvosFromStorage(){
-    try { const raw = localStorage.getItem(STORAGE_KEY_LS); return raw ? JSON.parse(raw) : []; } catch(e){ return []; }
-  }
+// utilities
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function timeAgo(ts){
+  if (!ts) return '';
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s/60); if (m < 60) return `${m}m`;
+  const h = Math.floor(m/60); if (h < 24) return `${h}h`;
+  const d = Math.floor(h/24); return `${d}d`;
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-  function saveConvos(persist = false){
-    // always update in-memory; persist only when requested
-    if (persist) {
-      try { localStorage.setItem(STORAGE_KEY_LS, JSON.stringify(convos)); } catch(e){}
-      if (activeId) localStorage.setItem(ACTIVE_KEY, activeId);
-    }
-  }
+// persistence: explicit save (call when you want to persist)
+function saveConvos(persist = true){
+  if (!persist) return;
+  try { localStorage.setItem(STORAGE_KEY_LS, JSON.stringify(convos)); } catch(e){}
+  if (activeId) localStorage.setItem(ACTIVE_KEY, activeId);
+}
 
-  function createConvo(name = 'New chat'){
-    const id = uid();
-    const convo = { id, name, createdAt: Date.now(), messages: [] };
-    convos.unshift(convo);
-    activeId = id;
-    renderConvos();
-    fillAllAiLogs();
-    return convo;
-  }
-
-  function setActiveConvo(id){
-    if (!convos.find(c => c.id === id)) return;
-    activeId = id;
-    localStorage.setItem(ACTIVE_KEY, id); // remember last active but do not force full save
-    renderConvos();
-    fillAllAiLogs();
-  }
-
-  function deleteConvo(id){
-    convos = convos.filter(c => c.id !== id);
-    if (activeId === id) activeId = convos.length ? convos[0].id : null;
-    renderConvos();
-    fillAllAiLogs();
-  }
-
-  function renameConvo(id, newName){
-    const c = convos.find(x => x.id === id); if (!c) return;
-    c.name = newName;
-    renderConvos();
-    // in-memory change only; call saveConvos(true) to persist
-  }
-
-  function appendMessageLocal(from, text){
-    let convo = convos.find(c => c.id === activeId);
-    if (!convo) convo = createConvo('Chat');
-    const msg = { id: uid(), from, text: text || '', ts: Date.now() };
-    convo.messages.push(msg);
-    renderConvos();
-    appendMessageToAllLogs(msg);
-    // in-memory only; call saveConvos(true) to persist
-    return msg;
-  }
-
-  function appendMessageToAllLogs(msg){
-    // find all .ai-log elements and append the message node
-    const logs = document.querySelectorAll('.ai-log');
-    logs.forEach(log => {
-      // if the log is showing a different conversation (optional), we still append so all logs mirror active convo
-      const el = document.createElement('div');
-      el.className = 'message ' + (msg.from === 'user' ? 'from-user' : 'from-ai');
-      el.textContent = msg.text || '';
-      log.appendChild(el);
-      log.scrollTop = log.scrollHeight;
-    });
-  }
-
-  function fillAllAiLogs(){
-    const logs = document.querySelectorAll('.ai-log');
-    const convo = convos.find(c => c.id === activeId);
-    logs.forEach(log => {
-      log.innerHTML = '';
-      if (!convo) {
-        const h = document.createElement('div'); h.className = 'ai-default';
-        h.innerHTML = `<div class="ai-default-text">Start a new chat or select a conversation.</div>`;
-        log.appendChild(h);
-        return;
-      }
-      convo.messages.forEach(m => {
-        const el = document.createElement('div');
-        el.className = 'message ' + (m.from === 'user' ? 'from-user' : 'from-ai');
-        el.textContent = m.text || '';
-        log.appendChild(el);
-      });
-      log.scrollTop = log.scrollHeight;
-    });
-  }
-
-  function renderConvos(){
-    if (!conList) return;
-    conList.innerHTML = '';
-    convos.forEach(c => {
-      const li = document.createElement('li');
-      li.dataset.id = c.id;
-      li.className = (c.id === activeId) ? 'active' : '';
-      const label = document.createElement('span');
-      label.className = 'convo-item-label';
-      label.textContent = c.name;
-      label.contentEditable = true;
-      label.spellcheck = false;
-      label.addEventListener('blur', () => renameConvo(c.id, label.textContent.trim() || 'Untitled'));
-      label.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); label.blur(); } });
-
-      const meta = document.createElement('span');
-      meta.className = 'convo-item-meta';
-      const last = c.messages.length ? c.messages[c.messages.length - 1] : null;
-      meta.textContent = last ? timeAgo(last.ts) : '';
-
-      const actions = document.createElement('div');
-      actions.style.display = 'flex';
-      actions.style.gap = '6px';
-      const openBtn = document.createElement('button'); openBtn.textContent = 'Open'; openBtn.className='btn small';
-      openBtn.addEventListener('click', (ev) => { ev.stopPropagation(); setActiveConvo(c.id); });
-      const delBtn = document.createElement('button'); delBtn.textContent = 'Del'; delBtn.className='btn small';
-      delBtn.addEventListener('click', (ev) => { ev.stopPropagation(); if (confirm('Delete conversation?')) deleteConvo(c.id); });
-
-      actions.appendChild(openBtn); actions.appendChild(delBtn);
-      li.appendChild(label); li.appendChild(meta); li.appendChild(actions);
-      li.addEventListener('click', (e) => { if (e.target === li || e.target === label) setActiveConvo(c.id); });
-      conList.appendChild(li);
-    });
-  }
-
-  // wire send button: local echo + hand off to AIMSG if present (do not implement AI responses)
-  if (sendBtn) {
-    sendBtn.addEventListener('click', () => {
-      const input = document.getElementById('ai-input');
-      if (!input) { alert('Input not found'); return; }
-      const v = input.value.trim(); if (!v) return;
-      appendMessageLocal('user', v);
-      input.value = '';
-      if (inputHint) inputHint.style.display = 'none';
-      // hand off to host AIM system if present
-      try {
-        if (typeof AIMSG === 'function') AIMSG('ai', v);
-        else if (window.AIM && typeof window.AIM.send === 'function') window.AIM.send(v);
-      } catch (e) { /* silent */ }
-    });
-
-    // Enter to send
-    const input = document.getElementById('ai-input');
-    if (input) {
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
-      });
-      input.addEventListener('input', () => {
-        if (inputHint) inputHint.style.display = input.value.trim() ? 'block' : 'none';
-        updateSuggestions(input.value.trim());
-      });
-    }
-  }
-
-  function updateSuggestions(q){
-    if (!suggestionsEl) return;
-    suggestionsEl.innerHTML = '';
-    const list = (!q) ? SUGGESTIONS.slice(0,6) : SUGGESTIONS.filter(s => s.includes(q.toLowerCase()) || q.toLowerCase().includes(s)).slice(0,8);
-    list.forEach(s => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.textContent = s;
-      b.addEventListener('click', () => {
-        const input = document.getElementById('ai-input');
-        if (input) { input.value = s; input.focus(); updateSuggestions(s); }
-      });
-      suggestionsEl.appendChild(b);
-    });
-  }
-
-  // import/export handlers (persist only when user chooses)
-  if (exportBtn) {
-    exportBtn.addEventListener('click', () => {
-      const blob = new Blob([JSON.stringify(convos, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'miniAim_sessions.json'; a.click(); URL.revokeObjectURL(url);
-    });
-  }
-  if (importBtn && importFile) {
-    importBtn.addEventListener('click', () => importFile.click());
-    importFile.addEventListener('change', (e) => {
-      const f = e.target.files[0]; if (!f) return;
-      const r = new FileReader();
-      r.onload = () => {
-        try {
-          const data = JSON.parse(r.result);
-          if (Array.isArray(data)) { convos = data; renderConvos(); setActiveConvo(convos[0]?.id || createConvo().id); fillAllAiLogs(); }
-        } catch (err) { alert('Invalid file'); }
-      };
-      r.readAsText(f);
-      e.target.value = '';
-    });
-  }
-
-  // fly-away default message (if present inside any ai-log)
-  document.addEventListener('click', (e) => {
-    if (!e.target.matches('.fly-away, .fly-away *')) return;
-    const el = document.getElementById('ai-default');
-    if (!el) return;
-    el.classList.add('animate');
-    setTimeout(() => { if (el && el.parentNode) el.parentNode.removeChild(el); }, 900);
-  });
-
-  // react when sidebar gains/loses .hidden: when shown, focus input and fill logs
-  if (sidebar) {
-    const obs = new MutationObserver(() => {
-      if (!sidebar.classList.contains('hidden')) {
-        // shown
-        const input = document.getElementById('ai-input');
-        if (input) input.focus();
-        fillAllAiLogs();
-      }
-    });
-    obs.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
-  }
-
-  function timeAgo(ts){
-    if (!ts) return '';
-    const s = Math.floor((Date.now() - ts) / 1000);
-    if (s < 60) return `${s}s`;
-    const m = Math.floor(s/60); if (m < 60) return `${m}m`;
-    const h = Math.floor(m/60); if (h < 24) return `${h}h`;
-    const d = Math.floor(h/24); return `${d}d`;
-  }
-
-  // initial bootstrap
-  if (!convos.length) createConvo('Welcome');
+// conversation CRUD
+function createConvo(name = 'New chat'){
+  const id = uid();
+  const convo = { id, name, createdAt: Date.now(), messages: [] };
+  convos.unshift(convo);
+  activeId = id;
   renderConvos();
-  if (!activeId) setActiveConvo(convos[0].id);
-  else setActiveConvo(activeId);
+  fillAllAiLogs();
+  return convo;
+}
 
-  // public API (in-memory first; caller decides when to persist)
-  window.MiniAIM = Object.assign(window.MiniAIM || {}, {
-    getConversations: () => JSON.parse(JSON.stringify(convos)),
-    openConversation: (id) => setActiveConvo(id),
-    newConversation: (name) => createConvo(name || 'New chat'),
-    appendMessageLocal,            // append message to active convo and update all logs
-    fillAllAiLogs,                 // force-fill every .ai-log with active convo
-    saveConvosToStorage: () => saveConvos(true), // explicit persist
-    saveConvosInMemory: () => saveConvos(false)  // update in-memory only
+function setActiveConvo(id){
+  if (!convos.find(c => c.id === id)) return;
+  activeId = id;
+  localStorage.setItem(ACTIVE_KEY, id);
+  renderConvos();
+  fillAllAiLogs();
+}
+
+function deleteConvo(id){
+  convos = convos.filter(c => c.id !== id);
+  if (activeId === id) activeId = convos.length ? convos[0].id : null;
+  renderConvos();
+  fillAllAiLogs();
+}
+
+function renameConvo(id, newName){
+  const c = convos.find(x => x.id === id); if (!c) return;
+  c.name = newName;
+  renderConvos();
+}
+
+// append message to active convo (in-memory) and mirror to all .ai-log elements
+function appendMessageLocal(from, text){
+  let convo = convos.find(c => c.id === activeId);
+  if (!convo) convo = createConvo('Chat');
+  const msg = { id: uid(), from, text: text || '', ts: Date.now() };
+  convo.messages.push(msg);
+  renderConvos();
+  appendMessageToAllLogs(msg);
+  return msg;
+}
+
+function appendMessageToAllLogs(msg){
+  const logs = document.querySelectorAll('.ai-log');
+  logs.forEach(log => {
+    const el = document.createElement('div');
+    el.className = 'message ' + (msg.from === 'user' ? 'from-user' : 'from-ai');
+    el.textContent = msg.text || '';
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
   });
+}
+
+function fillAllAiLogs(){
+  const logs = document.querySelectorAll('.ai-log');
+  const convo = convos.find(c => c.id === activeId);
+  logs.forEach(log => {
+    log.innerHTML = '';
+    if (!convo) {
+      const h = document.createElement('div'); h.className = 'ai-default';
+      h.innerHTML = `<div class="ai-default-text">Start a new chat or select a conversation.</div>`;
+      log.appendChild(h);
+      return;
+    }
+    convo.messages.forEach(m => {
+      const el = document.createElement('div');
+      el.className = 'message ' + (m.from === 'user' ? 'from-user' : 'from-ai');
+      el.textContent = m.text || '';
+      log.appendChild(el);
+    });
+    log.scrollTop = log.scrollHeight;
+  });
+}
+
+function renderConvos(){
+  if (!conList) return;
+  conList.innerHTML = '';
+  convos.forEach(c => {
+    const li = document.createElement('li');
+    li.dataset.id = c.id;
+    li.className = (c.id === activeId) ? 'active' : '';
+    const label = document.createElement('span');
+    label.className = 'convo-item-label';
+    label.textContent = c.name;
+    label.contentEditable = true;
+    label.spellcheck = false;
+    label.addEventListener('blur', () => renameConvo(c.id, label.textContent.trim() || 'Untitled'));
+    label.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); label.blur(); } });
+
+    const meta = document.createElement('span');
+    meta.className = 'convo-item-meta';
+    const last = c.messages.length ? c.messages[c.messages.length - 1] : null;
+    meta.textContent = last ? timeAgo(last.ts) : '';
+
+    const actions = document.createElement('div');
+    actions.style.display = 'flex';
+    actions.style.gap = '6px';
+    const openBtn = document.createElement('button'); openBtn.textContent = 'Open'; openBtn.className='btn small';
+    openBtn.addEventListener('click', (ev) => { ev.stopPropagation(); setActiveConvo(c.id); });
+    const delBtn = document.createElement('button'); delBtn.textContent = 'Del'; delBtn.className='btn small';
+    delBtn.addEventListener('click', (ev) => { ev.stopPropagation(); if (confirm('Delete conversation?')) deleteConvo(c.id); });
+
+    actions.appendChild(openBtn); actions.appendChild(delBtn);
+    li.appendChild(label); li.appendChild(meta); li.appendChild(actions);
+    li.addEventListener('click', (e) => { if (e.target === li || e.target === label) setActiveConvo(c.id); });
+    conList.appendChild(li);
+  });
+}
+
+// suggestions UI
+function updateSuggestions(q){
+  if (!suggestionsEl) return;
+  suggestionsEl.innerHTML = '';
+  const list = (!q) ? SUGGESTIONS.slice(0,6) : SUGGESTIONS.filter(s => s.includes(q.toLowerCase()) || q.toLowerCase().includes(s)).slice(0,8);
+  list.forEach(s => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = s;
+    b.addEventListener('click', () => {
+      const input = document.getElementById('ai-input');
+      if (input) { input.value = s; input.focus(); updateSuggestions(s); }
+    });
+    suggestionsEl.appendChild(b);
+  });
+}
+
+// wire send button: local echo + hand off to AIMSG if present (does not implement AI responses)
+if (sendBtn) {
+  sendBtn.addEventListener('click', () => {
+    const input = document.getElementById('ai-input');
+    if (!input) { alert('Input not found'); return; }
+    const v = input.value.trim(); if (!v) return;
+    appendMessageLocal('user', v);
+    input.value = '';
+    if (inputHint) inputHint.style.display = 'none';
+    try {
+      if (typeof AIMSG === 'function') AIMSG('ai', v);
+      else if (window.AIM && typeof window.AIM.send === 'function') window.AIM.send(v);
+    } catch (e) { /* silent */ }
+  });
+
+  const input = document.getElementById('ai-input');
+  if (input) {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
+    });
+    input.addEventListener('input', () => {
+      if (inputHint) inputHint.style.display = input.value.trim() ? 'block' : 'none';
+      updateSuggestions(input.value.trim());
+    });
+  }
+} else {
+  // graceful fallback
+  const input = document.getElementById('ai-input');
+  if (input) input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) e.preventDefault(); });
+}
+
+// import handling (keeps import; export intentionally omitted because export button is used elsewhere)
+if (importBtn && importFile) {
+  importBtn.addEventListener('click', () => importFile.click());
+  importFile.addEventListener('change', (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const data = JSON.parse(r.result);
+        if (Array.isArray(data)) { convos = data; renderConvos(); setActiveConvo(convos[0]?.id || createConvo().id); fillAllAiLogs(); }
+      } catch (err) { alert('Invalid file'); }
+    };
+    r.readAsText(f);
+    e.target.value = '';
+  });
+}
+
+// fly-away default message (delegated)
+document.addEventListener('click', (e) => {
+  if (!e.target.matches('.fly-away, .fly-away *')) return;
+  const el = document.getElementById('ai-default');
+  if (!el) return;
+  el.classList.add('animate');
+  setTimeout(() => { if (el && el.parentNode) el.parentNode.removeChild(el); }, 900);
+});
+
+// observe sidebar .hidden state: when shown, focus input and fill logs
+if (sidebar) {
+  const obs = new MutationObserver(() => {
+    if (!sidebar.classList.contains('hidden')) {
+      const input = document.getElementById('ai-input');
+      if (input) input.focus();
+      fillAllAiLogs();
+    }
+  });
+  obs.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
+}
+
+// bootstrap
+if (!convos.length) createConvo('Welcome');
+renderConvos();
+if (!activeId) setActiveConvo(convos[0].id);
+else setActiveConvo(activeId);
+updateSuggestions('');
+
+// public API (exposed globally)
+window.MiniAIM = Object.assign(window.MiniAIM || {}, {
+  getConversations: () => JSON.parse(JSON.stringify(convos)),
+  openConversation: (id) => setActiveConvo(id),
+  newConversation: (name) => createConvo(name || 'New chat'),
+  appendMessageLocal,            // append message to active convo and update all logs
+  fillAllAiLogs,                 // force-fill every .ai-log with active convo
+  saveConvosToStorage: () => saveConvos(true), // explicit persist
+  saveConvosInMemory: () => saveConvos(false)  // update in-memory only
+});
+
   const TOGGLE_ID = 'mini-aim-toggle';
   const SIDEBAR_ID = 'mini-aim-sidebar';
   const STORAGE_KEY_DETECT_CLOSE = 'miniAim_sidebar_open_v1';

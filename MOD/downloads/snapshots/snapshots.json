@@ -5,7 +5,14 @@
       "id": "2026-03-08-a",
       "mc": "1.21.8",
       "branch": "dev",
-      "file": "my_first_mod-1.0.0-neoforge-1.21.8.jar",
+      "file": "my_first_mod-1.0.0-neoforge-1.21.8 (2).jar",
+      "unstable": false
+    },
+    {
+      "id": "2026-03-08-b",
+      "mc": "1.21.8",
+      "branch": "dev",
+      "file": "my_first_mod-1.0.0-neoforge-1.21.8 (3).jar",
       "unstable": false
     }
   ]

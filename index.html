@@ -2139,8 +2139,8 @@
     <div class="mini-aim-actions">
       <button id="mini-new-chat" class="btn small">New</button>
       <button id="mini-export" class="btn small">Export</button>
-      <button id="mini-import-btn" class="btn small">Import</button>
-      <input id="mini-import-file" type="file" accept="application/json" style="display:none" />
+      <button id="import-btn2" class="btn small">Import</button>
+      <input id="import-file2" type="file" accept="application/json" style="display:none" />
     </div>
   </header>
 
@@ -12200,24 +12200,22 @@ function initExplorerTabs() {
 
   // Loop itself forever
   setTimeout(initExplorerTabs, LOOP_MS);
-}
-// STORAGE KEY constant
+}// STORAGE KEY constant
 const STORAGE_KEY_LS = 'miniAim_conversations_v1';
 const ACTIVE_KEY = 'miniAim_active_v1';
 
 // suggestion list (UI-only)
 const SUGGESTIONS = ['hello','hi','help','troubleshoot','export session','import session','open file','list users','diagnose','restart app'];
 
-// DOM references (assumes these exist in the page)
-// NOTE: import button and sidebar IDs expected to have "2" suffix in the DOM
-const conList = document.getElementById('mini-convos');
-const newBtn = document.getElementById('mini-new-chat');
-const importBtn2 = document.getElementById('mini-import-btn2');
-const importFile = document.getElementById('mini-import-file');
-const sendBtn = document.getElementById('ai-send');
-const suggestionsEl = document.getElementById('suggestions');
-const inputHint = document.getElementById('input-hint');
-const sidebar2 = document.getElementById('mini-aim-sidebar2');
+// DOM references (expect elements with "2" suffix where requested)
+const conList2 = document.getElementById('mini-convos2') || document.getElementById('mini-convos');
+const newBtn2 = document.getElementById('mini-new-chat2') || document.getElementById('mini-new-chat');
+const importBtn2 = document.getElementById('mini-import-btn2') || document.getElementById('mini-import-btn');
+const importFile2 = document.getElementById('mini-import-file2') || document.getElementById('mini-import-file');
+const sendBtn2 = document.getElementById('ai-send2') || document.getElementById('ai-send');
+const suggestionsEl2 = document.getElementById('suggestions2') || document.getElementById('suggestions');
+const inputHint2 = document.getElementById('input-hint2') || document.getElementById('input-hint');
+const sidebar2 = document.getElementById('mini-aim-sidebar2') || document.getElementById('mini-aim-sidebar');
 
 // in-memory state (load from localStorage if present)
 let convos = (function loadFromLS(){
@@ -12320,8 +12318,8 @@ function fillAllAiLogs(){
 }
 
 function renderConvos(){
-  if (!conList) return;
-  conList.innerHTML = '';
+  if (!conList2) return;
+  conList2.innerHTML = '';
   convos.forEach(c => {
     const li = document.createElement('li');
     li.dataset.id = c.id;
@@ -12350,62 +12348,62 @@ function renderConvos(){
     actions.appendChild(openBtn); actions.appendChild(delBtn);
     li.appendChild(label); li.appendChild(meta); li.appendChild(actions);
     li.addEventListener('click', (e) => { if (e.target === li || e.target === label) setActiveConvo(c.id); });
-    conList.appendChild(li);
+    conList2.appendChild(li);
   });
 }
 
 // suggestions UI
 function updateSuggestions(q){
-  if (!suggestionsEl) return;
-  suggestionsEl.innerHTML = '';
+  if (!suggestionsEl2) return;
+  suggestionsEl2.innerHTML = '';
   const list = (!q) ? SUGGESTIONS.slice(0,6) : SUGGESTIONS.filter(s => s.includes(q.toLowerCase()) || q.toLowerCase().includes(s)).slice(0,8);
   list.forEach(s => {
     const b = document.createElement('button');
     b.type = 'button';
     b.textContent = s;
     b.addEventListener('click', () => {
-      const input = document.getElementById('ai-input');
+      const input = document.getElementById('ai-input2') || document.getElementById('ai-input');
       if (input) { input.value = s; input.focus(); updateSuggestions(s); }
     });
-    suggestionsEl.appendChild(b);
+    suggestionsEl2.appendChild(b);
   });
 }
 
 // wire send button: local echo + hand off to AIMSG if present (does not implement AI responses)
-if (sendBtn) {
-  sendBtn.addEventListener('click', () => {
-    const input = document.getElementById('ai-input');
+if (sendBtn2) {
+  sendBtn2.addEventListener('click', () => {
+    const input = document.getElementById('ai-input2') || document.getElementById('ai-input');
     if (!input) { alert('Input not found'); return; }
     const v = input.value.trim(); if (!v) return;
     appendMessageLocal('user', v);
     input.value = '';
-    if (inputHint) inputHint.style.display = 'none';
+    if (inputHint2) inputHint2.style.display = 'none';
     try {
       if (typeof AIMSG === 'function') AIMSG('ai', v);
       else if (window.AIM && typeof window.AIM.send === 'function') window.AIM.send(v);
     } catch (e) { /* silent */ }
   });
 
-  const input = document.getElementById('ai-input');
+  const input = document.getElementById('ai-input2') || document.getElementById('ai-input');
   if (input) {
     input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn2.click(); }
     });
     input.addEventListener('input', () => {
-      if (inputHint) inputHint.style.display = input.value.trim() ? 'block' : 'none';
+      if (inputHint2) inputHint2.style.display = input.value.trim() ? 'block' : 'none';
       updateSuggestions(input.value.trim());
     });
   }
 } else {
   // graceful fallback
-  const input = document.getElementById('ai-input');
+  const input = document.getElementById('ai-input2') || document.getElementById('ai-input');
   if (input) input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) e.preventDefault(); });
 }
 
-// import handling (uses importBtn2 and importFile; export intentionally omitted)
-if (importBtn2 && importFile) {
-  importBtn2.addEventListener('click', () => importFile.click());
-  importFile.addEventListener('change', (e) => {
+// import handling (uses importBtn2 and importFile2; export intentionally omitted)
+if (importBtn2 && importFile2) {
+  importBtn2.addEventListener('click', () => importFile2.click());
+  importFile2.addEventListener('change', (e) => {
     const f = e.target.files[0]; if (!f) return;
     const r = new FileReader();
     r.onload = () => {
@@ -12432,7 +12430,7 @@ document.addEventListener('click', (e) => {
 if (sidebar2) {
   const obs = new MutationObserver(() => {
     if (!sidebar2.classList.contains('hidden')) {
-      const input = document.getElementById('ai-input');
+      const input = document.getElementById('ai-input2') || document.getElementById('ai-input');
       if (input) input.focus();
       fillAllAiLogs();
     }
@@ -12457,6 +12455,7 @@ window.MiniAIM = Object.assign(window.MiniAIM || {}, {
   saveConvosToStorage: () => saveConvos(true), // explicit persist
   saveConvosInMemory: () => saveConvos(false)  // update in-memory only
 });
+
 
   const TOGGLE_ID = 'mini-aim-toggle';
   const SIDEBAR_ID = 'mini-aim-sidebar';

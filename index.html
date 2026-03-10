@@ -12187,69 +12187,114 @@ function initExplorerTabs() {
   // Loop itself forever
   setTimeout(initExplorerTabs, LOOP_MS);
 }
-
-/* Mini AIM OS — conversation manager and suggestions
-   - Assumes #ai-log and #ai-input exist elsewhere and are managed by the host/AIMSG system.
-   - Does not create AI responses; when sending it calls AIMSG if available.
-*/
-(() => {
   const STORAGE_KEY = 'miniAim_conversations_v1';
   const ACTIVE_KEY = 'miniAim_active_v1';
   const SUGGESTIONS = ['hello','hi','help','troubleshoot','export session','import session','open file','list users','diagnose','restart app'];
 
-  // DOM refs (must exist in page)
+  // DOM refs (may be defined elsewhere)
   const conList = document.getElementById('mini-convos');
   const newBtn = document.getElementById('mini-new-chat');
   const exportBtn = document.getElementById('mini-export');
   const importBtn = document.getElementById('mini-import-btn');
   const importFile = document.getElementById('mini-import-file');
-  const aiLog = document.getElementById('ai-log'); // intentionally not defined here
-  const aiInput = document.getElementById('ai-input'); // intentionally not defined here
   const sendBtn = document.getElementById('ai-send');
   const suggestionsEl = document.getElementById('suggestions');
   const inputHint = document.getElementById('input-hint');
-  const flyBtn = document.getElementById('fly-away');
+  const sidebar = document.getElementById('mini-aim-sidebar');
 
-  let convos = loadConvos();
-  let activeId = localStorage.getItem(ACTIVE_KEY) || null;
+  // in-memory state (not automatically persisted)
+  let convos = loadConvosFromStorage() || [];
+  let activeId = localStorage.getItem(ACTIVE_KEY) || (convos[0] && convos[0].id) || null;
 
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
-  function loadConvos(){
+  function loadConvosFromStorage(){
     try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; } catch(e){ return []; }
   }
 
-  function saveConvos(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(convos)); }
+  function saveConvos(persist = false){
+    // always update in-memory; persist only when requested
+    if (persist) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(convos)); } catch(e){}
+      if (activeId) localStorage.setItem(ACTIVE_KEY, activeId);
+    }
+  }
 
   function createConvo(name = 'New chat'){
     const id = uid();
     const convo = { id, name, createdAt: Date.now(), messages: [] };
     convos.unshift(convo);
-    saveConvos();
-    setActive(id);
+    activeId = id;
     renderConvos();
+    fillAllAiLogs();
     return convo;
   }
 
-  function setActive(id){
+  function setActiveConvo(id){
+    if (!convos.find(c => c.id === id)) return;
     activeId = id;
-    localStorage.setItem(ACTIVE_KEY, id);
+    localStorage.setItem(ACTIVE_KEY, id); // remember last active but do not force full save
     renderConvos();
-    loadActiveIntoLog();
+    fillAllAiLogs();
   }
 
   function deleteConvo(id){
     convos = convos.filter(c => c.id !== id);
     if (activeId === id) activeId = convos.length ? convos[0].id : null;
-    saveConvos();
-    localStorage.setItem(ACTIVE_KEY, activeId || '');
     renderConvos();
-    loadActiveIntoLog();
+    fillAllAiLogs();
   }
 
   function renameConvo(id, newName){
     const c = convos.find(x => x.id === id); if (!c) return;
-    c.name = newName; saveConvos(); renderConvos();
+    c.name = newName;
+    renderConvos();
+    // in-memory change only; call saveConvos(true) to persist
+  }
+
+  function appendMessageLocal(from, text){
+    let convo = convos.find(c => c.id === activeId);
+    if (!convo) convo = createConvo('Chat');
+    const msg = { id: uid(), from, text: text || '', ts: Date.now() };
+    convo.messages.push(msg);
+    renderConvos();
+    appendMessageToAllLogs(msg);
+    // in-memory only; call saveConvos(true) to persist
+    return msg;
+  }
+
+  function appendMessageToAllLogs(msg){
+    // find all .ai-log elements and append the message node
+    const logs = document.querySelectorAll('.ai-log');
+    logs.forEach(log => {
+      // if the log is showing a different conversation (optional), we still append so all logs mirror active convo
+      const el = document.createElement('div');
+      el.className = 'message ' + (msg.from === 'user' ? 'from-user' : 'from-ai');
+      el.textContent = msg.text || '';
+      log.appendChild(el);
+      log.scrollTop = log.scrollHeight;
+    });
+  }
+
+  function fillAllAiLogs(){
+    const logs = document.querySelectorAll('.ai-log');
+    const convo = convos.find(c => c.id === activeId);
+    logs.forEach(log => {
+      log.innerHTML = '';
+      if (!convo) {
+        const h = document.createElement('div'); h.className = 'ai-default';
+        h.innerHTML = `<div class="ai-default-text">Start a new chat or select a conversation.</div>`;
+        log.appendChild(h);
+        return;
+      }
+      convo.messages.forEach(m => {
+        const el = document.createElement('div');
+        el.className = 'message ' + (m.from === 'user' ? 'from-user' : 'from-ai');
+        el.textContent = m.text || '';
+        log.appendChild(el);
+      });
+      log.scrollTop = log.scrollHeight;
+    });
   }
 
   function renderConvos(){
@@ -12276,82 +12321,44 @@ function initExplorerTabs() {
       actions.style.display = 'flex';
       actions.style.gap = '6px';
       const openBtn = document.createElement('button'); openBtn.textContent = 'Open'; openBtn.className='btn small';
-      openBtn.addEventListener('click', (ev) => { ev.stopPropagation(); setActive(c.id); });
+      openBtn.addEventListener('click', (ev) => { ev.stopPropagation(); setActiveConvo(c.id); });
       const delBtn = document.createElement('button'); delBtn.textContent = 'Del'; delBtn.className='btn small';
       delBtn.addEventListener('click', (ev) => { ev.stopPropagation(); if (confirm('Delete conversation?')) deleteConvo(c.id); });
 
       actions.appendChild(openBtn); actions.appendChild(delBtn);
       li.appendChild(label); li.appendChild(meta); li.appendChild(actions);
-      li.addEventListener('click', (e) => { if (e.target === li || e.target === label) setActive(c.id); });
+      li.addEventListener('click', (e) => { if (e.target === li || e.target === label) setActiveConvo(c.id); });
       conList.appendChild(li);
     });
   }
 
-  function loadActiveIntoLog(){
-    if (!aiLog) return;
-    aiLog.innerHTML = '';
-    const convo = convos.find(c => c.id === activeId);
-    if (!convo) {
-      const h = document.createElement('div'); h.className='ai-default';
-      h.innerHTML = `<div class="ai-default-text">Start a new chat or select a conversation.</div>`;
-      aiLog.appendChild(h);
-      return;
-    }
-    // render stored messages (saved messages are plain text objects)
-    convo.messages.forEach(m => {
-      const el = document.createElement('div');
-      el.className = 'message ' + (m.from === 'user' ? 'from-user' : 'from-ai');
-      el.textContent = m.text || '';
-      aiLog.appendChild(el);
-    });
-    aiLog.scrollTop = aiLog.scrollHeight;
-  }
-
-  function appendMessageLocal(from, text){
-    let convo = convos.find(c => c.id === activeId);
-    if (!convo) convo = createConvo('Chat');
-    const msg = { id: uid(), from, text: text || '', ts: Date.now() };
-    convo.messages.push(msg);
-    saveConvos();
-    if (aiLog) {
-      const el = document.createElement('div');
-      el.className = 'message ' + (from === 'user' ? 'from-user' : 'from-ai');
-      el.textContent = text || '';
-      aiLog.appendChild(el);
-      aiLog.scrollTop = aiLog.scrollHeight;
-    }
-  }
-
-  // send handler: local echo + hand off to AIMSG if available
-  if (sendBtn && aiInput) {
+  // wire send button: local echo + hand off to AIMSG if present (do not implement AI responses)
+  if (sendBtn) {
     sendBtn.addEventListener('click', () => {
-      const v = aiInput.value.trim(); if (!v) return;
+      const input = document.getElementById('ai-input');
+      if (!input) { alert('Input not found'); return; }
+      const v = input.value.trim(); if (!v) return;
       appendMessageLocal('user', v);
-      aiInput.value = '';
+      input.value = '';
       if (inputHint) inputHint.style.display = 'none';
-      // hand off to host AIM system if present; do not implement AI responses here
+      // hand off to host AIM system if present
       try {
-        if (typeof AIMSG === 'function') {
-          // AIMSG is expected to handle generating and inserting AI responses into #ai-log
-          AIMSG('ai', v);
-        } else if (window.AIM && typeof window.AIM.send === 'function') {
-          window.AIM.send(v);
-        }
-      } catch (e) {
-        // silent fail — AIM system not present
-      }
+        if (typeof AIMSG === 'function') AIMSG('ai', v);
+        else if (window.AIM && typeof window.AIM.send === 'function') window.AIM.send(v);
+      } catch (e) { /* silent */ }
     });
 
-    aiInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); return; }
-    });
-
-    aiInput.addEventListener('input', () => {
-      if (inputHint) inputHint.style.display = aiInput.value.trim() ? 'block' : 'none';
-      updateSuggestions(aiInput.value.trim());
-    });
-  } else {
-    if (sendBtn) sendBtn.addEventListener('click', () => alert('Input field not found.'));
+    // Enter to send
+    const input = document.getElementById('ai-input');
+    if (input) {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
+      });
+      input.addEventListener('input', () => {
+        if (inputHint) inputHint.style.display = input.value.trim() ? 'block' : 'none';
+        updateSuggestions(input.value.trim());
+      });
+    }
   }
 
   function updateSuggestions(q){
@@ -12363,13 +12370,14 @@ function initExplorerTabs() {
       b.type = 'button';
       b.textContent = s;
       b.addEventListener('click', () => {
-        if (aiInput) { aiInput.value = s; aiInput.focus(); updateSuggestions(s); }
+        const input = document.getElementById('ai-input');
+        if (input) { input.value = s; input.focus(); updateSuggestions(s); }
       });
       suggestionsEl.appendChild(b);
     });
   }
 
-  // export/import
+  // import/export handlers (persist only when user chooses)
   if (exportBtn) {
     exportBtn.addEventListener('click', () => {
       const blob = new Blob([JSON.stringify(convos, null, 2)], { type: 'application/json' });
@@ -12377,7 +12385,6 @@ function initExplorerTabs() {
       const a = document.createElement('a'); a.href = url; a.download = 'miniAim_sessions.json'; a.click(); URL.revokeObjectURL(url);
     });
   }
-
   if (importBtn && importFile) {
     importBtn.addEventListener('click', () => importFile.click());
     importFile.addEventListener('change', (e) => {
@@ -12386,7 +12393,7 @@ function initExplorerTabs() {
       r.onload = () => {
         try {
           const data = JSON.parse(r.result);
-          if (Array.isArray(data)) { convos = data; saveConvos(); renderConvos(); setActive(convos[0]?.id || createConvo().id); }
+          if (Array.isArray(data)) { convos = data; renderConvos(); setActiveConvo(convos[0]?.id || createConvo().id); fillAllAiLogs(); }
         } catch (err) { alert('Invalid file'); }
       };
       r.readAsText(f);
@@ -12394,15 +12401,26 @@ function initExplorerTabs() {
     });
   }
 
-  if (newBtn) newBtn.addEventListener('click', () => { const c = createConvo('New chat'); renderConvos(); setActive(c.id); });
+  // fly-away default message (if present inside any ai-log)
+  document.addEventListener('click', (e) => {
+    if (!e.target.matches('.fly-away, .fly-away *')) return;
+    const el = document.getElementById('ai-default');
+    if (!el) return;
+    el.classList.add('animate');
+    setTimeout(() => { if (el && el.parentNode) el.parentNode.removeChild(el); }, 900);
+  });
 
-  if (flyBtn) {
-    flyBtn.addEventListener('click', () => {
-      const el = document.getElementById('ai-default');
-      if (!el) return;
-      el.classList.add('animate');
-      setTimeout(() => { if (el && el.parentNode) el.parentNode.removeChild(el); }, 900);
+  // react when sidebar gains/loses .hidden: when shown, focus input and fill logs
+  if (sidebar) {
+    const obs = new MutationObserver(() => {
+      if (!sidebar.classList.contains('hidden')) {
+        // shown
+        const input = document.getElementById('ai-input');
+        if (input) input.focus();
+        fillAllAiLogs();
+      }
     });
+    obs.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
   }
 
   function timeAgo(ts){
@@ -12414,21 +12432,22 @@ function initExplorerTabs() {
     const d = Math.floor(h/24); return `${d}d`;
   }
 
-  // init
+  // initial bootstrap
   if (!convos.length) createConvo('Welcome');
   renderConvos();
-  if (!activeId) setActive(convos[0].id);
-  else loadActiveIntoLog();
-  updateSuggestions('');
+  if (!activeId) setActiveConvo(convos[0].id);
+  else setActiveConvo(activeId);
 
-  // public API (safe wrappers)
-  window.MiniAIM = {
+  // public API (in-memory first; caller decides when to persist)
+  window.MiniAIM = Object.assign(window.MiniAIM || {}, {
     getConversations: () => JSON.parse(JSON.stringify(convos)),
-    openConversation: (id) => setActive(id),
-    newConversation: () => createConvo('New chat'),
-    appendMessageLocal // allows host to push AI messages into storage/log if desired
-  };
-})();
+    openConversation: (id) => setActiveConvo(id),
+    newConversation: (name) => createConvo(name || 'New chat'),
+    appendMessageLocal,            // append message to active convo and update all logs
+    fillAllAiLogs,                 // force-fill every .ai-log with active convo
+    saveConvosToStorage: () => saveConvos(true), // explicit persist
+    saveConvosInMemory: () => saveConvos(false)  // update in-memory only
+  });
   const TOGGLE_ID = 'mini-aim-toggle';
   const SIDEBAR_ID = 'mini-aim-sidebar';
   const STORAGE_KEY_DETECT_CLOSE = 'miniAim_sidebar_open_v1';

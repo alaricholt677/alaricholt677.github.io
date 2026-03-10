@@ -3074,8 +3074,48 @@
   </div>
 </div>
 
+<div class="window" id="window-todo" data-app="todo" data-app-desc="[TODO List] Get Tasks Done.">
+  <div class="window-header" data-drag-handle>
+    <div class="window-title">
+      <div class="window-title-icon" style="background:linear-gradient(135deg,#ff7ad9,#b400ff);"></div>
+      <div class="window-title-text">
+        <div class="window-title-main">[TODO List]</div>
+        <div class="window-title-sub">Tasks · Todos · Saved</div>
+      </div>
+      <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+      <div class="window-info-icon">(i)</div>
+      <div class="window-info-tooltip"></div>
+    </div>
+    <div class="window-controls">
+      <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+      <div class="window-btn close"><div class="window-btn-icon"></div></div>
+    </div>
+  </div>
+  <div class="window-body">
+<form id="todo-form" aria-label="Add todo">
+  <input id="todo-input" type="text" placeholder="Add a task" aria-label="New task" />
+  <button type="submit" id="todo-add">Add</button>
+</form>
 
-<div class="window" id="window-taskmgr" data-app="taskmgr" data-app-desc="[Task Manager] Monitor processes, performance, and users.">
+<div class="toolbar">
+  <div class="filters" role="tablist" aria-label="Filters">
+    <button data-filter="all" class="active" role="tab">All</button>
+    <button data-filter="active" role="tab">Active</button>
+    <button data-filter="done" role="tab">Done</button>
+  </div>
+  <div class="actions">
+    <button id="export-json" type="button">Export</button>
+    <label class="import-label" style="cursor:pointer;">
+      Import
+      <input id="import-file" type="file" accept="application/json" style="display:none" />
+    </label>
+  </div>
+</div>
+
+<ul id="todo-list" class="list" aria-live="polite"></ul>
+</div>
+</div>
+  <div class="window" id="window-taskmgr" data-app="taskmgr" data-app-desc="[Task Manager] Monitor processes, performance, and users.">
   <div class="window-header" data-drag-handle>
     <div class="window-title">
       <div class="window-title-icon" style="background:linear-gradient(135deg,#ff7ad9,#b400ff);"></div>
@@ -3152,7 +3192,6 @@
     </div>
   </div>
 </div>
-
   <!-- Context menu -->
   <div class="ctx-menu" id="ctx-menu">
     <div class="ctx-item" data-action="open"><span>Open</span></div>
@@ -3344,7 +3383,95 @@
         }
       }
       let state = loadState();
+  const STORAGE_KEY = 'site_todos_v1';
+  const listEl = document.getElementById('todo-list');
+  const inputEl = document.getElementById('todo-input');
+  const form = document.getElementById('todo-form');
+  const filtersEl = document.querySelector('.filters');
+  const exportBtn = document.getElementById('export-json');
+  const importFile = document.getElementById('import-file');
 
+  let todos = [];
+  let currentFilter = 'all';
+
+  function loadFromStorage() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      todos = raw ? JSON.parse(raw) : [];
+    } catch (e) { todos = []; }
+  }
+
+  function saveToStorage() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(todos)); } catch (e) {}
+  }
+
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+  function render() {
+    listEl.innerHTML = '';
+    const filtered = todos.filter(t => currentFilter === 'all' || (currentFilter === 'active' && !t.completed) || (currentFilter === 'done' && t.completed));
+    if (filtered.length === 0) {
+      const li = document.createElement('li'); li.textContent = 'No tasks'; li.style.opacity = '0.6'; listEl.appendChild(li); return;
+    }
+    filtered.forEach(t => {
+      const li = document.createElement('li');
+      li.className = t.completed ? 'completed' : '';
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!t.completed;
+      cb.addEventListener('change', () => { t.completed = cb.checked; t.updatedAt = Date.now(); saveToStorage(); render(); });
+
+      const span = document.createElement('span'); span.className = 'title'; span.contentEditable = 'true'; span.spellcheck = false;
+      span.textContent = t.title;
+      span.addEventListener('input', () => { t.title = span.textContent.trim(); t.updatedAt = Date.now(); });
+      span.addEventListener('blur', () => { saveToStorage(); });
+
+      const del = document.createElement('button'); del.type = 'button'; del.textContent = '✕';
+      del.addEventListener('click', () => { todos = todos.filter(x => x.id !== t.id); saveToStorage(); render(); });
+
+      li.appendChild(cb); li.appendChild(span); li.appendChild(del);
+      listEl.appendChild(li);
+    });
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const v = inputEl.value.trim(); if (!v) return;
+    todos.unshift({ id: uid(), title: v, completed: false, createdAt: Date.now(), updatedAt: Date.now() });
+    inputEl.value = ''; saveToStorage(); render(); inputEl.focus();
+  });
+
+  filtersEl.addEventListener('click', (e) => {
+    if (!e.target.dataset.filter) return;
+    filtersEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    currentFilter = e.target.dataset.filter;
+    render();
+  });
+
+  exportBtn.addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(todos, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'todos.json'; a.click(); URL.revokeObjectURL(url);
+  });
+
+  importFile.addEventListener('change', (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const data = JSON.parse(r.result);
+        if (Array.isArray(data)) { todos = data; saveToStorage(); render(); }
+      } catch (err) {}
+    };
+    r.readAsText(f);
+    e.target.value = '';
+  });
+
+  loadFromStorage();
+  render();
+
+  // Expose for debugging if needed
+  window._todo = { get: () => todos, save: saveToStorage, load: loadFromStorage };
+    
       function ensureUser(){
         if(state.users.length === 0){
           const sampleExeHtml = `

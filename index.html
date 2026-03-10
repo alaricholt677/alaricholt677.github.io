@@ -12431,7 +12431,7 @@ function initExplorerTabs() {
 })();
   const TOGGLE_ID = 'mini-aim-toggle';
   const SIDEBAR_ID = 'mini-aim-sidebar';
-  const STORAGE_KEY = 'miniAim_sidebar_open_v1';
+  const STORAGE_KEY_DETECT_CLOSE = 'miniAim_sidebar_open_v1';
 
   const btn = document.getElementById(TOGGLE_ID);
   const sidebar = document.getElementById(SIDEBAR_ID);
@@ -12443,7 +12443,7 @@ function initExplorerTabs() {
   }
 
   // restore previous state
-  const saved = localStorage.getItem(STORAGE_KEY);
+  const saved = localStorage.getItem(STORAGE_KEY_DETECT_CLOSE);
   if (saved === '1') {
     sidebar.classList.add('visible');
     btn.setAttribute('aria-expanded', 'true');
@@ -12452,7 +12452,7 @@ function initExplorerTabs() {
   function openSidebar() {
     sidebar.classList.add('visible');
     btn.setAttribute('aria-expanded', 'true');
-    localStorage.setItem(STORAGE_KEY, '1');
+    localStorage.setItem(STORAGE_KEY_DETECT_CLOSE, '1');
     // focus the input if present
     const input = document.getElementById('ai-input');
     if (input) input.focus();
@@ -12461,7 +12461,7 @@ function initExplorerTabs() {
   function closeSidebar() {
     sidebar.classList.remove('visible');
     btn.setAttribute('aria-expanded', 'false');
-    localStorage.setItem(STORAGE_KEY, '0');
+    localStorage.setItem(STORAGE_KEY_DETECT_CLOSE, '0');
     btn.focus();
   }
 

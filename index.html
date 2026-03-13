@@ -6801,7 +6801,6 @@ function renderMediaInPlayer(entry) {
 
 /* AIM OS — RECODED HTML‑SAFE VERSION */
 function aiMsg(role, text){
-  if(!aiLog) return;
   if(!aiLog2) return;
 
   // --- PLAY TROUBLESHOOTER SOUND ---
@@ -7136,9 +7135,7 @@ if(/open\s+([a-z0-9._-]+)/i.test(lower)){
         aiMsg("ai",r);
         aiInput.value="";
       }
-      if(aiSend) aiSend.addEventListener("click",aiSendNow);
       if(aiSend2) aiSend2.addEventListener("click",aiSendNow);
-      if(aiInput) aiInput.addEventListener("keydown",(e)=>{if(e.key==="Enter")aiSendNow();});
       if(aiInput2) aiInput.addEventListener("keydown",(e)=>{if(e.key==="Enter")aiSendNow();});
       aiMsg("ai","AIM OS online. Right-click everywhere. Ask about FS, .exe, Host.exe, clock, fullscreen, context menus, Notes, Paint, or Media Player.");
 

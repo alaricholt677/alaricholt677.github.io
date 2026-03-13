@@ -2122,55 +2122,6 @@
 
   </div>
 
-<!-- Sidebar markup (paste into your layout) -->
-<aside id="mini-aim-sidebar" class="mini-aim slide-in" aria-label="Mini AIM OS sidebar">
-  <header class="mini-aim-header">
-    <div class="mini-aim-icon" aria-hidden="true">
-      <!-- simple AIM icon -->
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" focusable="false" aria-hidden="true">
-        <rect x="2" y="3" width="20" height="18" rx="3" fill="#0ea5a4"/>
-        <path d="M7 9h10M7 13h6" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    <div class="mini-aim-title">
-      <h1>Mini AIM OS</h1>
-      <div class="mini-aim-sub">A friendly assistant that saves chats locally</div>
-    </div>
-    <div class="mini-aim-actions">
-      <button id="mini-new-chat" class="btn small">New</button>
-      <button id="mini-export" class="btn small">Export</button>
-      <button id="import-btn2" class="btn small">Import</button>
-      <input id="import-file2" type="file" accept="application/json" style="display:none" />
-    </div>
-  </header>
-
-  <div class="mini-aim-body">
-    <nav class="convo-list" aria-label="Conversations">
-      <div class="convo-list-header">Conversations</div>
-      <ul id="mini-convos"></ul>
-    </nav>
-
-    <section class="chat-area" aria-label="Chat area">
-      <div class="ai-log" id="ai-log" role="log" aria-live="polite">
-        <!-- default friendly message -->
-        <div class="ai-default" id="ai-default">
-          <div class="ai-default-text">
-            Hello human. AIM OS is an AI. Take a break and look away from the PC for an hour or a few, then look back — recommendation.
-          </div>
-          <button class="btn tiny fly-away" id="fly-away">Tap to make it fly away</button>
-        </div>
-      </div>
-
-      <div class="ai-input-row">
-        <input id="ai-input" class="ai-input" autocomplete="off"
-               placeholder="Ask about files, users, .exe, Host, AIM, Paint, or Media Player..." />
-        <div class="input-hint" id="input-hint" aria-hidden="true">Enter message</div>
-        <div class="suggestions" id="suggestions" role="listbox" aria-label="Suggestions"></div>
-        <button class="button-small" id="ai-send">Send</button>
-      </div>
-    </section>
-  </div>
-</aside>
 
 <!-- App hover preview strip -->
 <div id="app-previews"></div>

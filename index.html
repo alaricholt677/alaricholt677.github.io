@@ -3719,7 +3719,16 @@ fs:[
       ensureUser();
 
       function currentUser(){ return state.users.find(u=>u.id===state.currentUserId) || state.users[0]; }
-      function setCurrentUser(id){ state.currentUserId=id; saveState(); refreshAll(); }
+      function setCurrentUser(id){
+       state.currentUserId = id;
+       saveState();
+       refreshAll();
+
+       // SHOW DISCLAIMER ON LOGIN
+       if (typeof window.showLoginDisclaimerIfNeeded === "function") {
+         window.showLoginDisclaimerIfNeeded();
+       }
+      }
       function updateCurrentUser(updater){
         const idx = state.users.findIndex(u=>u.id===state.currentUserId);
         if(idx===-1) return;
@@ -12152,8 +12161,205 @@ function initExplorerTabs() {
   // Loop itself forever
   setTimeout(initExplorerTabs, LOOP_MS);
 }
+// =====================================================
+// LOGIN DISCLAIMER POPUP (uses widget-popup-* skeleton ids)
+// =====================================================
+function initLoginDisclaimerPopupSystem() {
+  // Create skeleton once
+  if (!document.getElementById("widget-popup-backdrop")) {
+    const wrap = document.createElement("div");
+    wrap.innerHTML = `
+      <!-- Widget Popup Skeleton -->
+      <div id="widget-popup-backdrop" style="display:none;">
+        <div id="widget-popup" style="background:#0b1020;padding:16px;border-radius:12px;width:420px;max-width:calc(100vw - 24px);color:white;">
+          <div id="widget-popup-title" style="display:flex;align-items:center;font-size:14px;font-weight:bold;">
+            <svg width="18" height="18" viewBox="0 0 64 64" style="margin-right:6px;">
+              <circle cx="32" cy="32" r="30" fill="#4c8dff"></circle>
+              <rect x="28" y="16" width="8" height="24" fill="white"></rect>
+            </svg>
+            Create Widget
+          </div>
+
+          <!-- IMPORTANT: content removed to avoid breaking -->
+          <div id="widget-popup-body" style="margin-top:8px;font-size:12px;color:var(--text-soft);"></div>
+
+          <div id="widget-popup-buttons" style="margin-top:12px;text-align:right;">
+            <button class="admin-btn" id="widget-popup-cancel">Cancel</button>
+            <button class="admin-btn primary" id="widget-popup-create">Create</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(wrap);
+
+    // Backdrop styling (full-screen + centered)
+    const backdrop = document.getElementById("widget-popup-backdrop");
+    backdrop.style.position = "fixed";
+    backdrop.style.inset = "0";
+    backdrop.style.zIndex = "2500";
+    backdrop.style.background = "rgba(0,0,0,0.55)";
+    backdrop.style.backdropFilter = "blur(10px)";
+    backdrop.style.display = "none";
+    backdrop.style.alignItems = "center";
+    backdrop.style.justifyContent = "center";
+
+    // Allow flex centering
+    backdrop.style.display = "none"; // keep hidden by default
+  }
+
+  // Ensure boot audio element exists
+  if (!document.getElementById("boot-audio")) {
+    const audio = document.createElement("audio");
+    audio.id = "boot-audio";
+    audio.src = "boot.mp3";
+    audio.preload = "auto";
+    document.body.appendChild(audio);
+  }
+
+  const backdrop = document.getElementById("widget-popup-backdrop");
+  const popup = document.getElementById("widget-popup");
+  const title = document.getElementById("widget-popup-title");
+  const body = document.getElementById("widget-popup-body");
+  const cancelBtn = document.getElementById("widget-popup-cancel");
+  const okBtn = document.getElementById("widget-popup-create");
+  const audio = document.getElementById("boot-audio");
+
+  // Lightweight error banner inside popup
+  function showInlineError(msg) {
+    const err = document.createElement("div");
+    err.style.marginTop = "10px";
+    err.style.padding = "10px";
+    err.style.borderRadius = "10px";
+    err.style.border = "1px solid rgba(255,90,90,0.35)";
+    err.style.background = "rgba(255,90,90,0.12)";
+    err.style.color = "white";
+    err.style.fontSize = "12px";
+    err.textContent = msg;
+
+    // Remove old error if any
+    const old = popup.querySelector("[data-login-error='1']");
+    if (old) old.remove();
+
+    err.dataset.loginError = "1";
+    popup.appendChild(err);
+
+    // Auto-fade after a moment (optional)
+    setTimeout(() => { try { err.remove(); } catch {} }, 2500);
+  }
+
+  function tryPlayBootSound() {
+    if (!audio) return;
+    try {
+      const p = audio.play();
+      // If autoplay is blocked, it will reject — ignore.
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    } catch {}
+  }
+
+  function setDisclaimerUI() {
+    // Title + buttons renamed for disclaimer mode
+    title.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 64 64" style="margin-right:6px;">
+        <circle cx="32" cy="32" r="30" fill="#4c8dff"></circle>
+        <rect x="28" y="16" width="8" height="24" fill="white"></rect>
+      </svg>
+      Welcome to my simulator:
+    `;
+
+    okBtn.textContent = "OK, I agree";
+    cancelBtn.textContent = "Cancel";
+
+    // Body content: your requested disclaimer text
+    body.innerHTML = `
+      <div style="line-height:1.35;">
+        <div style="margin-bottom:8px;color:var(--text-main);font-weight:600;">
+          Important — read before continuing
+        </div>
+
+        <div style="margin-bottom:10px;">
+          • This is a <b>browser-based simulator</b>. It does <b>not</b> touch your real computer files.<br>
+          • The only things that can use file access are:
+          <b>Session Export</b>, <b>Session Import</b>, and <b>File Import</b> (when you choose files manually).<br>
+          • Everything else is stored in <b>localStorage</b> inside your browser.
+        </div>
+
+        <div style="margin-bottom:10px;">
+          • This project is <b>NOT affiliated with Microsoft</b>.<br>
+          • Do <b>not</b> confuse it with a real Microsoft product.<br>
+          • This is a simulated UI style and concept — <b>not</b> an official direction or roadmap.
+        </div>
+
+        <div style="margin-top:10px;color:var(--text-dim);font-size:11px;">
+          Clicking “OK, I agree” saves acceptance for this user only.
+        </div>
+      </div>
+    `;
+  }
+
+  // Public function: show popup if user hasn't agreed
+  window.showLoginDisclaimerIfNeeded = function showLoginDisclaimerIfNeeded() {
+    // If no currentUser() exists yet, do nothing.
+    if (typeof currentUser !== "function") return;
+
+    const u = currentUser();
+    if (!u) return;
+
+    // If already agreed for this user, skip.
+    if (u.disclaimerAgreed === true) return;
+
+    // Configure UI
+    setDisclaimerUI();
+
+    // Show
+    backdrop.style.display = "flex";
+
+    // Try play boot sound when popup appears
+    tryPlayBootSound();
+  };
+
+  function hidePopup() {
+    backdrop.style.display = "none";
+  }
+
+  // Button actions (bind once)
+  if (!cancelBtn.__boundLoginDisclaimer) {
+    cancelBtn.addEventListener("click", () => {
+      // If autoplay blocked earlier, try again on click (user gesture)
+      tryPlayBootSound();
+
+      // They cancelled: throw error and keep them blocked
+      showInlineError("You didn’t agree.");
+      // Keep popup open. (If you want to force log-out, you can do it here.)
+    });
+
+    okBtn.addEventListener("click", () => {
+      tryPlayBootSound();
+
+      // Save acceptance per-user
+      if (typeof updateCurrentUser === "function") {
+        updateCurrentUser(u => ({
+          ...u,
+          disclaimerAgreed: true,
+          disclaimerAgreedAt: new Date().toISOString()
+        }));
+      }
+
+      hidePopup();
+    });
+
+    // Click outside = treat like cancel (optional)
+    backdrop.addEventListener("mousedown", (e) => {
+      if (e.target === backdrop) {
+        showInlineError("You didn’t agree.");
+      }
+    });
+
+    cancelBtn.__boundLoginDisclaimer = true;
+  }
+}
       /* initial */
       function initialSetup(){
+        initLoginDisclaimerPopupSystem();
         initExplorerTabs();
         initTaskbarBattery(document.querySelector(".taskbar-battery-pill"));
         createDefenderApp();

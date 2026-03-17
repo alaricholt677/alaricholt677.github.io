@@ -65,12 +65,11 @@ Everything runs **client‑side** and persists using LocalStorage.
 
 | App | Description |
 |------|-------------|
-| **Notepad** | Simple text editor with save, save‑as, and persistent storage |
-| **Paint** | Full drawing app with brush, eraser, colors, import/export |
+| **Notepad** | Simple text editor with save, and persistent storage |
+| **Paint** | Full drawing app with brush, eraser, colors, and import |
 | **Browser** | Loads websites, local files, and internal pages |
-| **Camera Recorder** | Uses webcam to record and save video blobs |
+| **Camera Recorder** | Uses webcam to record and exports video blobs |
 | **File Explorer** | Full file manager with context menus and file actions |
-| **Edge Viewer** | HTML editor + live preview |
 | **MiniWeb** | Micro browser widget |
 | **MiniRun** | Quick command launcher |
 | **CPU Widget** | Fake CPU monitor for aesthetics |
@@ -79,8 +78,8 @@ Everything runs **client‑side** and persists using LocalStorage.
 | **News Panel** | Scrollable news feed UI |
 | **Theme Studio** | Customize colors, UI accents, and system theme |
 | **Host.exe** | Base64 `.exe` launcher for internal apps |
-| **Copilot Mini** | Built‑in assistant with commands and suggestions |
-| **CMD and AIM OS file creation** | these both can play music export/import session and can add and delete files |
+| **AIM OS** | Built‑in assistant with commands and suggestions |
+| **CMD and AIM OS file creation** | These both can play music export/import session and can add and delete files |
 
 ---
 
@@ -114,7 +113,7 @@ A simulated executable loader that:
 - Weather  
 - MiniWeb  
 - MiniRun  
-- More coming soon  
+- AND MORE!!!
 
 ---
 
@@ -190,6 +189,13 @@ If you enjoy the Win12 Simulator:
 Every bit of support helps the project grow.
 
 ---
+
+## **And Thank Yall For Using My Project**
+
+Thank You Is At:
+ - alaricholt677.github.io/thanks/thanks.html
+ And if you want to:
+  - check out alaricholt677.github.io/MOD
 
 <!-- WIN12SIMU_META
 {

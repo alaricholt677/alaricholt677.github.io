@@ -12577,6 +12577,9 @@ function confirmDiscardBIOS() {
 
       initialSetup();
 
+document.addEventListener("keydown",e=>{if(e.ctrlKey&&e.altKey&&e.key.toLowerCase()==="b"){e.preventDefault();localStorage.setItem("__win12_bios_state",JSON.stringify({inBios:true}));location.reload();}});
+
+      
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("/service-worker.js");
       }

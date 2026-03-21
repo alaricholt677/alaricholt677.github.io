@@ -12407,5 +12407,147 @@ console.log(`%c
     })();
 
   </script>
+  <script id="win12-bios-controller">
+/* =====================================================
+   Win12 BIOS Controller
+   - Keybind: Ctrl + Alt + B
+   - State: localStorage "__win12_bios_state"
+   - Onload gate: decides BIOS vs OS
+   ===================================================== */
+
+(function(){
+
+  const BIOS_KEY = "__win12_bios_state";
+
+  /* ---------- helpers ---------- */
+  function getBiosFlag(){
+    try {
+      return JSON.parse(localStorage.getItem(BIOS_KEY))?.inBios === true;
+    } catch {
+      return false;
+    }
+  }
+
+  function setBiosFlag(v){
+    localStorage.setItem(BIOS_KEY, JSON.stringify({ inBios: !!v, at: Date.now() }));
+  }
+
+  /* ---------- PUBLIC API ---------- */
+  window.enterBIOSAndReboot = function(){
+    setBiosFlag(true);
+    location.reload();
+  };
+
+  window.exitBIOSAndReboot = function(){
+    setBiosFlag(false);
+    location.reload();
+  };
+
+  /* ---------- KEYBIND (works in browsers) ---------- */
+  document.addEventListener("keydown", e => {
+    if (e.ctrlKey && e.altKey && e.key.toLowerCase() === "b") {
+      e.preventDefault();
+      setBiosFlag(true);
+      location.reload();
+    }
+  }, { capture:true });
+
+  /* =====================================================
+     THIS IS THE IMPORTANT FUNCTION YOU ASKED FOR
+     If this is NOT RUN, BIOS is NEVER CHECKED
+     ===================================================== */
+  window.checkAndRunBIOS = function(){
+    if (!getBiosFlag()) return false; // OS continues normally
+    runBIOS();
+    return true; // BIOS took control
+  };
+
+  /* ---------- BIOS RUNTIME ---------- */
+  function runBIOS(){
+    // stop OS by replacing DOM immediately
+    document.documentElement.innerHTML = `
+      <head><title>Windows v12 Phoenix BIOS</title></head>
+      <body></body>
+    `;
+
+    document.body.style.margin = "0";
+    document.body.style.background = "#000";
+    document.body.style.color = "#00ff88";
+    document.body.style.fontFamily = "monospace";
+    document.body.style.cursor = "none";
+
+    const style = document.createElement("style");
+    style.textContent = `
+      .bios{padding:16px}
+      .title{
+        display:inline-block;
+        border:2px solid #ff0;
+        color:#ff0;
+        padding:6px 8px;
+        font-weight:bold;
+      }
+      .sep{height:2px;background:#ff0;margin:8px 0}
+      .blink{animation:blink 1s step-end infinite}
+      @keyframes blink{50%{opacity:0}}
+      .ui{display:none;margin-top:12px}
+      .btn{
+        display:block;width:100%;padding:10px;margin:6px 0;
+        background:#0275d8;color:#fff;border:none;border-radius:6px
+      }
+      .btn.warn{background:#b02a37}
+      .footer{
+        position:fixed;bottom:8px;left:0;right:0;
+        text-align:center;font-size:11px;color:#aaa
+      }
+    `;
+    document.head.appendChild(style);
+
+    document.body.innerHTML = `
+      <div class="bios">
+        <div class="title">Windows v12 Hardware Phoenix BIOS</div>
+        <div class="sep"></div>
+
+        POST: Virtual hardware OK<br>
+        Memory Check: 65536 KB OK<br>
+        Storage: LocalStorage FS OK<br>
+
+        <div>_<span class="blink"> </span></div>
+
+        <div class="ui" id="bios-ui">
+          <button class="btn" onclick="
+            setTimeout(()=>{ 
+              localStorage.setItem('${BIOS_KEY}',JSON.stringify({inBios:false}));
+              location.reload();
+            },300)
+          ">Leave & Save Changes</button>
+
+          <button class="btn warn" onclick="
+            if(confirm('Discard changes?')){
+              localStorage.setItem('${BIOS_KEY}',JSON.stringify({inBios:false}));
+              location.reload();
+            }
+          ">Leave & Discard Changes</button>
+        </div>
+
+        <div class="footer">
+          Touch / Click anywhere · PC use keys · Ctrl+Alt+B = BIOS
+        </div>
+      </div>
+    `;
+
+    // show UI after delay + restore cursor
+    setTimeout(()=>{
+      document.getElementById("bios-ui").style.display="block";
+      document.body.style.cursor="default";
+    },1000);
+  }
+
+  /* ---------- ONLOAD GATE ---------- */
+  window.addEventListener("load", () => {
+    window.checkAndRunBIOS();
+  });
+
+})();
+</script>
 </body>
 </html>

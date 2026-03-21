@@ -12407,142 +12407,653 @@ console.log(`%c
     })();
 
   </script>
-  <script id="win12-bios-controller">
-/* =====================================================
-   Win12 BIOS Controller
-   - Keybind: Ctrl + Alt + B
-   - State: localStorage "__win12_bios_state"
-   - Onload gate: decides BIOS vs OS
-   ===================================================== */
-
+<script id="win12-phoenix-bios-refixed">
+/* =========================================================
+   Windows v12 Hardware Phoenix BIOS (Refixed)
+   - BIOS flag: localStorage "__win12_bios_state" {inBios:true/false}
+   - OS state key: "win12_aim_fs_state_exe_ctx_full_v3"
+   - Widgets store key: "widgets"
+   - Entry keybind: Ctrl + Alt + B  (browser-safe)
+   - Terminal first, then UI, pixel cursor + 16x16 texture
+   ========================================================= */
 (function(){
-
   const BIOS_KEY = "__win12_bios_state";
+  const OS_STATE_KEY = "win12_aim_fs_state_exe_ctx_full_v3";
+  const WIDGETS_KEY = "widgets";
+  const BACKUP_PREFIX = "__win12_bios_backup__";
+  const BIOS_TIME_KEY = "__win12_bios_time_override";
+  const BIOS_TIME_LOCK = "__win12_bios_time_set_once";
 
-  /* ---------- helpers ---------- */
-  function getBiosFlag(){
-    try {
-      return JSON.parse(localStorage.getItem(BIOS_KEY))?.inBios === true;
-    } catch {
-      return false;
-    }
+  // ---------- 16x16 pixel cursor (SVG → data URL) ----------
+  const CURSOR_SVG =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+      <rect width="16" height="16" fill="none"/>
+      <path d="M2 1 L2 14 L5 11 L7 15 L9 14 L7 10 L12 10 Z"
+            fill="#fff" stroke="#000" stroke-width="1"/>
+    </svg>`;
+  const CURSOR_URL = "url(\"data:image/svg+xml," + encodeURIComponent(CURSOR_SVG) + "\") 2 1, auto";
+
+  // ---------- 16x16 texture (SVG → data URL) ----------
+  const TEX_SVG =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+      <rect width="16" height="16" fill="#070707"/>
+      <rect x="0" y="0" width="8" height="8" fill="#090909"/>
+      <rect x="8" y="8" width="8" height="8" fill="#090909"/>
+      <path d="M0 8 H16 M8 0 V16" stroke="#0f0f0f" stroke-width="1"/>
+      <path d="M2 2 H6 M10 10 H14" stroke="#0b0b0b" stroke-width="1"/>
+    </svg>`;
+  const TEX_URL = "data:image/svg+xml," + encodeURIComponent(TEX_SVG);
+
+  // ---------- BIOS state helpers ----------
+  function biosGetFlag(){
+    try { return JSON.parse(localStorage.getItem(BIOS_KEY))?.inBios === true; }
+    catch { return false; }
   }
-
-  function setBiosFlag(v){
+  function biosSetFlag(v){
     localStorage.setItem(BIOS_KEY, JSON.stringify({ inBios: !!v, at: Date.now() }));
   }
 
-  /* ---------- PUBLIC API ---------- */
-  window.enterBIOSAndReboot = function(){
-    setBiosFlag(true);
+  // ---------- backups (for discard) ----------
+  function backupKey(key){
+    const bKey = BACKUP_PREFIX + key;
+    if (localStorage.getItem(bKey) == null) {
+      localStorage.setItem(bKey, localStorage.getItem(key) || "");
+    }
+  }
+  function restoreKey(key){
+    const bKey = BACKUP_PREFIX + key;
+    const snap = localStorage.getItem(bKey);
+    if (snap == null) return;
+    if (snap === "") localStorage.removeItem(key);
+    else localStorage.setItem(key, snap);
+  }
+  function clearBackup(key){
+    localStorage.removeItem(BACKUP_PREFIX + key);
+  }
+
+  // ---------- public API ----------
+  window.enterBIOSAndReboot = function enterBIOSAndReboot(){
+    // snapshot the OS + widgets so discard can restore
+    backupKey(OS_STATE_KEY);
+    backupKey(WIDGETS_KEY);
+    backupKey(BIOS_TIME_KEY);
+    backupKey(BIOS_TIME_LOCK);
+
+    biosSetFlag(true);
     location.reload();
   };
 
-  window.exitBIOSAndReboot = function(){
-    setBiosFlag(false);
+  window.exitBIOSAndReboot = function exitBIOSAndReboot(){
+    biosSetFlag(false);
+    // once leaving BIOS, backups are no longer needed
+    clearBackup(OS_STATE_KEY);
+    clearBackup(WIDGETS_KEY);
+    clearBackup(BIOS_TIME_KEY);
+    clearBackup(BIOS_TIME_LOCK);
     location.reload();
   };
 
-  /* ---------- KEYBIND (works in browsers) ---------- */
-  document.addEventListener("keydown", e => {
-    if (e.ctrlKey && e.altKey && e.key.toLowerCase() === "b") {
+  // ---------- keybind: Ctrl + Alt + B → set BIOS data → refresh ----------
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey && e.altKey && (e.key||"").toLowerCase() === "b") {
       e.preventDefault();
-      setBiosFlag(true);
-      location.reload();
+      window.enterBIOSAndReboot();
     }
   }, { capture:true });
 
-  /* =====================================================
-     THIS IS THE IMPORTANT FUNCTION YOU ASKED FOR
-     If this is NOT RUN, BIOS is NEVER CHECKED
-     ===================================================== */
-  window.checkAndRunBIOS = function(){
-    if (!getBiosFlag()) return false; // OS continues normally
+  // =========================================================
+  // IMPORTANT: this is the "should we run BIOS?" function
+  // If this script isn't running, nothing checks BIOS.
+  // =========================================================
+  window.checkAndRunBIOS = function checkAndRunBIOS(){
+    if (!biosGetFlag()) return false;
     runBIOS();
-    return true; // BIOS took control
+    return true;
   };
 
-  /* ---------- BIOS RUNTIME ---------- */
+  // ---------- stop OS-ish things as best as we can ----------
+  function hardStopRuntime(){
+    try{
+      for (let i=0;i<9999;i++){ clearTimeout(i); clearInterval(i); }
+    }catch{}
+    // neuter common entrypoints if they exist (prevents resurrection)
+    try{
+      window.showWindow = () => {};
+      window.hideWindow = () => {};
+      window.refreshAll = () => {};
+    }catch{}
+  }
+
+  // ---------- tiny action UI used by exit buttons ----------
+  window.runActionUI = window.runActionUI || function runActionUI(label, fn){
+    // Hide cursor during "swapping"
+    document.documentElement.style.cursor = "none";
+    document.body.style.cursor = "none";
+
+    const overlay = document.createElement("div");
+    overlay.style.position="fixed";
+    overlay.style.inset="0";
+    overlay.style.zIndex="999999";
+    overlay.style.background="#000";
+    overlay.style.color="#ff0";
+    overlay.style.fontFamily="monospace";
+    overlay.style.display="flex";
+    overlay.style.alignItems="center";
+    overlay.style.justifyContent="center";
+    overlay.innerHTML = `
+      <div style="text-align:center;">
+        <div style="margin-bottom:10px;">${label || "Restarting"}</div>
+        <div style="width:42px;height:42px;border-radius:50%;
+          border:3px solid rgba(255,255,255,0.18);
+          border-top-color:#ff0;
+          animation:spin 0.9s linear infinite;"></div>
+      </div>`;
+    const st = document.createElement("style");
+    st.textContent = `@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`;
+    document.head.appendChild(st);
+    document.body.appendChild(overlay);
+
+    setTimeout(()=>{ try{ fn && fn(); }catch{} }, 700);
+  };
+
+  // ---------- BIOS renderer ----------
   function runBIOS(){
-    // stop OS by replacing DOM immediately
+    hardStopRuntime();
+
+    // hard takeover
     document.documentElement.innerHTML = `
-      <head><title>Windows v12 Phoenix BIOS</title></head>
+      <head><title>Windows v12 Hardware Phoenix BIOS</title></head>
       <body></body>
     `;
 
-    document.body.style.margin = "0";
-    document.body.style.background = "#000";
-    document.body.style.color = "#00ff88";
-    document.body.style.fontFamily = "monospace";
+    // BIOS-only cursor handling (pixel cursor)
+    document.documentElement.style.cursor = "none";
     document.body.style.cursor = "none";
 
+    // BIOS CSS
     const style = document.createElement("style");
     style.textContent = `
-      .bios{padding:16px}
-      .title{
+      html,body{margin:0;padding:0;height:100%;background:#000;color:#00ff88;font-family:monospace;overflow:hidden;}
+      .bios-wrap{height:100%;display:flex;flex-direction:column;}
+      .bios-top{
+        padding:10px 12px;
+      }
+      .bios-titlebar{
         display:inline-block;
         border:2px solid #ff0;
+        padding:6px 10px;
+        background:#000;
         color:#ff0;
-        padding:6px 8px;
         font-weight:bold;
+        letter-spacing:0.4px;
       }
-      .sep{height:2px;background:#ff0;margin:8px 0}
-      .blink{animation:blink 1s step-end infinite}
+      .bios-sep{height:2px;background:#ff0;margin:10px 0 0 0;}
+      .bios-main{
+        flex:1;
+        padding:12px;
+        display:flex;
+        gap:12px;
+      }
+      .bios-terminal{
+        flex:1;
+        border:1px solid rgba(255,255,0,0.55);
+        border-radius:8px;
+        padding:10px;
+        background:#000;
+        overflow:auto;
+      }
+      .bios-terminal .line{white-space:pre; line-height:1.35;}
+      .bios-cmd{margin-top:8px;}
+      .blink{animation:blink 1s step-end infinite;}
       @keyframes blink{50%{opacity:0}}
-      .ui{display:none;margin-top:12px}
+      .bios-ui{
+        flex:1;
+        display:none;
+        border:1px solid rgba(255,255,0,0.55);
+        border-radius:10px;
+        overflow:hidden;
+        background-image:url("${TEX_URL}");
+        background-repeat:repeat;
+        background-size:16px 16px;
+      }
+      .bios-ui-inner{
+        height:100%;
+        background:rgba(0,0,0,0.72);
+        padding:10px;
+      }
+      .tabs{
+        display:flex;gap:6px;flex-wrap:wrap;
+        padding-bottom:8px;border-bottom:1px solid rgba(255,255,0,0.35);
+      }
+      .tab{
+        padding:6px 10px;border:1px solid rgba(255,255,0,0.35);
+        border-radius:999px;color:#ff0;background:rgba(0,0,0,0.55);
+        cursor:pointer;font-size:12px;
+      }
+      .tab.active{background:rgba(255,255,0,0.12);}
+      .panel{padding-top:10px;height:calc(100% - 46px);overflow:auto;}
+      .row{margin:6px 0;font-size:12px;color:#d7ffd7;}
+      .label{color:#ff0;font-size:11px;margin-bottom:4px;}
+      input,select{
+        width:100%;padding:8px;border-radius:6px;
+        border:1px solid rgba(255,255,255,0.18);
+        background:rgba(0,0,0,0.72);color:#fff;font-family:monospace;
+      }
       .btn{
-        display:block;width:100%;padding:10px;margin:6px 0;
-        background:#0275d8;color:#fff;border:none;border-radius:6px
+        display:block;width:100%;
+        padding:10px;margin:6px 0;
+        background:#0275d8;color:white;border:none;border-radius:6px;cursor:pointer;
       }
-      .btn.warn{background:#b02a37}
+      .btn.warn{background:#b02a37;}
+      .btn.gray{background:#555;}
+      .users-list .uitem{
+        display:flex;align-items:center;justify-content:space-between;gap:8px;
+        padding:6px 0;border-bottom:1px dashed rgba(255,255,255,0.12);
+      }
+      .users-list .uitem:last-child{border-bottom:none;}
+      .mini{
+        font-size:11px;color:#9ad59a;
+      }
       .footer{
-        position:fixed;bottom:8px;left:0;right:0;
-        text-align:center;font-size:11px;color:#aaa
+        padding:8px 10px;
+        font-size:11px;
+        color:#aaa;
+        border-top:1px solid rgba(255,255,0,0.22);
+        background:#000;
+        text-align:center;
       }
+
+      /* BIOS pixel cursor enabled AFTER UI appears */
+      .bios-cursor-on, .bios-cursor-on * { cursor: ${CURSOR_URL}; }
     `;
     document.head.appendChild(style);
 
+    // BIOS HTML
     document.body.innerHTML = `
-      <div class="bios">
-        <div class="title">Windows v12 Hardware Phoenix BIOS</div>
-        <div class="sep"></div>
+      <div class="bios-wrap" id="bios-root">
+        <div class="bios-top">
+          <div class="bios-titlebar">Windows v12 Hardware Phoenix BIOS</div>
+          <div class="bios-sep"></div>
+        </div>
 
-        POST: Virtual hardware OK<br>
-        Memory Check: 65536 KB OK<br>
-        Storage: LocalStorage FS OK<br>
+        <div class="bios-main">
+          <div class="bios-terminal" id="bios-terminal">
+            <div class="line">POST: Virtual hardware init...</div>
+            <div class="line">Memory Check: 65536 KB OK</div>
+            <div class="line">Input Devices: OK</div>
+            <div class="line">Storage: LocalStorage FS OK</div>
+            <div class="line">--------------------------------</div>
+            <div class="line">Entering Setup...</div>
+            <div class="bios-cmd">_<span class="blink"> </span></div>
+          </div>
 
-        <div>_<span class="blink"> </span></div>
-
-        <div class="ui" id="bios-ui">
-          <button class="btn" onclick="
-            setTimeout(()=>{ 
-              localStorage.setItem('${BIOS_KEY}',JSON.stringify({inBios:false}));
-              location.reload();
-            },300)
-          ">Leave & Save Changes</button>
-
-          <button class="btn warn" onclick="
-            if(confirm('Discard changes?')){
-              localStorage.setItem('${BIOS_KEY}',JSON.stringify({inBios:false}));
-              location.reload();
-            }
-          ">Leave & Discard Changes</button>
+          <div class="bios-ui" id="bios-ui">
+            <div class="bios-ui-inner">
+              <div class="tabs" id="bios-tabs"></div>
+              <div class="panel" id="bios-panel"></div>
+            </div>
+          </div>
         </div>
 
         <div class="footer">
-          Touch / Click anywhere · PC use keys · Ctrl+Alt+B = BIOS
+          Mobile: touch / tap anywhere · PC: use keys & click · BIOS: Ctrl+Alt+B
         </div>
       </div>
     `;
 
-    // show UI after delay + restore cursor
-    setTimeout(()=>{
-      document.getElementById("bios-ui").style.display="block";
-      document.body.style.cursor="default";
-    },1000);
+    // click/touch anywhere = "control" (focus)
+    document.addEventListener("pointerdown", () => {
+      const term = document.getElementById("bios-terminal");
+      if (term) term.focus?.();
+    });
+
+    // show UI after 1s (terminal first)
+    setTimeout(() => {
+      const ui = document.getElementById("bios-ui");
+      if (ui) ui.style.display = "block";
+
+      // enable BIOS custom pixel cursor AFTER the swap
+      const root = document.getElementById("bios-root");
+      if (root) root.classList.add("bios-cursor-on");
+
+      // show cursor now (pixel cursor)
+      document.documentElement.style.cursor = "default";
+      document.body.style.cursor = "default";
+
+      buildTabs();
+      showTab("time");
+    }, 1000);
   }
 
-  /* ---------- ONLOAD GATE ---------- */
+  // ---------- Tabs ----------
+  const TAB_ORDER = [
+    { id:"time",   label:"Time & Date" },
+    { id:"users",  label:"Current Users" },
+    { id:"widgets",label:"Widgets" },
+    { id:"weather",label:"Weather API" },
+    { id:"exit",   label:"Exit" }
+  ];
+
+  function buildTabs(){
+    const tabsEl = document.getElementById("bios-tabs");
+    if (!tabsEl) return;
+    tabsEl.innerHTML = "";
+    TAB_ORDER.forEach(t => {
+      const b = document.createElement("div");
+      b.className = "tab";
+      b.dataset.tab = t.id;
+      b.textContent = t.label;
+      b.addEventListener("click", () => showTab(t.id));
+      tabsEl.appendChild(b);
+    });
+  }
+
+  function setActiveTab(id){
+    document.querySelectorAll(".tab").forEach(el => {
+      el.classList.toggle("active", el.dataset.tab === id);
+    });
+  }
+
+  function showTab(id){
+    setActiveTab(id);
+    const panel = document.getElementById("bios-panel");
+    if (!panel) return;
+
+    if (id === "time") return renderTime(panel);
+    if (id === "users") return renderUsers(panel);
+    if (id === "widgets") return renderWidgets(panel);
+    if (id === "weather") return renderWeather(panel);
+    if (id === "exit") return renderExit(panel);
+  }
+
+  // ---------- Time & Date (simulated once) ----------
+  function renderTime(panel){
+    const locked = localStorage.getItem(BIOS_TIME_LOCK) === "1";
+    let current = null;
+    try { current = JSON.parse(localStorage.getItem(BIOS_TIME_KEY) || "null"); } catch {}
+    const nowIso = new Date().toISOString().slice(0,16);
+
+    panel.innerHTML = `
+      <div class="row">
+        <div class="label">Set simulated BIOS time (one-time only)</div>
+        <div class="mini">This does not change real device time. It only stores a BIOS override value.</div>
+      </div>
+
+      <div class="row">
+        <input id="bios-dt" type="datetime-local" value="${(current && current.value) ? current.value : nowIso}" ${locked ? "disabled" : ""} />
+      </div>
+
+      <button class="btn" id="bios-time-save" ${locked ? "disabled" : ""}>
+        Save Time & Date (once)
+      </button>
+
+      <div class="row mini">
+        Current override: <span style="color:#ff0;">${(current && current.value) ? current.value : "(none)"}</span>
+        ${locked ? "<br><span style='color:#ff8080;'>Locked: already set once.</span>" : ""}
+      </div>
+    `;
+
+    const save = panel.querySelector("#bios-time-save");
+    const inp = panel.querySelector("#bios-dt");
+    if (save && inp) {
+      save.onclick = () => {
+        localStorage.setItem(BIOS_TIME_KEY, JSON.stringify({ value: inp.value, at: Date.now() }));
+        localStorage.setItem(BIOS_TIME_LOCK, "1");
+        showTab("time");
+      };
+    }
+  }
+
+  // ---------- Users (edit OS_STATE_KEY users list) ----------
+  function readOsState(){
+    try{
+      const raw = localStorage.getItem(OS_STATE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }
+  function writeOsState(obj){
+    localStorage.setItem(OS_STATE_KEY, JSON.stringify(obj));
+  }
+
+  function renderUsers(panel){
+    const st = readOsState();
+    const users = st?.users || [];
+    panel.innerHTML = `
+      <div class="row">
+        <div class="label">Current users existing</div>
+        <div class="mini">Edits apply to LocalStorage session users (simulated).</div>
+      </div>
+
+      <div class="users-list" id="bios-users"></div>
+
+      <div class="row" style="margin-top:10px;">
+        <div class="label">Add user</div>
+        <input id="bios-new-user" placeholder="New user name..." />
+        <button class="btn" id="bios-add-user">Add User</button>
+      </div>
+    `;
+
+    const list = panel.querySelector("#bios-users");
+    if (!list) return;
+
+    if (!users.length) {
+      list.innerHTML = `<div class="mini">No users found.</div>`;
+    } else {
+      users.forEach(u => {
+        const row = document.createElement("div");
+        row.className = "uitem";
+        row.innerHTML = `
+          <div>
+            <div style="color:#ff0;">${u.name || "(unnamed)"}</div>
+            <div class="mini">${u.id || ""}</div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn gray" style="width:auto;padding:6px 10px;margin:0;" data-rename="${u.id}">Rename</button>
+            <button class="btn warn" style="width:auto;padding:6px 10px;margin:0;" data-del="${u.id}">Delete</button>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    // rename / delete actions
+    list.addEventListener("click", (e) => {
+      const r = e.target.closest("[data-rename]");
+      const d = e.target.closest("[data-del]");
+      const st2 = readOsState();
+      if (!st2 || !st2.users) return;
+
+      if (r) {
+        const id = r.dataset.rename;
+        const user = st2.users.find(x => x.id === id);
+        const nn = prompt("Rename user:", user?.name || "");
+        if (!nn) return;
+        st2.users = st2.users.map(x => x.id === id ? ({ ...x, name: nn }) : x);
+        writeOsState(st2);
+        showTab("users");
+      }
+
+      if (d) {
+        const id = d.dataset.del;
+        if (!confirm("Delete this user?")) return;
+        if (st2.users.length <= 1) { alert("Cannot delete the last user."); return; }
+        st2.users = st2.users.filter(x => x.id !== id);
+        if (!st2.users.find(x => x.id === st2.currentUserId)) st2.currentUserId = st2.users[0]?.id || null;
+        writeOsState(st2);
+        showTab("users");
+      }
+    }, { once:true });
+
+    // add user
+    const addBtn = panel.querySelector("#bios-add-user");
+    const input = panel.querySelector("#bios-new-user");
+    if (addBtn && input) {
+      addBtn.onclick = () => {
+        const name = input.value.trim();
+        if (!name) return;
+        const st3 = readOsState() || { users:[], currentUserId:null };
+        const id = Date.now().toString(36);
+        st3.users = st3.users || [];
+        st3.users.push({
+          id, name,
+          createdAt: new Date().toISOString(),
+          notes:"",
+          themeCss:"",
+          fs:[],
+          regAssociations:{}
+        });
+        st3.currentUserId = id;
+        writeOsState(st3);
+        input.value = "";
+        showTab("users");
+      };
+    }
+  }
+
+  // ---------- Widgets (read-only snapshot from WIDGETS_KEY) ----------
+  function renderWidgets(panel){
+    let w = {};
+    try { w = JSON.parse(localStorage.getItem(WIDGETS_KEY) || "{}") || {}; } catch { w = {}; }
+
+    panel.innerHTML = `
+      <div class="row">
+        <div class="label">Widgets (saved items)</div>
+        <div class="mini">This displays saved widget layouts from localStorage key "${WIDGETS_KEY}".</div>
+      </div>
+      <pre style="white-space:pre-wrap;word-break:break-word;color:#d7ffd7;border:1px solid rgba(255,255,255,0.12);padding:10px;border-radius:8px;background:rgba(0,0,0,0.55);">${escapeHtml(JSON.stringify(w, null, 2))}</pre>
+    `;
+  }
+
+  // ---------- Weather (Open-Meteo) ----------
+  function renderWeather(panel){
+    // default to Houston-ish coords if geolocation not allowed
+    const defaultLat = 29.7604;
+    const defaultLon = -95.3698;
+
+    panel.innerHTML = `
+      <div class="row">
+        <div class="label">Weather API (Open‑Meteo)</div>
+        <div class="mini">Fetches live weather if online. Uses geolocation if allowed; otherwise default coords.</div>
+      </div>
+
+      <div class="row">
+        <div class="label">Latitude</div>
+        <input id="w-lat" value="${defaultLat}">
+      </div>
+
+      <div class="row">
+        <div class="label">Longitude</div>
+        <input id="w-lon" value="${defaultLon}">
+      </div>
+
+      <button class="btn" id="w-fetch">Fetch Weather</button>
+      <button class="btn gray" id="w-geo">Use Device Location</button>
+
+      <div id="w-out" class="row" style="margin-top:10px;"></div>
+    `;
+
+    const out = panel.querySelector("#w-out");
+    const latEl = panel.querySelector("#w-lat");
+    const lonEl = panel.querySelector("#w-lon");
+
+    panel.querySelector("#w-fetch").onclick = async () => {
+      const lat = parseFloat(latEl.value);
+      const lon = parseFloat(lonEl.value);
+      if (!isFinite(lat) || !isFinite(lon)) { out.innerHTML = `<span style="color:#ff8080;">Invalid coordinates.</span>`; return; }
+      out.textContent = "Fetching…";
+      try{
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current=temperature_2m,wind_speed_10m,weather_code`;
+        const r = await fetch(url, { cache:"no-store" });
+        if (!r.ok) throw new Error("HTTP "+r.status);
+        const j = await r.json();
+        const c = j.current || {};
+        out.innerHTML = `
+          <div style="color:#ff0;">Current Weather</div>
+          <div class="mini">Temp: ${c.temperature_2m ?? "?"}°C</div>
+          <div class="mini">Wind: ${c.wind_speed_10m ?? "?"}</div>
+          <div class="mini">Code: ${c.weather_code ?? "?"}</div>
+        `;
+      }catch(e){
+        out.innerHTML = `<span style="color:#ff8080;">Weather fetch failed.</span>`;
+      }
+    };
+
+    panel.querySelector("#w-geo").onclick = () => {
+      if (!navigator.geolocation) { out.innerHTML = `<span style="color:#ff8080;">Geolocation not supported.</span>`; return; }
+      out.textContent = "Requesting location…";
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          latEl.value = pos.coords.latitude.toFixed(4);
+          lonEl.value = pos.coords.longitude.toFixed(4);
+          out.innerHTML = `<span class="mini">Location applied. Click Fetch Weather.</span>`;
+        },
+        () => out.innerHTML = `<span style="color:#ff8080;">Location denied.</span>`
+      );
+    };
+  }
+
+  // ---------- Exit (Leave/Discard/Cancel) ----------
+  function renderExit(panel){
+    panel.innerHTML = `
+      <div class="row">
+        <div class="label">Exit BIOS</div>
+        <div class="mini">Leave BIOS and reboot back to the simulator OS.</div>
+      </div>
+
+      <button class="btn" onclick="runActionUI('Restarting',()=>{ localStorage.setItem('${BIOS_KEY}',JSON.stringify({inBios:false,at:Date.now()})); localStorage.removeItem('${BACKUP_PREFIX + OS_STATE_KEY}'); localStorage.removeItem('${BACKUP_PREFIX + WIDGETS_KEY}'); localStorage.removeItem('${BACKUP_PREFIX + BIOS_TIME_KEY}'); localStorage.removeItem('${BACKUP_PREFIX + BIOS_TIME_LOCK}'); location.reload(); })">
+        Leave and Save Changes
+      </button>
+
+      <button class="btn warn" onclick="(function(){
+        // custom confirm popup (yes/no)
+        const pop=document.createElement('div');
+        pop.style.position='fixed';pop.style.inset='0';pop.style.zIndex='999999';
+        pop.style.background='rgba(0,0,0,0.72)';pop.style.display='flex';pop.style.alignItems='center';pop.style.justifyContent='center';
+        pop.innerHTML = '<div style=\"background:#0b1020;border:1px solid rgba(255,255,0,0.35);border-radius:12px;padding:14px;width:320px;color:white;font-family:monospace;\">'
+          + '<div style=\"color:#ff0;font-weight:bold;margin-bottom:6px;\">Discard changes?</div>'
+          + '<div style=\"font-size:12px;color:#cfcfcf;line-height:1.35;\">Are you sure? This will restore the session data captured when BIOS was entered.</div>'
+          + '<div style=\"display:flex;gap:8px;justify-content:flex-end;margin-top:12px;\">'
+          + '<button id=\"bios-no\" class=\"btn gray\" style=\"width:auto;margin:0;padding:8px 12px;\">No</button>'
+          + '<button id=\"bios-yes\" class=\"btn warn\" style=\"width:auto;margin:0;padding:8px 12px;\">Yes</button>'
+          + '</div></div>';
+        document.body.appendChild(pop);
+        pop.querySelector('#bios-no').onclick=()=>pop.remove();
+        pop.querySelector('#bios-yes').onclick=()=>{
+          // restore backups
+          (function(){
+            const snapOS = localStorage.getItem('${BACKUP_PREFIX + OS_STATE_KEY}');
+            const snapW  = localStorage.getItem('${BACKUP_PREFIX + WIDGETS_KEY}');
+            const snapT  = localStorage.getItem('${BACKUP_PREFIX + BIOS_TIME_KEY}');
+            const snapL  = localStorage.getItem('${BACKUP_PREFIX + BIOS_TIME_LOCK}');
+            if (snapOS != null) localStorage.setItem('${OS_STATE_KEY}', snapOS);
+            if (snapW  != null) localStorage.setItem('${WIDGETS_KEY}', snapW);
+            if (snapT  != null) localStorage.setItem('${BIOS_TIME_KEY}', snapT);
+            if (snapL  != null) localStorage.setItem('${BIOS_TIME_LOCK}', snapL);
+            localStorage.removeItem('${BACKUP_PREFIX + OS_STATE_KEY}');
+            localStorage.removeItem('${BACKUP_PREFIX + WIDGETS_KEY}');
+            localStorage.removeItem('${BACKUP_PREFIX + BIOS_TIME_KEY}');
+            localStorage.removeItem('${BACKUP_PREFIX + BIOS_TIME_LOCK}');
+          })();
+          localStorage.setItem('${BIOS_KEY}', JSON.stringify({inBios:false,at:Date.now()}));
+          runActionUI('Restarting', ()=>location.reload());
+        };
+      })()">
+        Leave and Discard Changes
+      </button>
+
+      <button class="btn gray" onclick="runActionUI('Restarting',()=>location.reload())">
+        Cancel
+      </button>
+    `;
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+    }[m]));
+  }
+
+  // ---------- Onload gate ----------
   window.addEventListener("load", () => {
     window.checkAndRunBIOS();
   });

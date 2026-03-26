@@ -12379,6 +12379,39 @@ function initLoginDisclaimerPopupSystem() {
 
       initialSetup();
       
+function initAIMOSWhenReady() {
+  function init(){
+    // (Re)bind DOM refs AFTER the HTML exists
+    window.aiLog2   = document.getElementById("aiLog2");
+    window.aiInput2 = document.getElementById("aiInput2");
+    window.aiSend2  = document.getElementById("aiSend2");
+
+    // If any are missing, don't crash
+    if(!aiLog2 || !aiInput2 || !aiSend2){
+      console.error("[AIM OS] Missing DOM nodes:", { aiLog2, aiInput2, aiSend2 });
+      return;
+    }
+
+    // Wire events
+    aiSend2.addEventListener("click", aiSendNow);
+    aiInput2.addEventListener("keydown", (e) => {
+      if(e.key === "Enter") aiSendNow();
+    });
+
+    // Boot line (safe now because aiLog2 exists)
+    aiMsg(
+      "ai",
+      "AIM OS online. Right-click everywhere. Ask about FS, .exe, Host.exe, clock, fullscreen, context menus, Notes, Paint, or Media Player."
+    );
+  }
+
+  // Run init at the correct time
+  if(document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init(); // handles cases where script runs after DOM is already ready
+  }
+
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("/service-worker.js");
       }

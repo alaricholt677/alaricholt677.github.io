@@ -2544,6 +2544,16 @@
             <div>TODO List</div>
             <div class="start-app-sub">Manage tasks & quick notes</div>
           </div>
+          <div class="start-app" data-app="clock" data-app-name="Clock">
+           <div class="start-app-icon">
+               <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                 <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                 <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+               </svg>
+             </div>
+             <div>Clock</div>
+             <div class="start-app-sub">Time tools</div>
+           </div>
         </div>
       </div>
       <div class="start-right-panel">
@@ -3297,6 +3307,84 @@
     </div>
   </div>
 </div>
+
+<!-- Clock App -->
+<div class="window" id="window-clock" data-app="clock" data-app-desc="Clock, Alarms, Stopwatch, World Time">
+  <div class="window-header" data-drag-handle>
+    <div class="window-title">
+      <div class="window-title-icon">
+        <!-- Clock SVG Icon -->
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+
+      <div class="window-title-text">
+        <div class="window-title-main">Clock</div>
+        <div class="window-title-sub">Time, Alarms, Stopwatch, World Time</div>
+      </div>
+
+      <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+      <div class="window-info-icon">(i)</div>
+      <div class="window-info-tooltip"></div>
+    </div>
+
+    <div class="window-controls">
+      <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+      <div class="window-btn close"><div class="window-btn-icon"></div></div>
+    </div>
+  </div>
+
+  <div class="window-body">
+
+    <!-- TABS -->
+    <div class="clock-tabs">
+      <button class="clock-tab active" data-tab="clock-main">Clock</button>
+      <button class="clock-tab" data-tab="clock-stopwatch">Stopwatch</button>
+      <button class="clock-tab" data-tab="clock-alarms">Alarms</button>
+      <button class="clock-tab" data-tab="clock-world">World Time</button>
+    </div>
+
+    <div class="clock-content">
+
+      <!-- MAIN CLOCK -->
+      <div class="clock-page" id="clock-main">
+        <div id="clock-face-display" class="clock-big">00:00:00</div>
+        <div id="clock-face-date" class="clock-date"></div>
+        <label class="clock-toggle">
+          <input type="checkbox" id="clock-format-toggle"> 24‑hour mode
+        </label>
+      </div>
+
+      <!-- STOPWATCH -->
+      <div class="clock-page hidden" id="clock-stopwatch">
+        <div id="clock-stopwatch-display" class="clock-big">00:00.00</div>
+        <div class="stopwatch-buttons">
+          <button id="clock-stopwatch-start">Start</button>
+          <button id="clock-stopwatch-stop">Stop</button>
+          <button id="clock-stopwatch-reset">Reset</button>
+        </div>
+        <div id="clock-stopwatch-laps"></div>
+      </div>
+
+      <!-- ALARMS -->
+      <div class="clock-page hidden" id="clock-alarms">
+        <div id="clock-alarm-list"></div>
+        <button id="clock-alarm-add">Add Alarm</button>
+      </div>
+
+      <!-- WORLD TIME -->
+      <div class="clock-page hidden" id="clock-world">
+        <div id="clock-world-list"></div>
+        <button id="clock-world-add">Add City</button>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
   <!-- Context menu -->
   <div class="ctx-menu" id="ctx-menu">
     <div class="ctx-item" data-action="open"><span>Open</span></div>
@@ -13250,6 +13338,258 @@ console.log(`%c
 
   // Also run on load (your request)
   window.addEventListener("load", () => window.checkAndRunBIOS());
+
+})();
+</script>
+<script id="clock_script">
+/* ================================
+   CLOCK APP — SAFE NAMESPACE
+   ================================ */
+
+const ClockApp = (() => {
+
+  /* Unique localStorage keys */
+  const CLOCK_LS_FORMAT = "clock_pref_format_v1";
+  const CLOCK_LS_ALARMS = "clock_saved_alarms_v1";
+  const CLOCK_LS_WORLDTIME = "clock_saved_worldtime_v1";
+
+  /* DOM refs (unique IDs, no conflicts) */
+  const elClock = document.getElementById("clock-face-display");
+  const elDate = document.getElementById("clock-face-date");
+  const elFormatToggle = document.getElementById("clock-format-toggle");
+
+  const elStopwatch = document.getElementById("clock-stopwatch-display");
+  const btnSWStart = document.getElementById("clock-stopwatch-start");
+  const btnSWStop = document.getElementById("clock-stopwatch-stop");
+  const btnSWReset = document.getElementById("clock-stopwatch-reset");
+  const elSWLaps = document.getElementById("clock-stopwatch-laps");
+
+  const elAlarmList = document.getElementById("clock-alarm-list");
+  const btnAlarmAdd = document.getElementById("clock-alarm-add");
+
+  const elWorldList = document.getElementById("clock-world-list");
+  const btnWorldAdd = document.getElementById("clock-world-add");
+
+  /* Tab switching */
+  document.querySelectorAll(".clock-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".clock-tab").forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+
+      const target = tab.dataset.tab;
+      document.querySelectorAll(".clock-page").forEach(page => {
+        page.classList.toggle("hidden", page.id !== target);
+      });
+    });
+  });
+
+  /* ================================
+     CLOCK (LIVE TIME)
+     ================================ */
+
+  let use24h = localStorage.getItem(CLOCK_LS_FORMAT) === "1";
+
+  if (use24h) elFormatToggle.checked = true;
+
+  elFormatToggle.addEventListener("change", () => {
+    use24h = elFormatToggle.checked;
+    localStorage.setItem(CLOCK_LS_FORMAT, use24h ? "1" : "0");
+  });
+
+  function updateClock() {
+    const now = new Date();
+    const time = now.toLocaleTimeString([], {
+      hour12: !use24h,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    });
+
+    const date = now.toLocaleDateString([], {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric"
+    });
+
+    elClock.textContent = time;
+    elDate.textContent = date;
+  }
+
+  setInterval(updateClock, 1000);
+  updateClock();
+
+
+  /* ================================
+     STOPWATCH
+     ================================ */
+
+  let swRunning = false;
+  let swStartTime = 0;
+  let swElapsed = 0;
+  let swInterval = null;
+
+  function updateStopwatch() {
+    const now = Date.now();
+    const diff = now - swStartTime + swElapsed;
+
+    const ms = Math.floor((diff % 1000) / 10);
+    const s = Math.floor(diff / 1000) % 60;
+    const m = Math.floor(diff / 60000);
+
+    elStopwatch.textContent =
+      `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}.${String(ms).padStart(2, "0")}`;
+  }
+
+  btnSWStart.addEventListener("click", () => {
+    if (!swRunning) {
+      swRunning = true;
+      swStartTime = Date.now();
+      swInterval = setInterval(updateStopwatch, 10);
+    }
+  });
+
+  btnSWStop.addEventListener("click", () => {
+    if (swRunning) {
+      swRunning = false;
+      clearInterval(swInterval);
+      swElapsed += Date.now() - swStartTime;
+    }
+  });
+
+  btnSWReset.addEventListener("click", () => {
+    swRunning = false;
+    clearInterval(swInterval);
+    swElapsed = 0;
+    elStopwatch.textContent = "00:00.00";
+    elSWLaps.innerHTML = "";
+  });
+
+
+  /* ================================
+     ALARMS
+     ================================ */
+
+  let alarms = JSON.parse(localStorage.getItem(CLOCK_LS_ALARMS) || "[]");
+
+  function saveAlarms() {
+    localStorage.setItem(CLOCK_LS_ALARMS, JSON.stringify(alarms));
+  }
+
+  function renderAlarms() {
+    elAlarmList.innerHTML = "";
+
+    alarms.forEach((alarm, index) => {
+      const row = document.createElement("div");
+      row.className = "clock-alarm-row";
+
+      row.innerHTML = `
+        <span>${alarm.time}</span>
+        <span>${alarm.label}</span>
+        <button data-i="${index}" class="clock-alarm-del">Delete</button>
+      `;
+
+      elAlarmList.appendChild(row);
+    });
+
+    document.querySelectorAll(".clock-alarm-del").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const i = btn.dataset.i;
+        alarms.splice(i, 1);
+        saveAlarms();
+        renderAlarms();
+      });
+    });
+  }
+
+  btnAlarmAdd.addEventListener("click", () => {
+    const time = prompt("Alarm time (HH:MM):");
+    if (!time) return;
+
+    const label = prompt("Label:");
+    alarms.push({ time, label: label || "" });
+    saveAlarms();
+    renderAlarms();
+  });
+
+  function checkAlarms() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    const current = `${hh}:${mm}`;
+
+    alarms.forEach(alarm => {
+      if (alarm.time === current) {
+        alert(`Alarm: ${alarm.label || alarm.time}`);
+      }
+    });
+  }
+
+  setInterval(checkAlarms, 1000);
+  renderAlarms();
+
+
+  /* ================================
+     WORLD TIME
+     ================================ */
+
+  let worldCities = JSON.parse(localStorage.getItem(CLOCK_LS_WORLDTIME) || "[]");
+
+  function saveWorld() {
+    localStorage.setItem(CLOCK_LS_WORLDTIME, JSON.stringify(worldCities));
+  }
+
+  function renderWorld() {
+    elWorldList.innerHTML = "";
+
+    worldCities.forEach((city, index) => {
+      const now = new Date().toLocaleString("en-US", { timeZone: city });
+
+      const row = document.createElement("div");
+      row.className = "clock-world-row";
+
+      row.innerHTML = `
+        <span>${city}</span>
+        <span>${now}</span>
+        <button data-i="${index}" class="clock-world-del">Delete</button>
+      `;
+
+      elWorldList.appendChild(row);
+    });
+
+    document.querySelectorAll(".clock-world-del").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const i = btn.dataset.i;
+        worldCities.splice(i, 1);
+        saveWorld();
+        renderWorld();
+      });
+    });
+  }
+
+  btnWorldAdd.addEventListener("click", () => {
+    const city = prompt("Enter IANA timezone (Example: America/New_York):");
+    if (!city) return;
+
+    worldCities.push(city);
+    saveWorld();
+    renderWorld();
+  });
+
+  setInterval(renderWorld, 1000);
+  renderWorld();
+
+
+  /* ================================
+     RETURN API (optional)
+     ================================ */
+  return {
+    refresh: () => {
+      updateClock();
+      renderAlarms();
+      renderWorld();
+    }
+  };
 
 })();
 </script>

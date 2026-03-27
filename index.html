@@ -3476,6 +3476,8 @@
 
   <script>
     (function(){
+      "use strict";
+      
       const STORAGE_KEY = "win12_aim_fs_state_exe_ctx_full_v3";
 
       function loadState(){
@@ -12379,26 +12381,38 @@ function initLoginDisclaimerPopupSystem() {
 
       initialSetup();
       
-function initAIMOSWhenReady() {
-  function init(){
-    // (Re)bind DOM refs AFTER the HTML exists
+/* =========================
+   AIM OS: DOM-ready init
+   Wrap ONLY DOM lookups + listeners + boot message
+   ========================= */
+
+  function initAIMOS() {
+    // Bind DOM refs AFTER HTML exists
     window.aiLog2   = document.getElementById("aiLog2");
     window.aiInput2 = document.getElementById("aiInput2");
     window.aiSend2  = document.getElementById("aiSend2");
 
-    // If any are missing, don't crash
-    if(!aiLog2 || !aiInput2 || !aiSend2){
-      console.error("[AIM OS] Missing DOM nodes:", { aiLog2, aiInput2, aiSend2 });
+    // Guard: prevents null errors
+    if (!window.aiLog2 || !window.aiInput2 || !window.aiSend2) {
+      console.error("[AIM OS] Missing DOM nodes:", {
+        aiLog2: window.aiLog2,
+        aiInput2: window.aiInput2,
+        aiSend2: window.aiSend2
+      });
       return;
     }
 
+    // Prevent double-binding if init runs more than once
+    if (window.aiSend2.dataset.bound === "1") return;
+    window.aiSend2.dataset.bound = "1";
+
     // Wire events
-    aiSend2.addEventListener("click", aiSendNow);
-    aiInput2.addEventListener("keydown", (e) => {
-      if(e.key === "Enter") aiSendNow();
+    window.aiSend2.addEventListener("click", aiSendNow);
+    window.aiInput2.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") aiSendNow();
     });
 
-    // Boot line (safe now because aiLog2 exists)
+    // Boot message (safe now)
     aiMsg(
       "ai",
       "AIM OS online. Right-click everywhere. Ask about FS, .exe, Host.exe, clock, fullscreen, context menus, Notes, Paint, or Media Player."
@@ -12406,10 +12420,10 @@ function initAIMOSWhenReady() {
   }
 
   // Run init at the correct time
-  if(document.readyState === "loading"){
-    document.addEventListener("DOMContentLoaded", init);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initAIMOS);
   } else {
-    init(); // handles cases where script runs after DOM is already ready
+    initAIMOS();
   }
 
       if ("serviceWorker" in navigator) {

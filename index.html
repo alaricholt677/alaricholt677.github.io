@@ -2040,6 +2040,152 @@
 
 /* responsive tweak */
 @media (max-width:720px){ #mini-aim-sidebar{ width:100%; max-width:100vw; } .convo-list{ display:none; } }
+
+/* ================================
+   CLOCK APP — WINDOW-SCOPED STYLES
+   Only affects #window-clock .window-body
+   ================================ */
+
+#window-clock .window-body {
+  padding: 16px;
+  font-family: "Segoe UI", sans-serif;
+  color: var(--text-color, #fff);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  height: 100%;
+  overflow: auto;
+}
+
+/* Tabs */
+#window-clock .clock-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+#window-clock .clock-tab {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.06);
+  cursor: pointer;
+  transition: 0.15s;
+  color: #fff;
+}
+
+#window-clock .clock-tab.active {
+  background: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.25);
+}
+
+/* Pages */
+#window-clock .clock-page {
+  display: block;
+}
+
+#window-clock .clock-page.hidden {
+  display: none;
+}
+
+/* Main Clock */
+#window-clock .clock-big {
+  font-size: 48px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+#window-clock .clock-date {
+  font-size: 18px;
+  opacity: 0.8;
+  margin-bottom: 20px;
+}
+
+#window-clock .clock-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+/* Stopwatch */
+#window-clock .stopwatch-buttons {
+  display: flex;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+#window-clock .stopwatch-buttons button {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+#window-clock .stopwatch-buttons button:hover {
+  background: rgba(255,255,255,0.25);
+}
+
+/* Alarms */
+#window-clock .clock-alarm-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+}
+
+#window-clock .clock-alarm-row button {
+  background: rgba(255,0,0,0.25);
+  border: none;
+  padding: 4px 10px;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+}
+
+#window-clock #clock-alarm-add {
+  margin-top: 10px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+}
+
+/* World Time */
+#window-clock .clock-world-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+}
+
+#window-clock .clock-world-row button {
+  background: rgba(255,0,0,0.25);
+  border: none;
+  padding: 4px 10px;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+}
+
+#window-clock #clock-world-add {
+  margin-top: 10px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+}
+
   </style>
   <style id="theme-style"></style>
 </head>
@@ -13340,256 +13486,289 @@ console.log(`%c
   window.addEventListener("load", () => window.checkAndRunBIOS());
 
 })();
-</script>
-<script id="clock_script">
-/* ================================
-   CLOCK APP — SAFE NAMESPACE
-   ================================ */
+</script><script id="clock_script">
+(() => {
+  // Prevent double-load
+  if (window.__clock_app_loaded__) return;
+  window.__clock_app_loaded__ = true;
 
-const ClockApp = (() => {
+  // Get window root safely
+  const win = document.getElementById("window-clock");
+  if (!win) return;
 
-  /* Unique localStorage keys */
-  const CLOCK_LS_FORMAT = "clock_pref_format_v1";
-  const CLOCK_LS_ALARMS = "clock_saved_alarms_v1";
-  const CLOCK_LS_WORLDTIME = "clock_saved_worldtime_v1";
+  // Safe DOM refs (scoped to this window)
+  const elClock         = win.querySelector("#clock-face-display");
+  const elDate          = win.querySelector("#clock-face-date");
+  const elFormatToggle  = win.querySelector("#clock-format-toggle");
 
-  /* DOM refs (unique IDs, no conflicts) */
-  const elClock = document.getElementById("clock-face-display");
-  const elDate = document.getElementById("clock-face-date");
-  const elFormatToggle = document.getElementById("clock-format-toggle");
+  const elStopwatch     = win.querySelector("#clock-stopwatch-display");
+  const btnSWStart      = win.querySelector("#clock-stopwatch-start");
+  const btnSWStop       = win.querySelector("#clock-stopwatch-stop");
+  const btnSWReset      = win.querySelector("#clock-stopwatch-reset");
+  const elSWLaps        = win.querySelector("#clock-stopwatch-laps");
 
-  const elStopwatch = document.getElementById("clock-stopwatch-display");
-  const btnSWStart = document.getElementById("clock-stopwatch-start");
-  const btnSWStop = document.getElementById("clock-stopwatch-stop");
-  const btnSWReset = document.getElementById("clock-stopwatch-reset");
-  const elSWLaps = document.getElementById("clock-stopwatch-laps");
+  const elAlarmList     = win.querySelector("#clock-alarm-list");
+  const btnAlarmAdd     = win.querySelector("#clock-alarm-add");
 
-  const elAlarmList = document.getElementById("clock-alarm-list");
-  const btnAlarmAdd = document.getElementById("clock-alarm-add");
+  const elWorldList     = win.querySelector("#clock-world-list");
+  const btnWorldAdd     = win.querySelector("#clock-world-add");
 
-  const elWorldList = document.getElementById("clock-world-list");
-  const btnWorldAdd = document.getElementById("clock-world-add");
+  // If core elements are missing, abort safely
+  if (!elClock || !elDate || !elFormatToggle) return;
 
-  /* Tab switching */
-  document.querySelectorAll(".clock-tab").forEach(tab => {
+  /* ================================
+     TAB SWITCHING
+     ================================ */
+  win.querySelectorAll(".clock-tab").forEach(tab => {
     tab.addEventListener("click", () => {
-      document.querySelectorAll(".clock-tab").forEach(t => t.classList.remove("active"));
+      win.querySelectorAll(".clock-tab").forEach(t => t.classList.remove("active"));
       tab.classList.add("active");
 
       const target = tab.dataset.tab;
-      document.querySelectorAll(".clock-page").forEach(page => {
+      win.querySelectorAll(".clock-page").forEach(page => {
         page.classList.toggle("hidden", page.id !== target);
       });
     });
   });
 
   /* ================================
-     CLOCK (LIVE TIME)
+     CLOCK
      ================================ */
+  const LS_FORMAT = "clock_pref_format_v1";
+  let use24h = false;
 
-  let use24h = localStorage.getItem(CLOCK_LS_FORMAT) === "1";
+  try {
+    use24h = localStorage.getItem(LS_FORMAT) === "1";
+  } catch {}
 
-  if (use24h) elFormatToggle.checked = true;
+  elFormatToggle.checked = use24h;
 
   elFormatToggle.addEventListener("change", () => {
     use24h = elFormatToggle.checked;
-    localStorage.setItem(CLOCK_LS_FORMAT, use24h ? "1" : "0");
+    try {
+      localStorage.setItem(LS_FORMAT, use24h ? "1" : "0");
+    } catch {}
   });
 
   function updateClock() {
-    const now = new Date();
-    const time = now.toLocaleTimeString([], {
-      hour12: !use24h,
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit"
-    });
-
-    const date = now.toLocaleDateString([], {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric"
-    });
-
-    elClock.textContent = time;
-    elDate.textContent = date;
+    try {
+      const now = new Date();
+      elClock.textContent = now.toLocaleTimeString([], {
+        hour12: !use24h,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+      elDate.textContent = now.toLocaleDateString([], {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric"
+      });
+    } catch {}
   }
 
   setInterval(updateClock, 1000);
   updateClock();
 
-
   /* ================================
      STOPWATCH
      ================================ */
-
   let swRunning = false;
-  let swStartTime = 0;
+  let swStart   = 0;
   let swElapsed = 0;
-  let swInterval = null;
+  let swTimer   = null;
 
-  function updateStopwatch() {
-    const now = Date.now();
-    const diff = now - swStartTime + swElapsed;
+  function updateSW() {
+    try {
+      const now = Date.now();
+      const diff = now - swStart + swElapsed;
 
-    const ms = Math.floor((diff % 1000) / 10);
-    const s = Math.floor(diff / 1000) % 60;
-    const m = Math.floor(diff / 60000);
+      const ms = Math.floor((diff % 1000) / 10);
+      const s  = Math.floor(diff / 1000) % 60;
+      const m  = Math.floor(diff / 60000);
 
-    elStopwatch.textContent =
-      `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}.${String(ms).padStart(2, "0")}`;
+      elStopwatch.textContent =
+        `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}.${String(ms).padStart(2, "0")}`;
+    } catch {}
   }
 
-  btnSWStart.addEventListener("click", () => {
+  btnSWStart?.addEventListener("click", () => {
     if (!swRunning) {
       swRunning = true;
-      swStartTime = Date.now();
-      swInterval = setInterval(updateStopwatch, 10);
+      swStart = Date.now();
+      swTimer = setInterval(updateSW, 10);
     }
   });
 
-  btnSWStop.addEventListener("click", () => {
+  btnSWStop?.addEventListener("click", () => {
     if (swRunning) {
       swRunning = false;
-      clearInterval(swInterval);
-      swElapsed += Date.now() - swStartTime;
+      clearInterval(swTimer);
+      swElapsed += Date.now() - swStart;
     }
   });
 
-  btnSWReset.addEventListener("click", () => {
+  btnSWReset?.addEventListener("click", () => {
     swRunning = false;
-    clearInterval(swInterval);
+    clearInterval(swTimer);
     swElapsed = 0;
     elStopwatch.textContent = "00:00.00";
-    elSWLaps.innerHTML = "";
+    if (elSWLaps) elSWLaps.innerHTML = "";
   });
-
 
   /* ================================
      ALARMS
      ================================ */
+  const LS_ALARMS = "clock_saved_alarms_v1";
+  let alarms = [];
 
-  let alarms = JSON.parse(localStorage.getItem(CLOCK_LS_ALARMS) || "[]");
+  try {
+    const raw = localStorage.getItem(LS_ALARMS);
+    alarms = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(alarms)) alarms = [];
+  } catch {
+    alarms = [];
+  }
 
   function saveAlarms() {
-    localStorage.setItem(CLOCK_LS_ALARMS, JSON.stringify(alarms));
+    try {
+      localStorage.setItem(LS_ALARMS, JSON.stringify(alarms));
+    } catch {}
   }
 
   function renderAlarms() {
+    if (!elAlarmList) return;
     elAlarmList.innerHTML = "";
 
-    alarms.forEach((alarm, index) => {
+    alarms.forEach((a, i) => {
       const row = document.createElement("div");
       row.className = "clock-alarm-row";
-
       row.innerHTML = `
-        <span>${alarm.time}</span>
-        <span>${alarm.label}</span>
-        <button data-i="${index}" class="clock-alarm-del">Delete</button>
+        <span>${a.time}</span>
+        <span>${a.label}</span>
+        <button data-i="${i}" class="clock-alarm-del">Delete</button>
       `;
-
       elAlarmList.appendChild(row);
     });
 
-    document.querySelectorAll(".clock-alarm-del").forEach(btn => {
+    elAlarmList.querySelectorAll(".clock-alarm-del").forEach(btn => {
       btn.addEventListener("click", () => {
-        const i = btn.dataset.i;
-        alarms.splice(i, 1);
-        saveAlarms();
-        renderAlarms();
+        try {
+          const idx = Number(btn.dataset.i);
+          if (!isNaN(idx)) {
+            alarms.splice(idx, 1);
+            saveAlarms();
+            renderAlarms();
+          }
+        } catch {}
       });
     });
   }
 
-  btnAlarmAdd.addEventListener("click", () => {
-    const time = prompt("Alarm time (HH:MM):");
-    if (!time) return;
-
-    const label = prompt("Label:");
-    alarms.push({ time, label: label || "" });
-    saveAlarms();
-    renderAlarms();
+  btnAlarmAdd?.addEventListener("click", () => {
+    try {
+      const time = prompt("Alarm time (HH:MM):");
+      if (!time) return;
+      const label = prompt("Label:");
+      alarms.push({ time, label: label || "" });
+      saveAlarms();
+      renderAlarms();
+    } catch {}
   });
 
-  function checkAlarms() {
-    const now = new Date();
-    const hh = String(now.getHours()).padStart(2, "0");
-    const mm = String(now.getMinutes()).padStart(2, "0");
-    const current = `${hh}:${mm}`;
+  setInterval(() => {
+    try {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      const current = `${hh}:${mm}`;
 
-    alarms.forEach(alarm => {
-      if (alarm.time === current) {
-        alert(`Alarm: ${alarm.label || alarm.time}`);
-      }
-    });
-  }
+      alarms.forEach(a => {
+        if (a.time === current) {
+          alert(`Alarm: ${a.label || a.time}`);
+        }
+      });
+    } catch {}
+  }, 1000);
 
-  setInterval(checkAlarms, 1000);
   renderAlarms();
 
-
   /* ================================
-     WORLD TIME
+     WORLD TIME — CRASH-PROOF
      ================================ */
+  const LS_WORLD = "clock_saved_worldtime_v1";
+  let world = [];
 
-  let worldCities = JSON.parse(localStorage.getItem(CLOCK_LS_WORLDTIME) || "[]");
+  try {
+    const raw = localStorage.getItem(LS_WORLD);
+    world = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(world)) world = [];
+  } catch {
+    world = [];
+  }
 
   function saveWorld() {
-    localStorage.setItem(CLOCK_LS_WORLDTIME, JSON.stringify(worldCities));
+    try {
+      localStorage.setItem(LS_WORLD, JSON.stringify(world));
+    } catch {}
   }
 
   function renderWorld() {
-    elWorldList.innerHTML = "";
+    try {
+      if (!elWorldList) return;
+      elWorldList.innerHTML = "";
 
-    worldCities.forEach((city, index) => {
-      const now = new Date().toLocaleString("en-US", { timeZone: city });
+      world.forEach((city, i) => {
+        let timeString = "";
+        try {
+          timeString = new Date().toLocaleString("en-US", { timeZone: city });
+        } catch {
+          timeString = "Invalid timezone";
+        }
 
-      const row = document.createElement("div");
-      row.className = "clock-world-row";
-
-      row.innerHTML = `
-        <span>${city}</span>
-        <span>${now}</span>
-        <button data-i="${index}" class="clock-world-del">Delete</button>
-      `;
-
-      elWorldList.appendChild(row);
-    });
-
-    document.querySelectorAll(".clock-world-del").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const i = btn.dataset.i;
-        worldCities.splice(i, 1);
-        saveWorld();
-        renderWorld();
+        const row = document.createElement("div");
+        row.className = "clock-world-row";
+        row.innerHTML = `
+          <span>${city}</span>
+          <span>${timeString}</span>
+          <button data-i="${i}" class="clock-world-del">Delete</button>
+        `;
+        elWorldList.appendChild(row);
       });
-    });
+
+      elWorldList.querySelectorAll(".clock-world-del").forEach(btn => {
+        btn.addEventListener("click", () => {
+          try {
+            const idx = Number(btn.dataset.i);
+            if (!isNaN(idx)) {
+              world.splice(idx, 1);
+              saveWorld();
+              renderWorld();
+            }
+          } catch {}
+        });
+      });
+    } catch {}
   }
 
-  btnWorldAdd.addEventListener("click", () => {
-    const city = prompt("Enter IANA timezone (Example: America/New_York):");
-    if (!city) return;
-
-    worldCities.push(city);
-    saveWorld();
-    renderWorld();
+  btnWorldAdd?.addEventListener("click", () => {
+    try {
+      const city = prompt("Enter IANA timezone (Example: America/New_York):");
+      if (!city) return;
+      world.push(city);
+      saveWorld();
+      renderWorld();
+    } catch {}
   });
 
-  setInterval(renderWorld, 1000);
-  renderWorld();
-
-
-  /* ================================
-     RETURN API (optional)
-     ================================ */
-  return {
-    refresh: () => {
-      updateClock();
-      renderAlarms();
+  setInterval(() => {
+    try {
       renderWorld();
-    }
-  };
+    } catch {}
+  }, 1000);
+
+  renderWorld();
 
 })();
 </script>

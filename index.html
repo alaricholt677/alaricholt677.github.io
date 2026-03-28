@@ -7289,6 +7289,112 @@ if(/troubleshoot|help menu|support center/.test(lower)){
 === TROUBLESHOOTING MENU === \n • View folders:\n  - /desktop \n  - /documents \n  - /imported  - /recommended-files \n \n • How to inspect a folder: \n  Type: file:///folder-name \n  Example: file:///documents \n \n • App help: \n  Explorer, Notepad, Browser, Host.exe, Paint, Media Player \n \n• Hidden features: \n   - Right‑click context menus \n  - Fullscreen toggle [ ] \n  - Start → Recommended files \n  - Start → Imported dropdown \n  - .exe payloads via Host.exe \n  \n Ask about any item above to learn more. \n type: "i want to create "notes" with the extension "txt" in the documents folder with content "hello world". " to create a file`;
 }
 
+if (/(coding\s*prompt|aim\s*prompt|editor\s*prompt|define\s*prompt)/.test(lower)) {
+  const PROMPT_TEXT = `
+TASK:
+Build a full-featured coding editor using HTML, CSS, and JavaScript.
+
+IMPORTANT:
+All JavaScript logic must be written inline in the HTML file.
+No external libraries.
+No script loaders.
+No frameworks.
+
+FEATURES TO IMPLEMENT:
+
+1. UI
+- Centered coding window
+- Dark OS-style theme
+- Rounded corners
+- Subtle glow border
+- Monospace font
+- Responsive layout
+
+2. HEADER BAR
+- Language selector dropdown
+- Copy Code button
+- Clear button
+
+Supported languages:
+JavaScript, Python, C++, HTML, CSS, Go, Rust, Java, JSON, Markdown, Plain Text
+
+3. CODE EDITOR BEHAVIOR
+- Tab inserts spaces
+- Auto-indent on new lines
+- Preserve formatting on paste
+- Cursor-safe selection
+- No content loss
+
+4. SPELL CHECK SYSTEM
+- Live spell checking
+- Only check comments and string literals
+- Ignore keywords, symbols, numbers
+- Highlight misspelled words
+- Use internal dictionary array
+- No browser spellcheck
+- No APIs
+
+5. CODE ANALYTICS (LIVE)
+Display:
+- Total characters
+- Total words
+- Lines of code
+- Average characters per word
+
+6. FOOTER BAR
+- Fixed to bottom of editor
+- Displays analytics cleanly
+- Small readable font
+- Subtle separators
+
+7. OUTPUT RULES
+- Return ONE complete HTML file
+- Include HTML, CSS, and JavaScript together
+- No explanations
+- No placeholders
+- No TODOs
+- Everything must work
+
+This is a real tool, not a demo.
+`;
+
+  const esc = s =>
+    s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+  return `
+  <div class="sys-response aim-prompt">
+    <div class="icon">
+      <svg width="44" height="44" viewBox="0 0 64 64" fill="none"
+           xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="10" width="34" height="24" rx="3"
+              stroke="currentColor" stroke-width="2"/>
+        <rect x="10" y="14" width="26" height="16" rx="1"
+              fill="currentColor" opacity="0.15"/>
+        <path d="M42 22h10" stroke="currentColor" stroke-width="2"/>
+        <path d="M48 18l4 4-4 4" stroke="currentColor" stroke-width="2"/>
+        <path d="M44 30h10l4 4v14a2 2 0 0 1-2 2H44a2 2 0 0 1-2-2V32a2 2 0 0 1 2-2z"
+              stroke="currentColor" stroke-width="2"/>
+      </svg>
+    </div>
+
+    <div class="panel">
+      <div class="header">
+        <span class="title">Coding Prompt</span>
+        <button onclick="navigator.clipboard.writeText(this.closest('.panel').querySelector('textarea').value)">
+          Copy Prompt
+        </button>
+      </div>
+
+      <textarea spellcheck="false">${esc(PROMPT_TEXT)}</textarea>
+
+      <div class="footer">
+        <span>Prompt ready</span>
+      </div>
+    </div>
+  </div>
+  `;
+}
+
   if(/help|what can you do|assist|commands|features/.test(lower))
     return `=== AIM OS HELP ===
 

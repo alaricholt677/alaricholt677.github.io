@@ -2186,6 +2186,38 @@
   cursor: pointer;
 }
 
+.sys-response.data-location {
+  display: flex;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #e6e6e6;
+  font-family: system-ui, sans-serif;
+}
+
+.sys-response .icon {
+  color: #6aa9ff;
+  flex-shrink: 0;
+}
+
+.sys-response .title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.sys-response .body {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.sys-response code {
+  background: rgba(255,255,255,0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
   </style>
   <style id="theme-style"></style>
 </head>
@@ -7240,7 +7272,7 @@ function aiAnswer(q){
   if(/^(hi|hello|hey|yo|sup|hiya)\b/.test(lower))
     return `Hey ${u.name}, I’m here inside the Win12 shrine with you. What’s up`;
 
-  if(/how.*(are|r) (you|u)/.test(lower))
+  if(/how.*(are|r) (you|u|ya)/.test(lower))
     return "I'm running smoothly inside this relic. How are you feeling today";
 
   if(/how.*(my|ur|your).*day/.test(lower))
@@ -7287,10 +7319,10 @@ if(/troubleshoot|help menu|support center/.test(lower)){
 Ask about any item above to learn more.`;
 
   if(/ok|cool|nice|great/.test(lower))
-    return "Got it. I'm right here with you";
+    return "Got it. I'm glad you Understand. I am right here with you";
 
   if(/who.*made.*you/.test(lower))
-    return "You did — this AIM OS instance is local, handcrafted, and part of your ritual";
+    return "Alaricholt677 did, he made me be able to do all of this, type help for everythng i can do.";
 
   // -----------------------------
   // ORIGINAL SYSTEM RESPONSES
@@ -7298,8 +7330,47 @@ Ask about any item above to learn more.`;
   if(/who am i/.test(lower))
     return `You are ${u.name}, inside a local Win12 shrine where Explorer, Notepad, Browser, Host.exe, Paint, and Media Player all read from the same story.`;
 
-  if(/where.*data|localstorage/.test(lower))
-    return `All data is in localStorage under "${STORAGE_KEY}". Users, FS entries (including exePayloadBase64), notes, associations, theme.css — all live there.`;
+if (/where.*data|localstorage/.test(lower)) {
+  return `
+    <div class="sys-response data-location">
+      <div class="icon">
+        <svg width="48" height="48" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- PC -->
+          <rect x="6" y="8" width="36" height="26" rx="3" stroke="currentColor" stroke-width="2"/>
+          <rect x="10" y="12" width="28" height="18" rx="1" fill="currentColor" opacity="0.15"/>
+          <rect x="18" y="36" width="12" height="4" rx="1" fill="currentColor"/>
+          <rect x="14" y="40" width="20" height="3" rx="1" fill="currentColor"/>
+
+          <!-- Arrow -->
+          <path d="M44 22h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M50 18l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+          <!-- File -->
+          <path d="M46 30h10l4 4v14a2 2 0 0 1-2 2H46a2 2 0 0 1-2-2V32a2 2 0 0 1 2-2z"
+                stroke="currentColor" stroke-width="2"/>
+          <path d="M56 30v4h4" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </div>
+
+      <div class="content">
+        <div class="title">Local Data Storage</div>
+        <div class="body">
+          All application state is stored locally in your browser under
+          <code>${STORAGE_KEY}</code>.
+          <br><br>
+          This includes:
+          <ul>
+            <li>User accounts</li>
+            <li>Virtual filesystem entries (including <code>exePayloadBase64</code>)</li>
+            <li>Notes and associations</li>
+            <li>Theme assets such as <code>theme.css</code></li>
+          </ul>
+          Everything lives together as a single structured object.
+        </div>
+      </div>
+    </div>
+  `;
+}
 
   if(/what is aim/.test(lower))
     return "AIM means Agency, Intent, Myth — treating this simulator as a ritual, not a disposable demo.";

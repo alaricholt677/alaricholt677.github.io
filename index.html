@@ -2218,6 +2218,105 @@
   border-radius: 4px;
 }
 
+/* === Win12 News Window Body Styling === */
+#window-news .window-body {
+  padding: 18px;
+  background: linear-gradient(180deg, #0f1116, #0b0d12);
+  color: #e6e8ee;
+  font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  overflow-y: auto;
+}
+
+/* Details container */
+#window-news .window-body details {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  transition: background 0.2s ease, border 0.2s ease;
+}
+
+#window-news .window-body details[open] {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* Summary header */
+#window-news .window-body summary {
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+  list-style: none;
+}
+
+#window-news .window-body summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Entry content */
+#window-news .window-body details > div {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* User image */
+#window-news .window-body img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin-bottom: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Headings */
+#window-news .window-body h1 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 6px 0 4px;
+  color: #cfd6ff;
+}
+
+/* Paragraphs */
+#window-news .window-body p {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 4px 0;
+  color: #d6d9e0;
+}
+
+/* Links */
+#window-news .window-body a {
+  color: #8aa2ff;
+  text-decoration: none;
+}
+
+#window-news .window-body a:hover {
+  text-decoration: underline;
+}
+
+/* === Download Game Button === */
+#window-news .window-body .download-game {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #5b7cff, #4a63e6);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 6px 18px rgba(90, 120, 255, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+#window-news .window-body .download-game:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px rgba(90, 120, 255, 0.45);
+}
+
   </style>
   <style id="theme-style"></style>
 </head>
@@ -3098,7 +3197,7 @@
          <img src="user.png"></img>
          <h1>Type: new page, User:</h1>
          <p>Alaricholt677</p>
-         <p>Theres a new mod thats uploaded to my site at: <a href="https://alaricholt677.github.io/MOD">https://alaricholt677.github.io/MOD</a> report any bugs if theres an error with it.</p>
+         <p>Theres a new mod thats uploaded to my site at: <a href="https://alaricholt677.github.io/MOD">https://alaricholt677.github.io/MOD</a> report any bugs if theres an error with it. you can do the same for <a class="download-game" href="/downloads">this game you can download</a></p>
        </div>
       </details>
     </div>

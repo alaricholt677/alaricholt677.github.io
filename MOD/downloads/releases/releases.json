@@ -15,7 +15,7 @@
       "mc": "1.21.8",
       "loader": "JAVA ST BINARY and windows command prompt (for launcher.bat run first to be able to play game)",
       "date": "2026-02-20",
-      "file": "game zip",
+      "file": "game.zip",
       "notes": "Initial release, a full game, or at least one, w, a, s, d, t, and esc and you can make caine go crazy just use the scripted black words or mean words."
     }
   ]

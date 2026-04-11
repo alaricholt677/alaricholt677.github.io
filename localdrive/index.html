@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalDrive Pro | Ultimate Storage Hub</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes zoomIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animate-zoom-in {
+            animation: zoomIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast-enter {
+            animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Drag & Drop Overlay */
+        #drop-overlay {
+            transition: all 0.2s ease;
+        }
+        body.drag-over #drop-overlay {
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 100;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="bg-[#F8FAFC] text-slate-900 font-sans antialiased overflow-hidden selection:bg-blue-200 selection:text-blue-900 relative">
+
+    <!-- GLOBAL UI OVERLAYS -->
+    
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
+
+    <!-- Custom Confirm Modal -->
+    <div id="confirmModal" class="fixed inset-0 z-[90] hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm opacity-0 transition-opacity duration-200">
+        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-200" id="confirmBox">
+            <div class="p-6 text-center">
+                <div id="confirmIcon" class="mx-auto w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
+                    <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+                </div>
+                <h3 id="confirmTitle" class="text-xl font-black text-slate-900 mb-2">Are you sure?</h3>
+                <p id="confirmMessage" class="text-slate-500 text-sm font-medium mb-6">This action cannot be undone.</p>
+                <div class="flex gap-3 w-full">
+                    <button id="btnConfirmCancel" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">Cancel</button>
+                    <button id="btnConfirmAction" class="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-500/30 transition-all">Yes, Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drag & Drop Overlay -->
+    <div id="drop-overlay" class="fixed inset-0 bg-blue-600/90 backdrop-blur-sm opacity-0 pointer-events-none flex flex-col items-center justify-center z-50 text-white border-8 border-blue-400 border-dashed">
+        <div class="p-6 bg-white/20 rounded-full mb-6 animate-bounce">
+            <i data-lucide="upload-cloud" class="w-20 h-20"></i>
+        </div>
+        <h2 class="text-4xl font-black tracking-tight mb-2">Drop to Upload</h2>
+        <p class="text-blue-100 font-medium text-lg">Your file will be saved directly to LocalStorage</p>
+    </div>
+
+    <!-- APP CONTAINER -->
+    <div id="app" class="w-full h-screen flex relative z-0"></div>
+
+    <!-- MAIN SCRIPT -->
+    <script>
+        const App = {
+            state: {
+                isLoggedIn: false,
+                user: { name: '', email: '' },
+                items: [],
+                searchQuery: '',
+                viewMode: 'grid',
+                sortBy: 'name', // 'name' | 'size'
+                sessionKey: '_localdrive_session',
+                storageLimitBytes: 5 * 1024 * 1024
+            },
+
+            // --- INITIALIZATION ---
+            init() {
+                const session = localStorage.getItem(this.state.sessionKey);
+                if (session) {
+                    try {
+                        this.state.user = JSON.parse(session);
+                        this.state.isLoggedIn = true;
+                    } catch (e) {
+                        localStorage.removeItem(this.state.sessionKey);
+                    }
+                }
+                this.setupDragAndDrop();
+                this.loadItems();
+                this.render();
+            },
+
+            // --- TOAST & CONFIRM SYSTEM ---
+            showToast(message, type = 'success') {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                
+                const colors = {
+                    success: 'bg-green-500 text-white shadow-green-500/20',
+                    error: 'bg-red-500 text-white shadow-red-500/20',
+                    info: 'bg-blue-600 text-white shadow-blue-500/20'
+                };
+                
+                const icons = {
+                    success: 'check-circle',
+                    error: 'alert-octagon',
+                    info: 'info'
+                };
+
+                toast.className = `toast-enter flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl font-medium text-sm ${colors[type]}`;
+                toast.innerHTML = `<i data-lucide="${icons[type]}" class="w-5 h-5"></i> <span>${message}</span>`;
+                
+                container.appendChild(toast);
+                lucide.createIcons();
+
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateX(100%)';
+                    toast.style.transition = 'all 0.3s ease';
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            },
+
+            confirmAction(title, message, actionText, actionClass, onConfirm) {
+                const modal = document.getElementById('confirmModal');
+                const box = document.getElementById('confirmBox');
+                
+                document.getElementById('confirmTitle').innerText = title;
+                document.getElementById('confirmMessage').innerText = message;
+                
+                const btnAction = document.getElementById('btnConfirmAction');
+                btnAction.innerText = actionText;
+                btnAction.className = `flex-1 py-3 font-bold rounded-xl shadow-lg transition-all text-white ${actionClass}`;
+
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                
+                // Animate in
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    box.classList.remove('scale-95');
+                }, 10);
+
+                const closeConfirm = () => {
+                    modal.classList.add('opacity-0');
+                    box.classList.add('scale-95');
+                    setTimeout(() => {
+                        modal.classList.add('hidden');
+                        modal.classList.remove('flex');
+                    }, 200);
+                };
+
+                document.getElementById('btnConfirmCancel').onclick = closeConfirm;
+                btnAction.onclick = () => {
+                    onConfirm();
+                    closeConfirm();
+                };
+            },
+
+            // --- DATA MANAGEMENT & PARSING ---
+            detectType(val) {
+                if (val === 'true' || val === 'false') return { name: 'Boolean', icon: 'toggle-left', color: 'text-purple-600', bg: 'bg-purple-100' };
+                if (!isNaN(val) && val.trim() !== '') return { name: 'Number', icon: 'hash', color: 'text-orange-600', bg: 'bg-orange-100' };
+                try {
+                    const parsed = JSON.parse(val);
+                    if (Array.isArray(parsed)) return { name: 'Array', icon: 'list', color: 'text-emerald-600', bg: 'bg-emerald-100' };
+                    if (typeof parsed === 'object' && parsed !== null) return { name: 'Object', icon: 'braces', color: 'text-blue-600', bg: 'bg-blue-100' };
+                } catch(e) {}
+                return { name: 'String', icon: 'type', color: 'text-slate-500', bg: 'bg-slate-100' };
+            },
+
+            loadItems() {
+                const items = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key !== this.state.sessionKey) {
+                        const value = localStorage.getItem(key);
+                        const size = new Blob([value]).size;
+                        const typeInfo = this.detectType(value);
+                        items.push({ key, value, size, typeInfo });
+                    }
+                }
+                this.state.items = items;
+            },
+
+            saveItem(key, value, silent = false) {
+                if (!key) return;
+                try {
+                    localStorage.setItem(key, value);
+                    this.loadItems();
+                    if (document.getElementById('app').innerHTML.includes('My Drive')) {
+                        this.renderDashboardContent();
+                    }
+                    this.closeModal('itemModal');
+                    if(!silent) this.showToast(`Saved "${key}" successfully`);
+                } catch (e) {
+                    this.showToast('Storage quota exceeded! Cannot save item.', 'error');
+                }
+            },
+
+            deleteItem(key) {
+                this.confirmAction(
+                    'Delete Item?', 
+                    `Are you sure you want to permanently delete "${key}"?`, 
+                    'Yes, Delete', 
+                    'bg-red-600 hover:bg-red-700 shadow-red-500/30',
+                    () => {
+                        localStorage.removeItem(key);
+                        this.loadItems();
+                        this.renderDashboardContent();
+                        this.closeModal('viewModal');
+                        this.showToast('Item deleted successfully');
+                    }
+                );
+            },
+
+            clearAll() {
+                this.confirmAction(
+                    'Format Drive?', 
+                    'WARNING: This will obliterate ALL LocalStorage data for this origin (except your session).', 
+                    'Format Drive', 
+                    'bg-red-600 hover:bg-red-700 shadow-red-500/30',
+                    () => {
+                        let count = 0;
+                        for (let i = localStorage.length - 1; i >= 0; i--) {
+                            const key = localStorage.key(i);
+                            if (key !== this.state.sessionKey) {
+                                localStorage.removeItem(key);
+                                count++;
+                            }
+                        }
+                        this.loadItems();
+                        this.renderDashboardContent();
+                        this.showToast(`Drive formatted. ${count} items removed.`);
+                    }
+                );
+            },
+
+            downloadItem(key) {
+                const value = localStorage.getItem(key);
+                if (!value) return;
+                const blob = new Blob([value], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${key}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                this.showToast(`Downloaded ${key}.json`);
+            },
+
+            // --- DRAG AND DROP ---
+            setupDragAndDrop() {
+                const body = document.body;
+                
+                body.addEventListener('dragover', (e) => {
+                    if (!this.state.isLoggedIn) return;
+                    e.preventDefault();
+                    body.classList.add('drag-over');
+                });
+
+                body.addEventListener('dragleave', (e) => {
+                    if (e.relatedTarget === null) {
+                        body.classList.remove('drag-over');
+                    }
+                });
+
+                body.addEventListener('drop', (e) => {
+                    if (!this.state.isLoggedIn) return;
+                    e.preventDefault();
+                    body.classList.remove('drag-over');
+                    
+                    if (e.dataTransfer.files.length > 0) {
+                        const file = e.dataTransfer.files[0];
+                        const reader = new FileReader();
+                        
+                        reader.onload = (event) => {
+                            const content = event.target.result;
+                            const keyName = file.name.replace('.json', '');
+                            this.saveItem(keyName, content, true);
+                            this.showToast(`Imported ${file.name} successfully!`, 'success');
+                        };
+                        
+                        reader.onerror = () => this.showToast('Error reading file', 'error');
+                        reader.readAsText(file);
+                    }
+                });
+            },
+
+            // --- AUTHENTICATION ---
+            login(e) {
+                e.preventDefault();
+                const name = document.getElementById('loginName').value || 'User';
+                const email = document.getElementById('loginEmail').value || 'user@localdrive.app';
+                
+                this.state.user = { name, email };
+                this.state.isLoggedIn = true;
+                localStorage.setItem(this.state.sessionKey, JSON.stringify(this.state.user));
+                this.render();
+                this.showToast(`Welcome back, ${name}!`);
+            },
+
+            logout() {
+                localStorage.removeItem(this.state.sessionKey);
+                this.state.isLoggedIn = false;
+                this.render();
+            },
+
+            // --- UI HELPERS ---
+            formatBytes(bytes, decimals = 2) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const dm = decimals < 0 ? 0 : decimals;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+            },
+
+            getTotalSize() {
+                return this.state.items.reduce((total, item) => total + item.size, 0);
+            },
+
+            toggleViewMode(mode) {
+                this.state.viewMode = mode;
+                this.renderDashboardContent();
+            },
+            
+            setSortMode(mode) {
+                this.state.sortBy = mode;
+                this.renderDashboardContent();
+                this.showToast(`Sorted by ${mode}`);
+            },
+
+            handleSearch(e) {
+                this.state.searchQuery = e.target.value.toLowerCase();
+                this.renderDashboardContent();
+            },
+
+            // --- MODALS ---
+            openModal(id) {
+                document.getElementById(id).classList.remove('hidden');
+                document.getElementById(id).classList.add('flex');
+            },
+
+            closeModal(id) {
+                document.getElementById(id).classList.add('hidden');
+                document.getElementById(id).classList.remove('flex');
+            },
+
+            openCreateModal() {
+                document.getElementById('modalTitle').innerText = 'Create New File';
+                document.getElementById('itemKey').value = '';
+                document.getElementById('itemKey').readOnly = false;
+                document.getElementById('itemKey').classList.remove('bg-slate-100', 'text-slate-500');
+                document.getElementById('itemValue').value = '';
+                this.openModal('itemModal');
+            },
+
+            openEditModal(key) {
+                const item = this.state.items.find(i => i.key === key);
+                if (!item) return;
+                
+                document.getElementById('modalTitle').innerText = 'Edit File';
+                document.getElementById('itemKey').value = item.key;
+                document.getElementById('itemKey').readOnly = true;
+                document.getElementById('itemKey').classList.add('bg-slate-100', 'text-slate-500');
+                
+                let val = item.value;
+                try { val = JSON.stringify(JSON.parse(val), null, 2); } catch(e) {}
+                
+                document.getElementById('itemValue').value = val;
+                this.openModal('itemModal');
+                this.closeModal('viewModal');
+            },
+
+            openViewModal(key) {
+                const item = this.state.items.find(i => i.key === key);
+                if (!item) return;
+
+                document.getElementById('viewKeyTitle').innerText = item.key;
+                document.getElementById('viewSize').innerText = this.formatBytes(item.size);
+                
+                // Set type badge
+                const badge = document.getElementById('viewTypeBadge');
+                badge.className = `text-xs font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${item.typeInfo.bg} ${item.typeInfo.color} border-${item.typeInfo.color.split('-')[1]}-200`;
+                badge.innerHTML = `<i data-lucide="${item.typeInfo.icon}" class="w-3 h-3"></i> ${item.typeInfo.name}`;
+
+                const contentArea = document.getElementById('viewContent');
+                let formattedValue = item.value;
+                let isJson = false;
+
+                try {
+                    const parsed = JSON.parse(item.value);
+                    if (typeof parsed === 'object' && parsed !== null) {
+                        formattedValue = JSON.stringify(parsed, null, 2);
+                        isJson = true;
+                    }
+                } catch (e) {}
+
+                if (isJson) {
+                    contentArea.innerHTML = `<pre class="text-green-400 font-mono text-sm">${this.escapeHTML(formattedValue)}</pre>`;
+                    contentArea.className = "p-5 bg-slate-900 rounded-2xl overflow-auto max-h-[50vh] border border-slate-700 shadow-inner";
+                } else {
+                    contentArea.innerHTML = `<div class="text-slate-700 whitespace-pre-wrap font-sans text-sm">${this.escapeHTML(formattedValue)}</div>`;
+                    contentArea.className = "p-5 bg-slate-50 rounded-2xl overflow-auto max-h-[50vh] border border-slate-200";
+                }
+
+                document.getElementById('btnViewEdit').onclick = () => this.openEditModal(key);
+                document.getElementById('btnViewDownload').onclick = () => this.downloadItem(key);
+                document.getElementById('btnViewDelete').onclick = () => this.deleteItem(key);
+
+                this.openModal('viewModal');
+                lucide.createIcons();
+            },
+
+            handleItemSubmit(e) {
+                e.preventDefault();
+                const key = document.getElementById('itemKey').value.trim();
+                const value = document.getElementById('itemValue').value;
+                if (!key) return;
+                
+                if (value.startsWith('{') || value.startsWith('[')) {
+                    try {
+                        JSON.parse(value);
+                        this.saveItem(key, value);
+                    } catch (err) {
+                        this.confirmAction(
+                            'Invalid JSON Format', 
+                            'The value looks like JSON but has syntax errors. Do you want to force save it anyway?', 
+                            'Force Save', 
+                            'bg-orange-500 hover:bg-orange-600 shadow-orange-500/30',
+                            () => this.saveItem(key, value)
+                        );
+                    }
+                } else {
+                    this.saveItem(key, value);
+                }
+            },
+
+            escapeHTML(str) {
+                return str.replace(/[&<>'"]/g, 
+                    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+                );
+            },
+
+            // --- RENDERING ---
+            render() {
+                const appDiv = document.getElementById('app');
+                if (!this.state.isLoggedIn) {
+                    appDiv.innerHTML = this.getLoginHTML();
+                } else {
+                    appDiv.innerHTML = this.getDashboardHTML();
+                    this.renderDashboardContent();
+                }
+                lucide.createIcons();
+            },
+
+            renderDashboardContent() {
+                const container = document.getElementById('itemsContainer');
+                if (!container) return;
+
+                // 1. Filter
+                let filtered = this.state.items.filter(item => 
+                    item.key.toLowerCase().includes(this.state.searchQuery) ||
+                    item.value.toLowerCase().includes(this.state.searchQuery)
+                );
+
+                // 2. Sort
+                filtered.sort((a, b) => {
+                    if (this.state.sortBy === 'name') return a.key.localeCompare(b.key);
+                    if (this.state.sortBy === 'size') return b.size - a.size;
+                    return 0;
+                });
+
+                document.getElementById('itemCount').innerText = `${filtered.length} items`;
+                
+                // Update Storage Bar
+                const totalSize = this.getTotalSize();
+                const pct = Math.min((totalSize / this.state.storageLimitBytes) * 100, 100);
+                document.getElementById('storageBar').style.width = `${pct}%`;
+                document.getElementById('storageText').innerText = `${this.formatBytes(totalSize)} used`;
+
+                // Update Toggle Buttons
+                document.getElementById('btnGrid').className = `p-1.5 rounded-md transition-all ${this.state.viewMode === 'grid' ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:bg-slate-200'}`;
+                document.getElementById('btnList').className = `p-1.5 rounded-md transition-all ${this.state.viewMode === 'list' ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:bg-slate-200'}`;
+                
+                // Update Sort active states
+                document.getElementById('btnSortName').className = `block w-full text-left px-4 py-2 text-sm font-medium hover:bg-slate-50 ${this.state.sortBy === 'name' ? 'text-blue-600 bg-blue-50/50' : 'text-slate-700'}`;
+                document.getElementById('btnSortSize').className = `block w-full text-left px-4 py-2 text-sm font-medium hover:bg-slate-50 ${this.state.sortBy === 'size' ? 'text-blue-600 bg-blue-50/50' : 'text-slate-700'}`;
+
+                if (filtered.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-span-full flex flex-col items-center justify-center py-24 bg-white/50 backdrop-blur-sm rounded-3xl border-2 border-dashed border-slate-200 animate-fade-in">
+                            <div class="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                                <i data-lucide="inbox" class="text-blue-400 w-12 h-12"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-800 mb-2">Your Drive is Empty</h3>
+                            <p class="text-slate-500 text-sm mb-6">Drag and drop a .json file here, or create a new key.</p>
+                            <button onclick="App.openCreateModal()" class="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-colors">
+                                Create New File
+                            </button>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                    return;
+                }
+
+                let html = '';
+                if (this.state.viewMode === 'grid') {
+                    container.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20";
+                    filtered.forEach((item, index) => {
+                        html += `
+                            <div style="animation-delay: ${index * 0.03}s" class="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-xl hover:-translate-y-1 hover:border-${item.typeInfo.color.split('-')[1]}-300 transition-all duration-300 group cursor-pointer animate-fade-in flex flex-col" onclick="App.openViewModal('${this.escapeHTML(item.key)}')">
+                                <div class="flex items-start justify-between mb-4">
+                                    <div class="p-3 ${item.typeInfo.bg} ${item.typeInfo.color} rounded-xl shadow-sm">
+                                        <i data-lucide="${item.typeInfo.icon}" class="w-6 h-6"></i>
+                                    </div>
+                                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onclick="event.stopPropagation(); App.openEditModal('${this.escapeHTML(item.key)}')" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="Edit">
+                                            <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                        </button>
+                                        <button onclick="event.stopPropagation(); App.deleteItem('${this.escapeHTML(item.key)}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Delete">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-bold text-slate-800 text-base truncate mb-1" title="${this.escapeHTML(item.key)}">${this.escapeHTML(item.key)}</h4>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-bold uppercase tracking-wider ${item.typeInfo.color}">${item.typeInfo.name}</span>
+                                        <span class="w-1 h-1 bg-slate-200 rounded-full"></span>
+                                        <p class="text-xs font-mono text-slate-400">${this.formatBytes(item.size)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    container.className = "flex flex-col gap-2 pb-20";
+                    // List View Header
+                    html += `
+                        <div class="flex items-center px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider sticky top-0 bg-[#F8FAFC]/90 backdrop-blur z-0 border-b border-slate-200/50 mb-2">
+                            <div class="w-10"></div>
+                            <div class="flex-1">Name</div>
+                            <div class="hidden md:block w-32">Type</div>
+                            <div class="w-24 text-right">Size</div>
+                            <div class="w-32"></div>
+                        </div>
+                    `;
+                    filtered.forEach((item, index) => {
+                        html += `
+                            <div style="animation-delay: ${index * 0.02}s" class="bg-white border border-slate-100 rounded-xl p-2 hover:shadow-md hover:border-${item.typeInfo.color.split('-')[1]}-200 transition-all group cursor-pointer flex items-center animate-fade-in" onclick="App.openViewModal('${this.escapeHTML(item.key)}')">
+                                <div class="w-12 flex justify-center">
+                                    <div class="p-2 ${item.typeInfo.bg} ${item.typeInfo.color} rounded-lg">
+                                        <i data-lucide="${item.typeInfo.icon}" class="w-4 h-4"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-1 min-w-0 px-2 flex flex-col md:flex-row md:items-center gap-1">
+                                    <h4 class="font-bold text-slate-800 truncate" title="${this.escapeHTML(item.key)}">${this.escapeHTML(item.key)}</h4>
+                                    <p class="text-[10px] text-slate-400 font-mono truncate md:hidden">${item.typeInfo.name} • ${this.formatBytes(item.size)}</p>
+                                </div>
+                                <div class="hidden md:block w-32">
+                                    <span class="text-xs font-semibold ${item.typeInfo.color} bg-slate-50 px-2 py-1 rounded-md border border-slate-100">${item.typeInfo.name}</span>
+                                </div>
+                                <div class="w-24 text-right pr-4">
+                                    <span class="text-xs font-mono text-slate-500">${this.formatBytes(item.size)}</span>
+                                </div>
+                                <div class="w-28 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity pr-2">
+                                    <button onclick="event.stopPropagation(); App.downloadItem('${this.escapeHTML(item.key)}')" class="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg">
+                                        <i data-lucide="download" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="event.stopPropagation(); App.openEditModal('${this.escapeHTML(item.key)}')" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg">
+                                        <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="event.stopPropagation(); App.deleteItem('${this.escapeHTML(item.key)}')" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                container.innerHTML = html;
+                lucide.createIcons();
+            },
+
+            // --- HTML TEMPLATES ---
+            getLoginHTML() {
+                return `
+                    <div class="w-full flex items-center justify-center p-4 bg-slate-50 animate-fade-in relative overflow-hidden">
+                        <!-- Decorative bg -->
+                        <div class="absolute inset-0 z-0 opacity-40" style="background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 32px 32px;"></div>
+                        
+                        <div class="w-full max-w-md bg-white/90 backdrop-blur-xl rounded-[2rem] shadow-2xl overflow-hidden border border-white p-8 relative z-10 animate-zoom-in">
+                            <div class="flex justify-center mb-8">
+                                <div class="p-5 bg-blue-600 rounded-3xl shadow-xl shadow-blue-500/30 transform -rotate-6 hover:rotate-0 transition-transform">
+                                    <i data-lucide="cloud-off" class="text-white w-10 h-10"></i>
+                                </div>
+                            </div>
+                            <h1 class="text-4xl font-black text-center text-slate-900 mb-2 tracking-tight">LocalDrive</h1>
+                            <p class="text-center text-slate-500 mb-8 font-medium">Offline browser storage management</p>
+                            
+                            <form onsubmit="App.login(event)" class="space-y-4">
+                                <div class="relative group">
+                                    <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                                        <i data-lucide="user" class="w-5 h-5"></i>
+                                    </div>
+                                    <input id="loginName" type="text" placeholder="Full Name" required
+                                        class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium text-slate-700"
+                                    />
+                                </div>
+                                <div class="relative group">
+                                    <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                                        <i data-lucide="mail" class="w-5 h-5"></i>
+                                    </div>
+                                    <input id="loginEmail" type="email" placeholder="Email Address" required
+                                        class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium text-slate-700"
+                                    />
+                                </div>
+                                <button type="submit" class="w-full py-4 mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group">
+                                    Access Storage <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            },
+
+            getDashboardHTML() {
+                return `
+                    <!-- SIDEBAR -->
+                    <aside class="w-72 bg-white border-r border-slate-200 hidden md:flex flex-col z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+                        <div class="p-6 flex items-center gap-3">
+                            <div class="p-2 bg-blue-600 rounded-xl shadow-md shadow-blue-500/20">
+                                <i data-lucide="cloud-off" class="text-white w-6 h-6"></i>
+                            </div>
+                            <span class="font-black text-2xl tracking-tight text-slate-800">LocalDrive</span>
+                        </div>
+
+                        <div class="px-6 mb-6">
+                            <button onclick="App.openCreateModal()" class="w-full flex items-center gap-3 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 py-3.5 px-4 rounded-2xl font-bold shadow-sm transition-all active:scale-95 group">
+                                <div class="p-1 bg-blue-100 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                </div>
+                                New
+                            </button>
+                        </div>
+
+                        <nav class="flex-1 px-4 space-y-1 overflow-y-auto font-medium">
+                            <button class="w-full flex items-center gap-3 px-4 py-3 bg-blue-50 text-blue-700 rounded-xl transition-all">
+                                <i data-lucide="database" class="w-5 h-5"></i> My Drive
+                            </button>
+                            <div class="my-4 border-t border-slate-100 mx-4"></div>
+                            <button onclick="App.clearAll()" class="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all group">
+                                <i data-lucide="trash-2" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Format Drive
+                            </button>
+                        </nav>
+
+                        <div class="p-6 border-t border-slate-100 bg-slate-50/50">
+                            <!-- Storage Bar -->
+                            <div class="mb-6">
+                                <div class="flex justify-between items-center text-xs font-bold text-slate-600 mb-2">
+                                    <div class="flex items-center gap-1">
+                                        <i data-lucide="hard-drive" class="w-3 h-3 text-slate-400"></i> Storage
+                                    </div>
+                                    <span id="storageText">0 B</span>
+                                </div>
+                                <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                                    <div id="storageBar" class="bg-blue-500 h-1.5 rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+                                </div>
+                                <p class="text-[10px] text-slate-400 mt-1.5 font-medium text-center">5MB Browser Limit</p>
+                            </div>
+
+                            <div class="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:bg-slate-50 transition-colors" onclick="App.logout()">
+                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold uppercase shrink-0">
+                                    ${this.state.user.name.charAt(0)}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-bold text-sm text-slate-800 truncate">${this.escapeHTML(this.state.user.name)}</p>
+                                    <p class="text-xs text-slate-500 truncate font-medium">Click to logout</p>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+
+                    <!-- MAIN CONTENT AREA -->
+                    <main class="flex-1 flex flex-col min-w-0 bg-[#F8FAFC] relative h-full">
+                        <!-- Top Header -->
+                        <header class="h-20 bg-white/80 backdrop-blur-xl border-b border-slate-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-10 w-full">
+                            
+                            <!-- Search -->
+                            <div class="flex-1 flex items-center max-w-2xl relative">
+                                <div class="relative w-full group">
+                                    <div class="absolute left-0 inset-y-0 flex items-center pl-4 pointer-events-none">
+                                        <i data-lucide="search" class="text-slate-400 w-5 h-5 group-focus-within:text-blue-500 transition-colors"></i>
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        oninput="App.handleSearch(event)"
+                                        placeholder="Search in Drive..." 
+                                        class="w-full bg-slate-100 hover:bg-slate-200/50 border-none rounded-2xl py-3 pl-12 pr-4 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-sm font-medium"
+                                    />
+                                </div>
+                            </div>
+
+                            <!-- Right Actions -->
+                            <div class="flex items-center gap-2 md:gap-4 ml-4">
+                                
+                                <!-- Sort Dropdown (Simulated via hover for simplicity without frameworks) -->
+                                <div class="relative group hidden sm:block">
+                                    <button class="p-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 flex items-center gap-2 shadow-sm">
+                                        <i data-lucide="arrow-up-down" class="w-4 h-4"></i>
+                                    </button>
+                                    <div class="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden py-1">
+                                        <div class="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Sort By</div>
+                                        <button id="btnSortName" onclick="App.setSortMode('name')" class="block w-full text-left px-4 py-2 text-sm font-medium hover:bg-slate-50">Name (A-Z)</button>
+                                        <button id="btnSortSize" onclick="App.setSortMode('size')" class="block w-full text-left px-4 py-2 text-sm font-medium hover:bg-slate-50">File Size</button>
+                                    </div>
+                                </div>
+
+                                <div class="hidden md:flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                                    <button id="btnGrid" onclick="App.toggleViewMode('grid')" class="p-1.5 rounded-md transition-all bg-white shadow text-blue-600" title="Grid View">
+                                        <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                                    </button>
+                                    <button id="btnList" onclick="App.toggleViewMode('list')" class="p-1.5 rounded-md transition-all text-slate-500 hover:bg-slate-200" title="List View">
+                                        <i data-lucide="list" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                                <button onclick="App.loadItems(); App.renderDashboardContent(); App.showToast('Drive refreshed');" class="p-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 hover:text-blue-600 transition-colors shadow-sm hidden md:block" title="Refresh">
+                                    <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                                </button>
+                                <!-- Mobile Create Button -->
+                                <button onclick="App.openCreateModal()" class="md:hidden p-2.5 bg-blue-600 text-white rounded-xl shadow-lg active:scale-95">
+                                    <i data-lucide="plus" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </header>
+
+                        <!-- Content Container -->
+                        <div class="flex-1 overflow-y-auto p-4 md:p-8 relative">
+                            <div class="max-w-7xl mx-auto">
+                                <div class="mb-8 flex items-end justify-between border-b border-slate-200 pb-4">
+                                    <div>
+                                        <h2 class="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                                            My Drive 
+                                            <i data-lucide="chevron-right" class="w-5 h-5 text-slate-400 mt-1"></i>
+                                        </h2>
+                                    </div>
+                                    <div id="itemCount" class="text-sm font-bold text-slate-600 bg-slate-200/50 border border-slate-200 px-4 py-1.5 rounded-full shadow-sm">
+                                        0 items
+                                    </div>
+                                </div>
+
+                                <!-- Dynamic Items Area -->
+                                <div id="itemsContainer"></div>
+                            </div>
+                        </div>
+                    </main>
+
+                    <!-- CREATE / EDIT MODAL -->
+                    <div id="itemModal" class="fixed inset-0 z-[60] hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                        <div class="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl overflow-hidden animate-zoom-in border border-slate-100 flex flex-col max-h-[90vh]">
+                            <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                                        <i data-lucide="file-plus" class="w-5 h-5"></i>
+                                    </div>
+                                    <h3 id="modalTitle" class="font-black text-xl text-slate-800">Create New File</h3>
+                                </div>
+                                <button type="button" onclick="App.closeModal('itemModal')" class="p-2 text-slate-400 hover:bg-slate-200 hover:text-slate-700 rounded-full transition-colors">
+                                    <i data-lucide="x" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                            <form onsubmit="App.handleItemSubmit(event)" class="flex flex-col flex-1 overflow-hidden">
+                                <div class="p-6 md:p-8 space-y-6 overflow-y-auto">
+                                    <div>
+                                        <label class="block text-sm font-bold text-slate-700 mb-2">File Name (Key) <span class="text-red-500">*</span></label>
+                                        <input id="itemKey" type="text" placeholder="e.g., config_settings, user_prefs" required
+                                            class="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-medium transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between items-center mb-2">
+                                            <label class="block text-sm font-bold text-slate-700">Value Payload <span class="text-red-500">*</span></label>
+                                            <span class="text-[10px] uppercase font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">Text / JSON / Number / Boolean</span>
+                                        </div>
+                                        <textarea id="itemValue" rows="10" required placeholder='Enter value here...'
+                                            class="w-full px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white outline-none font-mono text-sm transition-all shadow-inner resize-none"
+                                        ></textarea>
+                                    </div>
+                                </div>
+                                <div class="p-6 bg-slate-50 border-t border-slate-100 flex gap-3 justify-end mt-auto">
+                                    <button type="button" onclick="App.closeModal('itemModal')" class="px-6 py-3 text-slate-600 font-bold hover:bg-slate-200 rounded-xl transition-colors">
+                                        Cancel
+                                    </button>
+                                    <button type="submit" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all active:scale-95 flex items-center gap-2">
+                                        <i data-lucide="save" class="w-4 h-4"></i> Save to Drive
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- VIEW MODAL -->
+                    <div id="viewModal" class="fixed inset-0 z-[60] hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                        <div class="bg-white w-full max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden animate-zoom-in border border-slate-100 flex flex-col max-h-[95vh]">
+                            
+                            <!-- Header -->
+                            <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50 shrink-0">
+                                <div class="flex items-center gap-4 min-w-0">
+                                    <div class="min-w-0">
+                                        <h3 id="viewKeyTitle" class="font-black text-2xl text-slate-800 truncate leading-tight mb-2">Key Name</h3>
+                                        <div class="flex items-center gap-3">
+                                            <span id="viewTypeBadge" class="text-xs font-bold px-2 py-0.5 rounded border"></span>
+                                            <span id="viewSize" class="text-xs font-mono font-semibold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">0 B</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+                                    <button id="btnViewDownload" class="p-2 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors tooltip" title="Download">
+                                        <i data-lucide="download" class="w-5 h-5"></i>
+                                    </button>
+                                    <button id="btnViewEdit" class="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+                                        <i data-lucide="edit-2" class="w-5 h-5"></i>
+                                    </button>
+                                    <button id="btnViewDelete" class="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                    </button>
+                                    <div class="w-px h-6 bg-slate-200 mx-1"></div>
+                                    <button onclick="App.closeModal('viewModal')" class="p-2 text-slate-400 hover:bg-slate-200 hover:text-slate-800 rounded-lg transition-colors" title="Close">
+                                        <i data-lucide="x" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Content -->
+                            <div class="p-6 md:p-8 overflow-y-auto flex-1 bg-slate-100/50">
+                                <div id="viewContent" class="w-full">
+                                    <!-- Dynamic content goes here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        };
+
+        // Boot up the application
+        document.addEventListener('DOMContentLoaded', () => {
+            App.init();
+        });
+    </script>
+</body>
+</html>

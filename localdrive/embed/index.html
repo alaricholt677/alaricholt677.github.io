@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalStorage Item Selector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: transparent;
+            margin: 0;
+            overflow: hidden;
+        }
+        .drive-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+        }
+        .item-row {
+            transition: all 0.2s ease;
+        }
+        .item-row:hover {
+            background-color: #f8fafc;
+        }
+        .item-row.selected {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+        .json-preview {
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="drive-container border border-gray-200 rounded-xl shadow-lg">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 1.1.9 2 2 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2zM9 5v4m6-4v4" /></svg>
+                </div>
+                <div>
+                    <h1 class="text-sm font-bold text-gray-800">Storage Explorer</h1>
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Browsing: Browser LocalStorage</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <button id="refreshBtn" class="p-2 text-gray-400 hover:text-indigo-600 transition-colors flex items-center gap-1 text-xs font-bold">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="px-6 py-2 bg-gray-50 border-b border-gray-100 flex items-center text-[11px] font-bold text-gray-500 uppercase tracking-tighter">
+            <div class="flex-1">Storage Key</div>
+            <div class="w-32 text-right">Data Type</div>
+            <div class="w-40 text-right">Value Preview</div>
+        </div>
+
+        <!-- List Area -->
+        <div id="fileArea" class="flex-1 overflow-y-auto custom-scrollbar">
+            <div id="emptyState" class="hidden flex flex-col items-center justify-center h-64 text-gray-400">
+                <svg class="w-12 h-12 mb-2 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
+                <p class="text-xs">LocalStorage is currently empty.</p>
+            </div>
+            <div id="itemList" class="divide-y divide-gray-50"></div>
+        </div>
+
+        <!-- Selection Bar -->
+        <div id="selectionBar" class="bg-slate-900 px-6 py-4 flex items-center justify-between transform translate-y-full transition-transform duration-300">
+            <div class="flex items-center gap-3">
+                <span id="selectCounter" class="bg-indigo-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">0</span>
+                <div>
+                    <p class="text-white text-xs font-bold leading-none">Items selected</p>
+                    <p class="text-[10px] text-slate-400">Will bundle into "files_selected"</p>
+                </div>
+            </div>
+            <button id="importBtn" class="bg-white text-slate-900 px-5 py-2 rounded-lg text-xs font-black hover:bg-indigo-50 transition-colors shadow-lg">
+                Export Selected Data
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const TARGET_KEY = 'files_selected';
+        let selectedKeys = new Set();
+
+        const itemList = document.getElementById('itemList');
+        const emptyState = document.getElementById('emptyState');
+        const selectionBar = document.getElementById('selectionBar');
+        const selectCounter = document.getElementById('selectCounter');
+        const importBtn = document.getElementById('importBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+
+        function getAllLocalStorageItems() {
+            const items = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                // Don't show the key we are writing to
+                if (key === TARGET_KEY) continue;
+                
+                const val = localStorage.getItem(key);
+                let type = 'String';
+                let preview = val;
+
+                try {
+                    const parsed = JSON.parse(val);
+                    type = Array.isArray(parsed) ? 'Array' : (typeof parsed === 'object' ? 'Object' : typeof parsed);
+                } catch (e) {
+                    type = 'String';
+                }
+
+                items.push({ key, type, val, preview });
+            }
+            return items;
+        }
+
+        function render() {
+            const items = getAllLocalStorageItems();
+            itemList.innerHTML = '';
+            
+            if (items.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                items.forEach(item => {
+                    const isSelected = selectedKeys.has(item.key);
+                    const row = document.createElement('div');
+                    row.className = `item-row flex items-center px-6 py-4 cursor-pointer border-l-4 transition-all ${isSelected ? 'selected border-indigo-500' : 'border-transparent'}`;
+                    
+                    row.innerHTML = `
+                        <div class="flex-1 flex items-center gap-3 overflow-hidden">
+                            <div class="w-8 h-8 flex-shrink-0 rounded bg-indigo-50 flex items-center justify-center text-indigo-500">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                            </div>
+                            <span class="text-xs font-bold text-slate-700 truncate">${item.key}</span>
+                        </div>
+                        <div class="w-32 text-right">
+                            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-[9px] font-black text-slate-500 uppercase">${item.type}</span>
+                        </div>
+                        <div class="w-40 text-right text-[10px] text-slate-400 italic truncate pl-4">${item.preview}</div>
+                    `;
+
+                    row.onclick = () => toggleSelect(item.key);
+                    itemList.appendChild(row);
+                });
+            }
+            updateBar();
+        }
+
+        function toggleSelect(key) {
+            if (selectedKeys.has(key)) {
+                selectedKeys.delete(key);
+            } else {
+                selectedKeys.add(key);
+            }
+            render();
+        }
+
+        function updateBar() {
+            if (selectedKeys.size > 0) {
+                selectionBar.classList.remove('translate-y-full');
+                selectCounter.innerText = selectedKeys.size;
+            } else {
+                selectionBar.classList.add('translate-y-full');
+            }
+        }
+
+        importBtn.onclick = () => {
+            const exportBundle = {};
+            selectedKeys.forEach(key => {
+                const val = localStorage.getItem(key);
+                try {
+                    exportBundle[key] = JSON.parse(val);
+                } catch (e) {
+                    exportBundle[key] = val;
+                }
+            });
+
+            // Save the selected items as a JSON string to the target key
+            localStorage.setItem(TARGET_KEY, JSON.stringify(exportBundle));
+            
+            importBtn.innerText = "Exported!";
+            importBtn.classList.replace('bg-white', 'bg-green-500');
+            importBtn.classList.add('text-white');
+            
+            setTimeout(() => {
+                selectedKeys.clear();
+                render();
+                importBtn.innerText = "Export Selected Data";
+                importBtn.classList.replace('bg-green-500', 'bg-white');
+                importBtn.classList.replace('text-white', 'text-slate-900');
+            }, 1000);
+        };
+
+        refreshBtn.onclick = () => {
+            selectedKeys.clear();
+            render();
+        };
+
+        render();
+    </script>
+</body>
+</html>

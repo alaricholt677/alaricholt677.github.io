@@ -1,0 +1,2100 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ThisWin12 — Next Valley Simulator</title>
+<style>
+:root{
+  --bg0:#05060a;--bg1:#0a0f1f;--fg:#eaf0ff;--mut:#a9b4d6;--line:rgba(255,255,255,.14);
+  --glass:rgba(255,255,255,.08);--shadow:0 18px 60px rgba(0,0,0,.55);
+  --blue:#4aa3ff;--blue2:#2b6cff;--red:#ff4a6a;--ok:#3cffb0;--warn:#ffd24a;
+  --r12:12px;--r16:16px;--r20:20px;--blur:18px;
+  --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:#000;color:var(--fg);font-family:var(--font);overflow:hidden}
+#root{height:100%;width:100%;background:#000}
+.kern{height:100%;width:100%;background:#000}
+.wall{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(1200px 700px at 20% 10%, rgba(74,163,255,.22), transparent 60%),
+    radial-gradient(900px 600px at 80% 30%, rgba(60,255,176,.14), transparent 55%),
+    radial-gradient(900px 700px at 60% 90%, rgba(255,74,106,.12), transparent 60%),
+    linear-gradient(180deg, var(--bg1), var(--bg0));
+  filter:saturate(1.1);
+}
+.noise{position:absolute;inset:-40px;opacity:.08;mix-blend-mode:overlay;background:
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+  background-size:260px 260px;
+}
+.glass{
+  background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+  border:1px solid var(--line);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  box-shadow: var(--shadow);
+}
+.pill{border-radius:999px}
+.card{border-radius:var(--r20)}
+.btn{
+  border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--fg);
+  border-radius:12px;padding:8px 10px;cursor:pointer;user-select:none;
+}
+.btn:hover{background:rgba(255,255,255,.10)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:linear-gradient(180deg, rgba(74,163,255,.95), rgba(43,108,255,.92));border-color:rgba(255,255,255,.18)}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.danger{background:rgba(255,74,106,.14);border-color:rgba(255,74,106,.35)}
+.btn.danger:hover{background:rgba(255,74,106,.22)}
+.input{
+  width:100%;padding:10px 12px;border-radius:14px;border:1px solid var(--line);
+  background:rgba(0,0,0,.25);color:var(--fg);outline:none;
+}
+.input:focus{border-color:rgba(74,163,255,.55);box-shadow:0 0 0 3px rgba(74,163,255,.18)}
+.small{font-size:12px;color:var(--mut)}
+.hrow{display:flex;gap:10px;align-items:center}
+.vcol{display:flex;flex-direction:column;gap:10px}
+.sep{height:1px;background:rgba(255,255,255,.10);margin:8px 0}
+.badge{font-size:11px;color:var(--mut);border:1px solid rgba(255,255,255,.14);padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.05)}
+.shell{position:absolute;inset:0}
+.desktop{position:absolute;inset:0;padding:86px 22px 92px 22px;display:grid;grid-template-columns:repeat(auto-fill, 92px);grid-auto-rows:92px;gap:14px;align-content:start}
+.icon{
+  width:92px;height:92px;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;cursor:default;user-select:none;
+}
+.icon:hover{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10)}
+.icon .glyph{
+  width:44px;height:44px;border-radius:16px;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)
+}
+.icon .label{font-size:12px;color:rgba(234,240,255,.92);max-width:86px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+.taskbar{
+  position:absolute;left:50%;bottom:16px;transform:translateX(-50%);
+  height:62px;min-width:420px;max-width:92vw;padding:10px 12px;display:flex;align-items:center;gap:10px;
+  border-radius:22px;
+}
+.tb-left,.tb-mid,.tb-right{display:flex;align-items:center;gap:10px}
+.tb-mid{flex:1;justify-content:center}
+.tb-right{justify-content:flex-end}
+.tb-ico{
+  width:42px;height:42px;border-radius:16px;display:flex;align-items:center;justify-content:center;
+  border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);cursor:pointer;user-select:none;
+}
+.tb-ico:hover{background:rgba(255,255,255,.10)}
+.clock{font-size:12px;color:rgba(234,240,255,.85);padding:0 8px}
+.topbar{
+  position:absolute;left:50%;top:16px;transform:translateX(-50%);
+  height:56px;min-width:520px;max-width:92vw;padding:10px 12px;display:flex;align-items:center;gap:10px;
+  border-radius:22px;cursor:grab;
+}
+.topbar:active{cursor:grabbing}
+.search{
+  flex:1;display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:16px;
+  border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.22)
+}
+.search input{flex:1;border:0;outline:0;background:transparent;color:var(--fg);font-size:13px}
+.qsbtn{width:42px;height:42px;border-radius:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06)}
+.qsbtn:hover{background:rgba(255,255,255,.10)}
+.panel{
+  position:absolute;left:50%;transform:translateX(-50%);
+  width:560px;max-width:92vw;border-radius:26px;padding:14px;
+}
+.start{bottom:92px}
+.qspanel{top:78px;width:420px}
+.panel h3{margin:0 0 8px 0;font-size:14px;font-weight:650}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.item{
+  border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);
+  border-radius:18px;padding:10px;display:flex;gap:10px;align-items:center;cursor:pointer;
+}
+.item:hover{background:rgba(255,255,255,.10)}
+.item .mini{width:34px;height:34px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
+.item .t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.item .t .n{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .t .p{font-size:11px;color:var(--mut)}
+.win{
+  position:absolute;min-width:360px;min-height:240px;max-width:92vw;max-height:86vh;
+  border-radius:22px;overflow:hidden;
+}
+.win .titlebar{
+  height:44px;display:flex;align-items:center;gap:10px;padding:0 10px;cursor:grab;
+  border-bottom:1px solid rgba(255,255,255,.10);
+}
+.win .titlebar:active{cursor:grabbing}
+.win .title{font-size:13px;font-weight:650;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.win .wbtn{width:34px;height:34px;border-radius:14px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);cursor:pointer}
+.win .wbtn:hover{background:rgba(255,255,255,.10)}
+.win .wbtn.close:hover{background:rgba(255,74,106,.18);border-color:rgba(255,74,106,.35)}
+.win .body{height:calc(100% - 44px);padding:12px;overflow:auto}
+.win.focus{outline:2px solid rgba(74,163,255,.35)}
+.ctx{
+  position:fixed;z-index:9999;min-width:210px;border-radius:16px;padding:6px;
+}
+.ctx .citem{
+  padding:10px 10px;border-radius:12px;cursor:pointer;font-size:12px;color:rgba(234,240,255,.92);
+}
+.ctx .citem:hover{background:rgba(255,255,255,.10)}
+.modal{
+  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:9998;
+  background:rgba(0,0,0,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+}
+.modal .box{width:520px;max-width:92vw;border-radius:28px;padding:18px}
+.usergrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.usercard{
+  padding:12px;border-radius:20px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);
+  display:flex;gap:10px;align-items:center;cursor:pointer;
+}
+.usercard:hover{background:rgba(255,255,255,.10)}
+.avatar{width:44px;height:44px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);font-size:20px}
+.kbd{font-size:11px;color:var(--mut);border:1px solid rgba(255,255,255,.14);padding:2px 6px;border-radius:8px;background:rgba(255,255,255,.05)}
+.fe{display:grid;grid-template-columns:220px 1fr;gap:12px;height:100%}
+.sidebar{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.05);border-radius:18px;padding:10px}
+.sideitem{padding:10px;border-radius:14px;cursor:pointer;font-size:12px;color:rgba(234,240,255,.92);display:flex;gap:10px;align-items:center}
+.sideitem:hover{background:rgba(255,255,255,.08)}
+.main{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.05);border-radius:18px;padding:10px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.addr{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.addr input{flex:1;min-width:220px}
+.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.fcard{padding:10px;border-radius:16px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.06);cursor:pointer;display:flex;gap:10px;align-items:center;min-width:0}
+.fcard:hover{background:rgba(255,255,255,.10)}
+.fcard .mini{width:34px;height:34px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
+.fcard .meta{min-width:0}
+.fcard .meta .n{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fcard .meta .p{font-size:11px;color:var(--mut)}
+.chatwrap{height:100%;display:flex;flex-direction:column;gap:10px}
+.chatlog{flex:1;overflow:auto;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.18);border-radius:18px;padding:10px}
+.msg{display:flex;gap:10px;margin:10px 0}
+.bub{max-width:78%;padding:10px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.06);font-size:13px;line-height:1.35;white-space:pre-wrap}
+.msg.me{justify-content:flex-end}
+.msg.me .bub{background:rgba(74,163,255,.14);border-color:rgba(74,163,255,.22)}
+.composer{display:flex;gap:10px}
+.composer textarea{flex:1;resize:none;height:44px;max-height:120px}
+.slider{width:100%}
+.toggle{display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:16px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.06)}
+.switch{width:44px;height:26px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.25);position:relative;cursor:pointer}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:999px;background:rgba(255,255,255,.75);transition:.18s}
+.switch.on{background:rgba(60,255,176,.18);border-color:rgba(60,255,176,.35)}
+.switch.on::after{left:21px;background:rgba(60,255,176,.95)}
+.mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+</style>
+</head>
+<body>
+<div id="root" class="kern"></div>
+
+<script>
+(()=>{"use strict";
+
+/* ========= Utils ========= */
+const $=(s,e=document)=>e.querySelector(s);
+const $$=(s,e=document)=>Array.from(e.querySelectorAll(s));
+const now=()=>Date.now();
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const uid=()=>Math.random().toString(16).slice(2)+Math.random().toString(16).slice(2);
+const fmtTime=()=>{const d=new Date();const h=d.getHours(),m=String(d.getMinutes()).padStart(2,"0");const ap=h>=12?"PM":"AM";const hh=((h+11)%12+1);return `${hh}:${m} ${ap}`;};
+const extOf=(n)=>{const i=n.lastIndexOf(".");return i>0?n.slice(i).toLowerCase():"";};
+const baseName=(n)=>{const i=n.lastIndexOf(".");return i>0?n.slice(0,i):n;};
+const isHttp=(s)=>/^https?:\/\//i.test(s||"");
+const escapeHtml=(s)=>String(s??"").replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+
+/* ========= Storage ========= */
+const LS={
+  kReg:"thiswin12_reg",kVfs:"thiswin12_vfs",kBak:"thiswin12_backup",
+  loadJSON(k,f){try{const r=localStorage.getItem(k);if(!r)return f;const o=JSON.parse(r);return o&&typeof o==="object"?o:f;}catch{return f}},
+  saveJSON(k,o){try{localStorage.setItem(k,JSON.stringify(o));}catch{}},
+  snapshot(){try{localStorage.setItem(LS.kBak,JSON.stringify({t:now(),reg:localStorage.getItem(LS.kReg),vfs:localStorage.getItem(LS.kVfs)}));}catch{}},
+  recoverIfNeeded(){
+    const ok=(raw)=>{try{if(!raw)return false;const o=JSON.parse(raw);return o&&typeof o==="object";}catch{return false}};
+    const regRaw=localStorage.getItem(LS.kReg), vfsRaw=localStorage.getItem(LS.kVfs);
+    if(ok(regRaw)&&ok(vfsRaw)) return;
+    const bak=LS.loadJSON(LS.kBak,null);
+    if(bak&&ok(bak.reg)&&ok(bak.vfs)){localStorage.setItem(LS.kReg,bak.reg);localStorage.setItem(LS.kVfs,bak.vfs);}
+    else{localStorage.removeItem(LS.kReg);localStorage.removeItem(LS.kVfs);}
+  }
+};
+
+/* ========= OS ========= */
+const OS={
+  schema:1, root:$("#root"),
+  reg:null, vfs:null,
+  session:{user:null},
+  proc:{nextPid:100, table:{}},
+  wm:{nextZ:10, wins:{}},
+  ui:{startOpen:false, qsOpen:false, widgetsOpen:false},
+  settings:{wifi:true, bt:false, volume:70, brightness:80}
+};
+const hashPass=(s)=>{s=String(s||"");let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return ("00000000"+(h>>>0).toString(16)).slice(-8);};
+
+OS.loadAll=()=>{
+  LS.recoverIfNeeded();
+  OS.reg=LS.loadJSON(LS.kReg,null);
+  OS.vfs=LS.loadJSON(LS.kVfs,null);
+  if(!OS.reg||OS.reg.schemaVersion!==OS.schema){
+    OS.reg={schemaVersion:OS.schema,users:[],currentUserId:null,settings:{wifi:true,bt:false,volume:70,brightness:80},chat:{threads:{}},browser:{bookmarks:{},history:{}}};
+  }
+  OS.settings=Object.assign(OS.settings,OS.reg.settings||{});
+  if(!OS.vfs||typeof OS.vfs!=="object") OS.vfs={t:"d",c:{}};
+  VFS.ensureDrive();
+  OS.saveAll();
+};
+OS.saveAll=()=>{
+  OS.reg.settings=Object.assign({},OS.settings);
+  LS.snapshot();
+  LS.saveJSON(LS.kReg,OS.reg);
+  LS.saveJSON(LS.kVfs,OS.vfs);
+};
+
+/* ========= VFS =========
+Node: {t:"d"|"f", c?:{}, data?:string, mime?:string, meta?:{mtime}}
+*/
+const VFS={
+  normPath(p){
+    if(!p) return "";
+    p=p.replace(/^file:\/\/\//i,"").replace(/\\/g,"/").replace(/\/+/g,"/").trim();
+    if(p.endsWith("/")&&p.length>3) p=p.slice(0,-1);
+    return p;
+  },
+  split(p){return VFS.normPath(p).split("/").filter(Boolean);},
+  ensureDrive(){
+    if(!OS.vfs||typeof OS.vfs!=="object") OS.vfs={t:"d",c:{}};
+    const c=OS.vfs.c||(OS.vfs.c={});
+    if(!c["C:"]) c["C:"]={t:"d",c:{}};
+    if(!c["C:"].c["Users"]) c["C:"].c["Users"]={t:"d",c:{}};
+  },
+  getNode(path){
+    VFS.ensureDrive();
+    const parts=VFS.split(path);
+    let n=OS.vfs;
+    for(const part of parts){
+      if(!n||n.t!=="d") return null;
+      n=n.c[part];
+      if(!n) return null;
+    }
+    return n;
+  },
+  parentOf(path){
+    const p=VFS.normPath(path);
+    const parts=VFS.split(p);
+    if(parts.length<=1) return {parent:null,name:parts[0]||""};
+    const name=parts.pop();
+    const parent=VFS.getNode(parts.join("/"));
+    return {parent,name};
+  },
+  mkdir(path){
+    VFS.ensureDrive();
+    const parts=VFS.split(path);
+    let n=OS.vfs;
+    for(const part of parts){
+      if(n.t!=="d") throw new Error("Not a directory");
+      n.c=n.c||{};
+      if(!n.c[part]) n.c[part]={t:"d",c:{}};
+      n=n.c[part];
+    }
+    OS.saveAll();
+  },
+  writeFile(path,data="",mime="text/plain"){
+    const {parent,name}=VFS.parentOf(path);
+    if(!parent||parent.t!=="d") throw new Error("Bad path");
+    parent.c=parent.c||{};
+    parent.c[name]={t:"f",data:String(data),mime,meta:{mtime:now()}};
+    OS.saveAll();
+  },
+  readFile(path){
+    const n=VFS.getNode(path);
+    if(!n||n.t!=="f") throw new Error("Not a file");
+    return n.data||"";
+  },
+  list(path){
+    const n=VFS.getNode(path);
+    if(!n||n.t!=="d") throw new Error("Not a directory");
+    const out=[];
+    for(const [k,v] of Object.entries(n.c||{})) out.push({name:k,t:v.t,mime:v.mime||"",meta:v.meta||{}});
+    out.sort((a,b)=>(a.t===b.t?a.name.localeCompare(b.name):(a.t==="d"?-1:1)));
+    return out;
+  },
+  rm(path){
+    const {parent,name}=VFS.parentOf(path);
+    if(!parent||parent.t!=="d") throw new Error("Bad path");
+    if(!parent.c||!parent.c[name]) throw new Error("Not found");
+    delete parent.c[name];
+    OS.saveAll();
+  },
+  rename(path,newName){
+    newName=(newName||"").trim();
+    if(!newName) throw new Error("Empty name");
+    const {parent,name}=VFS.parentOf(path);
+    if(!parent||parent.t!=="d") throw new Error("Bad path");
+    if(!parent.c[name]) throw new Error("Not found");
+    if(parent.c[newName]) throw new Error("Name exists");
+    parent.c[newName]=parent.c[name];
+    delete parent.c[name];
+    OS.saveAll();
+  },
+  search(query){
+    query=(query||"").trim().toLowerCase();
+    if(!query) return [];
+    const res=[];
+    const walk=(node,path)=>{
+      if(!node) return;
+      if(node.t==="d"){
+        for(const [k,v] of Object.entries(node.c||{})){
+          const p=path?`${path}/${k}`:k;
+          if(k.toLowerCase().includes(query)) res.push({path:p,t:v.t});
+          walk(v,p);
+        }
+      }
+    };
+    walk(OS.vfs,"");
+    return res.slice(0,80);
+  },
+  cloneNode(node){
+    if(!node) return null;
+    if(node.t==="f") return {t:"f",data:String(node.data||""),mime:node.mime||"text/plain",meta:Object.assign({},node.meta||{})};
+    const out={t:"d",c:{}};
+    for(const [k,v] of Object.entries(node.c||{})) out.c[k]=VFS.cloneNode(v);
+    return out;
+  },
+  mergeIntoDir(targetDirNode, incomingDirNode, mode){
+    // mode: "merge" (skip conflicts) | "overwrite"
+    if(!targetDirNode||targetDirNode.t!=="d"||!incomingDirNode||incomingDirNode.t!=="d") throw new Error("Bad merge");
+    targetDirNode.c=targetDirNode.c||{};
+    for(const [name,inNode] of Object.entries(incomingDirNode.c||{})){
+      const ex=targetDirNode.c[name];
+      if(!ex){
+        targetDirNode.c[name]=VFS.cloneNode(inNode);
+        continue;
+      }
+      if(mode==="merge") continue;
+      // overwrite
+      if(inNode.t==="d" && ex.t==="d"){
+        VFS.mergeIntoDir(ex,inNode,"overwrite");
+      }else{
+        targetDirNode.c[name]=VFS.cloneNode(inNode);
+      }
+    }
+  }
+};
+
+/* ========= Proc ========= */
+const Proc={
+  start(name,fn,args={}){
+    const existing=Object.values(OS.proc.table).find(p=>p.name===name&&p.status==="running");
+    if(existing) return existing.pid;
+    const pid=OS.proc.nextPid++;
+    OS.proc.table[pid]={pid,name,status:"running",startTime:now(),windowsOwned:[]};
+    try{fn(args,pid);}catch(e){console.error(e);}
+    return pid;
+  },
+  stop(pid){
+    const p=OS.proc.table[pid]; if(!p) return;
+    p.status="stopped";
+    (p.windowsOwned||[]).forEach(wid=>WM.close(wid,true));
+    delete OS.proc.table[pid];
+  },
+  isRunning(name){return !!Object.values(OS.proc.table).find(p=>p.name===name&&p.status==="running");},
+  list(){return Object.values(OS.proc.table).sort((a,b)=>a.pid-b.pid);}
+};
+
+/* ========= WM ========= */
+const WM={
+  create({pid,appId,title,w=720,h=520,x=120,y=120,content,onFocus,onClose}){
+    const wid=uid();
+    const win=document.createElement("div");
+    win.className="win glass";
+    win.style.width=w+"px";win.style.height=h+"px";win.style.left=x+"px";win.style.top=y+"px";
+    win.dataset.wid=wid;
+    const tb=document.createElement("div");
+    tb.className="titlebar";
+    tb.innerHTML=`
+      <div class="badge mono">${appId}</div>
+      <div class="title">${title}</div>
+      <div class="wbtn" data-act="min" title="Minimize">—</div>
+      <div class="wbtn" data-act="max" title="Maximize">▢</div>
+      <div class="wbtn close" data-act="close" title="Close">✕</div>
+    `;
+    const body=document.createElement("div");
+    body.className="body";
+    if(content) body.appendChild(content);
+    win.appendChild(tb);win.appendChild(body);
+    OS.root.appendChild(win);
+    OS.wm.wins[wid]={wid,pid,appId,title,el:win,body,tb,max:false,min:false,onFocus,onClose};
+    OS.proc.table[pid]?.windowsOwned.push(wid);
+    WM.focus(wid);
+    WM.makeDraggable(wid,tb);
+    WM.hookButtons(wid);
+    win.addEventListener("mousedown",()=>WM.focus(wid));
+    return wid;
+  },
+  focus(wid){
+    const w=OS.wm.wins[wid]; if(!w) return;
+    OS.wm.nextZ++; w.el.style.zIndex=OS.wm.nextZ;
+    for(const ww of Object.values(OS.wm.wins)) ww.el.classList.toggle("focus",ww.wid===wid);
+    w.onFocus&&w.onFocus();
+  },
+  close(wid,silent=false){
+    const w=OS.wm.wins[wid]; if(!w) return;
+    if(!silent && w.onClose && w.onClose()===false) return;
+    w.el.remove(); delete OS.wm.wins[wid];
+  },
+  minimize(wid){const w=OS.wm.wins[wid]; if(!w) return; w.min=!w.min; w.el.style.display=w.min?"none":"block";},
+  maximize(wid){
+    const w=OS.wm.wins[wid]; if(!w) return;
+    w.max=!w.max;
+    if(w.max){
+      w._pre={l:w.el.style.left,t:w.el.style.top,w:w.el.style.width,h:w.el.style.height};
+      w.el.style.left="4vw";w.el.style.top="72px";w.el.style.width="92vw";w.el.style.height="calc(86vh - 72px)";
+    }else if(w._pre){
+      w.el.style.left=w._pre.l;w.el.style.top=w._pre.t;w.el.style.width=w._pre.w;w.el.style.height=w._pre.h;
+    }
+  },
+  hookButtons(wid){
+    const w=OS.wm.wins[wid];
+    w.tb.addEventListener("click",(e)=>{
+      const act=e.target?.dataset?.act; if(!act) return;
+      if(act==="close") WM.close(wid);
+      if(act==="min") WM.minimize(wid);
+      if(act==="max") WM.maximize(wid);
+    });
+  },
+  makeDraggable(wid,handle){
+    const w=OS.wm.wins[wid];
+    let drag=false,ox=0,oy=0;
+    handle.addEventListener("mousedown",(e)=>{
+      if(e.target?.dataset?.act) return;
+      drag=true; WM.focus(wid);
+      const r=w.el.getBoundingClientRect();
+      ox=e.clientX-r.left; oy=e.clientY-r.top;
+      e.preventDefault();
+    });
+    window.addEventListener("mousemove",(e)=>{
+      if(!drag||w.max) return;
+      const nx=clamp(e.clientX-ox,8,window.innerWidth-80);
+      const ny=clamp(e.clientY-oy,8,window.innerHeight-80);
+      w.el.style.left=nx+"px"; w.el.style.top=ny+"px";
+    });
+    window.addEventListener("mouseup",()=>drag=false);
+  }
+};
+
+/* ========= Toast ========= */
+const Toast={
+  el:null,
+  ensure(){
+    if(Toast.el) return;
+    const d=document.createElement("div");
+    d.style.position="fixed";d.style.left="50%";d.style.bottom="92px";d.style.transform="translateX(-50%)";
+    d.style.zIndex=9997;d.style.pointerEvents="none";
+    OS.root.appendChild(d);Toast.el=d;
+  },
+  show(msg){
+    Toast.ensure();
+    const b=document.createElement("div");
+    b.className="glass pill";
+    b.style.padding="10px 12px";b.style.marginTop="8px";
+    b.style.border="1px solid rgba(255,255,255,.14)";
+    b.style.background="rgba(0,0,0,.28)";
+    b.style.fontSize="12px";b.style.color="rgba(234,240,255,.92)";
+    b.textContent=msg;
+    Toast.el.appendChild(b);
+    setTimeout(()=>{b.style.opacity="0";b.style.transition="opacity .25s";},1600);
+    setTimeout(()=>b.remove(),2000);
+  }
+};
+
+/* ========= Context Menu ========= */
+const Ctx = {
+  el: null,
+  close() { if (Ctx.el) { Ctx.el.remove(); Ctx.el = null; } },
+
+  open(x, y, items) {
+    Ctx.close();
+    const m = document.createElement("div");
+    m.className = "ctx glass";
+    m.style.left = x + "px";
+    m.style.top  = y + "px";
+
+    items.forEach(it => {
+      const d = document.createElement("div");
+      d.className = "citem";
+      d.textContent = it.label;
+      d.addEventListener("click", () => {
+        Ctx.close();
+        it.onClick && it.onClick();
+      });
+      m.appendChild(d);
+    });
+
+    OS.root.appendChild(m);
+    Ctx.el = m;
+
+    // 👇 close only if the mousedown target is NOT inside the menu
+    const onDown = (e) => {
+      if (Ctx.el && Ctx.el.contains(e.target)) return;
+      Ctx.close();
+      window.removeEventListener("mousedown", onDown, true);
+    };
+
+    // capture phase makes this robust even if other handlers stop bubbling
+    window.addEventListener("mousedown", onDown, true);
+  }
+};
+
+/* ========= UAC ========= */
+const UAC={
+  request(reason,cb){
+    const m=document.createElement("div");
+    m.className="modal";
+    m.innerHTML=`
+      <div class="box glass card">
+        <div class="hrow" style="justify-content:space-between">
+          <div class="hrow" style="gap:12px">
+            <div class="avatar" style="background:rgba(255,210,74,.12);border-color:rgba(255,210,74,.35)">⚠️</div>
+            <div>
+              <div style="font-weight:700">Admin Permission Required</div>
+              <div class="small">${escapeHtml(reason)}</div>
+            </div>
+          </div>
+          <div class="badge mono">UAC</div>
+        </div>
+        <div class="sep"></div>
+        <div class="hrow" style="justify-content:flex-end">
+          <button class="btn" data-a="cancel">Cancel</button>
+          <button class="btn primary" data-a="allow">Allow</button>
+        </div>
+      </div>
+    `;
+    OS.root.appendChild(m);
+    m.addEventListener("click",(e)=>{
+      const a=e.target?.dataset?.a;
+      if(a==="cancel") m.remove();
+      if(a==="allow"){m.remove();try{cb&&cb();}catch{}}
+    });
+  }
+};
+
+/* ========= File Associations ========= */
+const FileAssoc={
+  openPath(path){
+    if(!Proc.isRunning("file_associations.exe")) return Toast.show("file_associations.exe is not running.");
+    path=VFS.normPath(path);
+    const n=VFS.getNode(path);
+    if(!n) return Toast.show("Not found: "+path);
+    if(n.t==="d") return Apps.FileExplorer.open({path});
+    return FileAssoc.openFile(path);
+  },
+  openFile(path){
+    if(!Proc.isRunning("file_associations.exe")) return Toast.show("file_associations.exe is not running.");
+    const name=path.split("/").pop();
+    const ext=extOf(name);
+    if(isHttp(name) || isHttp(VFS.getNode(path)?.data)) return Apps.Notepad.open({path,forceText:true});
+    if(ext===".webpagefile") return Apps.Browser.open({path});
+    if(ext===".mp4"||ext===".mp3") return Apps.Media.open({path});
+    if(ext===".png"||ext===".jpg"||ext===".jpeg") return Apps.Photos.open({path});
+    if(ext===".txt") return Apps.Notepad.open({path});
+    return Apps.Notepad.open({path,forceText:true});
+  }
+};
+
+/* ========= Draggable helper ========= */
+function makeDraggable(el,opts={}){
+  let drag=false,ox=0,oy=0;
+  const clampY=opts.clampY||[8,window.innerHeight-8];
+  el.addEventListener("mousedown",(e)=>{
+    if(e.target.closest("input,button,textarea")) return;
+    drag=true;
+    const r=el.getBoundingClientRect();
+    ox=e.clientX-r.left; oy=e.clientY-r.top;
+    e.preventDefault();
+  });
+  window.addEventListener("mousemove",(e)=>{
+    if(!drag) return;
+    el.style.transform="none";
+    const nx=clamp(e.clientX-ox,8,window.innerWidth-el.offsetWidth-8);
+    const ny=clamp(e.clientY-oy,clampY[0],clampY[1]-el.offsetHeight);
+    el.style.left=nx+"px"; el.style.top=ny+"px";
+  });
+  window.addEventListener("mouseup",()=>drag=false);
+}
+
+/* ========= Import/Export ========= */
+const IO={
+  exportPath(path, includeReg=false){
+    path=VFS.normPath(path);
+    const node=VFS.getNode(path);
+    if(!node) return Toast.show("Export failed: path not found");
+    const payload={
+      type:"thiswin12-export",
+      version:1,
+      exportedAt:new Date().toISOString(),
+      rootPath:path,
+      node:VFS.cloneNode(node),
+      reg: includeReg ? OS.reg : null
+    };
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    const safe=path.replace(/[^\w\-.:/]/g,"_").replace(/\//g,"_");
+    a.download=`ThisWin12_${safe||"export"}.tw12.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+    Toast.show("Export started (download).");
+  },
+  importFile(file, targetPath, mode){
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{
+        const payload=JSON.parse(String(reader.result||""));
+        if(payload?.type!=="thiswin12-export" || !payload?.node) throw new Error("Not a ThisWin12 export");
+        targetPath=VFS.normPath(targetPath);
+        const target=VFS.getNode(targetPath);
+        if(!target || target.t!=="d") throw new Error("Target must be an existing folder");
+        if(payload.node.t==="f"){
+          // import file into folder using original name from rootPath
+          const name=(String(payload.rootPath||"").split("/").pop()||"Imported.txt");
+          const dst=targetPath+"/"+name;
+          if(mode==="merge" && VFS.getNode(dst)) { Toast.show("Import skipped (exists): "+name); return; }
+          VFS.writeFile(dst, payload.node.data||"", payload.node.mime||"text/plain");
+        }else{
+          // import folder contents into target folder
+          VFS.mergeIntoDir(target, payload.node, mode);
+          OS.saveAll();
+        }
+        if(payload.reg){
+          // optional: merge reg users/settings/chat/browser (overwrite settings, merge users by id)
+          const r=payload.reg;
+          OS.reg.settings=Object.assign(OS.reg.settings||{}, r.settings||{});
+          OS.settings=Object.assign(OS.settings, OS.reg.settings);
+          OS.reg.browser=Object.assign(OS.reg.browser||{}, r.browser||{});
+          OS.reg.chat=Object.assign(OS.reg.chat||{}, r.chat||{});
+          // users: merge by id, skip conflicts by username
+          const byId=new Map((OS.reg.users||[]).map(u=>[u.id,u]));
+          (r.users||[]).forEach(u=>{
+            if(byId.has(u.id)) return;
+            if((OS.reg.users||[]).some(x=>String(x.username).toLowerCase()===String(u.username).toLowerCase())) return;
+            OS.reg.users.push(u);
+          });
+          OS.saveAll();
+        }
+        Toast.show("Import complete.");
+        Explorer.refreshDesktop();
+      }catch(e){
+        Toast.show("Import failed: "+(e.message||"bad file"));
+      }
+    };
+    reader.readAsText(file);
+  }
+};
+
+/* ========= Explorer (Shell) ========= */
+const Explorer={
+  pid:null, shellEl:null,
+  start(){Explorer.pid=Proc.start("explorer.exe",Explorer._run);},
+  stop(){
+    if(!Explorer.pid) return;
+    Proc.stop(Explorer.pid);
+    Explorer.pid=null;
+    OS.root.innerHTML="";
+    OS.root.className="kern";
+    OS.root.appendChild(Object.assign(document.createElement("div"),{className:"kern"}));
+  },
+  _run(args,pid){
+    OS.root.className="";
+    OS.root.innerHTML="";
+    const shell=document.createElement("div");
+    shell.className="shell";
+    shell.innerHTML=`<div class="wall"></div><div class="noise"></div>`;
+    OS.root.appendChild(shell);
+    Explorer.shellEl=shell;
+    if(!OS.session.user) Explorer.showLogin();
+    else Explorer.showDesktop();
+  },
+  _home(){const u=OS.session.user;return u?`C:/Users/${u.username}`:"";},
+  _desktopPath(){return Explorer._home()+"/Desktop";},
+  _recPath(){return Explorer._home()+"/Recommended-files";},
+  _glyphFor(name){
+    const ex=extOf(name);
+    if(ex===".txt") return "📝";
+    if(ex===".webpagefile") return "🌐";
+    if(ex===".mp3") return "🎵";
+    if(ex===".mp4") return "🎬";
+    if(ex===".png"||ex===".jpg"||ex===".jpeg") return "🖼️";
+    return "📄";
+  },
+  // ---- Create File / Folder Popup ----
+  _createPrompt(dirPath, isFolder = false){
+    const m = document.createElement("div");
+    m.className = "modal";
+    m.innerHTML = `
+      <div class="box glass card">
+        <div style="font-weight:800">
+          Create ${isFolder ? "Folder" : "File"}
+        </div>
+        <div class="small mono">${dirPath}</div>
+        <div class="sep"></div>
+        <input class="input mono" id="name"
+          placeholder="${isFolder ? "New Folder" : "NewFile.txt"}"/>
+        <div class="hrow" style="justify-content:flex-end">
+          <button class="btn" data-a="cancel">Cancel</button>
+          <button class="btn primary" data-a="ok">Create</button>
+        </div>
+      </div>
+    `;
+    Explorer.shellEl.appendChild(m);
+
+    const nameEl = m.querySelector("#name");
+    nameEl.focus();
+
+    const create = () => {
+      const name = nameEl.value.trim();
+      if (!name) return Toast.show("Name required");
+
+      try {
+        const full = dirPath + "/" + name;
+        if (isFolder) VFS.mkdir(full);
+        else VFS.writeFile(full, "", "text/plain");
+
+        m.remove();
+        Toast.show("Created");
+        Explorer.refreshDesktop();
+      } catch (e) {
+        Toast.show(e.message || "Create failed");
+      }
+    };
+
+    m.addEventListener("click", e => {
+      const a = e.target?.dataset?.a;
+      if (a === "cancel") m.remove();
+      if (a === "ok") create();
+    });
+
+    nameEl.addEventListener("keydown", e => {
+      if (e.key === "Enter") create();
+    });
+  },
+  _clearOverlays(){
+    $$(".modal,.panel,.desktop,.taskbar,.topbar,.win,.ctx",Explorer.shellEl).forEach(n=>n.remove());
+    Ctx.close();
+    OS.ui.startOpen=false;OS.ui.qsOpen=false;OS.ui.widgetsOpen=false;
+  },
+  showLogin(){
+    Explorer._clearOverlays();
+    const m=document.createElement("div");
+    m.className="modal";
+    const users=OS.reg.users||[];
+    m.innerHTML=`
+      <div class="box glass card">
+        <div class="hrow" style="justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-weight:800;font-size:18px">ThisWin12</div>
+            <div class="small">Sign in to continue</div>
+          </div>
+          <div class="badge mono">reg.dat</div>
+        </div>
+        <div class="sep"></div>
+        <div class="usergrid" id="ug"></div>
+        <div class="sep"></div>
+        <div class="hrow" style="justify-content:space-between">
+          <div class="small">Tip: type <span class="kbd">file:///C:/Users</span> in File Explorer or Browser.</div>
+          <button class="btn primary" id="addUser">Add user</button>
+        </div>
+      </div>
+    `;
+    Explorer.shellEl.appendChild(m);
+    const ug=$("#ug",m);
+    if(!users.length) ug.innerHTML=`<div class="small">No users yet. Create your first account.</div>`;
+    users.forEach(u=>{
+      const c=document.createElement("div");
+      c.className="usercard";
+      c.innerHTML=`
+        <div class="avatar">${u.icon||"🙂"}</div>
+        <div style="min-width:0">
+          <div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(u.username)}</div>
+          <div class="small">Click to sign in</div>
+        </div>
+      `;
+      c.addEventListener("click",()=>Explorer._promptPassword(u));
+      ug.appendChild(c);
+    });
+    $("#addUser",m).addEventListener("click",()=>Explorer.showSetup());
+    if(!users.length) Explorer.showSetup();
+  },
+  _promptPassword(user){
+    const m=document.createElement("div");
+    m.className="modal";
+    m.innerHTML=`
+      <div class="box glass card">
+        <div class="hrow" style="gap:12px">
+          <div class="avatar">${user.icon||"🙂"}</div>
+          <div>
+            <div style="font-weight:800;font-size:16px">${escapeHtml(user.username)}</div>
+            <div class="small">Enter password to sign in</div>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="vcol">
+          <input class="input" id="pw" type="password" placeholder="Password"/>
+          <div class="hrow" style="justify-content:flex-end">
+            <button class="btn" data-a="cancel">Cancel</button>
+            <button class="btn primary" data-a="login">Sign in</button>
+          </div>
+        </div>
+      </div>
+    `;
+    Explorer.shellEl.appendChild(m);
+    const pw=$("#pw",m); pw.focus();
+    const go=()=>{
+      if(hashPass(pw.value)!==user.passHash) return Toast.show("Wrong password");
+      OS.session.user=user;
+      OS.reg.currentUserId=user.id;
+      OS.saveAll();
+      m.remove();
+      Explorer.showDesktop();
+    };
+    m.addEventListener("click",(e)=>{
+      const a=e.target?.dataset?.a;
+      if(a==="cancel") m.remove();
+      if(a==="login") go();
+    });
+    pw.addEventListener("keydown",(e)=>{if(e.key==="Enter") go();});
+  },
+  showSetup(){
+    const m=document.createElement("div");
+    m.className="modal";
+    const icons=["🙂","😎","🧠","🪐","🌙","⚡","🧊","🫧","🦋","🧩","🧿","🛰️"];
+    m.innerHTML=`
+      <div class="box glass card">
+        <div class="hrow" style="justify-content:space-between">
+          <div>
+            <div style="font-weight:800;font-size:18px">Create account</div>
+            <div class="small">Stored in reg.dat</div>
+          </div>
+          <div class="badge mono">setup</div>
+        </div>
+        <div class="sep"></div>
+        <div class="vcol">
+          <div class="small">Choose an icon</div>
+          <div class="hrow" id="icons" style="flex-wrap:wrap"></div>
+          <div class="hrow">
+            <div style="width:64px" class="avatar" id="pick">🙂</div>
+            <div style="flex:1" class="vcol">
+              <input class="input" id="un" placeholder="Username (folder name)"/>
+              <input class="input" id="pw" type="password" placeholder="Password"/>
+            </div>
+          </div>
+          <div class="hrow" style="justify-content:flex-end">
+            <button class="btn" data-a="cancel">Cancel</button>
+            <button class="btn primary" data-a="create">Create</button>
+          </div>
+          <div class="small">Creates: C:/Users/&lt;Username&gt;/{Desktop,Documents,Recommended-files}</div>
+        </div>
+      </div>
+    `;
+    Explorer.shellEl.appendChild(m);
+    const iconsEl=$("#icons",m), pick=$("#pick",m), un=$("#un",m), pw=$("#pw",m);
+    let chosen="🙂";
+    icons.forEach(ic=>{
+      const b=document.createElement("button");
+      b.className="btn"; b.textContent=ic; b.style.padding="8px 10px"; b.style.borderRadius="14px";
+      b.addEventListener("click",()=>{chosen=ic;pick.textContent=ic;});
+      iconsEl.appendChild(b);
+    });
+    const create=()=>{
+      const username=(un.value||"").trim();
+      const pass=(pw.value||"").trim();
+      if(!username) return Toast.show("Username required");
+      if(!pass) return Toast.show("Password required");
+      if(/[\\:*?"<>|]/.test(username)||username.includes("/")) return Toast.show("Invalid username");
+      if((OS.reg.users||[]).some(u=>u.username.toLowerCase()===username.toLowerCase())) return Toast.show("User exists");
+      const id=uid();
+      const user={id,username,icon:chosen,passHash:hashPass(pass)};
+      OS.reg.users.push(user);
+      OS.reg.currentUserId=id;
+      OS.session.user=user;
+
+      const base=`C:/Users/${username}`;
+      VFS.mkdir(base);
+      VFS.mkdir(`${base}/Desktop`);
+      VFS.mkdir(`${base}/Documents`);
+      VFS.mkdir(`${base}/Recommended-files`);
+
+      VFS.writeFile(`${base}/Desktop/Welcome.txt`,
+`Welcome to ThisWin12 — Next Valley Simulator
+
+- Desktop renders from: C:/Users/${username}/Desktop
+- Start Recommended pulls from: C:/Users/${username}/Recommended-files
+- Try:
+  file:///C:/Users/${username}/Desktop
+
+Right-click files for Open / Open with… / Rename / Recommend / Delete.`, "text/plain");
+
+      VFS.writeFile(`${base}/Desktop/NextValley.webpagefile`,`https://example.invalid/nextvalley`,"text/plain");
+      VFS.writeFile(`${base}/Desktop/SampleSong.mp3`,`SIMULATED_MEDIA:mp3\nTitle=SampleSong\nArtist=ThisWin12`,"text/plain");
+      VFS.writeFile(`${base}/Desktop/SampleVideo.mp4`,`SIMULATED_MEDIA:mp4\nTitle=SampleVideo\nDirector=ThisWin12`,"text/plain");
+      VFS.writeFile(`${base}/Documents/Readme.txt`,`Documents folder.\nUse File Explorer Export/Import to move files in/out.`,"text/plain");
+
+      OS.reg.chat.threads[id]=OS.reg.chat.threads[id]||[{id:uid(),title:"New chat",msgs:[
+        {r:"ai",t:now(),c:"Welcome. This is an offline ChatGPT-style UI inside ThisWin12. Chats are saved locally."}
+      ]}];
+      OS.reg.browser.bookmarks[id]=OS.reg.browser.bookmarks[id]||["https://example.invalid/nextvalley","file:///C:/Users/"+username+"/Desktop"];
+      OS.reg.browser.history[id]=OS.reg.browser.history[id]||[];
+
+      OS.saveAll();
+      m.remove();
+      Explorer.showDesktop();
+    };
+    m.addEventListener("click",(e)=>{
+      const a=e.target?.dataset?.a;
+      if(a==="cancel") m.remove();
+      if(a==="create") create();
+    });
+    pw.addEventListener("keydown",(e)=>{if(e.key==="Enter") create();});
+  },
+  showDesktop(){
+    Explorer._clearOverlays();
+    const top=Explorer._topbar();
+    const desk=Explorer._desktop();
+    const tb=Explorer._taskbar();
+    Explorer.shellEl.appendChild(top);
+    Explorer.shellEl.appendChild(desk);
+    Explorer.shellEl.appendChild(tb);
+  },
+  refreshDesktop(){
+    const old=$(".desktop",Explorer.shellEl);
+    if(old) old.replaceWith(Explorer._desktop());
+    if(OS.ui.startOpen) Explorer.toggleStart(true);
+  },
+  _desktop(){
+    const d=document.createElement("div");
+    d.className="desktop";
+    const items=(()=>{try{return VFS.list(Explorer._desktopPath());}catch{return []}})();
+    items.forEach(it=>{
+      const el=document.createElement("div");
+      el.className="icon";
+      const glyph=document.createElement("div");
+      glyph.className="glyph";
+      glyph.textContent=it.t==="d"?"📁":Explorer._glyphFor(it.name);
+      const label=document.createElement("div");
+      label.className="label";
+      label.textContent=it.name;
+      el.appendChild(glyph);el.appendChild(label);
+      const full=Explorer._desktopPath()+"/"+it.name;
+
+      el.addEventListener("dblclick",()=>FileAssoc.openPath(full));
+      el.addEventListener("contextmenu",(e)=>{
+        e.preventDefault();
+        Explorer._fileCtx(e.clientX,e.clientY,full,it);
+      });
+      d.appendChild(el);
+    });
+
+    d.addEventListener("contextmenu",(e)=>{
+      if(e.target!==d) return;
+      e.preventDefault();
+      Ctx.open(e.clientX,e.clientY,[
+        {label:OS.ui.widgetsOpen?"Hide widgets":"Show widgets",onClick:()=>Explorer.toggleWidgets()},
+        {label:"Open File Explorer",onClick:()=>Apps.FileExplorer.open({path:Explorer._desktopPath()})},
+        {label:"Open Browser",onClick:()=>Apps.Browser.open({url:"file:///"+Explorer._desktopPath()})},
+        {label:"Task Manager (UAC)",onClick:()=>Apps.TaskManager.open()},
+        { label: "New File", onClick: () =>
+           Explorer._createPrompt(Explorer._desktopPath(), false) },
+        { label: "New Folder", onClick: () =>
+           Explorer._createPrompt(Explorer._desktopPath(), true) },
+      ]);
+    });
+    return d;
+  },
+  _openWith(path){
+    const m=document.createElement("div");
+    m.className="modal";
+    m.innerHTML=`
+      <div class="box glass card">
+        <div class="hrow" style="justify-content:space-between">
+          <div>
+            <div style="font-weight:800">Open with…</div>
+            <div class="small mono">${escapeHtml(path)}</div>
+          </div>
+          <div class="badge mono">chooser</div>
+        </div>
+        <div class="sep"></div>
+        <div class="vcol">
+          <div class="item" data-a="notepad"><div class="mini">📝</div><div class="t"><div class="n">Notepad</div><div class="p">Open as text</div></div></div>
+          <div class="item" data-a="browser"><div class="mini">🌐</div><div class="t"><div class="n">Browser</div><div class="p">Open in Browser</div></div></div>
+          <div class="hrow" style="justify-content:flex-end">
+            <button class="btn" data-a="cancel">Cancel</button>
+          </div>
+        </div>
+      </div>
+    `;
+    Explorer.shellEl.appendChild(m);
+    m.addEventListener("click",(e)=>{
+      const a=e.target?.dataset?.a || e.target.closest(".item")?.dataset?.a;
+      if(!a) return;
+      if(a==="cancel") return m.remove();
+      if(a==="notepad"){m.remove(); Apps.Notepad.open({path,forceText:true});}
+      if(a==="browser"){m.remove(); Apps.Browser.open({url:"file:///"+VFS.normPath(path)});}
+    });
+  },
+  _fileCtx(x,y,path,it){
+    const isDir=it.t==="d";
+    Ctx.open(x,y,[
+      {label:"Open",onClick:()=>FileAssoc.openPath(path)},
+      {label:"Open with…",onClick:()=>Explorer._openWith(path)},
+      {label:"Rename",onClick:()=>Explorer._renamePrompt(path)},
+      {label:"Recommend to Start",onClick:()=>Explorer._recommend(path)},
+      {label:"Delete",onClick:()=>Explorer._delete(path,isDir)}
+    ]);
+  },
+  _renamePrompt(path){
+    const old=path.split("/").pop();
+    const m=document.createElement("div");
+    m.className="modal";
+    m.innerHTML=`
+      <div class="box glass card">
+        <div style="font-weight:800">Rename</div>
+        <div class="small mono">${escapeHtml(path)}</div>
+        <div class="sep"></div>
+        <input class="input" id="nn" value="${escapeHtml(old)}"/>
+        <div class="hrow" style="justify-content:flex-end">
+          <button class="btn" data-a="cancel">Cancel</button>
+          <button class="btn primary" data-a="ok">Rename</button>
+        </div>
+      </div>
+    `;
+    Explorer.shellEl.appendChild(m);
+    const nn=$("#nn",m); nn.focus(); nn.select();
+    const go=()=>{try{VFS.rename(path,nn.value.trim());m.remove();Explorer.refreshDesktop();}catch(e){Toast.show(e.message||"Rename failed");}};
+    m.addEventListener("click",(e)=>{const a=e.target?.dataset?.a;if(a==="cancel")m.remove();if(a==="ok")go();});
+    nn.addEventListener("keydown",(e)=>{if(e.key==="Enter")go();});
+  },
+  _recommend(path){
+    try{
+      const name=path.split("/").pop();
+      const src=VFS.getNode(path);
+      if(!src||src.t!=="f") return Toast.show("Only files can be recommended");
+      const dst=Explorer._recPath()+"/"+name;
+      VFS.writeFile(dst,src.data||"",src.mime||"text/plain");
+      Toast.show("Recommended to Start");
+    }catch{Toast.show("Recommend failed");}
+  },
+  _delete(path,isDir){
+    const act=()=>{try{VFS.rm(path);Explorer.refreshDesktop();Toast.show("Deleted");}catch(e){Toast.show(e.message||"Delete failed");}};
+    if(isDir) UAC.request("Delete a folder (system-level action).",act);
+    else act();
+  },
+  _taskbar(){
+    const tb=document.createElement("div");
+    tb.className="taskbar glass";
+    tb.innerHTML=`
+      <div class="tb-left">
+        <div class="tb-ico" id="startBtn" title="Start">⊞</div>
+        <div class="tb-ico" id="widgetsBtn" title="Widgets">◈</div>
+      </div>
+      <div class="tb-mid">
+        <div class="tb-ico" id="feBtn" title="File Explorer">📁</div>
+        <div class="tb-ico" id="brBtn" title="Browser">🌐</div>
+        <div class="tb-ico" id="chatBtn" title="Chat">💬</div>
+        <div class="tb-ico" id="setBtn" title="Settings">⚙️</div>
+      </div>
+      <div class="tb-right">
+        <div class="tb-ico" id="qsBtn" title="Quick Settings">☰</div>
+        <div class="clock" id="clock"></div>
+      </div>
+    `;
+    const clock=$("#clock",tb);
+    clock.textContent=fmtTime();
+    setInterval(()=>{if(clock.isConnected) clock.textContent=fmtTime();},1000);
+
+    $("#startBtn",tb).addEventListener("click",()=>Explorer.toggleStart());
+    $("#widgetsBtn",tb).addEventListener("click",()=>Explorer.toggleWidgets());
+    $("#qsBtn",tb).addEventListener("click",()=>Explorer.toggleQS());
+
+    $("#feBtn",tb).addEventListener("click",()=>Apps.FileExplorer.open({path:Explorer._desktopPath()}));
+    $("#brBtn",tb).addEventListener("click",()=>Apps.Browser.open({url:"file:///"+Explorer._desktopPath()}));
+    $("#chatBtn",tb).addEventListener("click",()=>Apps.Chat.open());
+    $("#setBtn",tb).addEventListener("click",()=>Apps.Settings.open());
+
+    makeDraggable(tb,{clampY:[window.innerHeight-120,window.innerHeight-10]});
+    return tb;
+  },
+  _topbar(){
+    const t=document.createElement("div");
+    t.className="topbar glass";
+    t.innerHTML=`
+      <div class="search">
+        <span class="badge mono">VFS</span>
+        <input id="q" placeholder="Search files or type file:///C:/... or https://..."/>
+        <span class="kbd">Enter</span>
+      </div>
+      <div class="qsbtn" id="qs" title="Quick Settings">☰</div>
+      <div class="qsbtn" id="settings" title="Settings">⚙️</div>
+    `;
+    const q=$("#q",t);
+    q.addEventListener("keydown",(e)=>{
+      if(e.key!=="Enter") return;
+      const v=q.value.trim();
+      if(!v) return;
+      if(isHttp(v) || /^file:\/\/\//i.test(v) || /^[A-Za-z]:\//.test(v)){
+        Apps.Browser.open({url:v});
+        q.value="";
+        return;
+      }
+      const res=VFS.search(v);
+      Apps.SearchResults.open({query:v,results:res});
+    });
+    $("#qs",t).addEventListener("click",()=>Explorer.toggleQS());
+    $("#settings",t).addEventListener("click",()=>Apps.Settings.open());
+    makeDraggable(t,{clampY:[8,220]});
+    return t;
+  },
+  toggleStart(forceOpen){
+    const existing=$(".panel.start",Explorer.shellEl);
+    if(existing) existing.remove();
+    OS.ui.startOpen = forceOpen!==undefined ? forceOpen : !OS.ui.startOpen;
+    if(!OS.ui.startOpen) return;
+
+    const p=document.createElement("div");
+    p.className="panel start glass";
+    p.innerHTML=`
+      <div class="hrow" style="justify-content:space-between">
+        <h3>Start</h3>
+        <div class="hrow" style="gap:8px">
+          <span class="badge">${OS.session.user?.icon||"🙂"} ${escapeHtml(OS.session.user?.username||"")}</span>
+          <button class="btn" id="signout">Sign out</button>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div>
+          <div class="small" style="margin:6px 0 8px">Pinned</div>
+          <div class="vcol">
+            <div class="item" id="pFE"><div class="mini">📁</div><div class="t"><div class="n">File Explorer</div><div class="p">Browse VFS</div></div></div>
+            <div class="item" id="pBR"><div class="mini">🌐</div><div class="t"><div class="n">Browser</div><div class="p">https:// and file:///</div></div></div>
+            <div class="item" id="pChat"><div class="mini">💬</div><div class="t"><div class="n">Chat</div><div class="p">Local threads</div></div></div>
+            <div class="item" id="pSet"><div class="mini">⚙️</div><div class="t"><div class="n">Settings</div><div class="p">Quick toggles</div></div></div>
+            <div class="item" id="pTM"><div class="mini">🧾</div><div class="t"><div class="n">Task Manager</div><div class="p">Processes (UAC)</div></div></div>
+          </div>
+        </div>
+        <div>
+          <div class="small" style="margin:6px 0 8px">Recommended</div>
+          <div id="rec" class="vcol"></div>
+          <div class="sep"></div>
+          <div class="small">Dedicated div: <span class="mono">#recommended-files</span></div>
+        </div>
+      </div>
+    `;
+    const rec=$("#rec",p);
+    rec.id="recommended-files";
+    let items=[];
+    try{items=VFS.list(Explorer._recPath());}catch{}
+    if(!items.length){
+      rec.innerHTML=`<div class="small">No recommended files yet. Right-click a file → Recommend to Start.</div>`;
+    }else{
+      items.slice(0,8).forEach(it=>{
+        const full=Explorer._recPath()+"/"+it.name;
+        const row=document.createElement("div");
+        row.className="item";
+        row.innerHTML=`<div class="mini">${Explorer._glyphFor(it.name)}</div><div class="t"><div class="n">${escapeHtml(it.name)}</div><div class="p mono">${escapeHtml(full)}</div></div>`;
+        row.addEventListener("click",()=>FileAssoc.openPath(full));
+        rec.appendChild(row);
+      });
+    }
+
+    $("#pFE",p).addEventListener("click",()=>Apps.FileExplorer.open({path:Explorer._desktopPath()}));
+    $("#pBR",p).addEventListener("click",()=>Apps.Browser.open({url:"file:///"+Explorer._desktopPath()}));
+    $("#pChat",p).addEventListener("click",()=>Apps.Chat.open());
+    $("#pSet",p).addEventListener("click",()=>Apps.Settings.open());
+    $("#pTM",p).addEventListener("click",()=>Apps.TaskManager.open());
+    $("#signout",p).addEventListener("click",()=>{
+      OS.session.user=null;
+      OS.reg.currentUserId=null;
+      OS.saveAll();
+      Explorer.showLogin();
+    });
+
+    Explorer.shellEl.appendChild(p);
+  },
+  toggleQS(forceOpen){
+    const existing=$(".panel.qspanel",Explorer.shellEl);
+    if(existing) existing.remove();
+    OS.ui.qsOpen = forceOpen!==undefined ? forceOpen : !OS.ui.qsOpen;
+    if(!OS.ui.qsOpen) return;
+
+    const p=document.createElement("div");
+    p.className="panel qspanel glass";
+    p.innerHTML=`
+      <div class="hrow" style="justify-content:space-between">
+        <h3>Quick Settings</h3>
+        <span class="badge mono">top panel</span>
+      </div>
+      <div class="vcol">
+        <div class="toggle"><div><div style="font-weight:700">Wi‑Fi</div><div class="small">Simulated</div></div><div class="switch" id="wifi"></div></div>
+        <div class="toggle"><div><div style="font-weight:700">Bluetooth</div><div class="small">Simulated</div></div><div class="switch" id="bt"></div></div>
+        <div class="toggle"><div><div style="font-weight:700">Volume</div><div class="small">${OS.settings.volume}%</div></div><input class="slider" id="vol" type="range" min="0" max="100" value="${OS.settings.volume}"/></div>
+        <div class="toggle"><div><div style="font-weight:700">Brightness</div><div class="small">${OS.settings.brightness}%</div></div><input class="slider" id="br" type="range" min="0" max="100" value="${OS.settings.brightness}"/></div>
+        <div class="hrow" style="justify-content:flex-end">
+          <button class="btn" id="openSet">Open Settings</button>
+        </div>
+      </div>
+    `;
+    const wifi=$("#wifi",p), bt=$("#bt",p);
+    const sync=()=>{wifi.classList.toggle("on",!!OS.settings.wifi);bt.classList.toggle("on",!!OS.settings.bt);};
+    sync();
+    wifi.addEventListener("click",()=>{OS.settings.wifi=!OS.settings.wifi;OS.saveAll();sync();});
+    bt.addEventListener("click",()=>{OS.settings.bt=!OS.settings.bt;OS.saveAll();sync();});
+    $("#vol",p).addEventListener("input",(e)=>{OS.settings.volume=+e.target.value;OS.saveAll();Explorer.toggleQS(true);});
+    $("#br",p).addEventListener("input",(e)=>{OS.settings.brightness=+e.target.value;OS.saveAll();Explorer.toggleQS(true);});
+    $("#openSet",p).addEventListener("click",()=>Apps.Settings.open());
+    Explorer.shellEl.appendChild(p);
+  },
+  toggleWidgets(){
+    const existing=$(".panel.widgets",Explorer.shellEl);
+    if(existing) existing.remove();
+    OS.ui.widgetsOpen=!OS.ui.widgetsOpen;
+    if(!OS.ui.widgetsOpen) return;
+
+    const p=document.createElement("div");
+    p.className="panel widgets glass";
+    p.style.left="calc(50% - 320px)";
+    p.style.top="92px";
+    p.style.transform="none";
+    p.style.width="320px";
+    p.innerHTML=`
+      <div class="hrow" style="justify-content:space-between">
+        <h3>Widgets</h3>
+        <span class="badge mono">◈</span>
+      </div>
+      <div class="vcol">
+        <div class="item" style="cursor:default">
+          <div class="mini">🕒</div>
+          <div class="t"><div class="n" id="wtime">${fmtTime()}</div><div class="p">Local time</div></div>
+        </div>
+        <div class="item" style="cursor:default">
+          <div class="mini">📶</div>
+          <div class="t"><div class="n">System</div><div class="p">Wi‑Fi: ${OS.settings.wifi?"On":"Off"} • BT: ${OS.settings.bt?"On":"Off"}</div></div>
+        </div>
+        <div class="item" id="openDesk">
+          <div class="mini">🗂️</div>
+          <div class="t"><div class="n">Desktop folder</div><div class="p mono">file:///${escapeHtml(Explorer._desktopPath())}</div></div>
+        </div>
+      </div>
+    `;
+    Explorer.shellEl.appendChild(p);
+    $("#openDesk",p).addEventListener("click",()=>Apps.FileExplorer.open({path:Explorer._desktopPath()}));
+    const wtime=$("#wtime",p);
+    setInterval(()=>{if(wtime.isConnected) wtime.textContent=fmtTime();},1000);
+  }
+};
+
+/* ========= Apps ========= */
+function parseSimMeta(text){
+  const meta={};
+  String(text||"").split("\n").forEach(line=>{
+    const i=line.indexOf("=");
+    if(i>0){const k=line.slice(0,i).trim();const v=line.slice(i+1).trim();if(k) meta[k]=v;}
+  });
+  return meta;
+}
+
+const Apps={
+  SearchResults:{
+    open({query,results}){
+      const pid=Proc.start("search.exe",()=>{},{});
+      const content=document.createElement("div");
+      content.className="vcol";
+      content.innerHTML=`
+        <div class="hrow" style="justify-content:space-between">
+          <div>
+            <div style="font-weight:800">Search</div>
+            <div class="small">Query: <span class="mono">${escapeHtml(query)}</span></div>
+          </div>
+          <span class="badge mono">${results.length} results</span>
+        </div>
+        <div class="sep"></div>
+        <div id="r" class="vcol"></div>
+      `;
+      const r=$("#r",content);
+      if(!results.length) r.innerHTML=`<div class="small">No matches.</div>`;
+      else results.forEach(it=>{
+        const row=document.createElement("div");
+        row.className="item";
+        row.innerHTML=`<div class="mini">${it.t==="d"?"📁":"📄"}</div><div class="t"><div class="n mono">${escapeHtml(it.path)}</div><div class="p">${it.t==="d"?"Folder":"File"}</div></div>`;
+        row.addEventListener("click",()=>FileAssoc.openPath(it.path));
+        r.appendChild(row);
+      });
+      WM.create({pid,appId:"search",title:`Search — ${query}`,w:720,h:520,x:140,y:110,content});
+    }
+  },
+  FileExplorer:{
+    open({path}){
+      const pid=Proc.start("file_explorer.exe",()=>{},{});
+      const content=document.createElement("div");
+      content.style.height="100%";
+content.innerHTML = `
+  <div class="fe">
+    <div class="sidebar">
+      <div class="small" style="margin:2px 0 8px">Quick access</div>
+      <div class="sideitem" data-p="DESK">🖥️ Desktop</div>
+      <div class="sideitem" data-p="DOCS">📄 Documents</div>
+      <div class="sideitem" data-p="REC">⭐ Recommended-files</div>
+      <div class="sep"></div>
+      <div class="sideitem" data-p="USERS">👤 C:/Users</div>
+    </div>
+
+    <div class="main">
+      <div class="addr">
+        <span class="badge mono">file:///</span>
+        <input class="input mono" id="addr" placeholder="file:///C:/..." />
+        <button class="btn" id="go">Go</button>
+        <button class="btn" id="up">Up</button>
+
+        <!-- NEW BUTTONS -->
+        <button class="btn" id="newFile">New File</button>
+        <button class="btn" id="newFolder">New Folder</button>
+
+        <button class="btn" id="export">Export</button>
+        <button class="btn" id="import">Import</button>
+        <input type="file" id="impFile"
+               accept=".json,.tw12.json,application/json"
+               style="display:none"/>
+      </div>
+
+      <div class="small" id="hint"></div>
+      <div class="list" id="list"></div>
+    </div>
+  </div>
+`;
+      const addr=$("#addr",content), list=$("#list",content), hint=$("#hint",content);
+      const impFile=$("#impFile",content);
+      let cur=VFS.normPath(path||Explorer._desktopPath());
+
+      const render=()=>{
+        addr.value="file:///"+cur;
+        hint.textContent=cur;
+        list.innerHTML="";
+        let items=[];
+        try{items=VFS.list(cur);}catch{
+          list.innerHTML=`<div class="small">Cannot open: ${escapeHtml(cur)}</div>`;
+          return;
+        }
+        items.forEach(it=>{
+          const full=cur+"/"+it.name;
+          const row=document.createElement("div");
+          row.className="fcard";
+          row.innerHTML=`
+            <div class="mini">${it.t==="d"?"📁":Explorer._glyphFor(it.name)}</div>
+            <div class="meta">
+              <div class="n">${escapeHtml(it.name)}</div>
+              <div class="p mono">${escapeHtml(full)}</div>
+            </div>
+          `;
+          row.addEventListener("dblclick",()=>{
+            if(it.t==="d"){cur=full;render();}
+            else FileAssoc.openPath(full);
+          });
+          row.addEventListener("contextmenu",(e)=>{
+            e.preventDefault();
+            Ctx.open(e.clientX,e.clientY,[
+              {label:"Open",onClick:()=>FileAssoc.openPath(full)},
+              {label:"Open with…",onClick:()=>Explorer._openWith(full)},
+              {label:"Rename",onClick:()=>Explorer._renamePrompt(full)},
+              {label:"Recommend to Start",onClick:()=>Explorer._recommend(full)},
+              {label:"Delete",onClick:()=>{
+                const act=()=>{try{VFS.rm(full);render();Toast.show("Deleted");}catch(err){Toast.show(err.message||"Delete failed");}};
+                if(it.t==="d") UAC.request("Delete a folder (system-level action).",act);
+                else act();
+              }}
+            ]);
+          });
+          list.appendChild(row);
+        });
+      };
+      const go=()=>{
+        const v=addr.value.trim();
+        if(!v) return;
+        cur=VFS.normPath(v);
+        const n=VFS.getNode(cur);
+        if(!n) return Toast.show("Not found");
+        if(n.t==="f") return FileAssoc.openPath(cur);
+        render();
+      };
+
+      $("#go",content).addEventListener("click",go);
+      addr.addEventListener("keydown",(e)=>{if(e.key==="Enter") go();});
+      $("#up",content).addEventListener("click",()=>{
+        const parts=VFS.split(cur);
+        if(parts.length<=1) return;
+        parts.pop(); cur=parts.join("/"); render();
+      });
+
+      $$(".sideitem",content).forEach(si=>{
+        si.addEventListener("click",()=>{
+          const k=si.dataset.p;
+          if(k==="DESK") cur=Explorer._desktopPath();
+          if(k==="DOCS") cur=Explorer._home()+"/Documents";
+          if(k==="REC") cur=Explorer._recPath();
+          if(k==="USERS") cur="C:/Users";
+          render();
+        });
+      });
+
+      $("#export",content).addEventListener("click",()=>{
+        const m=document.createElement("div");
+        m.className="modal";
+        m.innerHTML=`
+          <div class="box glass card">
+            <div style="font-weight:800">Export</div>
+            <div class="small">Export current path (file or folder) as a download.</div>
+            <div class="sep"></div>
+            <div class="vcol">
+              <input class="input mono" id="p" value="file:///${escapeHtml(cur)}"/>
+              <label class="small"><input type="checkbox" id="reg"/> Include reg.dat (users/settings/chat/browser)</label>
+              <div class="hrow" style="justify-content:flex-end">
+                <button class="btn" data-a="cancel">Cancel</button>
+                <button class="btn primary" data-a="ok">Export</button>
+              </div>
+            </div>
+          </div>
+        `;
+        Explorer.shellEl.appendChild(m);
+        m.addEventListener("click",(e)=>{
+          const a=e.target?.dataset?.a;
+          if(a==="cancel") return m.remove();
+          if(a==="ok"){
+            const p=VFS.normPath($("#p",m).value);
+            const inc=$("#reg",m).checked;
+            m.remove();
+            IO.exportPath(p,inc);
+          }
+        });
+      });
+
+      $("#import",content).addEventListener("click",()=>{
+        const m=document.createElement("div");
+        m.className="modal";
+        m.innerHTML=`
+          <div class="box glass card">
+            <div style="font-weight:800">Import</div>
+            <div class="small">Import a .tw12.json into a target folder.</div>
+            <div class="sep"></div>
+            <div class="vcol">
+              <input class="input mono" id="target" value="file:///${escapeHtml(cur)}"/>
+              <div class="hrow">
+                <button class="btn" id="merge">Merge (skip conflicts)</button>
+                <button class="btn danger" id="over">Overwrite conflicts</button>
+              </div>
+              <div class="small">Then choose a file to import.</div>
+              <div class="hrow" style="justify-content:flex-end">
+                <button class="btn" data-a="cancel">Cancel</button>
+              </div>
+            </div>
+          </div>
+        `;
+        Explorer.shellEl.appendChild(m);
+        let mode="merge";
+        $("#merge",m).addEventListener("click",()=>{mode="merge";Toast.show("Import mode: merge"); impFile.click();});
+        $("#over",m).addEventListener("click",()=>{mode="overwrite";Toast.show("Import mode: overwrite"); impFile.click();});
+        m.addEventListener("click",(e)=>{if(e.target?.dataset?.a==="cancel") m.remove();});
+        impFile.onchange=()=>{
+          const f=impFile.files?.[0];
+          if(!f) return;
+          const target=VFS.normPath($("#target",m).value);
+          m.remove();
+          IO.importFile(f,target,mode);
+          impFile.value="";
+        };
+      });
+	  $("#newFile", content).addEventListener("click", () => {
+  Explorer._createPrompt(cur, false);
+});
+
+$("#newFolder", content).addEventListener("click", () => {
+  Explorer._createPrompt(cur, true);
+});
+
+      render();
+      WM.create({pid,appId:"explorer",title:"File Explorer",w:980,h:580,x:120,y:110,content});
+    }
+  },
+  Notepad:{
+    open({path,forceText=false}){
+      const pid=Proc.start("notepad.exe",()=>{},{});
+      const content=document.createElement("div");
+      content.className="vcol";
+      const name=path?path.split("/").pop():"Untitled.txt";
+      let text="";
+      try{if(path) text=VFS.readFile(path);}catch{}
+      if(forceText && isHttp(name)) text=name;
+
+      content.innerHTML=`
+        <div class="hrow" style="justify-content:space-between">
+          <div>
+            <div style="font-weight:800">Notepad</div>
+            <div class="small mono">${path?escapeHtml(path):"Untitled"}</div>
+          </div>
+          <div class="hrow">
+            <button class="btn" id="save">Save</button>
+            <button class="btn" id="saveas">Save As</button>
+          </div>
+        </div>
+        <textarea class="input mono" id="ta" style="height:360px;min-height:260px">${escapeHtml(text)}</textarea>
+        <div class="small">Rule: http/https links open here as plain text (via file associations).</div>
+      `;
+      const ta=$("#ta",content);
+      const save=()=>{
+        if(!path) return saveAs();
+        try{VFS.writeFile(path,ta.value,"text/plain");Toast.show("Saved");Explorer.refreshDesktop();}catch{Toast.show("Save failed");}
+      };
+      const saveAs=()=>{
+        const m=document.createElement("div");
+        m.className="modal";
+        m.innerHTML=`
+          <div class="box glass card">
+            <div style="font-weight:800">Save As</div>
+            <div class="small">Enter full path (file:///...)</div>
+            <div class="sep"></div>
+            <input class="input mono" id="p" value="file:///${escapeHtml(Explorer._home())}/Documents/${escapeHtml(baseName(name)||"Note")}.txt"/>
+            <div class="hrow" style="justify-content:flex-end">
+              <button class="btn" data-a="cancel">Cancel</button>
+              <button class="btn primary" data-a="ok">Save</button>
+            </div>
+          </div>
+        `;
+        Explorer.shellEl.appendChild(m);
+        const p=$("#p",m); p.focus(); p.select();
+        const go=()=>{
+          const pp=VFS.normPath(p.value);
+          try{VFS.writeFile(pp,ta.value,"text/plain");path=pp;Toast.show("Saved");Explorer.refreshDesktop();m.remove();}catch(e){Toast.show(e.message||"Save failed");}
+        };
+        m.addEventListener("click",(e)=>{const a=e.target?.dataset?.a;if(a==="cancel")m.remove();if(a==="ok")go();});
+        p.addEventListener("keydown",(e)=>{if(e.key==="Enter")go();});
+      };
+      $("#save",content).addEventListener("click",save);
+      $("#saveas",content).addEventListener("click",saveAs);
+      WM.create({pid,appId:"notepad",title:`Notepad — ${escapeHtml(name)}`,w:760,h:560,x:160,y:120,content});
+    }
+  },
+  Browser:{
+    open({path,url}){
+      const pid=Proc.start("browser.exe",()=>{},{});
+      const u=OS.session.user;
+      const content=document.createElement("div");
+      content.className="vcol";
+
+      let startUrl=url||"https://example.invalid";
+      if(path){
+        try{startUrl=VFS.readFile(path).trim()||startUrl;}catch{}
+      }
+
+      content.innerHTML=`
+        <div class="hrow" style="justify-content:space-between">
+          <div>
+            <div style="font-weight:800">Browser</div>
+            <div class="small">Supports <span class="mono">https://</span> and <span class="mono">file:///</span> (sandboxed)</div>
+          </div>
+          <span class="badge mono">browser</span>
+        </div>
+        <div class="sep"></div>
+        <div class="hrow" style="flex-wrap:wrap">
+          <input class="input mono" id="u" value="${escapeHtml(startUrl)}" />
+          <button class="btn primary" id="go">Go</button>
+          <button class="btn" id="openFE">Open in File Explorer</button>
+          <button class="btn" id="bm">Bookmark</button>
+        </div>
+        <div class="hrow" style="flex-wrap:wrap">
+          <span class="badge">Bookmarks</span>
+          <div id="bms" class="hrow" style="flex-wrap:wrap"></div>
+        </div>
+        <div class="glass card" style="padding:14px;border-radius:18px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.10)">
+          <div style="font-weight:800">View</div>
+          <div class="small" id="sub"></div>
+          <div class="sep"></div>
+          <div id="view" class="mono" style="font-size:12px;color:rgba(234,240,255,.88);white-space:pre-wrap"></div>
+          <div id="fileView" style="margin-top:10px"></div>
+        </div>
+      `;
+
+      const uinp=$("#u",content), view=$("#view",content), sub=$("#sub",content), fileView=$("#fileView",content), bms=$("#bms",content);
+
+const addHistory = (url) => {
+  if (!u) return;
+
+  // Ensure the browser subtree exists (self-healing)
+  OS.reg ||= {};
+  OS.reg.browser ||= {};
+  OS.reg.browser.history ||= {};
+
+  const list = OS.reg.browser.history[u.id] ||= [];
+  list.unshift({ t: now(), url: String(url) });
+
+  // keep last 50
+  OS.reg.browser.history[u.id] = list.slice(0, 50);
+
+  OS.saveAll();
+};
+
+const renderBookmarks = () => {
+  bms.innerHTML = "";
+
+  // Safely get bookmarks store (or empty object if missing)
+  const store = OS.reg?.browser?.bookmarks ?? {};
+
+  // Safely get this user's bookmark array (or empty array if missing)
+  const arr = (u && Array.isArray(store[u.id])) ? store[u.id] : [];
+
+  arr.slice(0, 10).forEach((b) => {
+    // Ensure it's a string so .length and .slice don't crash
+    const url = String(b);
+
+    const btn = document.createElement("button");
+    btn.className = "btn";
+    btn.textContent = url.length > 28 ? url.slice(0, 28) + "…" : url;
+    btn.title = url;
+
+    btn.addEventListener("click", () => {
+      uinp.value = url;
+      render();
+    });
+
+    bms.appendChild(btn);
+  });
+};
+
+      const renderFile=(p)=>{
+        fileView.innerHTML="";
+        const n=VFS.getNode(p);
+        if(!n){sub.textContent="File view: not found"; view.textContent=""; return;}
+        if(n.t==="d"){
+          sub.textContent="File view: folder";
+          view.textContent=p;
+          const items=VFS.list(p);
+          const grid=document.createElement("div");
+          grid.className="list";
+          items.forEach(it=>{
+            const full=p+"/"+it.name;
+            const row=document.createElement("div");
+            row.className="fcard";
+            row.innerHTML=`
+              <div class="mini">${it.t==="d"?"📁":Explorer._glyphFor(it.name)}</div>
+              <div class="meta">
+                <div class="n">${escapeHtml(it.name)}</div>
+                <div class="p mono">${escapeHtml(full)}</div>
+              </div>
+            `;
+            row.addEventListener("dblclick",()=>{
+              if(it.t==="d"){uinp.value="file:///"+full; render();}
+              else FileAssoc.openPath(full);
+            });
+            fileView.appendChild(grid);
+            grid.appendChild(row);
+          });
+        }else{
+          sub.textContent="File view: file";
+          const name=p.split("/").pop();
+          const ext=extOf(name);
+          if(ext===".png"||ext===".jpg"||ext===".jpeg"){
+            const data=VFS.readFile(p).trim();
+            if(/^data:image\//i.test(data)){
+              view.textContent=p;
+              const img=new Image(); img.src=data; img.style.maxWidth="100%"; img.style.borderRadius="14px";
+              fileView.appendChild(img);
+            }else{
+              view.textContent=p+"\n\n(No data:image/* content found. Showing placeholder.)";
+            }
+          }else{
+            const txt=VFS.readFile(p);
+               view.textContent = `${p}\n\n---\n${txt.slice(0,6000)}${txt.length > 6000 ? "\n\n…(truncated)" : ""}`;
+          }
+        }
+      };
+
+      const render=()=>{
+        const v=uinp.value.trim();
+        if(!v) return;
+        addHistory(v);
+        fileView.innerHTML="";
+        if(/^file:\/\/\//i.test(v) || /^[A-Za-z]:\//.test(v)){
+          const p=VFS.normPath(v);
+          renderFile(p);
+          return;
+        }
+if (isHttp(v)) {
+  sub.textContent = "Web view: iframe";
+
+  // create iframe once
+  let iframe = $("#webframe", content);
+  if (!iframe) {
+    iframe = document.createElement("iframe");
+    iframe.id = "webframe";
+    iframe.style.width = "100%";
+    iframe.style.height = "520px";
+    iframe.style.border = "0";
+    iframe.style.borderRadius = "14px";
+    iframe.style.background = "rgba(0,0,0,.18)";
+    iframe.setAttribute("sandbox", "allow-forms allow-scripts allow-same-origin allow-popups allow-modals");
+
+    // insert above fileView inside the same card area
+    fileView.parentNode.insertBefore(iframe, fileView);
+  }
+
+  // show iframe, hide text/file views
+  iframe.style.display = "block";
+  fileView.style.display = "none";
+  view.style.display = "none";
+
+  iframe.src = v;
+  return;
+}
+        sub.textContent="Unknown scheme";
+        view.textContent="Try https://... or file:///C:/...";
+      };
+
+      $("#go",content).addEventListener("click",render);
+      uinp.addEventListener("keydown",(e)=>{if(e.key==="Enter") render();});
+      $("#openFE",content).addEventListener("click",()=>{
+        const v=uinp.value.trim();
+        if(/^file:\/\/\//i.test(v) || /^[A-Za-z]:\//.test(v)){
+          const p=VFS.normPath(v);
+          FileAssoc.openPath(p);
+        }else{
+          Toast.show("Open in File Explorer works for file:/// paths.");
+        }
+      });
+      $("#bm",content).addEventListener("click",()=>{
+        if(!u) return Toast.show("No user session");
+        const v=uinp.value.trim();
+        OS.reg.browser.bookmarks[u.id]=OS.reg.browser.bookmarks[u.id]||[];
+        if(!OS.reg.browser.bookmarks[u.id].includes(v)) OS.reg.browser.bookmarks[u.id].unshift(v);
+        OS.reg.browser.bookmarks[u.id]=OS.reg.browser.bookmarks[u.id].slice(0,20);
+        OS.saveAll();
+        Toast.show("Bookmarked");
+        renderBookmarks();
+      });
+
+      renderBookmarks();
+      render();
+      WM.create({pid,appId:"browser",title:"Browser",w:920,h:620,x:180,y:120,content});
+    }
+  },
+  Media:{
+    open({path}){
+      const pid=Proc.start("media_player.exe",()=>{},{});
+      const content=document.createElement("div");
+      const name=path.split("/").pop();
+      let data=""; try{data=VFS.readFile(path);}catch{}
+      const meta=parseSimMeta(data);
+      content.className="vcol";
+      content.innerHTML=`
+        <div class="hrow" style="justify-content:space-between">
+          <div>
+            <div style="font-weight:800">Media Player</div>
+            <div class="small mono">${escapeHtml(path)}</div>
+          </div>
+          <span class="badge mono">${escapeHtml(extOf(name).slice(1)||"media")}</span>
+        </div>
+        <div class="sep"></div>
+        <div class="glass card" style="padding:14px;border-radius:18px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.10)">
+          <div class="hrow" style="justify-content:space-between">
+            <div>
+              <div style="font-weight:800">${escapeHtml(meta.Title||baseName(name))}</div>
+              <div class="small">${escapeHtml(meta.Artist||meta.Director||"Simulated playback")}</div>
+            </div>
+            <div class="hrow">
+              <button class="btn" id="pp">Play</button>
+              <span class="badge mono" id="st">00:00</span>
+            </div>
+          </div>
+          <div style="margin-top:10px"><input class="slider" id="tl" type="range" min="0" max="240" value="0"/></div>
+          <div class="small" style="margin-top:8px">Simulated playback timeline.</div>
+        </div>
+      `;
+      const pp=$("#pp",content), st=$("#st",content), tl=$("#tl",content);
+      let playing=false,t=0,timer=null;
+      const tick=()=>{t=clamp(t+1,0,240);tl.value=t;st.textContent=`${String(Math.floor(t/60)).padStart(2,"0")}:${String(t%60).padStart(2,"0")}`;if(t>=240){playing=false;pp.textContent="Play";clearInterval(timer);timer=null;}};
+      pp.addEventListener("click",()=>{playing=!playing;pp.textContent=playing?"Pause":"Play";if(playing&&!timer) timer=setInterval(tick,1000);if(!playing&&timer){clearInterval(timer);timer=null;}});
+      tl.addEventListener("input",()=>{t=+tl.value;st.textContent=`${String(Math.floor(t/60)).padStart(2,"0")}:${String(t%60).padStart(2,"0")}`;});
+      WM.create({pid,appId:"media",title:"Media Player",w:720,h:460,x:210,y:150,content});
+    }
+  },
+  Photos:{
+    open({path}){
+      const pid=Proc.start("photos.exe",()=>{},{});
+      const content=document.createElement("div");
+      const name=path.split("/").pop();
+      let data=""; try{data=VFS.readFile(path);}catch{}
+      const isData=/^data:image\//i.test(data.trim());
+      content.className="vcol";
+      content.innerHTML=`
+        <div class="hrow" style="justify-content:space-between">
+          <div>
+            <div style="font-weight:800">Photos / Paint</div>
+            <div class="small mono">${escapeHtml(path)}</div>
+          </div>
+          <span class="badge mono">${escapeHtml(extOf(name).slice(1)||"img")}</span>
+        </div>
+        <div class="sep"></div>
+        <div class="glass card" style="padding:12px;border-radius:18px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.10)">
+          <div class="small">${isData?"Rendering data URL image":"No data URL found — placeholder."}</div>
+          <div style="margin-top:10px;display:flex;justify-content:center">
+            <div id="frame" style="width:100%;max-width:640px;aspect-ratio:16/10;border-radius:16px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;overflow:hidden"></div>
+          </div>
+        </div>
+      `;
+      const frame=$("#frame",content);
+      if(isData){const img=new Image();img.src=data.trim();img.style.maxWidth="100%";img.style.maxHeight="100%";frame.appendChild(img);}
+      else frame.innerHTML=`<div class="small">🖼️ Placeholder preview</div>`;
+      WM.create({pid,appId:"photos",title:"Photos",w:820,h:560,x:190,y:140,content});
+    }
+  },
+  Settings:{
+    open(){
+      const pid=Proc.start("settings.exe",()=>{},{});
+      const content=document.createElement("div");
+      content.className="vcol";
+      content.innerHTML=`
+        <div class="hrow" style="justify-content:space-between">
+          <div>
+            <div style="font-weight:800">Settings</div>
+            <div class="small">Changes persist in reg.dat</div>
+          </div>
+          <span class="badge mono">system</span>
+        </div>
+        <div class="sep"></div>
+        <div class="vcol">
+          <div class="toggle"><div><div style="font-weight:700">Wi‑Fi</div><div class="small">Simulated</div></div><div class="switch" id="wifi"></div></div>
+          <div class="toggle"><div><div style="font-weight:700">Bluetooth</div><div class="small">Simulated</div></div><div class="switch" id="bt"></div></div>
+          <div class="toggle"><div><div style="font-weight:700">Volume</div><div class="small" id="vtxt">${OS.settings.volume}%</div></div><input class="slider" id="vol" type="range" min="0" max="100" value="${OS.settings.volume}"/></div>
+          <div class="toggle"><div><div style="font-weight:700">Brightness</div><div class="small" id="btxt">${OS.settings.brightness}%</div></div><input class="slider" id="br" type="range" min="0" max="100" value="${OS.settings.brightness}"/></div>
+          <div class="sep"></div>
+          <div class="hrow" style="justify-content:space-between">
+            <div>
+              <div style="font-weight:700">Shell</div>
+              <div class="small">Explorer is the shell process. Ending it returns to kernel-only black screen.</div>
+            </div>
+            <button class="btn danger" id="kill">End explorer.exe (UAC)</button>
+          </div>
+        </div>
+      `;
+      const wifi=$("#wifi",content), bt=$("#bt",content);
+      const sync=()=>{
+        wifi.classList.toggle("on",!!OS.settings.wifi);
+        bt.classList.toggle("on",!!OS.settings.bt);
+        $("#vtxt",content).textContent=OS.settings.volume+"%";
+        $("#btxt",content).textContent=OS.settings.brightness+"%";
+      };
+      sync();
+      wifi.addEventListener("click",()=>{OS.settings.wifi=!OS.settings.wifi;OS.saveAll();sync();});
+      bt.addEventListener("click",()=>{OS.settings.bt=!OS.settings.bt;OS.saveAll();sync();});
+      $("#vol",content).addEventListener("input",(e)=>{OS.settings.volume=+e.target.value;OS.saveAll();sync();});
+      $("#br",content).addEventListener("input",(e)=>{OS.settings.brightness=+e.target.value;OS.saveAll();sync();});
+      $("#kill",content).addEventListener("click",()=>{
+        UAC.request("Ending explorer.exe will return to kernel-only black screen.",()=>Explorer.stop());
+      });
+      WM.create({pid,appId:"settings",title:"Settings",w:640,h:520,x:220,y:150,content});
+    }
+  },
+  TaskManager:{
+    open(){
+      UAC.request("Open Task Manager (system-level action).",()=>{
+        const pid=Proc.start("taskmgr.exe",()=>{},{});
+        const content=document.createElement("div");
+        content.className="vcol";
+        content.innerHTML=`
+          <div class="hrow" style="justify-content:space-between">
+            <div>
+              <div style="font-weight:800">Task Manager</div>
+              <div class="small">End/start processes (UAC)</div>
+            </div>
+            <div class="hrow">
+              <button class="btn" id="startAssoc">Start file_associations.exe</button>
+              <button class="btn" id="refresh">Refresh</button>
+            </div>
+          </div>
+          <div class="sep"></div>
+          <div id="plist" class="vcol"></div>
+        `;
+        const plist=$("#plist",content);
+
+        const render=()=>{
+          plist.innerHTML="";
+          Proc.list().forEach(p=>{
+            const row=document.createElement("div");
+            row.className="item";
+            row.style.cursor="default";
+            row.innerHTML=`
+              <div class="mini">🧩</div>
+              <div class="t" style="flex:1;min-width:0">
+                <div class="n"><span class="mono">${p.pid}</span> — <b>${escapeHtml(p.name)}</b></div>
+                <div class="p">Running since ${new Date(p.startTime).toLocaleTimeString()}</div>
+              </div>
+              <button class="btn danger" data-pid="${p.pid}">End task</button>
+            `;
+            row.querySelector("button").addEventListener("click",()=>{
+              UAC.request(`End task: ${p.name} (system-level action).`,()=>{
+                if(p.name==="explorer.exe"){
+                  UAC.request("Ending explorer.exe is a critical system action.",()=>{
+                    Proc.stop(p.pid);
+                    Explorer.stop();
+                  });
+                }else{
+                  Proc.stop(p.pid);
+                  render();
+                }
+              });
+            });
+            plist.appendChild(row);
+          });
+
+          // show stopped core processes
+          const core=["file_associations.exe","explorer.exe"];
+          core.forEach(name=>{
+            if(Proc.isRunning(name)) return;
+            const row=document.createElement("div");
+            row.className="item";
+            row.style.cursor="default";
+            row.innerHTML=`
+              <div class="mini">⏹️</div>
+              <div class="t" style="flex:1;min-width:0">
+                <div class="n"><b>${escapeHtml(name)}</b></div>
+                <div class="p">Not running</div>
+              </div>
+              <button class="btn primary">Start</button>
+            `;
+            row.querySelector("button").addEventListener("click",()=>{
+              UAC.request(`Start ${name} (system-level action).`,()=>{
+                if(name==="file_associations.exe") Proc.start("file_associations.exe",()=>{},{});
+                if(name==="explorer.exe") Explorer.start();
+                render();
+              });
+            });
+            plist.appendChild(row);
+          });
+        };
+
+        $("#refresh",content).addEventListener("click",render);
+        $("#startAssoc",content).addEventListener("click",()=>{
+          UAC.request("Start file_associations.exe (system-level action).",()=>{
+            Proc.start("file_associations.exe",()=>{},{});
+            Toast.show("file_associations.exe started");
+            render();
+          });
+        });
+
+        render();
+        WM.create({pid,appId:"taskmgr",title:"Task Manager",w:760,h:560,x:240,y:160,content});
+      });
+    }
+  },
+  Chat:{
+    open(){
+      const pid=Proc.start("chatgpt.exe",()=>{},{});
+      const u=OS.session.user;
+      if(!u) return Toast.show("No user session");
+      OS.reg.chat.threads[u.id]=OS.reg.chat.threads[u.id]||[{id:uid(),title:"New chat",msgs:[
+        {r:"ai",t:now(),c:"Welcome. This is an offline ChatGPT-style UI. Chats are saved locally."}
+      ]}];
+      OS.saveAll();
+
+      const content=document.createElement("div");
+      content.className="chatwrap";
+      content.innerHTML=`
+        <div class="hrow" style="justify-content:space-between">
+          <div>
+            <div style="font-weight:800">Chat</div>
+            <div class="small">Local-only. No externals. Saved in reg.dat.</div>
+          </div>
+          <div class="hrow">
+            <button class="btn" id="new">New chat</button>
+            <button class="btn" id="export">Export to Documents</button>
+          </div>
+        </div>
+        <div class="chatlog" id="log"></div>
+        <div class="composer">
+          <textarea class="input" id="msg" placeholder="Message..."></textarea>
+          <button class="btn primary" id="send">Send</button>
+        </div>
+        <div class="small">Tip: “Open with…” bypasses file associations even if file_associations.exe is stopped.</div>
+      `;
+      const log=$("#log",content), msg=$("#msg",content);
+      let thread=OS.reg.chat.threads[u.id][0];
+
+      const render=()=>{
+        log.innerHTML="";
+        thread.msgs.forEach(m=>{
+          const row=document.createElement("div");
+          row.className="msg "+(m.r==="me"?"me":"ai");
+          const bub=document.createElement("div");
+          bub.className="bub";
+          bub.textContent=m.c;
+          row.appendChild(bub);
+          log.appendChild(row);
+        });
+        log.scrollTop=log.scrollHeight;
+      };
+
+      const simulateAI=(text)=>{
+        const reply=
+`I’m running offline inside ThisWin12, so I can’t browse—but I can help you plan, write, or debug.
+
+You said:
+${text}
+
+Try:
+- file:///C:/Users/${u.username}/Desktop
+- https://example.invalid`;
+        thread.msgs.push({r:"ai",t:now(),c:reply});
+        OS.saveAll();
+        render();
+      };
+
+      const send=()=>{
+        const t=msg.value.trim();
+        if(!t) return;
+        thread.msgs.push({r:"me",t:now(),c:t});
+        msg.value="";
+        OS.saveAll();
+        render();
+        setTimeout(()=>simulateAI(t),350);
+      };
+
+      $("#send",content).addEventListener("click",send);
+      msg.addEventListener("keydown",(e)=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}});
+
+      $("#new",content).addEventListener("click",()=>{
+        const th={id:uid(),title:"New chat",msgs:[{r:"ai",t:now(),c:"New chat started. What are we building today?"}]};
+        OS.reg.chat.threads[u.id].unshift(th);
+        thread=th;
+        OS.saveAll();
+        render();
+      });
+
+      $("#export",content).addEventListener("click",()=>{
+        const out=thread.msgs.map(m=>`${m.r.toUpperCase()}: ${m.c}`).join("\n\n");
+        const p=`${Explorer._home()}/Documents/ChatExport_${new Date().toISOString().slice(0,10)}.txt`;
+        try{VFS.writeFile(p,out,"text/plain");Toast.show("Exported to Documents");}catch{Toast.show("Export failed");}
+      });
+
+      render();
+      WM.create({pid,appId:"chat",title:"Chat",w:860,h:620,x:200,y:120,content});
+    }
+  }
+};
+
+/* ========= Boot ========= */
+function boot(){
+  OS.loadAll();
+  const last=OS.reg.currentUserId;
+  if(last){
+    const u=(OS.reg.users||[]).find(x=>x.id===last);
+    if(u) OS.session.user=u;
+  }
+  Proc.start("file_associations.exe",()=>{},{});
+  Explorer.start();
+}
+boot();
+
+})();
+</script>
+</body>
+</html>

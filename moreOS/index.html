@@ -211,7 +211,18 @@ body{margin:0;background:#000;color:var(--fg);font-family:var(--font);overflow:h
 
 <script>
 (()=>{"use strict";
-
+function parseSimMeta(text) {
+  const meta = {};
+  String(text || "").split("\n").forEach(line => {
+    const i = line.indexOf("=");
+    if (i > 0) {
+      const k = line.slice(0, i).trim();
+      const v = line.slice(i + 1).trim();
+      if (k) meta[k] = v;
+    }
+  });
+  return meta;
+}
 /* ========= Utils ========= */
 const $=(s,e=document)=>e.querySelector(s);
 const $$=(s,e=document)=>Array.from(e.querySelectorAll(s));
@@ -1346,18 +1357,6 @@ toggleWidgets(){
   setInterval(() => { if(wtime.isConnected) wtime.textContent = fmtTime(); }, 1000);
 }
 /* ========= Apps ========= */
-const parseSimMeta = (text) => {
-  const meta = {};
-  String(text || "").split("\n").forEach(line => {
-    const i = line.indexOf("=");
-    if (i > 0) {
-      const k = line.slice(0, i).trim();
-      const v = line.slice(i + 1).trim();
-      if (k) meta[k] = v;
-    }
-  });
-  return meta;
-};
 const Apps={
   SearchResults:{
     open({query,results}){

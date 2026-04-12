@@ -233,7 +233,13 @@ const fmtTime=()=>{const d=new Date();const h=d.getHours(),m=String(d.getMinutes
 const extOf=(n)=>{const i=n.lastIndexOf(".");return i>0?n.slice(i).toLowerCase():"";};
 const baseName=(n)=>{const i=n.lastIndexOf(".");return i>0?n.slice(0,i):n;};
 const isHttp=(s)=>/^https?:\/\//i.test(s||"");
-const escapeHtml=(s)=>String(s??"").replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+const escapeHtml=(s)=>String(s ?? "").replace(/[&<>"']/g,m=>({
+  "&":"&amp;",
+  "<":"&lt;",
+  ">":"&gt;",
+  '"':"&quot;",
+  "'":"&#39;"
+}[m]));
 
 /* ========= Storage ========= */
 const LS={
@@ -270,6 +276,13 @@ OS.loadAll=()=>{
   if(!OS.reg||OS.reg.schemaVersion!==OS.schema){
     OS.reg={schemaVersion:OS.schema,users:[],currentUserId:null,settings:{wifi:true,bt:false,volume:70,brightness:80},chat:{threads:{}},browser:{bookmarks:{},history:{}}};
   }
+  OS.reg.users ||= [];
+  OS.reg.settings ||= {};
+  OS.reg.chat ||= {threads:{}};
+  OS.reg.chat.threads ||= {};
+  OS.reg.browser ||= {};
+  OS.reg.browser.bookmarks ||= {};
+  OS.reg.browser.history ||= {};
   OS.settings=Object.assign(OS.settings,OS.reg.settings||{});
   if(!OS.vfs||typeof OS.vfs!=="object") OS.vfs={t:"d",c:{}};
   VFS.ensureDrive();
@@ -923,7 +936,7 @@ const Explorer={
             <button class="btn" data-a="cancel">Cancel</button>
             <button class="btn primary" data-a="create">Create</button>
           </div>
-          <div class="small">Creates: C:/Users/&lt;Username&gt;/{Desktop,Documents,Recommended-files}</div>
+          <div class="small">Creates: C:/Users/<Username>/{Desktop,Documents,Recommended-files}</div>
         </div>
       </div>
     `;
@@ -1356,6 +1369,7 @@ toggleWidgets(){
   const wtime = $("#wtime", p);
   setInterval(() => { if(wtime.isConnected) wtime.textContent = fmtTime(); }, 1000);
 }
+};
 /* ========= Apps ========= */
 const Apps={
   SearchResults:{
@@ -1774,6 +1788,10 @@ const renderBookmarks = () => {
         if(!v) return;
         addHistory(v);
         fileView.innerHTML="";
+        const iframe = $("#webframe", content);
+        if (iframe) iframe.style.display = "none";
+        fileView.style.display = "block";
+        view.style.display = "block";
         if(/^file:\/\/\//i.test(v) || /^[A-Za-z]:\//.test(v)){
           const p=VFS.normPath(v);
           renderFile(p);
@@ -1824,7 +1842,10 @@ if (isHttp(v)) {
       $("#bm",content).addEventListener("click",()=>{
         if(!u) return Toast.show("No user session");
         const v=uinp.value.trim();
-        OS.reg.browser.bookmarks[u.id]=OS.reg.browser.bookmarks[u.id]||[];
+        OS.reg ||= {};
+        OS.reg.browser ||= {};
+        OS.reg.browser.bookmarks ||= {};
+        OS.reg.browser.bookmarks[u.id] ||= [];
         if(!OS.reg.browser.bookmarks[u.id].includes(v)) OS.reg.browser.bookmarks[u.id].unshift(v);
         OS.reg.browser.bookmarks[u.id]=OS.reg.browser.bookmarks[u.id].slice(0,20);
         OS.saveAll();
@@ -2157,3 +2178,4 @@ boot();
 </script>
 </body>
 </html>
+

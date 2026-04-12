@@ -1329,8 +1329,6 @@ toggleWidgets(){
   setInterval(() => {
     if (wtime.isConnected) wtime.textContent = fmtTime();
   }, 1000);
-}
-
 /* ========= Apps ========= */
 function parseSimMeta(text){
   const meta={};
@@ -1341,6 +1339,7 @@ function parseSimMeta(text){
   return meta;
 }
 
+}
 const Apps={
   SearchResults:{
     open({query,results}){

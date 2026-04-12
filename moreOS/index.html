@@ -1272,7 +1272,6 @@ Right-click files for Open / Open with… / Rename / Recommend / Delete.`, "text
     $("#openSet",p).addEventListener("click",()=>Apps.Settings.open());
     Explorer.shellEl.appendChild(p);
   },
-  toggleWidgets(){
 toggleWidgets(){
   const existing = $(".panel.widgets", Explorer.shellEl);
   if (existing) existing.remove();

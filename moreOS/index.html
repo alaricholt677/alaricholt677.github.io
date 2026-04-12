@@ -1329,6 +1329,7 @@ toggleWidgets(){
   setInterval(() => {
     if (wtime.isConnected) wtime.textContent = fmtTime();
   }, 1000);
+}
 /* ========= Apps ========= */
 function parseSimMeta(text){
   const meta={};
@@ -1337,8 +1338,6 @@ function parseSimMeta(text){
     if(i>0){const k=line.slice(0,i).trim();const v=line.slice(i+1).trim();if(k) meta[k]=v;}
   });
   return meta;
-}
-
 }
 const Apps={
   SearchResults:{

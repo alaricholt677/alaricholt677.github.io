@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>ThisWin12 — Next Valley Simulator</title>
+<title>NEW ThisWin12 — Next Valley Simulator</title>
 <style>
 :root{
   --bg0:#05060a;--bg1:#0a0f1f;--fg:#eaf0ff;--mut:#a9b4d6;--line:rgba(255,255,255,.14);
@@ -26,10 +26,12 @@ body{margin:0;background:#000;color:var(--fg);font-family:var(--font);overflow:h
     radial-gradient(900px 700px at 60% 90%, rgba(255,74,106,.12), transparent 60%),
     linear-gradient(180deg, var(--bg1), var(--bg0));
   filter:saturate(1.1);
+  pointer-events: none;
 }
 .noise{position:absolute;inset:-40px;opacity:.08;mix-blend-mode:overlay;background:
   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
   background-size:260px 260px;
+  pointer-events: none;
 }
 .glass{
   background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
@@ -89,7 +91,9 @@ body{margin:0;background:#000;color:var(--fg);font-family:var(--font);overflow:h
 .topbar{
   position:absolute;left:50%;top:16px;transform:translateX(-50%);
   height:56px;min-width:520px;max-width:92vw;padding:10px 12px;display:flex;align-items:center;gap:10px;
-  border-radius:22px;cursor:grab;
+  border-radius:22px;cursor:grab; 
+  z-index: 50;
+  pointer-events: auto;
 }
 .topbar:active{cursor:grabbing}
 .search{
@@ -100,8 +104,21 @@ body{margin:0;background:#000;color:var(--fg);font-family:var(--font);overflow:h
 .qsbtn{width:42px;height:42px;border-radius:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06)}
 .qsbtn:hover{background:rgba(255,255,255,.10)}
 .panel{
-  position:absolute;left:50%;transform:translateX(-50%);
-  width:560px;max-width:92vw;border-radius:26px;padding:14px;
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  width:560px;
+  max-width:92vw;
+  border-radius:26px;
+  padding:14px;
+
+  /* restored interaction */
+  pointer-events:auto;
+
+  /* safe visual defaults (common in the rest of your UI) */
+  backdrop-filter:blur(14px);
+  background:rgba(24,28,40,.72);
+  box-shadow:0 20px 60px rgba(0,0,0,.45);
 }
 .start{bottom:92px}
 .qspanel{top:78px;width:420px}

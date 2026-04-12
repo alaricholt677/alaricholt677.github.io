@@ -1281,92 +1281,69 @@ toggleWidgets(){
   const p = document.createElement("div");
   p.className = "panel widgets glass";
   p.style.left = "calc(50% - 320px)";
-  p.style.top  = "92px";
+  p.style.top = "92px";
   p.style.transform = "none";
   p.style.width = "320px";
 
-  // IMPORTANT: keep this HTML clean + balanced (all tags closed)
   p.innerHTML = `
     <div class="hrow" id="wTop" style="justify-content:space-between">
       <h3>Widgets</h3>
       <span class="badge mono">◈</span>
     </div>
-    <div class="vcol">
+    <div class="vcol" id="wBody">
       <div class="item" style="cursor:default">
         <div class="mini">🕒</div>
-        <div class="t">
-          <div class="n" id="wtime">${fmtTime()}</div>
-          <div class="p">Local time</div>
-        </div>
+        <div class="t"><div class="n" id="wtime">${fmtTime()}</div><div class="p">Local time</div></div>
       </div>
-
       <div class="item" style="cursor:default">
         <div class="mini">📶</div>
-        <div class="t">
-          <div class="n">System</div>
-          <div class="p">Wi‑Fi: ${OS.settings.wifi ? "On" : "Off"} • BT: ${OS.settings.bt ? "On" : "Off"}</div>
-        </div>
+        <div class="t"><div class="n">System</div><div class="p">Wi‑Fi: ${OS.settings.wifi?"On":"Off"} • BT: ${OS.settings.bt?"On":"Off"}</div></div>
       </div>
-
       <div class="item" id="openDesk">
         <div class="mini">🗂️</div>
-        <div class="t">
-          <div class="n">Desktop folder</div>
-          <div class="p mono">file:///${escapeHtml(Explorer._desktopPath())}</div>
-        </div>
+        <div class="t"><div class="n">Desktop folder</div><div class="p mono">file:///${escapeHtml(Explorer._desktopPath())}</div></div>
       </div>
     </div>
   `;
 
   Explorer.shellEl.appendChild(p);
 
-  // ✅ draggable only by the top bar
-  makeDraggableByHandle(p, $("#wTop", p));
+  // --- Drag only from the top bar using your existing makeDraggable() ---
+  const top = $("#wTop", p);
+  const body = $("#wBody", p);
 
-  $("#openDesk", p).addEventListener("click", () =>
-    Apps.FileExplorer.open({ path: Explorer._desktopPath() })
-  );
+  top.style.cursor = "grab";
+  top.style.userSelect = "none";
 
+  // Temporarily prevent dragging from anywhere except top:
+  // makeDraggable listens on the element you pass in; we pass the PANEL,
+  // but we only allow "mousedown" to reach the panel when the user starts on the top bar.
+  // So we toggle pointer-events to allow only header to start the drag.
+  p.style.pointerEvents = "none";
+  top.style.pointerEvents = "auto";
+  body.style.pointerEvents = "auto"; // keep widgets clickable normally
+
+  // When user presses on header, allow the panel to receive the drag start
+  top.addEventListener("mousedown", () => {
+    p.style.pointerEvents = "auto";
+    top.style.cursor = "grabbing";
+  });
+
+  // After mouseup anywhere, lock it back so body clicks don't start drag
+  window.addEventListener("mouseup", () => {
+    if(!p.isConnected) return;
+    p.style.pointerEvents = "none";
+    top.style.pointerEvents = "auto";
+    body.style.pointerEvents = "auto";
+    top.style.cursor = "grab";
+  });
+
+  // Now apply your existing draggable helper to the panel
+  makeDraggable(p, { clampY:[8, window.innerHeight - 8] });
+
+  $("#openDesk", p).addEventListener("click", () => Apps.FileExplorer.open({ path: Explorer._desktopPath() }));
   const wtime = $("#wtime", p);
-  setInterval(() => {
-    if(wtime.isConnected) wtime.textContent = fmtTime();
-  }, 1000);
-}
-function makeDraggableByHandle(panel, handle){
-  let drag=false, ox=0, oy=0, startL=0, startT=0;
-
-  handle.style.cursor = "grab";
-  handle.style.userSelect = "none";
-
-  handle.addEventListener("mousedown",(e)=>{
-    // don't start dragging when interacting with controls
-    if(e.target.closest("button,input,textarea,a")) return;
-
-    drag=true;
-    const r = panel.getBoundingClientRect();
-    startL = r.left; startT = r.top;
-    ox = e.clientX;  oy = e.clientY;
-
-    panel.classList.add("dragging");
-    handle.style.cursor="grabbing";
-    // once user drags, we want absolute left/top positioning, not translate-based
-    panel.style.transform="none";
-
-    e.preventDefault();
-  });
-
-  window.addEventListener("mousemove",(e)=>{
-    if(!drag) return;
-    panel.style.left = (startL + (e.clientX-ox)) + "px";
-    panel.style.top  = (startT + (e.clientY-oy)) + "px";
-  });
-
-  window.addEventListener("mouseup",()=>{
-    if(!drag) return;
-    drag=false;
-    panel.classList.remove("dragging");
-    handle.style.cursor="grab";
-  });
+  setInterval(() => { if(wtime.isConnected) wtime.textContent = fmtTime(); }, 1000);
 }
 /* ========= Apps ========= */
 function parseSimMeta(text){

@@ -1274,18 +1274,18 @@ Right-click files for Open / Open with… / Rename / Recommend / Delete.`, "text
   },
 toggleWidgets(){
   const existing = $(".panel.widgets", Explorer.shellEl);
-  if (existing) existing.remove();
-
+  if(existing) existing.remove();
   OS.ui.widgetsOpen = !OS.ui.widgetsOpen;
-  if (!OS.ui.widgetsOpen) return;
+  if(!OS.ui.widgetsOpen) return;
 
   const p = document.createElement("div");
   p.className = "panel widgets glass";
   p.style.left = "calc(50% - 320px)";
-  p.style.top = "92px";
+  p.style.top  = "92px";
   p.style.transform = "none";
   p.style.width = "320px";
 
+  // IMPORTANT: keep this HTML clean + balanced (all tags closed)
   p.innerHTML = `
     <div class="hrow" id="wTop" style="justify-content:space-between">
       <h3>Widgets</h3>
@@ -1299,6 +1299,7 @@ toggleWidgets(){
           <div class="p">Local time</div>
         </div>
       </div>
+
       <div class="item" style="cursor:default">
         <div class="mini">📶</div>
         <div class="t">
@@ -1306,6 +1307,7 @@ toggleWidgets(){
           <div class="p">Wi‑Fi: ${OS.settings.wifi ? "On" : "Off"} • BT: ${OS.settings.bt ? "On" : "Off"}</div>
         </div>
       </div>
+
       <div class="item" id="openDesk">
         <div class="mini">🗂️</div>
         <div class="t">
@@ -1315,20 +1317,56 @@ toggleWidgets(){
       </div>
     </div>
   `;
+
   Explorer.shellEl.appendChild(p);
 
-  // ✅ Make widgets draggable by top bar only
-  makePanelDraggableByTop(p);
+  // ✅ draggable only by the top bar
+  makeDraggableByHandle(p, $("#wTop", p));
 
-  $("#openDesk", p).addEventListener(
-    "click",
-    () => Apps.FileExplorer.open({ path: Explorer._desktopPath() })
+  $("#openDesk", p).addEventListener("click", () =>
+    Apps.FileExplorer.open({ path: Explorer._desktopPath() })
   );
 
   const wtime = $("#wtime", p);
   setInterval(() => {
-    if (wtime.isConnected) wtime.textContent = fmtTime();
+    if(wtime.isConnected) wtime.textContent = fmtTime();
   }, 1000);
+}
+function makeDraggableByHandle(panel, handle){
+  let drag=false, ox=0, oy=0, startL=0, startT=0;
+
+  handle.style.cursor = "grab";
+  handle.style.userSelect = "none";
+
+  handle.addEventListener("mousedown",(e)=>{
+    // don't start dragging when interacting with controls
+    if(e.target.closest("button,input,textarea,a")) return;
+
+    drag=true;
+    const r = panel.getBoundingClientRect();
+    startL = r.left; startT = r.top;
+    ox = e.clientX;  oy = e.clientY;
+
+    panel.classList.add("dragging");
+    handle.style.cursor="grabbing";
+    // once user drags, we want absolute left/top positioning, not translate-based
+    panel.style.transform="none";
+
+    e.preventDefault();
+  });
+
+  window.addEventListener("mousemove",(e)=>{
+    if(!drag) return;
+    panel.style.left = (startL + (e.clientX-ox)) + "px";
+    panel.style.top  = (startT + (e.clientY-oy)) + "px";
+  });
+
+  window.addEventListener("mouseup",()=>{
+    if(!drag) return;
+    drag=false;
+    panel.classList.remove("dragging");
+    handle.style.cursor="grab";
+  });
 }
 /* ========= Apps ========= */
 function parseSimMeta(text){
@@ -2122,43 +2160,6 @@ Try:
     }
   }
 };
-function makePanelDraggableByTop(panel){
-  const header = panel.querySelector(".hrow");
-  if (!header) return;
-
-  let startX, startY, startL, startT;
-
-  header.style.cursor = "grab";
-  header.style.userSelect = "none";
-
-  header.addEventListener("mousedown", (e) => {
-    e.preventDefault();
-
-    const r = panel.getBoundingClientRect();
-    startX = e.clientX;
-    startY = e.clientY;
-    startL = r.left;
-    startT = r.top;
-
-    panel.classList.add("dragging");
-    panel.style.transform = "none";
-
-    const onMove = (ev) => {
-      panel.style.left = (startL + ev.clientX - startX) + "px";
-      panel.style.top  = (startT + ev.clientY - startY) + "px";
-    };
-
-    const onUp = () => {
-      panel.classList.remove("dragging");
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
-    };
-
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
-  });
-}
-
 /* ========= Boot ========= */
 function boot(){
   OS.loadAll();

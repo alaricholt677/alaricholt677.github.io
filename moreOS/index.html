@@ -197,6 +197,13 @@ body{margin:0;background:#000;color:var(--fg);font-family:var(--font);overflow:h
 .switch.on{background:rgba(60,255,176,.18);border-color:rgba(60,255,176,.35)}
 .switch.on::after{left:21px;background:rgba(60,255,176,.95)}
 .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+.panel .hrow{
+  cursor:grab;
+  user-select:none;
+}
+.panel.dragging .hrow{
+  cursor:grabbing;
+}
 </style>
 </head>
 <body>
@@ -1266,43 +1273,64 @@ Right-click files for Open / Open with… / Rename / Recommend / Delete.`, "text
     Explorer.shellEl.appendChild(p);
   },
   toggleWidgets(){
-    const existing=$(".panel.widgets",Explorer.shellEl);
-    if(existing) existing.remove();
-    OS.ui.widgetsOpen=!OS.ui.widgetsOpen;
-    if(!OS.ui.widgetsOpen) return;
+toggleWidgets(){
+  const existing = $(".panel.widgets", Explorer.shellEl);
+  if (existing) existing.remove();
 
-    const p=document.createElement("div");
-    p.className="panel widgets glass";
-    p.style.left="calc(50% - 320px)";
-    p.style.top="92px";
-    p.style.transform="none";
-    p.style.width="320px";
-    p.innerHTML=`
-      <div class="hrow" style="justify-content:space-between">
-        <h3>Widgets</h3>
-        <span class="badge mono">◈</span>
-      </div>
-      <div class="vcol">
-        <div class="item" style="cursor:default">
-          <div class="mini">🕒</div>
-          <div class="t"><div class="n" id="wtime">${fmtTime()}</div><div class="p">Local time</div></div>
-        </div>
-        <div class="item" style="cursor:default">
-          <div class="mini">📶</div>
-          <div class="t"><div class="n">System</div><div class="p">Wi‑Fi: ${OS.settings.wifi?"On":"Off"} • BT: ${OS.settings.bt?"On":"Off"}</div></div>
-        </div>
-        <div class="item" id="openDesk">
-          <div class="mini">🗂️</div>
-          <div class="t"><div class="n">Desktop folder</div><div class="p mono">file:///${escapeHtml(Explorer._desktopPath())}</div></div>
+  OS.ui.widgetsOpen = !OS.ui.widgetsOpen;
+  if (!OS.ui.widgetsOpen) return;
+
+  const p = document.createElement("div");
+  p.className = "panel widgets glass";
+  p.style.left = "calc(50% - 320px)";
+  p.style.top = "92px";
+  p.style.transform = "none";
+  p.style.width = "320px";
+
+  p.innerHTML = `
+    <div class="hrow" id="wTop" style="justify-content:space-between">
+      <h3>Widgets</h3>
+      <span class="badge mono">◈</span>
+    </div>
+    <div class="vcol">
+      <div class="item" style="cursor:default">
+        <div class="mini">🕒</div>
+        <div class="t">
+          <div class="n" id="wtime">${fmtTime()}</div>
+          <div class="p">Local time</div>
         </div>
       </div>
-    `;
-    Explorer.shellEl.appendChild(p);
-    $("#openDesk",p).addEventListener("click",()=>Apps.FileExplorer.open({path:Explorer._desktopPath()}));
-    const wtime=$("#wtime",p);
-    setInterval(()=>{if(wtime.isConnected) wtime.textContent=fmtTime();},1000);
-  }
-};
+      <div class="item" style="cursor:default">
+        <div class="mini">📶</div>
+        <div class="t">
+          <div class="n">System</div>
+          <div class="p">Wi‑Fi: ${OS.settings.wifi ? "On" : "Off"} • BT: ${OS.settings.bt ? "On" : "Off"}</div>
+        </div>
+      </div>
+      <div class="item" id="openDesk">
+        <div class="mini">🗂️</div>
+        <div class="t">
+          <div class="n">Desktop folder</div>
+          <div class="p mono">file:///${escapeHtml(Explorer._desktopPath())}</div>
+        </div>
+      </div>
+    </div>
+  `;
+  Explorer.shellEl.appendChild(p);
+
+  // ✅ Make widgets draggable by top bar only
+  makePanelDraggableByTop(p);
+
+  $("#openDesk", p).addEventListener(
+    "click",
+    () => Apps.FileExplorer.open({ path: Explorer._desktopPath() })
+  );
+
+  const wtime = $("#wtime", p);
+  setInterval(() => {
+    if (wtime.isConnected) wtime.textContent = fmtTime();
+  }, 1000);
+}
 
 /* ========= Apps ========= */
 function parseSimMeta(text){
@@ -2097,6 +2125,42 @@ Try:
     }
   }
 };
+function makePanelDraggableByTop(panel){
+  const header = panel.querySelector(".hrow");
+  if (!header) return;
+
+  let startX, startY, startL, startT;
+
+  header.style.cursor = "grab";
+  header.style.userSelect = "none";
+
+  header.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+
+    const r = panel.getBoundingClientRect();
+    startX = e.clientX;
+    startY = e.clientY;
+    startL = r.left;
+    startT = r.top;
+
+    panel.classList.add("dragging");
+    panel.style.transform = "none";
+
+    const onMove = (ev) => {
+      panel.style.left = (startL + ev.clientX - startX) + "px";
+      panel.style.top  = (startT + ev.clientY - startY) + "px";
+    };
+
+    const onUp = () => {
+      panel.classList.remove("dragging");
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  });
+}
 
 /* ========= Boot ========= */
 function boot(){

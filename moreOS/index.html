@@ -1347,10 +1347,14 @@ toggleWidgets(){
 }
 /* ========= Apps ========= */
 function parseSimMeta(text){
-  const meta={};
-  String(text||"").split("\n").forEach(line=>{
-    const i=line.indexOf("=");
-    if(i>0){const k=line.slice(0,i).trim();const v=line.slice(i+1).trim();if(k) meta[k]=v;}
+  const meta = {};
+  String(text || "").split("\n").forEach(line => {
+    const i = line.indexOf("=");
+    if (i > 0) {
+      const k = line.slice(0, i).trim();
+      const v = line.slice(i + 1).trim();
+      if (k) meta[k] = v;
+    }
   });
   return meta;
 }

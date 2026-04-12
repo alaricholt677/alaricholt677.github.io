@@ -1346,7 +1346,7 @@ toggleWidgets(){
   setInterval(() => { if(wtime.isConnected) wtime.textContent = fmtTime(); }, 1000);
 }
 /* ========= Apps ========= */
-function parseSimMeta(text){
+const parseSimMeta = (text) => {
   const meta = {};
   String(text || "").split("\n").forEach(line => {
     const i = line.indexOf("=");
@@ -1357,7 +1357,7 @@ function parseSimMeta(text){
     }
   });
   return meta;
-}
+};
 const Apps={
   SearchResults:{
     open({query,results}){

@@ -1,4 +1,4 @@
-# Win12 Simulator
+# 🌌 Win12 Simulator — The Browser‑Native OS
 
 [![Stars](https://img.shields.io/github/stars/alaricholt677/alaricholt677.github.io?style=for-the-badge)](https://github.com/alaricholt677/alaricholt677.github.io/stargazers)
 [![Forks](https://img.shields.io/github/forks/alaricholt677/alaricholt677.github.io?style=for-the-badge)](https://github.com/alaricholt677/alaricholt677.github.io/forks)
@@ -7,137 +7,264 @@
 
 ---
 
-## 🌐 Overview
+# 🌐 Overview
 
-**Win12 Simulator** is a fully browser‑native operating system environment built using  
+**Win12 Simulator** is a futuristic, fully browser‑native operating system built using  
 **pure HTML, CSS, and JavaScript** — no backend, no frameworks, no external servers.
 
-It simulates a futuristic Windows‑style OS with:
+It simulates a next‑generation Windows‑style OS with:
 
-- A full **Win12 shell**
-- A complete **window manager**
-- A **Start menu**
-- A **taskbar**
-- A **widget system**
-- A **news & weather panel**
-- A **theme engine**
-- A **browser**
-- A **camera recorder**
-- A **Host.exe subsystem**
-- A **base64 `.exe` launcher**
-- A **multi‑user system**
-- A **session importer/exporter**
+- A complete **Win12 shell**
+- A full **window manager**
+- **Start menu**, **taskbar**, **widgets**
+- **Theme engine**
+- **Browser**
+- **Camera recorder**
+- **Host.exe subsystem**
+- **Base64 `.exe` launcher**
+- **Multi‑user system**
+- **Session importer/exporter**
 - A full suite of **apps**
+- A fully emulated **virtual filesystem**
 
 Everything runs **client‑side** and persists using LocalStorage.
 
 ---
 
-## 🖥️ Core Features
+# ⭐ If You Starred This Project…
 
-### **✔ Win12 Shell**
-- Modern UI
-- Start menu with apps, widgets, and power controls
-- Taskbar with live window buttons
-- Smooth animations and transitions
-- Full desktop environment
+### 👉 **Click here to visit the Thank‑You Shrine:**  
+### **https://alaricholt677.github.io/thanks/thanks.html**
 
-### **✔ Window Manager**
-- Drag, resize, minimize, maximize
-- Z‑index stacking
-- Snap behavior
-- Multi‑window support
-
-### **✔ File System (LocalStorage‑powered)**
-- Create, rename, delete, duplicate files
-- Persistent storage across sessions
-- Filetype detection
-- Import/export support
-
-### **✔ Session System**
-- Export full OS state
-- Import sessions from file
-- Restore windows, files, settings, and layout
+You get a special page dedicated to supporters.
 
 ---
 
-## 📦 Built‑In Apps
+# 🎮 Want to Play Mods or Games?
+
+### 👉 **Visit the MOD Hub:**  
+### **https://alaricholt677.github.io/MOD**
+
+---
+
+# ⛏️ Want to Play My Minecraft Recreation?
+
+### 👉 **Download / Redirect Page:**  
+### **https://alaricholt677.github.io/download/**
+
+---
+
+# 🧭 Developer Strategies (Read Before Contributing)
+
+Win12 Simulator is built on **patterns**.  
+Once you understand these patterns, you can add apps, fix bugs, or extend the OS without breaking anything.
+
+---
+
+## 🔹 1. Start Menu Pattern
+
+```html
+<div class="start-app" data-app="APP_ID">
+    <img src="icons/APP_ICON.png">
+    <span>APP_NAME</span>
+</div>
+```
+
+### ✔ Strategy  
+- Duplicate an existing block  
+- Change `data-app`, icon, and name  
+- The launcher auto‑detects it  
+
+---
+
+## 🔹 2. Taskbar Pattern
+
+```html
+<div class="taskbar-item" data-app="APP_ID">
+    <img src="icons/APP_ICON.png">
+</div>
+```
+
+### ✔ Strategy  
+- Taskbar items appear automatically when a window opens  
+- If it doesn’t appear, your `data-app` is mismatched  
+
+---
+
+## 🔹 3. Window Skeleton Pattern
+
+```html
+<div class="window" data-app="APP_ID">
+    <div class="window-titlebar">
+        <span>APP_NAME</span>
+        <div class="window-controls">
+            <button class="minimize"></button>
+            <button class="maximize"></button>
+            <button class="close"></button>
+        </div>
+    </div>
+
+    <div class="window-content">
+        <!-- Your app UI goes here -->
+    </div>
+</div>
+```
+
+### ✔ Strategy  
+- Always start with this skeleton  
+- Keep UI inside `.window-content`  
+- Never modify the titlebar structure  
+
+---
+
+## 🔹 4. Use Issues for App Requests
+
+If you want a new app added:
+
+1. Open an **Issue**
+2. Choose **App Request**
+3. Describe the app
+4. The maintainer will generate the skeleton for you
+
+---
+
+## 🔹 5. Understand the Default File System (FS)
+
+Win12 uses a **virtual filesystem** stored in LocalStorage.
+
+### ✔ Desktop  
+- `Welcome.txt`  
+- `Readme.md`  
+- `SampleApp.exe`  
+
+### ✔ System32  
+- Boot scripts  
+- Kernel shim  
+- VirtualFS handler  
+- AIM runtime  
+- Host.exe  
+- Registry mock  
+- Shortcuts  
+
+### ✔ Documents  
+- Boot/session logs  
+- Association verification  
+
+### ✔ Recommended Files  
+- Preview plans  
+- FS ideas  
+- Embedded iframe previews  
+
+### ✔ Windows Resources  
+- Theme colors  
+- Fonts  
+
+### ✔ Logs  
+- Boot logs  
+
+### ✔ Strategy  
+- Never delete System32  
+- Desktop/Documents are safe to modify  
+- FS entries must include:  
+  `path`, `name`, `type`, `ext`, `content`
+
+---
+
+## 🔹 6. App Lifecycle
+
+1. Start Menu entry clicked  
+2. Window skeleton created  
+3. Taskbar item appears  
+4. JS controller initializes  
+5. Window manager handles drag/resize  
+6. App saves data to LocalStorage  
+
+### ✔ Strategy  
+If something breaks:
+- Check `data-app`  
+- Check window skeleton  
+- Check JS controller  
+- Check FS path  
+
+---
+
+## 🔹 7. Use Patterns, Not Guesswork
+
+### ✔ Strategy  
+- Find an existing example  
+- Duplicate it  
+- Modify only what you need  
+
+This prevents 90% of bugs.
+
+---
+
+# 📦 Built‑In Apps
 
 | App | Description |
 |------|-------------|
-| **Notepad** | Simple text editor with save, and persistent storage |
-| **Paint** | Full drawing app with brush, eraser, colors, and import |
-| **Browser** | Loads websites, local files, and internal pages |
-| **Camera Recorder** | Uses webcam to record and exports video blobs |
-| **File Explorer** | Full file manager with context menus and file actions |
-| **MiniWeb** | Micro browser widget |
-| **MiniRun** | Quick command launcher |
-| **CPU Widget** | Fake CPU monitor for aesthetics |
-| **Notes Shrine** | Persistent notes panel |
-| **Weather Widget** | Live weather (simulated) |
-| **News Panel** | Scrollable news feed UI |
-| **Theme Studio** | Customize colors, UI accents, and system theme |
-| **Host.exe** | Base64 `.exe` launcher for internal apps |
-| **AIM OS** | Built‑in assistant with commands and suggestions |
-| **CMD and AIM OS file creation** | These both can play music export/import session and can add and delete files |
+| Notepad | Simple text editor |
+| Paint | Drawing app |
+| Browser | Loads websites & internal pages |
+| Camera Recorder | Webcam recorder |
+| File Explorer | File manager |
+| MiniWeb | Micro browser widget |
+| MiniRun | Quick launcher |
+| CPU Widget | Fake CPU monitor |
+| Notes Shrine | Persistent notes |
+| Weather Widget | Simulated weather |
+| News Panel | Scrollable news feed |
+| Theme Studio | Customize system theme |
+| Host.exe | Base64 `.exe` launcher |
+| AIM OS | Built‑in assistant |
+| CMD + AIM OS file creation | Music player, file tools |
 
 ---
 
-## 🧩 System Subsystems
+# 🧱 Default File System (FS) — Full Breakdown
 
-### **🔹 Host.exe**
-A simulated executable loader that:
-- Accepts base64 “.exe” payloads  
-- Launches internal apps  
-- Acts as a sandboxed execution layer  
+The FS is defined as:
 
-### **🔹 Theme Engine**
-- Live CSS variable editing  
-- Save/load themes  
-- System‑wide color changes  
+```js
+fs: [
+  { path:"/desktop", name:"Welcome.txt", type:"file", ext:".txt", content:"Hello from the Win12 AIM relic.\n\nThis is your desktop Welcome.txt file."},
+  { path:"/desktop", name:"Readme.md", type:"file", ext:".md", content:"# Readme\n\nThis is a markdown file in /desktop."},
+  { path:"/desktop", name:"SampleApp.exe", type:"file", ext:".exe", content:"(Unsupported type or Binary)"},
 
-### **🔹 Multi‑User System**
-- Create users  
-- Switch accounts  
-- User‑specific files and settings  
+  { path:"/Windows/System32/BootHelper", name:"Boot.bat", type:"file", ext:".bat", content:"@echo off\nstart https://alaricholt677.github.io\nexit" },
 
-### **🔹 News & Weather Panel**
-- Scrollable news feed  
-- Weather widget  
-- Quick‑access tools  
+  { path:"/documents", name:"Session.log", type:"file", ext:".log", content:"(full boot log…)" },
 
-### **🔹 Widgets**
-- Clock  
-- Notes  
-- CPU  
-- Weather  
-- MiniWeb  
-- MiniRun  
-- AND MORE!!!
+  { path:"/recommended-files", name:"win12PreviewPlans.txt", type:"file", ext:".txt", content:"Ideas: ..."},
+  { path:"/recommended-files", name:"RecommendedFS.txt", type:"file", ext:".txt", content:"Most of us started as a coca cola employ..."},
+  { path:"/recommended-files", name:"win12PreviewFinal.html", type:"file", ext:".html", content:"<iframe src=https://tjy-gitnub.github.io/win12/desktop.html></iframe>" },
 
----
+  { path:"/Windows", name:"Win12Config.ini", type:"file", ext:".ini", content:"[System]\nTheme=Dark\nAIMEnabled=true\nFSMode=Virtual\n" },
 
-## 🛠️ Technology
+  { path:"/Windows/System32", name:"KernelShim.sys", type:"file", ext:".sys", content:"// Win12 Kernel Shim..." },
+  { path:"/Windows/System32", name:"AIMCore.dll", type:"file", ext:".dll", content:"// AIM Core Runtime..." },
+  { path:"/Windows/System32", name:"VirtualFS.dll", type:"file", ext:".dll", content:"// Virtual FileSystem Handler..." },
+  { path:"/Windows/System32", name:"Host.exe", type:"file", ext:".exe", content:"// Host.exe..." },
+  { path:"/Windows/System32", name:"Regedit.exe", type:"file", ext:".exe", content:"// Registry Editor mock..." },
+  { path:"/Windows/System32", name:"ShellLink.lnk", type:"file", ext:".lnk", content:"Shortcut: /Windows/System32/Host.exe" },
 
-- **HTML5** — structure  
-- **CSS3** — theming, animations, UI  
-- **JavaScript** — logic, window manager, apps  
-- **LocalStorage** — filesystem, settings, sessions  
-- **MediaDevices API** — camera recorder  
-- **FileReader / Blob** — import/export  
-- **Base64** — Host.exe payloads  
+  { path:"/Windows/System32/BootHelper", name:"BootSequence.cfg", type:"file", ext:".cfg", content:"boot=Boot.bat\nfallback=SafeMode.bat\n" },
+  { path:"/Windows/System32/BootHelper", name:"SafeMode.bat", type:"file", ext:".bat", content:"@echo off\ncls\necho Starting Win12 in Safe Mode...\n" },
 
-No frameworks.  
-No libraries.  
-No backend.  
-Just raw code.
+  { path:"/Windows/Fonts", name:"Win12Sans.ttf", type:"file", ext:".ttf", content:"(Binary font placeholder)" },
+
+  { path:"/Windows/Resources", name:"ThemeColors.json", type:"file", ext:".json", content:'{ "accent":"#b400ff", "background":"#0c0c0c", "taskbar":"#1a1a1a" }' },
+
+  { path:"/Windows/Logs", name:"SystemBoot.log", type:"file", ext:".log", content:"BootHelper invoked.\nKernelShim loaded.\nAIMCore initialized.\n" }
+]
+```
 
 ---
 
-## 🚀 Roadmap
+# 🚀 Roadmap
 
-### **Completed**
-- Win12 shell  
+## ✔ Completed
+- Shell  
 - Window manager  
 - File Explorer  
 - Notepad  
@@ -149,67 +276,72 @@ Just raw code.
 - News panel  
 - Weather  
 - Host.exe  
-- Base64 `.exe` system  
+- Base64 `.exe`  
 - Multi‑user  
 - Session importer/exporter  
-- Copilot mini  
+- AIM OS  
 - System settings  
 
-### **Planned**
+## 🟦 In Progress
+- UI polish  
 - More widgets  
-- More apps  
-- App store (local)
-- and your app requests
+- More system apps  
+- Better animations  
+- Improved FS tools  
+
+## 🟧 Planned
+- Local App Store  
+- Plugin API  
+- Custom themes gallery  
+- Win12 notifications  
+- Lock screen  
+- Boot animation  
+- More AIM OS commands  
 
 ---
 
-## 📜 License
+# 🛠️ Technology
 
-This project is licensed under the **MIT License**.  
-See the `LICENSE` file for details.
+- HTML5  
+- CSS3  
+- JavaScript  
+- LocalStorage  
+- MediaDevices API  
+- FileReader / Blob  
+- Base64 execution layer  
+
+No frameworks.  
+No libraries.  
+No backend.  
+Just raw code.
 
 ---
 
-## 🏆 Credits
+# 🏆 Credits
 
 - **Sean** — Creator, developer, designer  
-- **Copilot** — Assistant, collaborator, system architect  
+- **Copilot** — Assistant, collaborator  
 
 ---
 
-## ⭐ Support the Project
-
-If you enjoy the Win12 Simulator:
+# ⭐ Support the Project
 
 - ⭐ Star the repo  
 - 🍴 Fork it  
 - 🐛 Report issues  
 - 💡 Suggest features  
 
-Every bit of support helps the project grow.
+Your support helps the project grow.
 
 ---
 
-## **And Thank Yall For Using My Project**
+# 🙏 Thank You
 
-Thank You Is At:
- - alaricholt677.github.io/thanks/thanks.html
- And if you want to:
-  - check out alaricholt677.github.io/MOD
+Thank‑you page:  
+**https://alaricholt677.github.io/thanks/thanks.html**
 
-<!-- WIN12SIMU_META
-{
-  "project": "Win12 Simulator",
-  "authentic": true,
-  "verified": true,
-  "tags": [
-    "win12",
-    "win12-simulator",
-    "webos",
-    "browser-os",
-    "html-os",
-    "system-core"
-  ],
-  "snippet": "A full Win12-style WebOS simulator built entirely in HTML, CSS, and JavaScript."
-}
-WIN12SIMU_META -->
+Mods page:  
+**https://alaricholt677.github.io/MOD**
+
+Minecraft recreation:  
+**https://alaricholt677.github.io/download/**

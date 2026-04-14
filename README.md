@@ -50,7 +50,7 @@ You get a special page dedicated to supporters.
 # ⛏️ Want to Play My Minecraft Recreation?
 
 ### 👉 **Download / Redirect Page:**  
-### **https://alaricholt677.github.io/download/**
+### **https://alaricholt677.github.io/downloads/**
 
 ---
 

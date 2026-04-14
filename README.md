@@ -1,4 +1,5 @@
-# 🌌 Win12 Simulator — The Browser‑Native OS
+[![win12-icon](https://alaricholt677.github.io/win12-icon.svg)](alaricholt677.github.io)
+# Win12 Simulator — The Browser‑Native OS
 
 [![Stars](https://img.shields.io/github/stars/alaricholt677/alaricholt677.github.io?style=for-the-badge)](https://github.com/alaricholt677/alaricholt677.github.io/stargazers)
 [![Forks](https://img.shields.io/github/forks/alaricholt677/alaricholt677.github.io?style=for-the-badge)](https://github.com/alaricholt677/alaricholt677.github.io/forks)

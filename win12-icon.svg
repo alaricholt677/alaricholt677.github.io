@@ -1,33 +1,193 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Win12 icon">
   <defs>
-    <!-- Gradient background in magenta/purple -->
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <!-- Palette gradients -->
+    <linearGradient id="gradA" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#ff4da6"/>
+      <stop offset="1" stop-color="#c44dff"/>
+    </linearGradient>
+
+    <linearGradient id="gradB" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff6bd1"/>
       <stop offset="1" stop-color="#9b4dff"/>
     </linearGradient>
-    <!-- Pane gradient for glassy shading -->
-    <linearGradient id="pane" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/>
-      <stop offset="1" stop-color="#ffffff" stop-opacity="0.6"/>
+
+    <linearGradient id="gradC" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff3f9e"/>
+      <stop offset="1" stop-color="#b44dff"/>
     </linearGradient>
-    <!-- Drop shadow filter -->
-    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.25"/>
+
+    <linearGradient id="gradD" x1="1" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ff7ad8"/>
+      <stop offset="1" stop-color="#8a3dff"/>
+    </linearGradient>
+
+    <!-- Glass highlight overlay -->
+    <linearGradient id="glassTop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="0.35" stop-color="#ffffff" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.12"/>
+    </linearGradient>
+
+    <!-- Inner soft vignette to add depth -->
+    <radialGradient id="vignette" cx="0.5" cy="0.45" r="0.8">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.12"/>
+    </radialGradient>
+
+    <!-- Strong rim to help icon pop on any background -->
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.06"/>
+    </linearGradient>
+
+    <!-- Shine gradient used for sweep -->
+    <linearGradient id="sweepGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.45" stop-color="#fff" stop-opacity="0.0"/>
+      <stop offset="0.5" stop-color="#fff" stop-opacity="0.65"/>
+      <stop offset="0.55" stop-color="#fff" stop-opacity="0.0"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Small sparkle radial -->
+    <radialGradient id="spark" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fff" stop-opacity="1"/>
+      <stop offset="0.4" stop-color="#fff" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Soft drop shadow for panes -->
+    <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000" flood-opacity="0.22"/>
     </filter>
+
+    <!-- Inner subtle shadow to separate panes -->
+    <filter id="innerShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feOffset dx="0" dy="2" result="off"/>
+      <feGaussianBlur in="off" stdDeviation="3" result="blur"/>
+      <feComposite in="blur" in2="SourceGraphic" operator="out" result="inner"/>
+      <feColorMatrix in="inner" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.18 0" />
+    </filter>
+
+    <!-- Clip path so shine only affects panes -->
+    <clipPath id="panesClip">
+      <!-- exact pane shapes repeated here to clip the shine -->
+      <rect x="32" y="32" width="88" height="88" rx="18"/>
+      <rect x="136" y="32" width="88" height="88" rx="10"/>
+      <rect x="32" y="136" width="88" height="88" rx="28"/>
+      <rect x="136" y="136" width="88" height="88" rx="14"/>
+    </clipPath>
+
+    <!-- Mask for subtle highlight shapes inside panes -->
+    <mask id="paneMask">
+      <rect width="256" height="256" fill="black"/>
+      <!-- white where panes are visible -->
+      <rect x="32" y="32" width="88" height="88" rx="18" fill="white"/>
+      <rect x="136" y="32" width="88" height="88" rx="10" fill="white"/>
+      <rect x="32" y="136" width="88" height="88" rx="28" fill="white"/>
+      <rect x="136" y="136" width="88" height="88" rx="14" fill="white"/>
+    </mask>
+
+    <!-- CSS animations inside SVG -->
+    <style>
+      /* sweep animation across panes */
+      @keyframes sweep {
+        0% { transform: translate(-260px, 0) rotate(18deg); opacity: 0; }
+        10% { opacity: 0.0; }
+        30% { opacity: 0.95; }
+        70% { opacity: 0.95; }
+        90% { opacity: 0.0; }
+        100% { transform: translate(260px, 0) rotate(18deg); opacity: 0; }
+      }
+
+      /* sparkle twinkle */
+      @keyframes twinkle {
+        0% { opacity: 0; transform: scale(0.6); }
+        20% { opacity: 1; transform: scale(1.0); }
+        40% { opacity: 0.2; transform: scale(0.8); }
+        100% { opacity: 0; transform: scale(0.6); }
+      }
+
+      .sweep {
+        transform-origin: 50% 50%;
+        animation: sweep 2.4s cubic-bezier(.2,.9,.2,1) infinite;
+      }
+
+      .spark {
+        animation: twinkle 1.6s ease-in-out infinite;
+      }
+    </style>
   </defs>
 
-  <!-- Rounded background -->
-  <rect width="256" height="256" rx="32" fill="url(#bg)"/>
-
-  <!-- Four panes with shading -->
-  <g transform="translate(128,128) skewX(-6) translate(-128,-128)" filter="url(#shadow)">
-    <rect x="36" y="36" width="88" height="88" rx="12" fill="url(#pane)"/>
-    <rect x="132" y="36" width="88" height="88" rx="12" fill="url(#pane)"/>
-    <rect x="36" y="132" width="88" height="88" rx="12" fill="url(#pane)"/>
-    <rect x="132" y="132" width="88" height="88" rx="12" fill="url(#pane)"/>
+  <!-- Outer rim to help icon pop on any background -->
+  <g opacity="0.98">
+    <rect x="8" y="8" width="240" height="240" rx="36" fill="none" stroke="url(#rim)" stroke-width="2" opacity="0.9"/>
   </g>
 
-  <!-- Split lines for crisp separation -->
-  <rect x="126" y="32" width="4" height="192" fill="#9b4dff" opacity="0.7"/>
-  <rect x="32" y="126" width="192" height="4" fill="#9b4dff" opacity="0.7"/>
+  <!-- Vignette overlay for depth -->
+  <rect width="256" height="256" rx="36" fill="url(#vignette)" opacity="0.9"/>
+
+  <!-- Panes group with soft shadow -->
+  <g filter="url(#softShadow)" mask="url(#paneMask)">
+    <!-- Pane 1: slightly rounded, strong color -->
+    <g>
+      <rect x="32" y="32" width="88" height="88" rx="18" fill="url(#gradA)"/>
+      <!-- subtle inner shadow to separate -->
+      <rect x="32" y="32" width="88" height="88" rx="18" fill="none" filter="url(#innerShadow)"/>
+      <!-- glass highlight shape (curved) -->
+      <path d="M40 40 C72 28, 112 28, 112 56 L112 64 C88 48, 56 48, 40 64 Z" fill="url(#glassTop)" opacity="0.95"/>
+    </g>
+
+    <!-- Pane 2: sharper corners, lighter tint -->
+    <g>
+      <rect x="136" y="32" width="88" height="88" rx="10" fill="url(#gradB)"/>
+      <rect x="136" y="32" width="88" height="88" rx="10" fill="none" filter="url(#innerShadow)"/>
+      <path d="M144 36 C176 24, 208 28, 220 56 L220 64 C200 44, 160 44, 144 64 Z" fill="url(#glassTop)" opacity="0.88"/>
+    </g>
+
+    <!-- Pane 3: pill-like, medium intensity -->
+    <g>
+      <rect x="32" y="136" width="88" height="88" rx="28" fill="url(#gradC)"/>
+      <rect x="32" y="136" width="88" height="88" rx="28" fill="none" filter="url(#innerShadow)"/>
+      <path d="M40 144 C72 132, 112 132, 112 160 L112 168 C88 152, 56 152, 40 168 Z" fill="url(#glassTop)" opacity="0.9"/>
+    </g>
+
+    <!-- Pane 4: medium round, softer -->
+    <g>
+      <rect x="136" y="136" width="88" height="88" rx="14" fill="url(#gradD)"/>
+      <rect x="136" y="136" width="88" height="88" rx="14" fill="none" filter="url(#innerShadow)"/>
+      <path d="M144 144 C176 132, 208 136, 220 164 L220 172 C200 152, 160 152, 144 172 Z" fill="url(#glassTop)" opacity="0.86"/>
+    </g>
+  </g>
+
+  <!-- Animated sweep clipped to panes only -->
+  <g clip-path="url(#panesClip)" opacity="0.98">
+    <!-- large diagonal sweep rectangle, animated -->
+    <rect class="sweep" x="-260" y="-40" width="520" height="120" rx="60" fill="url(#sweepGrad)" style="mix-blend-mode:screen"/>
+  </g>
+
+  <!-- Sparkles that appear on top of panes at key moments -->
+  <!-- Spark 1 on Pane 1 -->
+  <g transform="translate(92,56)">
+    <circle class="spark" cx="0" cy="0" r="6" fill="url(#spark)" opacity="0"/>
+    <circle cx="0" cy="0" r="1.2" fill="#fff" opacity="0.9"/>
+  </g>
+
+  <!-- Spark 2 on Pane 2 -->
+  <g transform="translate(196,60)">
+    <circle class="spark" cx="0" cy="0" r="5" fill="url(#spark)" opacity="0"/>
+    <circle cx="0" cy="0" r="1" fill="#fff" opacity="0.9"/>
+  </g>
+
+  <!-- Spark 3 on Pane 4 -->
+  <g transform="translate(196,180)">
+    <circle class="spark" cx="0" cy="0" r="5.5" fill="url(#spark)" opacity="0"/>
+    <circle cx="0" cy="0" r="1.1" fill="#fff" opacity="0.9"/>
+  </g>
+
+  <!-- subtle center accent line to add a premium seam -->
+  <line x1="128" y1="28" x2="128" y2="228" stroke="#ffffff" stroke-opacity="0.03" stroke-width="2"/>
+
+  <!-- small accessibility-friendly title (hidden visually but readable by screen readers) -->
+  <title>Win12 Icon Pink Purple Magenta</title>
 </svg>

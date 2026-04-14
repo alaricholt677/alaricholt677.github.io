@@ -14348,94 +14348,106 @@ console.log(`%c
 })();
 </script>
 <script>
-/* MS Store fetch + install script
-   - Fetches JSON from the provided URL
-   - Builds UI inside .window[data-app="msstore"] .window-body
-   - Shows download page with banner, install button, name, icon (from JSON)
-   - On install: simulates progress, persists installed apps, creates start tile, and creates a window with the app content
-   - LocalStorage key: msstore_installed_v2
+/* MS Store: persist installs, restore on Enter, create start tiles & app windows
+   - Scoped: only manipulates inside .window[data-app="msstore"] .window-body
+   - Persists installed apps to localStorage key: msstore_installed_v2
+   - Press Enter while the store window is focused to restore installed apps:
+     creates start tiles and opens app windows for each installed app
+   - When opening an installed app:
+     - if app.html exists -> open in an iframe using srcdoc
+     - else if app.downloadUrl exists -> fetch the URL:
+         * if response is JSON array -> render a grid of apps (icon/name/download)
+         * else treat response as HTML and show it in an iframe (srcdoc)
+         * on fetch error -> show an error message
+   - Download buttons in fetched grids will "download" (simulate install), persist to localStorage,
+     and then reload the page so the newly installed game appears in the store/start menu.
 */
 
 (function(){
   const DATA_URL = 'https://alaricholt677.github.io/msstore/data.json';
   const LS_KEY = 'msstore_installed_v2';
 
-  // find the store window element (scoped)
+  // --- DOM helpers (scoped) ---
   function findStoreWindow(){
     return document.querySelector('.window[data-app="msstore"]') || document.getElementById('window-msstore') || null;
   }
-
-  // storage helpers
-  function readInstalled(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch(e){ return []; } }
-  function writeInstalled(list){ localStorage.setItem(LS_KEY, JSON.stringify(list)); }
-  function isInstalled(id){ return readInstalled().some(x=>x.id === id); }
-  function addInstalled(meta){ const list = readInstalled(); if(!list.some(x=>x.id===meta.id)){ list.push(meta); writeInstalled(list); } }
-
-  // DOM helpers (scoped)
-  function create(tag, attrs={}, children=[]){
+  function create(tag, attrs = {}, children = []){
     const el = document.createElement(tag);
     for(const k in attrs){
       if(k === 'class') el.className = attrs[k];
       else if(k === 'html') el.innerHTML = attrs[k];
       else el.setAttribute(k, attrs[k]);
     }
-    (Array.isArray(children)?children:[children]).forEach(c=>{
-      if(!c) return;
+    (Array.isArray(children) ? children : [children]).forEach(c=>{
+      if(c === null || c === undefined) return;
       if(typeof c === 'string') el.appendChild(document.createTextNode(c));
       else el.appendChild(c);
     });
     return el;
   }
-
-  // emit events on the store window element for integration
   function emitOnStore(winEl, name, detail){
     if(!winEl) return;
     winEl.dispatchEvent(new CustomEvent(name, { detail }));
   }
 
-  // fetch catalog
+  // --- storage helpers ---
+  function readInstalled(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }catch(e){ return []; } }
+  function writeInstalled(list){ localStorage.setItem(LS_KEY, JSON.stringify(list)); }
+  function addInstalled(meta){
+    const list = readInstalled();
+    if(!list.some(x => x.id === meta.id)){
+      list.push({ id: meta.id, name: meta.name || '', icon: meta.icon || '', sub: meta.sub || '', html: meta.html || null, downloadUrl: meta.downloadUrl || null, installedAt: Date.now() });
+      writeInstalled(list);
+    }
+  }
+  function isInstalled(id){ return readInstalled().some(x => x.id === id); }
+
+  // --- fetch catalog (same normalization as before) ---
   async function fetchCatalog(){
     try{
       const res = await fetch(DATA_URL, { cache: 'no-cache' });
-      if(!res.ok) throw new Error('Failed to fetch catalog: ' + res.status);
-      const data = await res.json();
-      if(!Array.isArray(data)) return [];
-      return data;
+      if(!res.ok) throw new Error('Fetch failed: ' + res.status);
+      const json = await res.json();
+      if(!Array.isArray(json)) return [];
+      return json.map(item => ({
+        id: String(item.id || item.appId || item.name || ('app-' + Math.random().toString(36).slice(2,8))),
+        name: item.name || item.title || 'Untitled App',
+        sub: item.sub || item.subtitle || item.description || '',
+        icon: item.icon || item.img || '',
+        banner: item.banner || '',
+        html: item.html ? String(item.html) : null,
+        downloadUrl: (!item.html && item.downloadUrl) ? String(item.downloadUrl) : null,
+        raw: item
+      }));
     }catch(err){
-      console.warn('MSStore: fetch error', err);
+      console.warn('MSStore fetch error', err);
       return [];
     }
   }
 
-  // build the store UI inside the window body
+  // --- UI: build store inside window body ---
   async function buildStoreUI(winEl){
     const body = winEl.querySelector('.window-body');
     if(!body) return;
-    body.innerHTML = ''; // clear only inside window body
-
+    body.innerHTML = '';
     const catalog = await fetchCatalog();
-
     const root = create('div', { id: 'win-msstore' });
 
     // Sidebar
     const menu = create('div', { class: 'menu' });
     const list = create('list');
-    catalog.forEach((app, idx)=>{
+    catalog.forEach((app, idx) => {
       const a = create('a', { href:'#', 'data-app': app.id });
-      const icon = create('div', { class: 'm-icon' }, [ app.icon ? '' : (app.name ? app.name[0] : '?') ]);
+      const iconWrap = create('div', { class: 'm-icon' });
       if(app.icon){
-        const img = create('img', { src: app.icon, alt: app.name || '', style: 'width:28px;height:28px;border-radius:6px;object-fit:cover;' });
-        icon.appendChild(img);
+        iconWrap.appendChild(create('img', { src: app.icon, alt: app.name, style: 'width:28px;height:28px;border-radius:6px;object-fit:cover;' }));
+      } else {
+        iconWrap.textContent = app.name[0] || '?';
       }
-      const t2 = create('div', { class: 't2' }, [ app.name || 'App' ]);
-      a.appendChild(icon); a.appendChild(t2);
+      const t2 = create('div', { class: 't2' }, [ app.name ]);
+      a.appendChild(iconWrap); a.appendChild(t2);
       if(idx === 0) a.classList.add('check');
-      a.addEventListener('click', e=>{
-        e.preventDefault();
-        showDownloadPage(winEl, app);
-        list.querySelectorAll('a').forEach(x=>x.classList.remove('check'));
-        a.classList.add('check');
-      });
+      a.addEventListener('click', e => { e.preventDefault(); showDownloadPage(winEl, app); list.querySelectorAll('a').forEach(x=>x.classList.remove('check')); a.classList.add('check'); });
       list.appendChild(a);
     });
     menu.appendChild(list);
@@ -14445,42 +14457,30 @@ console.log(`%c
     const cnt = create('div', { class: 'cnt home show' });
     const containerInner = create('div', { class: 'container' });
 
-    // If catalog empty, show message
     if(catalog.length === 0){
-      const empty = create('div', { class: 'empty' }, [
-        create('p', {}, ['No apps found in the catalog.']),
-        create('p', {}, ['Check the data.json URL or try again later.'])
-      ]);
-      containerInner.appendChild(empty);
+      containerInner.appendChild(create('div', { class: 'empty' }, [ create('p', {}, ['No apps found.']) ]));
     } else {
-      // Featured / grid
       const appsSection = create('div', { class: 'apps' });
       const tit = create('div', { class: 'tit' }, ['Featured']);
       const appCards = create('div', { class: 'app-cards' });
 
-      catalog.forEach(app=>{
+      catalog.forEach(app => {
         const card = create('div', { class: 'app-card', 'data-app': app.id });
-        const left = create('div', { class: 'left' }, [ app.icon ? '' : (app.name ? app.name[0] : '?') ]);
-        if(app.icon){
-          const img = create('img', { src: app.icon, alt: app.name || '', style: 'width:64px;height:64px;border-radius:10px;object-fit:cover;' });
-          left.appendChild(img);
-        }
+        const left = create('div', { class: 'left' });
+        if(app.icon) left.appendChild(create('img', { src: app.icon, alt: app.name, style: 'width:64px;height:64px;border-radius:10px;object-fit:cover;' }));
+        else left.textContent = app.name[0] || '?';
         const right = create('div', { class: 'right' });
         const titleRow = create('div', { class: 'tit' });
         const up = create('div', { class: 'up' });
-        const type = create('div', { class: 'type' }, [ app.name || 'App' ]);
+        const type = create('div', { class: 'type' }, [ app.name ]);
         const installBtn = create('button', { class: 'install-btn' }, [ isInstalled(app.id) ? 'Open' : 'Install' ]);
-        installBtn.addEventListener('click', e=>{
-          e.stopPropagation();
-          if(isInstalled(app.id)) openInstalledApp(winEl, app);
-          else beginInstall(winEl, app, installBtn, card);
-        });
+        installBtn.addEventListener('click', e => { e.stopPropagation(); if(isInstalled(app.id)) openInstalledApp(winEl, app); else beginInstall(winEl, app, installBtn, card); });
         up.appendChild(type); up.appendChild(installBtn);
         titleRow.appendChild(up);
-        const desc = create('div', { class: 'desc' }, [ app.sub || app.description || '' ]);
+        const desc = create('div', { class: 'desc' }, [ app.sub ]);
         right.appendChild(titleRow); right.appendChild(desc);
         card.appendChild(left); card.appendChild(right);
-        card.addEventListener('click', ()=> showDownloadPage(winEl, app));
+        card.addEventListener('click', () => showDownloadPage(winEl, app));
         appCards.appendChild(card);
       });
 
@@ -14490,15 +14490,13 @@ console.log(`%c
 
     cnt.appendChild(containerInner);
     page.appendChild(cnt);
-
     root.appendChild(menu); root.appendChild(page);
     body.appendChild(root);
 
-    // if there is at least one app, show its page by default
     if(catalog[0]) showDownloadPage(winEl, catalog[0]);
   }
 
-  // show the download page for a single app (banner + install)
+  // --- show download/preview page ---
   function showDownloadPage(winEl, app){
     const pageArea = winEl.querySelector('#win-msstore .page .cnt');
     if(!pageArea) return;
@@ -14506,62 +14504,37 @@ console.log(`%c
     pageArea.innerHTML = '';
 
     const banner = create('div', { class: 'download-banner' });
-    const bannerIcon = create('div', { class: 'banner-icon' }, [ app.icon ? '' : (app.name ? app.name[0] : '?') ]);
-    if(app.icon){
-      const img = create('img', { src: app.icon, alt: app.name || '', style: 'width:56px;height:56px;border-radius:10px;object-fit:cover;' });
-      bannerIcon.appendChild(img);
-    }
+    const bannerIcon = create('div', { class: 'banner-icon' });
+    if(app.icon) bannerIcon.appendChild(create('img', { src: app.icon, alt: app.name, style: 'width:56px;height:56px;border-radius:10px;object-fit:cover;' }));
+    else bannerIcon.textContent = app.name[0] || '?';
     const meta = create('div', { class: 'banner-meta' });
-    const name = create('div', { class: 'name' }, [ app.name || 'App' ]);
-    const sub = create('div', { class: 'sub' }, [ app.sub || app.description || '' ]);
-    meta.appendChild(name); meta.appendChild(sub);
-
+    meta.appendChild(create('div', { class: 'name' }, [ app.name ]));
+    meta.appendChild(create('div', { class: 'sub' }, [ app.sub ]));
     const actions = create('div', { class: 'banner-actions' });
     const installBtn = create('button', { class: 'install-btn' }, [ isInstalled(app.id) ? 'Open' : 'Install' ]);
-    const moreBtn = create('button', { class: 'install-btn' }, [ 'Details' ]);
-    installBtn.addEventListener('click', ()=>{
-      if(isInstalled(app.id)) openInstalledApp(winEl, app);
-      else beginInstall(winEl, app, installBtn);
-    });
-    moreBtn.addEventListener('click', ()=> {
-      // scroll to content
-      const content = pageArea.querySelector('.download-content');
-      if(content) content.scrollIntoView({ behavior: 'smooth' });
-    });
-
+    installBtn.addEventListener('click', () => { if(isInstalled(app.id)) openInstalledApp(winEl, app); else beginInstall(winEl, app, installBtn); });
     actions.appendChild(installBtn);
-    actions.appendChild(moreBtn);
-
-    banner.appendChild(bannerIcon);
-    banner.appendChild(meta);
-    banner.appendChild(actions);
-
+    banner.appendChild(bannerIcon); banner.appendChild(meta); banner.appendChild(actions);
     pageArea.appendChild(banner);
 
-    // content area: either HTML from JSON or iframe for downloadUrl
     const contentWrap = create('div', { class: 'download-content' });
     if(app.html){
-      // sanitize minimally by using innerHTML (user controls JSON); this is a simulator
       const wrapper = create('div', { html: app.html });
       contentWrap.appendChild(wrapper);
     } else if(app.downloadUrl){
-      // show a small download info + preview iframe (sandboxed)
       const info = create('div', { style: 'padding:12px;' }, [
-        create('p', {}, [ 'Download URL: ' ]),
+        create('p', {}, ['Preview (sandboxed):']),
         create('a', { href: app.downloadUrl, target: '_blank', rel: 'noopener noreferrer' }, [ app.downloadUrl ])
       ]);
-      // iframe preview (sandboxed to avoid running scripts)
       const iframe = create('iframe', { src: app.downloadUrl, style: 'width:100%;height:320px;border:0;', sandbox: 'allow-same-origin allow-forms' });
-      contentWrap.appendChild(info);
-      contentWrap.appendChild(iframe);
+      contentWrap.appendChild(info); contentWrap.appendChild(iframe);
     } else {
-      contentWrap.appendChild(create('div', { style: 'padding:12px;color:#6b7280;' }, [ 'No preview available.' ]));
+      contentWrap.appendChild(create('div', { style: 'padding:12px;color:#6b7280;' }, [ 'No preview available for this app.' ]));
     }
-
     pageArea.appendChild(contentWrap);
   }
 
-  // install flow: simulate progress, persist, create start tile and create window
+  // --- install simulation (persists to localStorage) ---
   function beginInstall(winEl, app, btnEl, cardEl){
     if(!btnEl) btnEl = winEl.querySelector(`[data-app="${app.id}"] .install-btn`);
     if(!btnEl) return;
@@ -14571,67 +14544,57 @@ console.log(`%c
     btnEl.textContent = 'Installing...';
     if(cardEl) cardEl.appendChild(progressBar); else btnEl.parentElement.appendChild(progressBar);
 
-    // simulate progress
+    emitOnStore(winEl, 'msstore:install:start', { id: app.id });
+
     let progress = 0;
-    const step = ()=>{
-      progress += Math.floor(Math.random()*18) + 6;
+    const step = () => {
+      progress += Math.floor(Math.random() * 18) + 6;
       if(progress >= 100){
         progress = 100;
-        // mark installed
-        addInstalled({ id: app.id, name: app.name, icon: app.icon || '', installedAt: Date.now() });
-        emitOnStore(winEl, 'msstore:install:complete', { id: app.id });
-        // finalize UI
         progressBar.style.width = '100%';
-        setTimeout(()=> {
+        emitOnStore(winEl, 'msstore:install:progress', { id: app.id, progress });
+        emitOnStore(winEl, 'msstore:install:complete', { id: app.id });
+        setTimeout(() => {
           try{ btnEl.disabled = false; btnEl.textContent = 'Open'; }catch(e){}
           if(progressBar && progressBar.parentElement) progressBar.parentElement.removeChild(progressBar);
-          // sync other buttons
-          winEl.querySelectorAll(`[data-app="${app.id}"] .install-btn`).forEach(b=>{
-            try{ b.textContent = 'Open'; b.disabled = false; }catch(e){}
-          });
-          // create start tile and create app window
+          // persist install
+          addInstalled(app);
+          // create start tile and open app window
           createStartTile(app);
           openInstalledApp(winEl, app);
         }, 300);
       } else {
         progressBar.style.width = progress + '%';
         emitOnStore(winEl, 'msstore:install:progress', { id: app.id, progress });
-        setTimeout(step, 250 + Math.random()*300);
+        setTimeout(step, 200 + Math.random() * 300);
       }
     };
-    setTimeout(step, 250);
-    emitOnStore(winEl, 'msstore:install:start', { id: app.id });
+    setTimeout(step, 200);
   }
 
-  // create a start menu tile for the installed app
+  // --- create start tile (id + name only as requested) ---
   function createStartTile(app){
-    // build element
-    const tile = create('div', { class: 'start-app', 'data-app': app.id, 'data-app-name': app.name || '' });
-    const iconWrap = create('div', { class: 'start-app-icon', style: 'background:linear-gradient(135deg,#4f46e5,#06b6d4);width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;' });
-    if(app.icon){
-      const img = create('img', { src: app.icon, alt: app.name || '', style: 'width:36px;height:36px;border-radius:8px;object-fit:cover;' });
-      iconWrap.appendChild(img);
-    } else {
-      iconWrap.appendChild(document.createTextNode(app.name ? app.name[0] : '?'));
-    }
-    const nameEl = create('div', {}, [ app.name || 'App' ]);
-    const subEl = create('div', { class: 'start-app-sub', style: 'font-size:12px;color:#6b7280;' }, [ app.sub || app.description || '' ]);
-    tile.appendChild(iconWrap);
-    tile.appendChild(nameEl);
-    tile.appendChild(subEl);
+    // avoid duplicates
+    const existing = document.querySelector(`.start-app[data-app="${app.id}"]`);
+    if(existing) return existing;
 
-    // click opens the app window
-    tile.addEventListener('click', ()=> {
+    const tile = create('div', { class: 'start-app', 'data-app': app.id, 'data-app-name': app.name });
+    const iconWrap = create('div', { class: 'start-app-icon', style: 'background:linear-gradient(135deg,#4f46e5,#06b6d4);width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;' });
+    if(app.icon) iconWrap.appendChild(create('img', { src: app.icon, alt: app.name, style: 'width:36px;height:36px;border-radius:8px;object-fit:cover;' }));
+    else iconWrap.textContent = app.name[0] || '?';
+    const nameEl = create('div', {}, [ app.name ]);
+    const subEl = create('div', { class: 'start-app-sub', style: 'font-size:12px;color:#6b7280;' }, [ app.sub || '' ]);
+    tile.appendChild(iconWrap); tile.appendChild(nameEl); tile.appendChild(subEl);
+
+    tile.addEventListener('click', () => {
       const winEl = findStoreWindow();
       openInstalledApp(winEl, app);
     });
 
-    // try to append to a start menu container if present, else append to body in a small container
     const startMenu = document.querySelector('.start-menu') || document.querySelector('#start-menu') || null;
     if(startMenu){
       startMenu.appendChild(tile);
     } else {
-      // create a lightweight container if not present
       let container = document.querySelector('#msstore-start-tiles');
       if(!container){
         container = create('div', { id: 'msstore-start-tiles', style: 'position:fixed;left:12px;bottom:12px;display:flex;flex-direction:column;gap:8px;z-index:9999;' });
@@ -14639,67 +14602,68 @@ console.log(`%c
       }
       container.appendChild(tile);
     }
+    return tile;
   }
 
-  // open an installed app: create a window with name, icon and content
-  function openInstalledApp(winEl, app){
+  // --- open installed app (iframe srcdoc or fetch remote) ---
+  async function openInstalledApp(winEl, app){
     emitOnStore(winEl, 'msstore:open', { id: app.id });
 
     // prefer host window manager if available
     if(typeof window.createAppWindow === 'function'){
-      const content = create('div');
-      // if JSON provided html, use it; else if downloadUrl, embed iframe; else simple placeholder
+      const container = create('div');
+      // if html present -> srcdoc iframe
       if(app.html){
-        content.innerHTML = app.html;
+        const frame = create('iframe', { style: 'width:100%;height:100%;border:0;', sandbox: 'allow-same-origin allow-forms' });
+        frame.srcdoc = app.html;
+        container.appendChild(frame);
       } else if(app.downloadUrl){
-        const iframe = create('iframe', { src: app.downloadUrl, style: 'width:100%;height:100%;border:0;', sandbox: 'allow-same-origin allow-forms' });
-        content.appendChild(iframe);
+        // fetch the URL and decide how to render
+        const content = await fetchAndRenderContent(app.downloadUrl, container, app);
+        if(content) container.appendChild(content);
       } else {
-        content.innerHTML = `<div style="padding:16px;"><h3>${app.name}</h3><p>Preview content for ${app.name}.</p></div>`;
+        container.innerHTML = `<div style="padding:16px;"><h3>${escapeHtml(app.name)}</h3><p>${escapeHtml(app.sub || '')}</p></div>`;
       }
-      window.createAppWindow(app.id, app.name || 'App', content);
+      window.createAppWindow(app.id, app.name, container);
       return;
     }
 
-    // fallback: create a simple window element appended to body
-    const fallbackWin = create('div', { class: 'window', id: 'window-' + app.id, 'data-app': app.id, 'data-app-desc': app.sub || app.description || '' });
-    // header
+    // fallback simple window element
+    const fallbackWin = create('div', { class: 'window', id: 'window-' + app.id, 'data-app': app.id, 'data-app-desc': app.sub || '' });
     const header = create('div', { class: 'window-header', 'data-drag-handle': '' });
-    const titleWrap = create('div', { class: 'window-title' });
-    const titleIcon = create('div', { class: 'window-title-icon', style: 'width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#4f46e5,#06b6d4);color:#fff;font-weight:700;margin-right:8px;' });
-    if(app.icon){
-      const img = create('img', { src: app.icon, alt: app.name || '', style: 'width:20px;height:20px;object-fit:cover;border-radius:4px;' });
-      titleIcon.appendChild(img);
-    } else {
-      titleIcon.appendChild(document.createTextNode(app.name ? app.name[0] : '?'));
-    }
+    const titleWrap = create('div', { class: 'window-title', style: 'display:flex;align-items:center;gap:8px;padding:8px;' });
+    const titleIcon = create('div', { class: 'window-title-icon', style: 'width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#4f46e5,#06b6d4);color:#fff;font-weight:700;' });
+    if(app.icon) titleIcon.appendChild(create('img', { src: app.icon, alt: app.name, style: 'width:20px;height:20px;object-fit:cover;border-radius:4px;' }));
+    else titleIcon.textContent = app.name[0] || '?';
     const titleText = create('div', { class: 'window-title-text' });
-    titleText.appendChild(create('div', { class: 'window-title-main' }, [ app.name || 'App' ]));
+    titleText.appendChild(create('div', { class: 'window-title-main' }, [ app.name ]));
     titleText.appendChild(create('div', { class: 'window-title-sub' }, [ app.sub || '' ]));
     titleWrap.appendChild(titleIcon); titleWrap.appendChild(titleText);
     header.appendChild(titleWrap);
-    const controls = create('div', { class: 'window-controls' });
-    const closeBtn = create('div', { class: 'window-btn close', title: 'Close' }, [ create('div', { class: 'window-btn-icon' }, ['✕']) ]);
-    closeBtn.addEventListener('click', ()=> fallbackWin.remove());
+    const controls = create('div', { class: 'window-controls', style: 'display:flex;align-items:center;padding:8px;' });
+    const closeBtn = create('div', { class: 'window-btn close', title: 'Close', style: 'cursor:pointer;margin-left:8px;' }, [ create('div', { class: 'window-btn-icon' }, ['✕']) ]);
+    closeBtn.addEventListener('click', () => fallbackWin.remove());
     controls.appendChild(closeBtn);
     header.appendChild(controls);
 
-    const body = create('div', { class: 'window-body', style: 'height:320px;overflow:auto;background:#fff;padding:12px;border-radius:0 0 8px 8px;' });
+    const body = create('div', { class: 'window-body', style: 'height:360px;overflow:auto;background:#fff;padding:12px;border-radius:0 0 8px 8px;' });
 
-    // content
     if(app.html){
-      body.innerHTML = app.html;
+      // use iframe with srcdoc to isolate
+      const frame = create('iframe', { style: 'width:100%;height:100%;border:0;', sandbox: 'allow-same-origin allow-forms' });
+      frame.srcdoc = app.html;
+      body.appendChild(frame);
     } else if(app.downloadUrl){
-      const iframe = create('iframe', { src: app.downloadUrl, style: 'width:100%;height:100%;border:0;', sandbox: 'allow-same-origin allow-forms' });
-      body.appendChild(iframe);
+      // fetch and render
+      const content = await fetchAndRenderContent(app.downloadUrl, body, app);
+      body.appendChild(content);
     } else {
-      body.appendChild(create('div', { style: 'padding:12px;' }, [ create('h3', {}, [ app.name || 'App' ]), create('p', {}, [ 'Preview content for ' + (app.name || 'App') ]) ]));
+      body.appendChild(create('div', { style: 'padding:12px;' }, [ create('h3', {}, [ app.name ]), create('p', {}, [ app.sub || 'No preview available.' ]) ]));
     }
 
     fallbackWin.appendChild(header);
     fallbackWin.appendChild(body);
 
-    // basic positioning
     fallbackWin.style.position = 'fixed';
     fallbackWin.style.left = '50%';
     fallbackWin.style.top = '50%';
@@ -14713,27 +14677,132 @@ console.log(`%c
     document.body.appendChild(fallbackWin);
   }
 
-  // initialize store when the store window is present
-  function init(){
+  // --- fetch remote content and decide how to render ---
+  async function fetchAndRenderContent(url, container, appMeta){
+    const wrapper = create('div', { style: 'width:100%;height:100%;min-height:240px;padding:8px;box-sizing:border-box;' });
+    const status = create('div', { style: 'padding:8px;color:#6b7280;' }, [ 'Loading preview...' ]);
+    wrapper.appendChild(status);
+
+    try{
+      const res = await fetch(url, { cache: 'no-cache' });
+      if(!res.ok) {
+        status.textContent = 'Failed to load preview: ' + res.status;
+        return wrapper;
+      }
+      const ct = res.headers.get('content-type') || '';
+      // if JSON -> parse and render grid of apps (expected schema: array of app objects)
+      if(ct.includes('application/json')){
+        const json = await res.json();
+        if(Array.isArray(json)){
+          wrapper.innerHTML = '';
+          const grid = create('div', { style: 'display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;' });
+          json.forEach(item => {
+            const id = item.id || item.name || ('app-' + Math.random().toString(36).slice(2,8));
+            const name = item.name || item.title || 'App';
+            const sub = item.sub || item.subtitle || item.description || '';
+            const icon = item.icon || '';
+            const card = create('div', { style: 'background:#fff;border-radius:8px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:8px;border:1px solid rgba(0,0,0,0.06);' });
+            const iconWrap = create('div', { style: 'width:64px;height:64px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#4f46e5,#06b6d4);color:#fff;' });
+            if(icon) iconWrap.appendChild(create('img', { src: icon, alt: name, style: 'width:56px;height:56px;border-radius:6px;object-fit:cover;' }));
+            else iconWrap.textContent = name[0] || '?';
+            const nameEl = create('div', { style: 'font-weight:600;text-align:center;' }, [ name ]);
+            const subEl = create('div', { style: 'font-size:12px;color:#6b7280;text-align:center;' }, [ sub ]);
+            const dlBtn = create('button', { style: 'margin-top:6px;padding:8px 10px;border-radius:8px;background:linear-gradient(90deg,#4f46e5,#06b6d4);color:#fff;border:0;cursor:pointer;' }, [ 'Download' ]);
+            dlBtn.addEventListener('click', () => {
+              // simulate download: add to localStorage and reload to "create the game"
+              addInstalled({ id, name, icon, sub, html: item.html || null, downloadUrl: (!item.html && item.downloadUrl) ? item.downloadUrl : null });
+              // small UX: show installing then reload
+              dlBtn.textContent = 'Downloading...';
+              setTimeout(()=> location.reload(), 400);
+            });
+            card.appendChild(iconWrap); card.appendChild(nameEl); card.appendChild(subEl); card.appendChild(dlBtn);
+            grid.appendChild(card);
+          });
+          wrapper.appendChild(grid);
+          return wrapper;
+        } else {
+          // not an array: show raw JSON
+          wrapper.innerHTML = '<pre style="white-space:pre-wrap;word-break:break-word;">' + escapeHtml(JSON.stringify(json, null, 2)) + '</pre>';
+          return wrapper;
+        }
+      }
+
+      // otherwise treat as HTML/text -> render in iframe via srcdoc
+      const text = await res.text();
+      const frame = create('iframe', { style: 'width:100%;height:480px;border:0;', sandbox: 'allow-same-origin allow-forms' });
+      frame.srcdoc = text;
+      wrapper.innerHTML = '';
+      wrapper.appendChild(frame);
+      return wrapper;
+    }catch(err){
+      status.textContent = 'Error loading preview: ' + (err && err.message ? err.message : 'network error');
+      return wrapper;
+    }
+  }
+
+  // --- restore installed apps on Enter keypress ---
+  function restoreInstalledOnEnter(winEl){
+    if(!winEl) return;
+    // only attach once
+    if(winEl.__msstore_enter_attached) return;
+    winEl.__msstore_enter_attached = true;
+
+    winEl.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter'){
+        const installed = readInstalled();
+        if(!installed || installed.length === 0) return;
+        // create start tiles and open windows for each installed app
+        installed.forEach(app => {
+          createStartTile(app);
+          // open each app window (non-blocking)
+          openInstalledApp(winEl, app);
+        });
+      }
+    });
+
+    // also allow Enter when the store window has focus via global keydown if the store is visible
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter'){
+        const winRect = winEl.getBoundingClientRect();
+        // if store window is visible on screen (simple check)
+        if(winRect.width > 0 && winRect.height > 0){
+          const installed = readInstalled();
+          if(!installed || installed.length === 0) return;
+          installed.forEach(app => {
+            createStartTile(app);
+            openInstalledApp(winEl, app);
+          });
+        }
+      }
+    });
+  }
+
+  // --- small helper ---
+  function escapeHtml(s){
+    return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // --- init ---
+  async function init(){
     const winEl = findStoreWindow();
     if(!winEl) return;
     const body = winEl.querySelector('.window-body');
     if(!body) return;
-    buildStoreUI(winEl);
-    // expose helper API on the store window element
-    winEl.msstore = {
-      refresh: ()=> buildStoreUI(winEl),
-      readInstalled: readInstalled,
-      isInstalled: isInstalled
-    };
+    await buildStoreUI(winEl);
+    restoreInstalledOnEnter(winEl);
+    // expose API
+    winEl.msstore = winEl.msstore || {};
+    winEl.msstore.refresh = () => buildStoreUI(winEl);
+    winEl.msstore.readInstalled = readInstalled;
+    winEl.msstore.addInstalled = addInstalled;
   }
 
-  // run on DOM ready and observe for late injection
   if(document.readyState === 'complete' || document.readyState === 'interactive') init();
   else document.addEventListener('DOMContentLoaded', init);
 
-  const obs = new MutationObserver((mutations)=>{
-    if(findStoreWindow()) { init(); obs.disconnect(); }
+  // observe for late-inserted window element
+  const obs = new MutationObserver(() => {
+    if(findStoreWindow()){ init(); obs.disconnect(); }
   });
   obs.observe(document.documentElement, { childList: true, subtree: true });
 

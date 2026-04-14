@@ -2317,6 +2317,201 @@
   box-shadow: 0 10px 26px rgba(90, 120, 255, 0.45);
 }
 
+/* MS Store styles scoped to the window body only */
+.window .window-body #win-msstore {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 12px;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  color: #0f172a;
+  background: linear-gradient(180deg,#ffffff,#fbfdff);
+  position: relative;
+}
+
+/* Sidebar */
+.window .window-body #win-msstore .menu {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+}
+.window .window-body #win-msstore .menu list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+.window .window-body #win-msstore .menu list a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  width: 56px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: background .18s ease, transform .18s ease;
+  user-select: none;
+}
+.window .window-body #win-msstore .menu list a .m-icon {
+  font-size: 20px;
+  line-height: 1;
+  display: block;
+}
+.window .window-body #win-msstore .menu list a .t2 {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 4px;
+  opacity: .95;
+}
+.window .window-body #win-msstore .menu list a.check {
+  background: linear-gradient(180deg, rgba(15,23,42,0.04), rgba(15,23,42,0.02));
+  transform: translateY(-1px);
+}
+
+/* Page area */
+.window .window-body #win-msstore .page {
+  background: transparent;
+  border-radius: 8px;
+  padding: 6px;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+.window .window-body #win-msstore .page .cnt {
+  height: 100%;
+  overflow: auto;
+  padding: 8px;
+}
+
+/* Banner / download header */
+.window .window-body #win-msstore .download-banner {
+  display:flex;
+  gap:12px;
+  align-items:center;
+  padding:12px;
+  border-radius:10px;
+  background: linear-gradient(90deg,#eef2ff,#f0f9ff);
+  margin-bottom:12px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.02) inset;
+}
+.window .window-body #win-msstore .download-banner .banner-icon {
+  width:72px;
+  height:72px;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-weight:700;
+  font-size:22px;
+  background: linear-gradient(135deg,#4f46e5,#06b6d4);
+}
+.window .window-body #win-msstore .download-banner .banner-meta {
+  flex:1;
+}
+.window .window-body #win-msstore .download-banner .banner-meta .name {
+  font-size:18px;
+  font-weight:700;
+  margin-bottom:4px;
+}
+.window .window-body #win-msstore .download-banner .banner-meta .sub {
+  font-size:13px;
+  color:#6b7280;
+  margin-bottom:8px;
+}
+.window .window-body #win-msstore .download-banner .banner-actions {
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+
+/* App cards grid */
+.window .window-body #win-msstore .app-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.window .window-body #win-msstore .app-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 10px;
+  background: linear-gradient(180deg,#f7f9fc,#f3f6fb);
+  box-shadow: 0 1px 0 rgba(15,23,42,0.02) inset;
+  cursor: pointer;
+}
+.window .window-body #win-msstore .app-card .left {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 20px;
+  background: linear-gradient(135deg,#4f46e5,#06b6d4);
+}
+.window .window-body #win-msstore .app-card .right { flex: 1; min-width: 0; }
+.window .window-body #win-msstore .app-card .right .tit { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.window .window-body #win-msstore .app-card .right .tit .type { font-weight:600; font-size:14px; color:#0f172a; }
+.window .window-body #win-msstore .app-card .right .desc { font-size:12px; color:#6b7280; margin-top:6px; }
+
+/* Buttons and progress */
+.window .window-body #win-msstore .install-btn {
+  background: linear-gradient(90deg,#4f46e5,#06b6d4);
+  color: #fff;
+  border: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight:600;
+  font-size:13px;
+}
+.window .window-body #win-msstore .install-btn[disabled] {
+  opacity: .6;
+  cursor: default;
+}
+.window .window-body #win-msstore .install-progress {
+  height: 6px;
+  border-radius: 6px;
+  background: linear-gradient(90deg,#4f46e5,#06b6d4);
+  width: 0%;
+  transition: width 180ms linear;
+  margin-top:8px;
+}
+
+/* App page */
+.window .window-body #win-msstore .app-header { padding:8px 4px 12px 4px; border-bottom: 1px solid rgba(15,23,42,0.04); margin-bottom:12px; }
+.window .window-body #win-msstore .app-header h2 { margin:0; font-size:18px; }
+.window .window-body #win-msstore .app-header p { margin:6px 0 0 0; color:#6b7280; font-size:13px; }
+
+/* Download content area (iframe or html) */
+.window .window-body #win-msstore .download-content {
+  margin-top:12px;
+  border-radius:8px;
+  overflow:hidden;
+  border:1px solid rgba(2,6,23,0.04);
+  background:#fff;
+  min-height:220px;
+}
+
+/* Small responsive tweaks */
+@media (max-width:720px) {
+  .window .window-body #win-msstore { grid-template-columns: 56px 1fr; gap:8px; padding:8px; }
+  .window .window-body #win-msstore .app-card { padding:10px; }
+}
+
   </style>
   <style id="theme-style"></style>
 </head>
@@ -2831,6 +3026,16 @@
              <div>Clock</div>
              <div class="start-app-sub">Time tools</div>
            </div>
+          <div class="start-app" data-app="msstore" data-app-name="Microsoft Store">
+          <div class="start-app-icon" style="background:linear-gradient(135deg,#4f46e5,#06b6d4);width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;">
+              <!-- optional inline SVG -->
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z" fill="currentColor"/>
+              </svg>
+            </div>
+            <div class="start-app-name">Microsoft Store</div>
+            <div class="start-app-sub">Discover apps</div>
+          </div>
         </div>
       </div>
       <div class="start-right-panel">
@@ -3661,6 +3866,39 @@
 
   </div>
 </div>
+
+<!-- Microsoft Store window -->
+<div class="window" id="window-msstore" data-app="msstore" data-app-desc="Microsoft Store preview">
+  <div class="window-header" data-drag-handle>
+    <div class="window-title" style="display:flex;align-items:center;gap:10px;">
+      <div class="window-title-icon" style="width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#4f46e5,#06b6d4);color:#fff;font-weight:700;">
+        <!-- optional inline SVG or letter -->
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z" fill="currentColor"/>
+        </svg>
+      </div>
+
+      <div class="window-title-text" style="display:flex;flex-direction:column;">
+        <div class="window-title-main" style="font-weight:700;">Microsoft Store</div>
+        <div class="window-title-sub" style="font-size:12px;color:#6b7280;">Discover apps and previews</div>
+      </div>
+
+      <div class="window-fullscreen-toggle" title="Toggle fullscreen" style="margin-left:auto;padding:6px;cursor:pointer;">⤢</div>
+      <div class="window-info-icon" title="Info" style="padding:6px;cursor:default;">i</div>
+      <div class="window-info-tooltip" style="display:none;">(leave empty for description to fill up)</div>
+    </div>
+
+    <div class="window-controls" style="display:flex;gap:8px;align-items:center;">
+      <div class="window-btn minimize" title="Minimize" style="cursor:pointer;"><div class="window-btn-icon">—</div></div>
+      <div class="window-btn close" title="Close" style="cursor:pointer;"><div class="window-btn-icon">✕</div></div>
+    </div>
+  </div>
+
+  <div class="window-body">
+    <!-- Store UI is injected here by the store script (builds #win-msstore tree) -->
+  </div>
+</div>
+
 
   <!-- Context menu -->
   <div class="ctx-menu" id="ctx-menu">
@@ -14106,6 +14344,398 @@ console.log(`%c
   }, 1000);
 
   renderWorld();
+
+})();
+</script>
+<script>
+/* MS Store fetch + install script
+   - Fetches JSON from the provided URL
+   - Builds UI inside .window[data-app="msstore"] .window-body
+   - Shows download page with banner, install button, name, icon (from JSON)
+   - On install: simulates progress, persists installed apps, creates start tile, and creates a window with the app content
+   - LocalStorage key: msstore_installed_v2
+*/
+
+(function(){
+  const DATA_URL = 'https://alaricholt677.github.io/msstore/data.json';
+  const LS_KEY = 'msstore_installed_v2';
+
+  // find the store window element (scoped)
+  function findStoreWindow(){
+    return document.querySelector('.window[data-app="msstore"]') || document.getElementById('window-msstore') || null;
+  }
+
+  // storage helpers
+  function readInstalled(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch(e){ return []; } }
+  function writeInstalled(list){ localStorage.setItem(LS_KEY, JSON.stringify(list)); }
+  function isInstalled(id){ return readInstalled().some(x=>x.id === id); }
+  function addInstalled(meta){ const list = readInstalled(); if(!list.some(x=>x.id===meta.id)){ list.push(meta); writeInstalled(list); } }
+
+  // DOM helpers (scoped)
+  function create(tag, attrs={}, children=[]){
+    const el = document.createElement(tag);
+    for(const k in attrs){
+      if(k === 'class') el.className = attrs[k];
+      else if(k === 'html') el.innerHTML = attrs[k];
+      else el.setAttribute(k, attrs[k]);
+    }
+    (Array.isArray(children)?children:[children]).forEach(c=>{
+      if(!c) return;
+      if(typeof c === 'string') el.appendChild(document.createTextNode(c));
+      else el.appendChild(c);
+    });
+    return el;
+  }
+
+  // emit events on the store window element for integration
+  function emitOnStore(winEl, name, detail){
+    if(!winEl) return;
+    winEl.dispatchEvent(new CustomEvent(name, { detail }));
+  }
+
+  // fetch catalog
+  async function fetchCatalog(){
+    try{
+      const res = await fetch(DATA_URL, { cache: 'no-cache' });
+      if(!res.ok) throw new Error('Failed to fetch catalog: ' + res.status);
+      const data = await res.json();
+      if(!Array.isArray(data)) return [];
+      return data;
+    }catch(err){
+      console.warn('MSStore: fetch error', err);
+      return [];
+    }
+  }
+
+  // build the store UI inside the window body
+  async function buildStoreUI(winEl){
+    const body = winEl.querySelector('.window-body');
+    if(!body) return;
+    body.innerHTML = ''; // clear only inside window body
+
+    const catalog = await fetchCatalog();
+
+    const root = create('div', { id: 'win-msstore' });
+
+    // Sidebar
+    const menu = create('div', { class: 'menu' });
+    const list = create('list');
+    catalog.forEach((app, idx)=>{
+      const a = create('a', { href:'#', 'data-app': app.id });
+      const icon = create('div', { class: 'm-icon' }, [ app.icon ? '' : (app.name ? app.name[0] : '?') ]);
+      if(app.icon){
+        const img = create('img', { src: app.icon, alt: app.name || '', style: 'width:28px;height:28px;border-radius:6px;object-fit:cover;' });
+        icon.appendChild(img);
+      }
+      const t2 = create('div', { class: 't2' }, [ app.name || 'App' ]);
+      a.appendChild(icon); a.appendChild(t2);
+      if(idx === 0) a.classList.add('check');
+      a.addEventListener('click', e=>{
+        e.preventDefault();
+        showDownloadPage(winEl, app);
+        list.querySelectorAll('a').forEach(x=>x.classList.remove('check'));
+        a.classList.add('check');
+      });
+      list.appendChild(a);
+    });
+    menu.appendChild(list);
+
+    // Page area
+    const page = create('div', { class: 'page' });
+    const cnt = create('div', { class: 'cnt home show' });
+    const containerInner = create('div', { class: 'container' });
+
+    // If catalog empty, show message
+    if(catalog.length === 0){
+      const empty = create('div', { class: 'empty' }, [
+        create('p', {}, ['No apps found in the catalog.']),
+        create('p', {}, ['Check the data.json URL or try again later.'])
+      ]);
+      containerInner.appendChild(empty);
+    } else {
+      // Featured / grid
+      const appsSection = create('div', { class: 'apps' });
+      const tit = create('div', { class: 'tit' }, ['Featured']);
+      const appCards = create('div', { class: 'app-cards' });
+
+      catalog.forEach(app=>{
+        const card = create('div', { class: 'app-card', 'data-app': app.id });
+        const left = create('div', { class: 'left' }, [ app.icon ? '' : (app.name ? app.name[0] : '?') ]);
+        if(app.icon){
+          const img = create('img', { src: app.icon, alt: app.name || '', style: 'width:64px;height:64px;border-radius:10px;object-fit:cover;' });
+          left.appendChild(img);
+        }
+        const right = create('div', { class: 'right' });
+        const titleRow = create('div', { class: 'tit' });
+        const up = create('div', { class: 'up' });
+        const type = create('div', { class: 'type' }, [ app.name || 'App' ]);
+        const installBtn = create('button', { class: 'install-btn' }, [ isInstalled(app.id) ? 'Open' : 'Install' ]);
+        installBtn.addEventListener('click', e=>{
+          e.stopPropagation();
+          if(isInstalled(app.id)) openInstalledApp(winEl, app);
+          else beginInstall(winEl, app, installBtn, card);
+        });
+        up.appendChild(type); up.appendChild(installBtn);
+        titleRow.appendChild(up);
+        const desc = create('div', { class: 'desc' }, [ app.sub || app.description || '' ]);
+        right.appendChild(titleRow); right.appendChild(desc);
+        card.appendChild(left); card.appendChild(right);
+        card.addEventListener('click', ()=> showDownloadPage(winEl, app));
+        appCards.appendChild(card);
+      });
+
+      appsSection.appendChild(tit); appsSection.appendChild(appCards);
+      containerInner.appendChild(appsSection);
+    }
+
+    cnt.appendChild(containerInner);
+    page.appendChild(cnt);
+
+    root.appendChild(menu); root.appendChild(page);
+    body.appendChild(root);
+
+    // if there is at least one app, show its page by default
+    if(catalog[0]) showDownloadPage(winEl, catalog[0]);
+  }
+
+  // show the download page for a single app (banner + install)
+  function showDownloadPage(winEl, app){
+    const pageArea = winEl.querySelector('#win-msstore .page .cnt');
+    if(!pageArea) return;
+    pageArea.classList.add('show');
+    pageArea.innerHTML = '';
+
+    const banner = create('div', { class: 'download-banner' });
+    const bannerIcon = create('div', { class: 'banner-icon' }, [ app.icon ? '' : (app.name ? app.name[0] : '?') ]);
+    if(app.icon){
+      const img = create('img', { src: app.icon, alt: app.name || '', style: 'width:56px;height:56px;border-radius:10px;object-fit:cover;' });
+      bannerIcon.appendChild(img);
+    }
+    const meta = create('div', { class: 'banner-meta' });
+    const name = create('div', { class: 'name' }, [ app.name || 'App' ]);
+    const sub = create('div', { class: 'sub' }, [ app.sub || app.description || '' ]);
+    meta.appendChild(name); meta.appendChild(sub);
+
+    const actions = create('div', { class: 'banner-actions' });
+    const installBtn = create('button', { class: 'install-btn' }, [ isInstalled(app.id) ? 'Open' : 'Install' ]);
+    const moreBtn = create('button', { class: 'install-btn' }, [ 'Details' ]);
+    installBtn.addEventListener('click', ()=>{
+      if(isInstalled(app.id)) openInstalledApp(winEl, app);
+      else beginInstall(winEl, app, installBtn);
+    });
+    moreBtn.addEventListener('click', ()=> {
+      // scroll to content
+      const content = pageArea.querySelector('.download-content');
+      if(content) content.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    actions.appendChild(installBtn);
+    actions.appendChild(moreBtn);
+
+    banner.appendChild(bannerIcon);
+    banner.appendChild(meta);
+    banner.appendChild(actions);
+
+    pageArea.appendChild(banner);
+
+    // content area: either HTML from JSON or iframe for downloadUrl
+    const contentWrap = create('div', { class: 'download-content' });
+    if(app.html){
+      // sanitize minimally by using innerHTML (user controls JSON); this is a simulator
+      const wrapper = create('div', { html: app.html });
+      contentWrap.appendChild(wrapper);
+    } else if(app.downloadUrl){
+      // show a small download info + preview iframe (sandboxed)
+      const info = create('div', { style: 'padding:12px;' }, [
+        create('p', {}, [ 'Download URL: ' ]),
+        create('a', { href: app.downloadUrl, target: '_blank', rel: 'noopener noreferrer' }, [ app.downloadUrl ])
+      ]);
+      // iframe preview (sandboxed to avoid running scripts)
+      const iframe = create('iframe', { src: app.downloadUrl, style: 'width:100%;height:320px;border:0;', sandbox: 'allow-same-origin allow-forms' });
+      contentWrap.appendChild(info);
+      contentWrap.appendChild(iframe);
+    } else {
+      contentWrap.appendChild(create('div', { style: 'padding:12px;color:#6b7280;' }, [ 'No preview available.' ]));
+    }
+
+    pageArea.appendChild(contentWrap);
+  }
+
+  // install flow: simulate progress, persist, create start tile and create window
+  function beginInstall(winEl, app, btnEl, cardEl){
+    if(!btnEl) btnEl = winEl.querySelector(`[data-app="${app.id}"] .install-btn`);
+    if(!btnEl) return;
+    btnEl.disabled = true;
+    const progressBar = create('div', { class: 'install-progress' });
+    progressBar.style.width = '0%';
+    btnEl.textContent = 'Installing...';
+    if(cardEl) cardEl.appendChild(progressBar); else btnEl.parentElement.appendChild(progressBar);
+
+    // simulate progress
+    let progress = 0;
+    const step = ()=>{
+      progress += Math.floor(Math.random()*18) + 6;
+      if(progress >= 100){
+        progress = 100;
+        // mark installed
+        addInstalled({ id: app.id, name: app.name, icon: app.icon || '', installedAt: Date.now() });
+        emitOnStore(winEl, 'msstore:install:complete', { id: app.id });
+        // finalize UI
+        progressBar.style.width = '100%';
+        setTimeout(()=> {
+          try{ btnEl.disabled = false; btnEl.textContent = 'Open'; }catch(e){}
+          if(progressBar && progressBar.parentElement) progressBar.parentElement.removeChild(progressBar);
+          // sync other buttons
+          winEl.querySelectorAll(`[data-app="${app.id}"] .install-btn`).forEach(b=>{
+            try{ b.textContent = 'Open'; b.disabled = false; }catch(e){}
+          });
+          // create start tile and create app window
+          createStartTile(app);
+          openInstalledApp(winEl, app);
+        }, 300);
+      } else {
+        progressBar.style.width = progress + '%';
+        emitOnStore(winEl, 'msstore:install:progress', { id: app.id, progress });
+        setTimeout(step, 250 + Math.random()*300);
+      }
+    };
+    setTimeout(step, 250);
+    emitOnStore(winEl, 'msstore:install:start', { id: app.id });
+  }
+
+  // create a start menu tile for the installed app
+  function createStartTile(app){
+    // build element
+    const tile = create('div', { class: 'start-app', 'data-app': app.id, 'data-app-name': app.name || '' });
+    const iconWrap = create('div', { class: 'start-app-icon', style: 'background:linear-gradient(135deg,#4f46e5,#06b6d4);width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;' });
+    if(app.icon){
+      const img = create('img', { src: app.icon, alt: app.name || '', style: 'width:36px;height:36px;border-radius:8px;object-fit:cover;' });
+      iconWrap.appendChild(img);
+    } else {
+      iconWrap.appendChild(document.createTextNode(app.name ? app.name[0] : '?'));
+    }
+    const nameEl = create('div', {}, [ app.name || 'App' ]);
+    const subEl = create('div', { class: 'start-app-sub', style: 'font-size:12px;color:#6b7280;' }, [ app.sub || app.description || '' ]);
+    tile.appendChild(iconWrap);
+    tile.appendChild(nameEl);
+    tile.appendChild(subEl);
+
+    // click opens the app window
+    tile.addEventListener('click', ()=> {
+      const winEl = findStoreWindow();
+      openInstalledApp(winEl, app);
+    });
+
+    // try to append to a start menu container if present, else append to body in a small container
+    const startMenu = document.querySelector('.start-menu') || document.querySelector('#start-menu') || null;
+    if(startMenu){
+      startMenu.appendChild(tile);
+    } else {
+      // create a lightweight container if not present
+      let container = document.querySelector('#msstore-start-tiles');
+      if(!container){
+        container = create('div', { id: 'msstore-start-tiles', style: 'position:fixed;left:12px;bottom:12px;display:flex;flex-direction:column;gap:8px;z-index:9999;' });
+        document.body.appendChild(container);
+      }
+      container.appendChild(tile);
+    }
+  }
+
+  // open an installed app: create a window with name, icon and content
+  function openInstalledApp(winEl, app){
+    emitOnStore(winEl, 'msstore:open', { id: app.id });
+
+    // prefer host window manager if available
+    if(typeof window.createAppWindow === 'function'){
+      const content = create('div');
+      // if JSON provided html, use it; else if downloadUrl, embed iframe; else simple placeholder
+      if(app.html){
+        content.innerHTML = app.html;
+      } else if(app.downloadUrl){
+        const iframe = create('iframe', { src: app.downloadUrl, style: 'width:100%;height:100%;border:0;', sandbox: 'allow-same-origin allow-forms' });
+        content.appendChild(iframe);
+      } else {
+        content.innerHTML = `<div style="padding:16px;"><h3>${app.name}</h3><p>Preview content for ${app.name}.</p></div>`;
+      }
+      window.createAppWindow(app.id, app.name || 'App', content);
+      return;
+    }
+
+    // fallback: create a simple window element appended to body
+    const fallbackWin = create('div', { class: 'window', id: 'window-' + app.id, 'data-app': app.id, 'data-app-desc': app.sub || app.description || '' });
+    // header
+    const header = create('div', { class: 'window-header', 'data-drag-handle': '' });
+    const titleWrap = create('div', { class: 'window-title' });
+    const titleIcon = create('div', { class: 'window-title-icon', style: 'width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#4f46e5,#06b6d4);color:#fff;font-weight:700;margin-right:8px;' });
+    if(app.icon){
+      const img = create('img', { src: app.icon, alt: app.name || '', style: 'width:20px;height:20px;object-fit:cover;border-radius:4px;' });
+      titleIcon.appendChild(img);
+    } else {
+      titleIcon.appendChild(document.createTextNode(app.name ? app.name[0] : '?'));
+    }
+    const titleText = create('div', { class: 'window-title-text' });
+    titleText.appendChild(create('div', { class: 'window-title-main' }, [ app.name || 'App' ]));
+    titleText.appendChild(create('div', { class: 'window-title-sub' }, [ app.sub || '' ]));
+    titleWrap.appendChild(titleIcon); titleWrap.appendChild(titleText);
+    header.appendChild(titleWrap);
+    const controls = create('div', { class: 'window-controls' });
+    const closeBtn = create('div', { class: 'window-btn close', title: 'Close' }, [ create('div', { class: 'window-btn-icon' }, ['✕']) ]);
+    closeBtn.addEventListener('click', ()=> fallbackWin.remove());
+    controls.appendChild(closeBtn);
+    header.appendChild(controls);
+
+    const body = create('div', { class: 'window-body', style: 'height:320px;overflow:auto;background:#fff;padding:12px;border-radius:0 0 8px 8px;' });
+
+    // content
+    if(app.html){
+      body.innerHTML = app.html;
+    } else if(app.downloadUrl){
+      const iframe = create('iframe', { src: app.downloadUrl, style: 'width:100%;height:100%;border:0;', sandbox: 'allow-same-origin allow-forms' });
+      body.appendChild(iframe);
+    } else {
+      body.appendChild(create('div', { style: 'padding:12px;' }, [ create('h3', {}, [ app.name || 'App' ]), create('p', {}, [ 'Preview content for ' + (app.name || 'App') ]) ]));
+    }
+
+    fallbackWin.appendChild(header);
+    fallbackWin.appendChild(body);
+
+    // basic positioning
+    fallbackWin.style.position = 'fixed';
+    fallbackWin.style.left = '50%';
+    fallbackWin.style.top = '50%';
+    fallbackWin.style.transform = 'translate(-50%,-50%)';
+    fallbackWin.style.width = '720px';
+    fallbackWin.style.maxWidth = 'calc(100% - 24px)';
+    fallbackWin.style.zIndex = 10000;
+    fallbackWin.style.boxShadow = '0 20px 60px rgba(0,0,0,0.25)';
+    fallbackWin.style.borderRadius = '10px';
+    fallbackWin.style.background = '#fff';
+    document.body.appendChild(fallbackWin);
+  }
+
+  // initialize store when the store window is present
+  function init(){
+    const winEl = findStoreWindow();
+    if(!winEl) return;
+    const body = winEl.querySelector('.window-body');
+    if(!body) return;
+    buildStoreUI(winEl);
+    // expose helper API on the store window element
+    winEl.msstore = {
+      refresh: ()=> buildStoreUI(winEl),
+      readInstalled: readInstalled,
+      isInstalled: isInstalled
+    };
+  }
+
+  // run on DOM ready and observe for late injection
+  if(document.readyState === 'complete' || document.readyState === 'interactive') init();
+  else document.addEventListener('DOMContentLoaded', init);
+
+  const obs = new MutationObserver((mutations)=>{
+    if(findStoreWindow()) { init(); obs.disconnect(); }
+  });
+  obs.observe(document.documentElement, { childList: true, subtree: true });
 
 })();
 </script>

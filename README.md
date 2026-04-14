@@ -64,10 +64,11 @@ Once you understand these patterns, you can add apps, fix bugs, or extend the OS
 ## 🔹 1. Start Menu Pattern
 
 ```html
-<div class="start-app" data-app="APP_ID">
-    <img src="icons/APP_ICON.png">
-    <span>APP_NAME</span>
-</div>
+          <div class="start-app" data-app="(app name)" data-app-name="(app name for data)">
+            <div class="start-app-icon" style="background:linear-gradient(135deg,#ffcc66,#ff9966);"></div>
+            <div>appName</div>
+            <div class="start-app-sub">first sub + second sub (add or remvoe any sub you want)</div>
+          </div>
 ```
 
 ### ✔ Strategy  
@@ -80,9 +81,7 @@ Once you understand these patterns, you can add apps, fix bugs, or extend the OS
 ## 🔹 2. Taskbar Pattern
 
 ```html
-<div class="taskbar-item" data-app="APP_ID">
-    <img src="icons/APP_ICON.png">
-</div>
+        <div class="taskbar-app" data-app="data-app-here" title="Name Here"></div>
 ```
 
 ### ✔ Strategy  
@@ -94,20 +93,28 @@ Once you understand these patterns, you can add apps, fix bugs, or extend the OS
 ## 🔹 3. Window Skeleton Pattern
 
 ```html
-<div class="window" data-app="APP_ID">
-    <div class="window-titlebar">
-        <span>APP_NAME</span>
-        <div class="window-controls">
-            <button class="minimize"></button>
-            <button class="maximize"></button>
-            <button class="close"></button>
+  <!-- app name -->
+  <div class="window" id="window-settings" data-app="apptype for stuff to recognize" data-app-desc="[app name] description">
+    <div class="window-header" data-drag-handle>
+      <div class="window-title">
+        <div class="window-title-icon" style="css if needed for orb icon">(if using style= then nothing here else <svg> icon</div>
+        <div class="window-title-text">
+          <div class="window-title-main">[app name]</div>
+          <div class="window-title-sub">what the app is for.</div>
         </div>
+        <div class="window-fullscreen-toggle" title="Toggle fullscreen">[ ]</div>
+        <div class="window-info-icon">(i)</div>
+        <div class="window-info-tooltip">(leave empty for description to fill up)</div>
+      </div>
+      <div class="window-controls">
+        <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+        <div class="window-btn close"><div class="window-btn-icon"></div></div>
+      </div>
     </div>
-
-    <div class="window-content">
-        <!-- Your app UI goes here -->
+    <div class="window-body">
+        (put html code as window content here)
     </div>
-</div>
+  </div>
 ```
 
 ### ✔ Strategy  
@@ -121,10 +128,11 @@ Once you understand these patterns, you can add apps, fix bugs, or extend the OS
 
 If you want a new app added:
 
-1. Open an **Issue**
-2. Choose **App Request**
-3. Describe the app
-4. The maintainer will generate the skeleton for you
+1. Open the **Issue** tab
+2. Click **New Issue**
+3. Choose **App Request**
+4. Describe the app in the boxes provided
+5. The MD Already has a **skeleton** to help the developer get on track you can use for **pull requests**.
 
 ---
 

@@ -709,13 +709,220 @@
         <!-- WIN98 -->
         <article
           class="os-card os-card--danger"
-          data-route="https://alaricholt677.github.io/win98"
+          data-route="https://alaricholt677.github.io/moreOS/win98.html"
           data-key="2"
         >
           <div class="os-card-header">
             <div class="os-icon">
-              <!-- You can replace this with your actual win98 SVG path -->
-              <img src="https://alaricholt677.github.io/win98.svg" alt="Win98 icon" />
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  width="256"
+  height="256"
+  viewBox="0 0 256 256"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b2a5a" />
+      <stop offset="0.5" stop-color="#0c1633" />
+      <stop offset="1" stop-color="#050814" />
+    </linearGradient>
+
+    <!-- Bezel gradient -->
+    <linearGradient id="bezel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fdfdfd" />
+      <stop offset="0.45" stop-color="#d8d8d8" />
+      <stop offset="0.55" stop-color="#b8b8b8" />
+      <stop offset="1" stop-color="#7c7c7c" />
+    </linearGradient>
+
+    <!-- Inner panel gradient -->
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="0.4" stop-color="#f3f3f3" />
+      <stop offset="1" stop-color="#d0d0d0" />
+    </linearGradient>
+
+    <!-- Title bar gradient -->
+    <linearGradient id="titleBar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0b3c98" />
+      <stop offset="0.5" stop-color="#1f5fd4" />
+      <stop offset="1" stop-color="#0b3c98" />
+    </linearGradient>
+
+    <!-- Shadow blur -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000000" flood-opacity="0.65" />
+    </filter>
+
+    <!-- Pixel block colors (Win98-ish palette) -->
+    <linearGradient id="blockBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1f7ad4" />
+      <stop offset="1" stop-color="#0b3c98" />
+    </linearGradient>
+    <linearGradient id="blockGreen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#00a050" />
+      <stop offset="1" stop-color="#006838" />
+    </linearGradient>
+    <linearGradient id="blockRed" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e63b3b" />
+      <stop offset="1" stop-color="#a81818" />
+    </linearGradient>
+    <linearGradient id="blockYellow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd94a" />
+      <stop offset="1" stop-color="#c79a1a" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="256" height="256" fill="url(#bg)" />
+
+  <!-- Main window bezel -->
+  <g filter="url(#shadow)" transform="translate(32, 32)">
+    <!-- Outer bezel -->
+    <rect
+      x="0"
+      y="0"
+      width="192"
+      height="160"
+      rx="6"
+      ry="6"
+      fill="url(#bezel)"
+      stroke="#404040"
+      stroke-width="1.5"
+    />
+
+    <!-- Inner panel -->
+    <rect
+      x="6"
+      y="22"
+      width="180"
+      height="132"
+      rx="2"
+      ry="2"
+      fill="url(#panel)"
+      stroke="#808080"
+      stroke-width="1"
+    />
+
+    <!-- Title bar -->
+    <rect
+      x="2"
+      y="4"
+      width="188"
+      height="18"
+      rx="3"
+      ry="3"
+      fill="url(#titleBar)"
+      stroke="#001848"
+      stroke-width="1"
+    />
+
+    <!-- Title text (Win98-style caption) -->
+    <text
+      x="14"
+      y="17"
+      font-family="Tahoma, 'MS Sans Serif', system-ui, sans-serif"
+      font-size="9"
+      fill="#ffffff"
+    >
+      Win98 Shell
+    </text>
+
+    <!-- Caption buttons -->
+    <g transform="translate(0.5, 0.5)">
+      <!-- Close -->
+      <rect
+        x="170"
+        y="6"
+        width="14"
+        height="14"
+        fill="#c0c0c0"
+        stroke="#000000"
+        stroke-width="0.8"
+      />
+      <line x1="172.5" y1="8.5" x2="181.5" y2="17.5" stroke="#000000" stroke-width="1" />
+      <line x1="181.5" y1="8.5" x2="172.5" y2="17.5" stroke="#000000" stroke-width="1" />
+
+      <!-- Maximize -->
+      <rect
+        x="153"
+        y="6"
+        width="14"
+        height="14"
+        fill="#c0c0c0"
+        stroke="#000000"
+        stroke-width="0.8"
+      />
+      <rect
+        x="155.5"
+        y="8.5"
+        width="9"
+        height="9"
+        fill="none"
+        stroke="#000000"
+        stroke-width="1"
+      />
+
+      <!-- Minimize -->
+      <rect
+        x="136"
+        y="6"
+        width="14"
+        height="14"
+        fill="#c0c0c0"
+        stroke="#000000"
+        stroke-width="0.8"
+      />
+      <rect
+        x="138.5"
+        y="15"
+        width="9"
+        height="1.2"
+        fill="#000000"
+      />
+    </g>
+
+    <!-- Inner content: pixel-block "flag" motif (Win98-inspired, not exact) -->
+    <g transform="translate(30, 46) skewX(-12)">
+      <!-- Row 1 -->
+      <rect x="0" y="0" width="18" height="18" fill="url(#blockBlue)" />
+      <rect x="20" y="0" width="18" height="18" fill="url(#blockGreen)" />
+      <rect x="40" y="0" width="18" height="18" fill="url(#blockRed)" />
+      <rect x="60" y="0" width="18" height="18" fill="url(#blockYellow)" />
+
+      <!-- Row 2 -->
+      <rect x="6" y="20" width="18" height="18" fill="url(#blockGreen)" />
+      <rect x="26" y="20" width="18" height="18" fill="url(#blockRed)" />
+      <rect x="46" y="20" width="18" height="18" fill="url(#blockYellow)" />
+      <rect x="66" y="20" width="18" height="18" fill="url(#blockBlue)" />
+
+      <!-- Row 3 -->
+      <rect x="12" y="40" width="18" height="18" fill="url(#blockRed)" />
+      <rect x="32" y="40" width="18" height="18" fill="url(#blockYellow)" />
+      <rect x="52" y="40" width="18" height="18" fill="url(#blockBlue)" />
+      <rect x="72" y="40" width="18" height="18" fill="url(#blockGreen)" />
+
+      <!-- Row 4 -->
+      <rect x="18" y="60" width="18" height="18" fill="url(#blockYellow)" />
+      <rect x="38" y="60" width="18" height="18" fill="url(#blockBlue)" />
+      <rect x="58" y="60" width="18" height="18" fill="url(#blockGreen)" />
+      <rect x="78" y="60" width="18" height="18" fill="url(#blockRed)" />
+    </g>
+
+    <!-- Bottom text / label -->
+    <text
+      x="12"
+      y="142"
+      font-family="Tahoma, 'MS Sans Serif', system-ui, sans-serif"
+      font-size="9"
+      fill="#000000"
+    >
+      Windows 98‑style shell (custom)
+    </text>
+  </g>
+</svg>
             </div>
             <div class="os-labels">
               <div class="os-name">Win98</div>
@@ -734,7 +941,7 @@
         <!-- WIN12 -->
         <article
           class="os-card os-card--primary"
-          data-route="https://alaricholt677.github.io/win12"
+          data-route="https://alaricholt677.github.io/moreOS/Win12_New.html"
           data-key="3"
         >
           <div class="os-card-header">
@@ -767,7 +974,7 @@
             </div>
             <div class="os-labels">
               <div class="os-name">moreOS</div>
-              <div class="os-tagline">Reserved slot • future shell concept</div>
+              <div class="os-tagline">Reserved slot • future shell concept • Where You Are Now</div>
             </div>
           </div>
           <div class="os-meta">

@@ -355,4 +355,6 @@ Your support helps the project grow.
 | ![User Icon](https://alaricholt677.github.io/user.png) **Minecraft Recreation** | [Click to visit](https://alaricholt677.github.io/download/) | *Descarga de la Recreación de Minecraft* |
 | ![Win12 Icon](https://alaricholt677.github.io/win12-icon.svg) **Win12 Simulator Homepage** | [Click to visit](https://alaricholt677.github.io) | *Página Principal del Simulador Win12* |
 | ![Search Icon](https://alaricholt677.github.io/search.svg) **Win12 Preview (External)** | [Click to visit](https://tjy-gitnub.github.io/win12/desktop.html) | *Vista Previa Externa de Win12* |
-| ![User Icon](https://alaricholt677.github.io/user.png) **Recommended Files** | [Click to visit](https://alaricholt677.github.io/recommended-files) | *Archivos Recomendados* |
+| ![User Icon](https://alaricholt677.github.io/user.png) **Recommended Files** | [Click to visit](view-source:https://alaricholt677.github.io) | *Archivos Recomendados* |
+| ![Cat Icon](https://alaricholt677.github.io/github_mascot_README.svg) **Github-Style REPO Viewer (do not get confused with github)** | [Click to visit](https://alaricholt677.github.io/github-style-previewer) | *Visor de REPO al estilo Github (no te confundas con github)* |
+| ![Cat Icon](https://alaricholt677.github.io/search.svg) **MoreOS Selection** | [Click to visit](https://alaricholt677.github.io/moreOS) | *Selección de MoreOS* |

@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Nexus | Ultimate OS</title>
+    <!-- Core Engine -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- External Dependencies -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono&display=swap');
+        
+        :root {
+            --bg-main: #0d1117;
+            --bg-sub: #161b22;
+            --border: #30363d;
+            --accent: #1f6feb;
+            --success: #238636;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: #c9d1d9;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .markdown-body { color: #c9d1d9; line-height: 1.6; font-size: 14px; }
+        .markdown-body h1, .markdown-body h2 { border-bottom: 1px solid var(--border); padding-bottom: .3em; margin-top: 24px; margin-bottom: 16px; font-weight: 600; }
+        .markdown-body a { color: #58a6ff; text-decoration: none; }
+        .markdown-body a:hover { text-decoration: underline; }
+        .markdown-body code { background: rgba(110, 118, 129, 0.4); padding: 0.2em 0.4em; border-radius: 6px; font-family: 'JetBrains Mono'; font-size: 85%; }
+        .markdown-body pre { background: #161b22; padding: 16px; border-radius: 8px; overflow: auto; margin-bottom: 16px; border: 1px solid var(--border); }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #30363d; border-radius: 10px; border: 2px solid var(--bg-main); }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+        .glass { background: rgba(13, 17, 23, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        
+        @keyframes slideUp { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .animate-slide-up { animation: slideUp 0.3s cubic-bezier(0, 0, 0.2, 1) forwards; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+
+        .tab-active { border-bottom: 2px solid #f78166; color: #f0f6fc; }
+        
+        .repo-card-glow:hover { box-shadow: 0 0 20px rgba(31, 111, 235, 0.15); border-color: #1f6feb; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // Defensive Icon Component
+        const Icon = ({ name, size = 16, className = "" }) => {
+            const [svg, setSvg] = useState('');
+            useEffect(() => {
+                const update = () => {
+                    if (window.lucide && window.lucide.icons && window.lucide.icons[name]) {
+                        const iconNode = window.lucide.icons[name];
+                        if (iconNode && Array.isArray(iconNode[1])) {
+                            const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                            svgEl.setAttribute('width', size);
+                            svgEl.setAttribute('height', size);
+                            svgEl.setAttribute('viewBox', '0 0 24 24');
+                            svgEl.setAttribute('fill', 'none');
+                            svgEl.setAttribute('stroke', 'currentColor');
+                            svgEl.setAttribute('stroke-width', '2');
+                            svgEl.setAttribute('stroke-linecap', 'round');
+                            svgEl.setAttribute('stroke-linejoin', 'round');
+                            svgEl.className.baseVal = className;
+                            
+                            iconNode[1].forEach(pathData => {
+                                if (Array.isArray(pathData)) {
+                                    const path = document.createElementNS('http://www.w3.org/2000/svg', pathData[0]);
+                                    Object.entries(pathData[1]).forEach(([k, v]) => path.setAttribute(k, v));
+                                    svgEl.appendChild(path);
+                                }
+                            });
+                            setSvg(svgEl.outerHTML);
+                        }
+                    }
+                };
+                update();
+                const t = setTimeout(update, 100);
+                return () => clearTimeout(t);
+            }, [name, size, className]);
+            return <span dangerouslySetInnerHTML={{ __html: svg }} className="inline-flex items-center justify-center" />;
+        };
+
+        const Modal = ({ title, onClose, children }) => (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+                <div className="bg-[#161b22] border border-[#30363d] rounded-[2rem] w-full max-w-xl overflow-hidden animate-slide-up shadow-2xl">
+                    <div className="px-8 py-5 border-b border-[#30363d] flex justify-between items-center bg-[#0d1117]/50">
+                        <h3 className="font-extrabold text-white uppercase tracking-[0.2em] text-[10px]">{title}</h3>
+                        <button onClick={onClose} className="p-2 hover:bg-[#30363d] rounded-full transition-all text-[#8b949e] hover:text-white">
+                            <Icon name="X" size={20} />
+                        </button>
+                    </div>
+                    <div className="max-h-[70vh] overflow-y-auto custom-scrollbar p-4 bg-[#0d1117]">
+                        {children}
+                    </div>
+                </div>
+            </div>
+        );
+
+        const MiniUserItem = ({ user, onClick }) => (
+            <div 
+                onClick={() => onClick(user.login)}
+                className="flex items-center gap-4 p-4 hover:bg-[#161b22] rounded-2xl cursor-pointer group transition-all border border-transparent hover:border-[#30363d] mb-2"
+            >
+                <img src={user.avatar_url} className="w-12 h-12 rounded-2xl border border-[#30363d] shadow-sm" />
+                <div className="flex-1">
+                    <p className="text-sm font-bold text-white group-hover:text-[#1f6feb] transition-colors">{user.login}</p>
+                    <p className="text-[10px] text-[#8b949e] font-mono">UID: {user.id}</p>
+                </div>
+                <div className="p-2 bg-[#0d1117] rounded-lg group-hover:bg-[#1f6feb] transition-all">
+                    <Icon name="ExternalLink" size={14} className="text-[#8b949e] group-hover:text-white" />
+                </div>
+            </div>
+        );
+
+        const App = () => {
+            const [view, setView] = useState('login');
+            const [user, setUser] = useState(null);
+            const [repos, setRepos] = useState([]);
+            const [username, setUsername] = useState('');
+            const [apiKey, setApiKey] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [activeRepo, setActiveRepo] = useState(null);
+            const [repoTab, setRepoTab] = useState('code');
+            const [modal, setModal] = useState(null);
+            const [searchQuery, setSearchQuery] = useState('');
+            
+            const [explorer, setExplorer] = useState({
+                currentPath: '',
+                files: [],
+                fileContent: null,
+                contentType: 'readme',
+                history: []
+            });
+
+            const copyToClipboard = (text) => {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                } catch (err) {
+                    console.error('Fallback: Copy failed', err);
+                }
+                document.body.removeChild(textArea);
+            };
+
+            const githubFetch = async (endpoint) => {
+                const headers = {};
+                if (apiKey) headers['Authorization'] = `token ${apiKey}`;
+                
+                const res = await fetch(`https://api.github.com${endpoint}`, { headers });
+                if (!res.ok) throw new Error(res.statusText);
+                return res.json();
+            };
+
+            const handleLogin = async (targetUser) => {
+                if (!targetUser) return;
+                setLoading(true);
+                try {
+                    const [userData, repoData] = await Promise.all([
+                        githubFetch(`/users/${targetUser}`),
+                        githubFetch(`/users/${targetUser}/repos?sort=updated&per_page=100`)
+                    ]);
+                    setUser(userData);
+                    setRepos(repoData);
+                    setView('home');
+                } catch (e) { 
+                    alert("Authentication failure. Check username or API key limits."); 
+                }
+                setLoading(false);
+            };
+
+            const handleLogout = () => {
+                setUser(null);
+                setRepos([]);
+                setActiveRepo(null);
+                setView('login');
+                setUsername('');
+            };
+
+            const openSocialModal = async (type, url) => {
+                setLoading(true);
+                try {
+                    const data = await githubFetch(url.replace('https://api.github.com', ''));
+                    setModal({ type, data });
+                } catch (e) { console.error(e); }
+                setLoading(false);
+            };
+
+            const loadRepo = async (repo) => {
+                setLoading(true);
+                setActiveRepo(repo);
+                setRepoTab('code');
+                try {
+                    const contents = await githubFetch(`/repos/${repo.full_name}/contents`);
+                    let readme = null;
+                    try {
+                        const rData = await githubFetch(`/repos/${repo.full_name}/readme`);
+                        const rContent = await fetch(rData.download_url).then(r => r.text());
+                        readme = marked.parse(rContent);
+                    } catch (e) {}
+                    
+                    setExplorer({ 
+                        currentPath: '', 
+                        files: contents, 
+                        fileContent: readme, 
+                        contentType: 'readme', 
+                        history: [] 
+                    });
+                    setView('repo');
+                } catch (e) {}
+                setLoading(false);
+            };
+
+            const navigatePath = async (item) => {
+                setLoading(true);
+                try {
+                    if (item.type === 'dir') {
+                        const contents = await githubFetch(`/repos/${activeRepo.full_name}/contents/${item.path}`);
+                        setExplorer(prev => ({
+                            ...prev,
+                            currentPath: item.path,
+                            files: contents,
+                            history: [...prev.history, { path: prev.currentPath, files: prev.files }]
+                        }));
+                    } else {
+                        const content = await fetch(item.download_url).then(r => r.text());
+                        setExplorer(prev => ({ 
+                            ...prev, 
+                            fileContent: content, 
+                            contentType: 'code', 
+                            activeFile: item 
+                        }));
+                    }
+                } catch (e) {}
+                setLoading(false);
+            };
+
+            const filteredRepos = useMemo(() => {
+                return repos.filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase()));
+            }, [repos, searchQuery]);
+
+            if (view === 'login') {
+                return (
+                    <div className="flex items-center justify-center min-h-screen bg-[#010409] p-6">
+                        <div className="w-full max-w-md p-10 bg-[#161b22] border border-[#30363d] rounded-[3rem] shadow-2xl text-center animate-slide-up">
+                            <div className="w-20 h-20 bg-[#0d1117] border border-[#30363d] rounded-[1.5rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
+                                <Icon name="Github" size={40} className="text-white" />
+                            </div>
+                            <h1 className="text-2xl font-black text-white mb-2 tracking-tight">GITHUB NEXUS</h1>
+                            <p className="text-xs text-[#8b949e] mb-10 font-bold uppercase tracking-[0.3em]">Neural Interface v2.5</p>
+                            
+                            <div className="space-y-4 text-left">
+                                <div>
+                                    <label className="text-[10px] font-black text-[#8b949e] uppercase tracking-widest ml-4 mb-2 block">Identity Token</label>
+                                    <input 
+                                        className="w-full bg-[#0d1117] border border-[#30363d] rounded-2xl p-5 text-white font-mono text-sm outline-none focus:ring-2 focus:ring-[#1f6feb]/40 transition-all"
+                                        placeholder="GitHub Username"
+                                        value={username}
+                                        onChange={e => setUsername(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && handleLogin(username)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-[#8b949e] uppercase tracking-widest ml-4 mb-2 block">Neural Key (Optional)</label>
+                                    <input 
+                                        type="password"
+                                        className="w-full bg-[#0d1117] border border-[#30363d] rounded-2xl p-5 text-white font-mono text-sm outline-none focus:ring-2 focus:ring-[#1f6feb]/20 transition-all"
+                                        placeholder="Personal Access Token"
+                                        value={apiKey}
+                                        onChange={e => setApiKey(e.target.value)}
+                                    />
+                                </div>
+                                <button 
+                                    onClick={() => handleLogin(username)} 
+                                    className="w-full bg-[#1f6feb] text-white font-black py-5 rounded-2xl hover:bg-[#388bfd] transition-all transform active:scale-95 shadow-xl shadow-[#1f6feb]/10"
+                                >
+                                    {loading ? <Icon name="Loader2" className="animate-spin" /> : "INITIATE SESSION"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="h-screen flex flex-col bg-[#0d1117] overflow-hidden">
+                    {/* Universal Header */}
+                    <nav className="h-16 border-b border-[#30363d] px-8 flex items-center justify-between glass shrink-0 z-[60]">
+                        <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setView('home')}>
+                                <div className="p-2 bg-[#1f6feb] rounded-xl group-hover:rotate-12 transition-all shadow-lg shadow-[#1f6feb]/20">
+                                    <Icon name="Zap" size={18} className="text-white" />
+                                </div>
+                                <span className="font-black text-xs tracking-[0.2em] text-white">NEXUS.IO</span>
+                            </div>
+                            <div className="hidden md:flex items-center bg-[#161b22] border border-[#30363d] rounded-xl px-4 py-1.5 gap-3">
+                                <Icon name="Search" size={14} className="text-[#8b949e]" />
+                                <input 
+                                    className="bg-transparent border-none outline-none text-xs font-medium text-white w-48"
+                                    placeholder="Jump to repo..."
+                                    value={searchQuery}
+                                    onChange={e => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-6">
+                            <div className="text-right hidden sm:block">
+                                <p className="text-[9px] font-black text-[#8b949e] uppercase tracking-widest">Operator</p>
+                                <p className="text-xs font-bold text-white">{user.login}</p>
+                            </div>
+                            <div className="relative group">
+                                <img src={user.avatar_url} className="w-10 h-10 rounded-2xl border border-[#30363d] cursor-pointer ring-offset-2 ring-offset-[#0d1117] hover:ring-2 ring-[#1f6feb] transition-all" />
+                                <div className="absolute top-full right-0 mt-3 w-48 bg-[#161b22] border border-[#30363d] rounded-2xl opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all p-2 shadow-2xl">
+                                    <button onClick={() => setView('home')} className="w-full text-left p-3 hover:bg-[#30363d] rounded-xl text-xs font-bold flex items-center gap-3">
+                                        <Icon name="Layout" size={14} /> Dashboard
+                                    </button>
+                                    <div className="h-px bg-[#30363d] my-1" />
+                                    <button onClick={handleLogout} className="w-full text-left p-3 hover:bg-red-500/10 rounded-xl text-xs font-bold text-red-500 flex items-center gap-3">
+                                        <Icon name="LogOut" size={14} /> Terminate
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+
+                    {/* Main Content Area */}
+                    <div className="flex-1 overflow-hidden flex flex-col">
+                        {view === 'home' ? (
+                            <div className="flex-1 overflow-y-auto p-8 lg:p-12 custom-scrollbar animate-fade-in">
+                                <div className="max-w-7xl mx-auto">
+                                    {/* Dashboard Hero */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-16">
+                                        <div className="lg:col-span-1">
+                                            <div className="sticky top-0 space-y-8">
+                                                <div className="relative group">
+                                                    <img src={user.avatar_url} className="w-full aspect-square rounded-[3rem] border-2 border-[#30363d] shadow-2xl" />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent rounded-[3rem] opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-8">
+                                                        <p className="text-white font-black text-xl">@{user.login}</p>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <h1 className="text-2xl font-black text-white mb-2">{user.name || user.login}</h1>
+                                                    <p className="text-[#8b949e] font-medium italic mb-6 leading-relaxed">"{user.bio || 'Core system signature: No data provided.'}"</p>
+                                                    
+                                                    <div className="space-y-3">
+                                                        <button 
+                                                            onClick={() => openSocialModal('Followers', user.followers_url)}
+                                                            className="w-full p-4 bg-[#161b22] border border-[#30363d] rounded-2xl flex items-center justify-between group hover:border-[#1f6feb] transition-all"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <Icon name="Users" className="text-[#1f6feb]" />
+                                                                <span className="text-xs font-bold text-white">Followers</span>
+                                                            </div>
+                                                            <span className="text-xs font-black text-[#8b949e] group-hover:text-white">{user.followers}</span>
+                                                        </button>
+                                                        <div className="w-full p-4 bg-[#161b22] border border-[#30363d] rounded-2xl flex items-center justify-between">
+                                                            <div className="flex items-center gap-3">
+                                                                <Icon name="Activity" className="text-[#238636]" />
+                                                                <span className="text-xs font-bold text-white">Public Repos</span>
+                                                            </div>
+                                                            <span className="text-xs font-black text-[#8b949e]">{user.public_repos}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="lg:col-span-3">
+                                            <div className="flex items-center justify-between mb-8">
+                                                <h2 className="text-sm font-black text-[#8b949e] uppercase tracking-[0.3em]">Module Inventory</h2>
+                                                <div className="flex gap-2">
+                                                    <div className="h-2 w-2 rounded-full bg-[#238636] animate-pulse" />
+                                                    <span className="text-[10px] font-black text-white/40 uppercase">Live Stream</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {filteredRepos.map(repo => (
+                                                    <div 
+                                                        key={repo.id} 
+                                                        onClick={() => loadRepo(repo)}
+                                                        className="p-8 bg-[#161b22] border border-[#30363d] rounded-[2.5rem] hover:bg-[#1c2128] transition-all cursor-pointer group flex flex-col h-64 repo-card-glow"
+                                                    >
+                                                        <div className="flex justify-between items-start mb-6">
+                                                            <div className="p-3 bg-[#0d1117] rounded-2xl border border-[#30363d]">
+                                                                <Icon name="Package" size={24} className="text-[#1f6feb]" />
+                                                            </div>
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); openSocialModal('Stargazers', repo.stargazers_url); }}
+                                                                className="flex items-center gap-2 px-4 py-2 bg-[#0d1117] rounded-xl border border-[#30363d] text-[10px] font-black text-[#8b949e] hover:text-white transition-colors"
+                                                            >
+                                                                <Icon name="Star" size={14} className="text-yellow-500" /> {repo.stargazers_count}
+                                                            </button>
+                                                        </div>
+                                                        <h3 className="text-xl font-extrabold text-white group-hover:text-[#1f6feb] mb-3 truncate transition-colors">{repo.name}</h3>
+                                                        <p className="text-xs text-[#8b949e] font-medium line-clamp-2 mb-auto leading-relaxed">
+                                                            {repo.description || "Experimental module with undefined metadata."}
+                                                        </p>
+                                                        <div className="flex items-center justify-between mt-6">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-2 h-2 rounded-full bg-[#1f6feb]" />
+                                                                <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{repo.language || 'Binary'}</span>
+                                                            </div>
+                                                            <span className="text-[9px] font-bold text-[#484f58] uppercase">Rev: {new Date(repo.updated_at).toLocaleDateString()}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            /* FULL REPOSITORY OPERATING ENVIRONMENT */
+                            <div className="flex-1 flex flex-col bg-[#0d1117] animate-fade-in">
+                                {/* Repo Header Nav */}
+                                <div className="bg-[#161b22] border-b border-[#30363d] px-8 pt-8 shrink-0">
+                                    <div className="max-w-7xl mx-auto">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                                            <div className="flex items-center gap-4 text-2xl font-extrabold">
+                                                <Icon name="BookOpen" size={24} className="text-[#8b949e]" />
+                                                <span className="text-[#1f6feb] cursor-pointer hover:underline" onClick={() => setView('home')}>{user.login}</span>
+                                                <span className="opacity-20">/</span>
+                                                <span className="text-white">{activeRepo.name}</span>
+                                                <span className="px-3 py-1 bg-[#1f6feb]/10 border border-[#1f6feb]/20 rounded-full text-[10px] text-[#1f6feb] uppercase tracking-widest">{activeRepo.visibility}</span>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <button 
+                                                    onClick={() => openSocialModal('Stargazers', activeRepo.stargazers_url)}
+                                                    className="px-6 py-2.5 bg-[#21262d] border border-[#30363d] rounded-xl text-xs font-black hover:bg-[#30363d] transition-all flex items-center gap-3 text-white"
+                                                >
+                                                    <Icon name="Star" size={16} className="text-yellow-500" /> STARRED <span className="bg-[#30363d] px-2 py-0.5 rounded-lg text-[10px]">{activeRepo.stargazers_count}</span>
+                                                </button>
+                                                <a 
+                                                    href={activeRepo.html_url} 
+                                                    target="_blank"
+                                                    className="px-6 py-2.5 bg-[#238636] border border-[#2ea043] rounded-xl text-xs font-black hover:bg-[#2ea043] transition-all flex items-center gap-3 text-white"
+                                                >
+                                                    <Icon name="Github" size={16} /> LIVE PREVIEW
+                                                </a>
+                                            </div>
+                                        </div>
+                                        {/* Page Tabs */}
+                                        <div className="flex gap-8 overflow-x-auto custom-scrollbar">
+                                            {[
+                                                { id: 'code', icon: 'Code', label: 'SOURCE' },
+                                                { id: 'issues', icon: 'AlertCircle', label: 'ANOMALIES' },
+                                                { id: 'pulls', icon: 'GitMerge', label: 'PROPOSALS' },
+                                                { id: 'actions', icon: 'Play', label: 'PIPELINE' }
+                                            ].map(tab => (
+                                                <button 
+                                                    key={tab.id}
+                                                    onClick={() => setRepoTab(tab.id)}
+                                                    className={`pb-4 flex items-center gap-3 text-[11px] font-black tracking-[0.2em] transition-all whitespace-nowrap ${repoTab === tab.id ? 'tab-active' : 'text-[#8b949e] hover:text-white'}`}
+                                                >
+                                                    <Icon name={tab.icon} size={16} /> {tab.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Active Tab Environment */}
+                                <div className="flex-1 overflow-hidden flex bg-[#0d1117]">
+                                    {repoTab === 'code' ? (
+                                        <div className="flex flex-1 overflow-hidden">
+                                            <aside className="w-80 border-r border-[#30363d] overflow-y-auto custom-scrollbar bg-[#010409]">
+                                                <div className="p-6 border-b border-[#30363d] bg-[#161b22]/30">
+                                                    <p className="text-[10px] font-black text-[#8b949e] uppercase tracking-widest mb-4">Navigation Tree</p>
+                                                    {explorer.history.length > 0 && (
+                                                        <button 
+                                                            onClick={() => {
+                                                                const last = explorer.history[explorer.history.length - 1];
+                                                                setExplorer(prev => ({ 
+                                                                    ...prev, 
+                                                                    currentPath: last.path, 
+                                                                    files: last.files, 
+                                                                    history: prev.history.slice(0, -1), 
+                                                                    contentType: 'readme' 
+                                                                }));
+                                                            }}
+                                                            className="w-full flex items-center gap-3 p-3 bg-[#0d1117] border border-[#30363d] rounded-xl text-[#1f6feb] text-[10px] font-black hover:bg-[#161b22] transition-colors"
+                                                        >
+                                                            <Icon name="ArrowLeft" size={14} /> JUMP UP
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="p-2">
+                                                    {explorer.files.map((f, i) => (
+                                                        <div 
+                                                            key={i} 
+                                                            onClick={() => navigatePath(f)} 
+                                                            className="flex items-center gap-4 p-4 hover:bg-[#161b22] rounded-2xl cursor-pointer group transition-all border border-transparent hover:border-[#30363d]"
+                                                        >
+                                                            <div className={`p-2 rounded-lg ${f.type === 'dir' ? 'bg-[#1f6feb]/10 text-[#1f6feb]' : 'bg-[#30363d]/30 text-[#8b949e]'}`}>
+                                                                <Icon name={f.type === 'dir' ? 'Folder' : 'File'} size={16} />
+                                                            </div>
+                                                            <div className="flex-1 overflow-hidden">
+                                                                <p className="text-[11px] font-bold text-[#c9d1d9] group-hover:text-white truncate">{f.name}</p>
+                                                                <p className="text-[9px] text-[#484f58] font-mono uppercase">{f.size ? `${(f.size / 1024).toFixed(1)} KB` : 'DIR'}</p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </aside>
+                                            <main className="flex-1 overflow-y-auto p-12 custom-scrollbar bg-[#0d1117]">
+                                                <div className="max-w-4xl mx-auto">
+                                                    {explorer.contentType === 'readme' ? (
+                                                        <div className="animate-fade-in">
+                                                            <div className="flex items-center gap-3 mb-8 opacity-40">
+                                                                <Icon name="Info" size={14} />
+                                                                <span className="text-[10px] font-black uppercase tracking-widest">Documentation Manifest</span>
+                                                            </div>
+                                                            {explorer.fileContent ? (
+                                                                <div className="markdown-body p-12 bg-[#161b22] border border-[#30363d] rounded-[3rem] shadow-2xl" dangerouslySetInnerHTML={{ __html: explorer.fileContent }} />
+                                                            ) : (
+                                                                <div className="text-center py-32 border-2 border-dashed border-[#30363d] rounded-[3rem] opacity-20">
+                                                                    <Icon name="Ghost" size={48} className="mx-auto mb-4" />
+                                                                    <p className="font-black uppercase tracking-[0.3em] text-xs">No documentation detected</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="animate-fade-in">
+                                                            <div className="flex items-center justify-between mb-8">
+                                                                <div className="flex items-center gap-4">
+                                                                    <div className="p-3 bg-[#1f6feb]/10 text-[#1f6feb] rounded-2xl border border-[#1f6feb]/20">
+                                                                        <Icon name="Terminal" size={20} />
+                                                                    </div>
+                                                                    <div>
+                                                                        <h2 className="text-lg font-black text-white">{explorer.activeFile?.name}</h2>
+                                                                        <p className="text-[10px] text-[#8b949e] font-mono">{explorer.activeFile?.path}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <button 
+                                                                    onClick={() => {
+                                                                        copyToClipboard(explorer.fileContent);
+                                                                    }}
+                                                                    className="p-3 bg-[#161b22] border border-[#30363d] rounded-xl hover:bg-[#30363d] transition-all text-[#8b949e] hover:text-white"
+                                                                >
+                                                                    <Icon name="Copy" size={18} />
+                                                                </button>
+                                                            </div>
+                                                            <div className="rounded-[2rem] border border-[#30363d] overflow-hidden bg-[#161b22] shadow-2xl">
+                                                                <div className="h-10 bg-[#0d1117] border-b border-[#30363d] flex items-center px-6 gap-2">
+                                                                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/20" />
+                                                                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20" />
+                                                                    <div className="w-2.5 h-2.5 rounded-full bg-green-500/20" />
+                                                                </div>
+                                                                <pre className="p-8 text-[13px] font-mono leading-relaxed overflow-x-auto custom-scrollbar">
+                                                                    <code className="text-[#c9d1d9]">{explorer.fileContent}</code>
+                                                                </pre>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </main>
+                                        </div>
+                                    ) : (
+                                        <div className="flex-1 flex flex-col items-center justify-center p-20 animate-fade-in">
+                                            <div className="w-24 h-24 bg-[#161b22] border border-[#30363d] rounded-[2rem] flex items-center justify-center mb-6 shadow-xl">
+                                                <Icon name="ShieldAlert" size={40} className="text-[#8b949e]" />
+                                            </div>
+                                            <h3 className="text-xl font-black text-white mb-2 uppercase tracking-[0.2em]">Data Missing</h3>
+                                            <p className="text-[#8b949e] text-center max-w-sm font-medium leading-relaxed">
+                                                This subsection is currently out of the Nexus sync scope. Enable enterprise modules to visualize Issues, PRs, and Actions.
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Status Console Footer */}
+                    <footer className="h-10 border-t border-[#30363d] bg-[#161b22] px-8 flex items-center justify-between text-[9px] font-black text-[#484f58] uppercase shrink-0 tracking-[0.2em]">
+                        <div className="flex gap-8">
+                            <div className="flex items-center gap-3">
+                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+                                <span className="text-[#8b949e]">System: Connected</span>
+                            </div>
+                            <span className="hidden md:block">Region: US-CENTRAL-1</span>
+                        </div>
+                        <div className="flex gap-8 items-center">
+                            <span className="text-[#1f6feb]">Secure Protocol v3.1</span>
+                            <span className="opacity-40">© 2026 Nexus Corp</span>
+                        </div>
+                    </footer>
+
+                    {/* Social Modal */}
+                    {modal && (
+                        <Modal title={modal.type} onClose={() => setModal(null)}>
+                            <div className="p-4">
+                                {modal.data.length > 0 ? (
+                                    modal.data.map(u => (
+                                        <MiniUserItem key={u.id} user={u} onClick={(n) => { setModal(null); handleLogin(n); }} />
+                                    ))
+                                ) : (
+                                    <div className="text-center py-20 opacity-30">
+                                        <Icon name="UserX" size={40} className="mx-auto mb-4" />
+                                        <p className="text-[10px] font-black uppercase tracking-widest">No users detected in sector</p>
+                                    </div>
+                                )}
+                            </div>
+                        </Modal>
+                    )}
+
+                    {/* Global System Loader */}
+                    {loading && (
+                        <div className="fixed top-0 left-0 w-full h-1 bg-transparent z-[200] overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-transparent via-[#1f6feb] to-transparent animate-[loading_1.5s_infinite] w-1/3 shadow-[0_0_15px_#1f6feb]" />
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+    <style>
+        @keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(400%); } }
+    </style>
+</body>
+</html>

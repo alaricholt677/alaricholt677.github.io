@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>moreOS • alaricholt677</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: #050510;
+      --bg-alt: #0b0b1c;
+      --accent: #5b8cff;
+      --accent-soft: rgba(91, 140, 255, 0.2);
+      --accent-strong: #9f7bff;
+      --accent-danger: #ff4f7b;
+      --text-main: #f5f5ff;
+      --text-soft: #a7a7d9;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --glass: rgba(10, 10, 30, 0.85);
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-pill: 999px;
+      --shadow-soft: 0 24px 60px rgba(0, 0, 0, 0.65);
+      --shadow-glow: 0 0 40px rgba(91, 140, 255, 0.45);
+      --transition-fast: 160ms ease-out;
+      --transition-med: 220ms ease-out;
+      --transition-slow: 360ms cubic-bezier(0.19, 1, 0.22, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      background: radial-gradient(circle at top, #151533 0, #050510 55%, #000 100%);
+      color: var(--text-main);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      isolation: isolate;
+    }
+
+    /* Background orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.7;
+      mix-blend-mode: screen;
+      pointer-events: none;
+      z-index: -2;
+    }
+
+    .orb--blue {
+      width: 420px;
+      height: 420px;
+      background: radial-gradient(circle, #5b8cff 0, transparent 70%);
+      top: -80px;
+      left: -40px;
+      animation: floatOrb1 18s infinite alternate ease-in-out;
+    }
+
+    .orb--purple {
+      width: 380px;
+      height: 380px;
+      background: radial-gradient(circle, #9f7bff 0, transparent 70%);
+      bottom: -120px;
+      right: -40px;
+      animation: floatOrb2 22s infinite alternate ease-in-out;
+    }
+
+    .orb--pink {
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle, #ff4f7b 0, transparent 70%);
+      bottom: 40px;
+      left: 20%;
+      opacity: 0.4;
+      animation: floatOrb3 26s infinite alternate ease-in-out;
+    }
+
+    @keyframes floatOrb1 {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(40px, 40px, 0); }
+    }
+
+    @keyframes floatOrb2 {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-40px, -20px, 0); }
+    }
+
+    @keyframes floatOrb3 {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(20px, -30px, 0); }
+    }
+
+    /* Scanline overlay */
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.04) 1px,
+        transparent 1px
+      );
+      background-size: 100% 2px;
+      mix-blend-mode: soft-light;
+      opacity: 0.25;
+      z-index: -1;
+    }
+
+    /* Main shell */
+    .shell {
+      width: min(960px, 100% - 48px);
+      max-height: min(640px, 100% - 48px);
+      background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.06),
+          rgba(255, 255, 255, 0.02)
+        ),
+        var(--glass);
+      border-radius: 26px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: var(--shadow-soft), var(--shadow-glow);
+      backdrop-filter: blur(26px) saturate(140%);
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr);
+      overflow: hidden;
+      position: relative;
+      transform: translateY(12px) scale(0.98);
+      opacity: 0;
+      animation: shellIn 620ms var(--transition-slow) forwards;
+    }
+
+    @keyframes shellIn {
+      0% {
+        opacity: 0;
+        transform: translateY(24px) scale(0.96);
+        filter: blur(4px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+      }
+    }
+
+    .shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    /* Left panel */
+    .panel-left {
+      padding: 24px 24px 24px 26px;
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel-left::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.12), transparent 55%);
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .shell-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .shell-title {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .shell-title-main {
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+    }
+
+    .shell-title-sub {
+      font-size: 1.6rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--text-main);
+    }
+
+    .shell-pills {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: var(--text-soft);
+    }
+
+    .pill {
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: radial-gradient(circle at top, rgba(255, 255, 255, 0.16), rgba(0, 0, 0, 0.4));
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      backdrop-filter: blur(10px);
+    }
+
+    .pill-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px rgba(91, 140, 255, 0.8);
+    }
+
+    .shell-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .control-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .control-dot::after {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      border-radius: inherit;
+      background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.7), transparent 60%);
+      opacity: 0.7;
+    }
+
+    .control-dot--red { background: #ff5f57; }
+    .control-dot--yellow { background: #febc2e; }
+    .control-dot--green { background: #28c840; }
+
+    .shell-subtext {
+      font-size: 0.86rem;
+      color: var(--text-soft);
+      max-width: 320px;
+      line-height: 1.5;
+      position: relative;
+      z-index: 1;
+    }
+
+    .shell-subtext strong {
+      color: var(--accent-strong);
+      font-weight: 600;
+    }
+
+    .shell-divider {
+      height: 1px;
+      width: 100%;
+      background: linear-gradient(
+        to right,
+        transparent,
+        rgba(255, 255, 255, 0.18),
+        transparent
+      );
+      margin: 4px 0 6px;
+      opacity: 0.8;
+    }
+
+    .shell-footer {
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      position: relative;
+      z-index: 1;
+    }
+
+    .shell-footer span {
+      opacity: 0.8;
+    }
+
+    .shell-footer-badge {
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: radial-gradient(circle at top, rgba(255, 255, 255, 0.16), rgba(0, 0, 0, 0.5));
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .shell-footer-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-strong);
+      box-shadow: 0 0 10px rgba(159, 123, 255, 0.9);
+    }
+
+    /* Right panel */
+    .panel-right {
+      padding: 22px 24px 24px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      position: relative;
+    }
+
+    .panel-right-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .panel-right-title {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--text-soft);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-right-title::before {
+      content: "";
+      width: 26px;
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.6));
+      opacity: 0.8;
+    }
+
+    .panel-right-meta {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      opacity: 0.8;
+    }
+
+    .os-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 4px;
+    }
+
+    .os-card {
+      position: relative;
+      border-radius: var(--radius-lg);
+      padding: 14px 14px 13px;
+      background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), rgba(0, 0, 0, 0.7));
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55);
+      cursor: pointer;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transform-origin: center;
+      transform: translateY(0) scale(1);
+      transition:
+        transform var(--transition-med),
+        box-shadow var(--transition-med),
+        border-color var(--transition-med),
+        background var(--transition-med),
+        filter var(--transition-med);
+    }
+
+    .os-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top, rgba(255, 255, 255, 0.18), transparent 60%);
+      opacity: 0;
+      transition: opacity var(--transition-med);
+      pointer-events: none;
+    }
+
+    .os-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        135deg,
+        rgba(91, 140, 255, 0.18),
+        rgba(159, 123, 255, 0.18),
+        rgba(255, 79, 123, 0.18)
+      );
+      mix-blend-mode: soft-light;
+      opacity: 0;
+      transition: opacity var(--transition-med);
+      pointer-events: none;
+    }
+
+    .os-card:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 22px 50px rgba(0, 0, 0, 0.8);
+      border-color: rgba(255, 255, 255, 0.32);
+      filter: saturate(1.1);
+    }
+
+    .os-card:hover::before {
+      opacity: 1;
+    }
+
+    .os-card:hover::after {
+      opacity: 1;
+    }
+
+    .os-card:active {
+      transform: translateY(-1px) scale(0.995);
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.7);
+    }
+
+    .os-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .os-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 14px;
+      background: radial-gradient(circle at top, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.8));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.7);
+    }
+
+    .os-icon img {
+      width: 70%;
+      height: 70%;
+      object-fit: contain;
+      filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.8));
+    }
+
+    .os-icon--back {
+      font-size: 1.2rem;
+      color: var(--text-main);
+    }
+
+    .os-labels {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .os-name {
+      font-size: 0.98rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .os-tagline {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      opacity: 0.9;
+    }
+
+    .os-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.75rem;
+      color: var(--text-soft);
+      position: relative;
+      z-index: 1;
+    }
+
+    .os-meta span {
+      opacity: 0.9;
+    }
+
+    .os-pill {
+      padding: 3px 8px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.6);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .os-pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px rgba(91, 140, 255, 0.9);
+    }
+
+    .os-card--primary {
+      background: radial-gradient(circle at top left, rgba(91, 140, 255, 0.22), rgba(0, 0, 0, 0.8));
+      border-color: rgba(91, 140, 255, 0.5);
+    }
+
+    .os-card--primary::after {
+      opacity: 0.4;
+    }
+
+    .os-card--danger {
+      background: radial-gradient(circle at top left, rgba(255, 79, 123, 0.18), rgba(0, 0, 0, 0.8));
+      border-color: rgba(255, 79, 123, 0.5);
+    }
+
+    .os-card--ghost {
+      background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.8));
+    }
+
+    .os-card--primary .os-pill-dot {
+      background: var(--accent-strong);
+      box-shadow: 0 0 10px rgba(159, 123, 255, 0.9);
+    }
+
+    .os-card--danger .os-pill-dot {
+      background: var(--accent-danger);
+      box-shadow: 0 0 10px rgba(255, 79, 123, 0.9);
+    }
+
+    .os-card--ghost .os-pill-dot {
+      background: var(--accent);
+    }
+
+    /* Toast / status */
+    .toast {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      padding: 8px 14px;
+      border-radius: var(--radius-pill);
+      background: rgba(5, 5, 20, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: var(--text-soft);
+      font-size: 0.78rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      pointer-events: none;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      transition:
+        opacity var(--transition-med),
+        transform var(--transition-med);
+      z-index: 10;
+    }
+
+    .toast-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px rgba(91, 140, 255, 0.9);
+    }
+
+    .toast--visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Responsive */
+    @media (max-width: 820px) {
+      body {
+        padding: 16px;
+        overflow: auto;
+      }
+
+      .shell {
+        grid-template-columns: minmax(0, 1fr);
+        max-height: none;
+      }
+
+      .panel-left {
+        border-right: none;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .shell-subtext {
+        max-width: none;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .os-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="orb orb--blue"></div>
+  <div class="orb orb--purple"></div>
+  <div class="orb orb--pink"></div>
+  <div class="scanlines"></div>
+
+  <main class="shell">
+    <!-- LEFT PANEL -->
+    <section class="panel-left">
+      <header class="shell-header">
+        <div class="shell-title">
+          <div class="shell-title-main">moreOS selector</div>
+          <div class="shell-title-sub">Choose your desktop reality</div>
+          <div class="shell-pills">
+            <div class="pill">
+              <span class="pill-dot"></span>
+              <span>alaricholt677.github.io</span>
+            </div>
+          </div>
+        </div>
+        <div class="shell-controls">
+          <div class="control-dot control-dot--red"></div>
+          <div class="control-dot control-dot--yellow"></div>
+          <div class="control-dot control-dot--green"></div>
+        </div>
+      </header>
+
+      <div class="shell-subtext">
+        A focused launcher for your experimental OS experiences.  
+        Jump back to <strong>main site</strong>, revisit <strong>Win98</strong>, or step into the
+        <strong>Win12</strong> concept shell.
+      </div>
+
+      <div class="shell-divider"></div>
+
+      <footer class="shell-footer">
+        <span>High‑fidelity selection • animated • keyboard aware</span>
+        <div class="shell-footer-badge">
+          <span class="shell-footer-badge-dot"></span>
+          <span>Press 1, 2, 3 to switch instantly</span>
+        </div>
+      </footer>
+    </section>
+
+    <!-- RIGHT PANEL -->
+    <section class="panel-right">
+      <div class="panel-right-header">
+        <div class="panel-right-title">Available shells</div>
+        <div class="panel-right-meta">Live routes • GitHub Pages</div>
+      </div>
+
+      <div class="os-grid">
+        <!-- BACK TO MAIN -->
+        <article
+          class="os-card os-card--ghost"
+          data-route="https://alaricholt677.github.io/"
+          data-key="1"
+        >
+          <div class="os-card-header">
+            <div class="os-icon os-icon--back">
+              ⬅
+            </div>
+            <div class="os-labels">
+              <div class="os-name">Back to main</div>
+              <div class="os-tagline">Return to alaricholt677.github.io root</div>
+            </div>
+          </div>
+          <div class="os-meta">
+            <span>Key: 1 • Safe exit</span>
+            <div class="os-pill">
+              <span class="os-pill-dot"></span>
+              <span>Home route</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- WIN98 -->
+        <article
+          class="os-card os-card--danger"
+          data-route="https://alaricholt677.github.io/win98"
+          data-key="2"
+        >
+          <div class="os-card-header">
+            <div class="os-icon">
+              <!-- You can replace this with your actual win98 SVG path -->
+              <img src="https://alaricholt677.github.io/win98.svg" alt="Win98 icon" />
+            </div>
+            <div class="os-labels">
+              <div class="os-name">Win98</div>
+              <div class="os-tagline">Retro shell • CRT vibes • nostalgia stack</div>
+            </div>
+          </div>
+          <div class="os-meta">
+            <span>Key: 2 • Legacy mode</span>
+            <div class="os-pill">
+              <span class="os-pill-dot"></span>
+              <span>Retro desktop</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- WIN12 -->
+        <article
+          class="os-card os-card--primary"
+          data-route="https://alaricholt677.github.io/win12"
+          data-key="3"
+        >
+          <div class="os-card-header">
+            <div class="os-icon">
+              <img src="https://alaricholt677.github.io/win12-icon.svg" alt="Win12 icon" />
+            </div>
+            <div class="os-labels">
+              <div class="os-name">Win12</div>
+              <div class="os-tagline">Concept shell • glass • neon • future stack</div>
+            </div>
+          </div>
+          <div class="os-meta">
+            <span>Key: 3 • Experimental</span>
+            <div class="os-pill">
+              <span class="os-pill-dot"></span>
+              <span>New experience</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- PLACEHOLDER / FUTURE SLOT -->
+        <article
+          class="os-card"
+          data-route="https://alaricholt677.github.io/moreOS"
+          data-key="4"
+        >
+          <div class="os-card-header">
+            <div class="os-icon">
+              <span style="font-size: 1.2rem; color: var(--accent-strong);">⋯</span>
+            </div>
+            <div class="os-labels">
+              <div class="os-name">moreOS</div>
+              <div class="os-tagline">Reserved slot • future shell concept</div>
+            </div>
+          </div>
+          <div class="os-meta">
+            <span>Key: 4 • Coming soon</span>
+            <div class="os-pill">
+              <span class="os-pill-dot"></span>
+              <span>Placeholder</span>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast">
+    <div class="toast-dot"></div>
+    <span id="toast-text">Press 1, 2, 3 or click a card to navigate.</span>
+  </div>
+
+  <script>
+    (function () {
+      const cards = Array.from(document.querySelectorAll(".os-card"));
+      const toast = document.getElementById("toast");
+      const toastText = document.getElementById("toast-text");
+
+      let toastTimeout = null;
+
+      function showToast(message, duration = 2000) {
+        if (!toast) return;
+        toastText.textContent = message;
+        toast.classList.add("toast--visible");
+        if (toastTimeout) clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+          toast.classList.remove("toast--visible");
+        }, duration);
+      }
+
+      function navigateTo(route) {
+        if (!route) return;
+        showToast("Navigating…", 900);
+        setTimeout(() => {
+          window.location.href = route;
+        }, 260);
+      }
+
+      function handleCardClick(e) {
+        const card = e.currentTarget;
+        const route = card.getAttribute("data-route");
+        navigateTo(route);
+      }
+
+      function handleKeydown(e) {
+        const key = e.key;
+        const card = cards.find((c) => c.getAttribute("data-key") === key);
+        if (card) {
+          const name = card.querySelector(".os-name")?.textContent?.trim() || "target";
+          showToast(`Opening ${name}…`, 900);
+          const route = card.getAttribute("data-route");
+          setTimeout(() => navigateTo(route), 260);
+        }
+      }
+
+      cards.forEach((card) => {
+        card.addEventListener("click", handleCardClick);
+      });
+
+      window.addEventListener("keydown", handleKeydown);
+
+      // Initial hint
+      setTimeout(() => {
+        showToast("Press 1, 2, 3 or click a card to navigate.", 2600);
+      }, 600);
+    })();
+  </script>
+</body>
+</html>

@@ -11,17 +11,20 @@
       box-sizing: border-box;
     }
     body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       margin: 0;
-      background: radial-gradient(circle at top, #111827 0, #020617 45%, #000 100%);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(circle at top, #020617 0, #020617 40%, #000 100%);
       color: #0f172a;
     }
-    #stars {
+
+    /* BACKGROUND STARFIELD */
+    #bgStars {
       position: fixed;
       inset: 0;
       z-index: -2;
       pointer-events: none;
     }
+
     #wrap {
       padding: 24px;
       max-width: 960px;
@@ -30,70 +33,59 @@
       z-index: 1;
     }
 
-    /* STAR GAZER HERO */
+    /* HERO BANNER */
     #hero {
       position: relative;
-      margin: 12px 0 24px;
-      padding: 20px 20px 18px;
-      border-radius: 18px;
+      margin: 16px 0 20px;
+      padding: 18px 18px 16px;
+      border-radius: 16px;
       overflow: hidden;
-      background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(236, 72, 153, 0.18));
-      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: radial-gradient(circle at 0 0, rgba(56,189,248,0.25), transparent 55%),
+                  radial-gradient(circle at 100% 0, rgba(244,114,182,0.25), transparent 55%),
+                  rgba(15,23,42,0.9);
+      border: 1px solid rgba(148,163,184,0.7);
       box-shadow:
-        0 18px 45px rgba(15, 23, 42, 0.75),
-        0 0 0 1px rgba(15, 23, 42, 0.8);
+        0 18px 45px rgba(15,23,42,0.8),
+        0 0 0 1px rgba(15,23,42,0.9);
       color: #e5e7eb;
       backdrop-filter: blur(18px) saturate(1.4);
     }
-    #hero-glow {
-      position: absolute;
-      inset: -40%;
-      background:
-        radial-gradient(circle at 10% 0%, rgba(96, 165, 250, 0.45), transparent 55%),
-        radial-gradient(circle at 90% 0%, rgba(244, 114, 182, 0.45), transparent 55%),
-        radial-gradient(circle at 50% 120%, rgba(52, 211, 153, 0.35), transparent 55%);
-      opacity: 0.9;
-      mix-blend-mode: screen;
-      pointer-events: none;
-      z-index: 0;
-    }
     #hero-inner {
-      position: relative;
-      z-index: 1;
       display: flex;
       align-items: center;
-      gap: 18px;
+      gap: 16px;
+      position: relative;
+      z-index: 1;
     }
     #hero-badge {
-      width: 64px;
-      height: 64px;
+      width: 60px;
+      height: 60px;
       border-radius: 999px;
       background: radial-gradient(circle at 30% 20%, #facc15, #f97316 55%, #b91c1c 100%);
       box-shadow:
-        0 0 0 3px rgba(15, 23, 42, 0.9),
-        0 0 32px rgba(250, 204, 21, 0.8);
+        0 0 0 3px rgba(15,23,42,0.9),
+        0 0 32px rgba(250,204,21,0.9);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 32px;
-      transform: translateY(0);
+      font-size: 30px;
       animation: floatStar 4.5s ease-in-out infinite;
     }
-    #hero-text-main {
-      font-size: 1.6rem;
+    #hero-title {
+      font-size: 1.5rem;
       font-weight: 650;
       letter-spacing: 0.02em;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
-    #hero-text-sub {
+    #hero-sub {
       margin-top: 4px;
       font-size: 0.95rem;
       color: #cbd5f5;
     }
-    #hero-chip-row {
-      margin-top: 10px;
+    #hero-chips {
+      margin-top: 8px;
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
@@ -102,8 +94,8 @@
     .hero-chip {
       padding: 4px 9px;
       border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(148,163,184,0.7);
+      background: rgba(15,23,42,0.85);
       color: #e5e7eb;
       display: inline-flex;
       align-items: center;
@@ -115,19 +107,19 @@
       height: 6px;
       border-radius: 999px;
       background: #22c55e;
-      box-shadow: 0 0 10px rgba(34, 197, 94, 0.9);
+      box-shadow: 0 0 10px rgba(34,197,94,0.9);
     }
     #hero-ribbon {
       position: absolute;
-      top: 12px;
-      right: 16px;
+      top: 10px;
+      right: 14px;
       padding: 4px 10px;
       border-radius: 999px;
       font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.12em;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.8);
+      background: rgba(15,23,42,0.95);
+      border: 1px solid rgba(148,163,184,0.8);
       color: #e5e7eb;
       display: inline-flex;
       align-items: center;
@@ -138,12 +130,23 @@
       height: 7px;
       border-radius: 999px;
       background: #f97316;
-      box-shadow: 0 0 10px rgba(249, 115, 22, 0.9);
+      box-shadow: 0 0 10px rgba(249,115,22,0.9);
     }
 
     @keyframes floatStar {
-      0%, 100% { transform: translateY(0); }
+      0%,100% { transform: translateY(0); }
       50% { transform: translateY(-6px); }
+    }
+
+    /* README CONTAINER */
+    #content {
+      margin-top: 10px;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 18px 18px 22px;
+      box-shadow:
+        0 10px 30px rgba(15,23,42,0.25),
+        0 0 0 1px rgba(148,163,184,0.4);
     }
 
     h1, h2, h3, h4 {
@@ -165,7 +168,7 @@
       background: #f6f8fa;
       padding: 0.1em 0.3em;
       border-radius: 4px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       font-size: 0.9em;
     }
     pre {
@@ -204,25 +207,123 @@
     img {
       max-width: 100%;
     }
-    #content {
-      margin-top: 8px;
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 18px 18px 22px;
-      box-shadow:
-        0 10px 30px rgba(15, 23, 42, 0.25),
-        0 0 0 1px rgba(148, 163, 184, 0.4);
-    }
+
     #progress {
       position: fixed;
       left: 0;
       bottom: 0;
       height: 6px;
-      background: linear-gradient(90deg, #22c55e, #eab308, #f97316, #ec4899, #6366f1);
+      background: linear-gradient(90deg,#22c55e,#eab308,#f97316,#ec4899,#6366f1);
       width: 0%;
       transition: width 0.15s ease;
       z-index: 10;
     }
+
+    /* FLOATING WIN12-STYLE STAR WINDOW */
+    #starWindow {
+      position: fixed;
+      top: 80px;
+      right: 40px;
+      width: 360px;
+      max-width: calc(100% - 40px);
+      border-radius: 14px;
+      background: radial-gradient(circle at 0 0, rgba(56,189,248,0.3), transparent 55%),
+                  radial-gradient(circle at 100% 0, rgba(244,114,182,0.3), transparent 55%),
+                  rgba(15,23,42,0.96);
+      box-shadow:
+        0 18px 45px rgba(15,23,42,0.9),
+        0 0 0 1px rgba(15,23,42,1);
+      color: #e5e7eb;
+      z-index: 50;
+      overflow: hidden;
+      backdrop-filter: blur(18px) saturate(1.4);
+      cursor: default;
+    }
+    #starTitlebar {
+      height: 34px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 8px;
+      background: linear-gradient(90deg, rgba(15,23,42,0.9), rgba(30,64,175,0.9));
+      border-bottom: 1px solid rgba(148,163,184,0.7);
+      user-select: none;
+      cursor: grab;
+    }
+    #starTitlebar:active {
+      cursor: grabbing;
+    }
+    .star-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 8px rgba(34,197,94,0.9);
+    }
+    #starTitleText {
+      font-size: 0.85rem;
+      font-weight: 500;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #starClose {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      cursor: pointer;
+      background: transparent;
+      color: #e5e7eb;
+    }
+    #starClose:hover {
+      background: rgba(239,68,68,0.9);
+    }
+    #starBody {
+      padding: 8px 10px 10px;
+      font-size: 0.8rem;
+    }
+    #starHint {
+      margin-bottom: 6px;
+      color: #cbd5f5;
+    }
+    #gameStars {
+      width: 100%;
+      height: 180px;
+      border-radius: 10px;
+      background: #020617;
+      display: block;
+    }
+    #starAchievement {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%) scale(0.9);
+      background: rgba(15,23,42,0.95);
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.8);
+      font-size: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .35s ease, transform .35s ease;
+      color: #e5e7eb;
+    }
+    #starAchievement span.dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #facc15;
+      box-shadow: 0 0 10px rgba(250,204,21,0.9);
+    }
+
     @media (max-width: 640px) {
       #wrap {
         padding: 16px;
@@ -232,22 +333,45 @@
         align-items: flex-start;
       }
       #hero-badge {
-        width: 54px;
-        height: 54px;
-        font-size: 26px;
+        width: 52px;
+        height: 52px;
+        font-size: 24px;
       }
-      #hero-text-main {
-        font-size: 1.3rem;
+      #hero-title {
+        font-size: 1.25rem;
+      }
+      #starWindow {
+        left: 10px;
+        right: 10px;
+        width: auto;
+        top: 70px;
       }
     }
   </style>
 </head>
 <body>
-  <canvas id="stars"></canvas>
+  <!-- background starfield -->
+  <canvas id="bgStars"></canvas>
+
+  <!-- floating Win12-style star-gazer window -->
+  <div id="starWindow">
+    <div id="starTitlebar">
+      <div class="star-dot"></div>
+      <div id="starTitleText">Star‑Gazer · alaricholt677.github.io</div>
+      <div id="starClose">✕</div>
+    </div>
+    <div id="starBody">
+      <div id="starHint">Move your mouse over the stars, click to burst them. You unlocked this by starring.</div>
+      <canvas id="gameStars"></canvas>
+      <div id="starAchievement">
+        <span class="dot"></span>
+        Star‑Gazer unlocked
+      </div>
+    </div>
+  </div>
 
   <div id="wrap">
     <div id="hero">
-      <div id="hero-glow"></div>
       <div id="hero-ribbon">
         <span class="dot"></span>
         STAR‑GAZER MODE
@@ -255,22 +379,20 @@
       <div id="hero-inner">
         <div id="hero-badge">⭐</div>
         <div>
-          <div id="hero-text-main">
-            Thanks for starring this project
+          <div id="hero-title">Thanks for starring this project</div>
+          <div id="hero-sub">
+            You’re seeing the README rendered in <strong>GitHub‑style</strong>, with a Win12‑style star window riding on top.
           </div>
-          <div id="hero-text-sub">
-            You just unlocked the full README view in <strong>GFM‑style</strong> with a little cosmic backdrop.
-          </div>
-          <div id="hero-chip-row">
+          <div id="hero-chips">
             <div class="hero-chip">
               <span class="hero-chip-dot"></span>
               Live README renderer
             </div>
             <div class="hero-chip">
-              ✨ Star‑gazer surprise
+              🪟 Win12 floating window
             </div>
             <div class="hero-chip">
-              🪐 Single‑file artifact
+              🪐 Star‑gazer surprise
             </div>
           </div>
         </div>
@@ -283,66 +405,189 @@
   <div id="progress"></div>
 
   <script>
-    // --- STARFIELD BACKGROUND ---
-    const starCanvas = document.getElementById("stars");
-    const starCtx = starCanvas.getContext("2d");
-    let sw, sh, starPool = [];
+    /* === BACKGROUND STARFIELD === */
+    const bgCanvas = document.getElementById("bgStars");
+    const bgCtx = bgCanvas.getContext("2d");
+    let bw, bh, bgStarsArr = [];
 
-    function resizeStars() {
-      sw = starCanvas.width = window.innerWidth;
-      sh = starCanvas.height = window.innerHeight;
+    function resizeBg() {
+      bw = bgCanvas.width = window.innerWidth;
+      bh = bgCanvas.height = window.innerHeight;
     }
-    resizeStars();
-    window.addEventListener("resize", resizeStars);
+    resizeBg();
+    window.addEventListener("resize", resizeBg);
 
-    function initStarPool(count = 220) {
-      starPool = [];
+    function initBgStars(count = 220) {
+      bgStarsArr = [];
       for (let i = 0; i < count; i++) {
-        starPool.push({
-          x: Math.random() * sw,
-          y: Math.random() * sh,
+        bgStarsArr.push({
+          x: Math.random() * bw,
+          y: Math.random() * bh,
           z: Math.random() * 1.4 + 0.3,
           r: Math.random() * 1.3 + 0.3,
           tw: Math.random() * Math.PI * 2
         });
       }
     }
-    initStarPool();
+    initBgStars();
 
-    function drawStarfield() {
-      starCtx.clearRect(0, 0, sw, sh);
-      for (let s of starPool) {
+    function drawBgStars() {
+      bgCtx.clearRect(0, 0, bw, bh);
+      for (let s of bgStarsArr) {
         const twinkle = 0.6 + Math.sin(s.tw) * 0.35;
-        starCtx.globalAlpha = s.z * twinkle;
-        starCtx.fillStyle = "#e5e7eb";
-        starCtx.beginPath();
-        starCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        starCtx.fill();
+        bgCtx.globalAlpha = s.z * twinkle;
+        bgCtx.fillStyle = "#e5e7eb";
+        bgCtx.beginPath();
+        bgCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        bgCtx.fill();
 
         s.y += s.z * 0.22;
         s.tw += 0.02 + s.z * 0.01;
 
-        if (s.y > sh + 4) {
+        if (s.y > bh + 4) {
           s.y = -6;
-          s.x = Math.random() * sw;
+          s.x = Math.random() * bw;
           s.z = Math.random() * 1.4 + 0.3;
         }
       }
-      requestAnimationFrame(drawStarfield);
+      requestAnimationFrame(drawBgStars);
     }
-    drawStarfield();
+    drawBgStars();
 
-    // subtle entry flash
-    starCanvas.style.filter = "brightness(1.7)";
-    setTimeout(() => {
-      starCanvas.style.transition = "filter 900ms ease-out";
-      starCanvas.style.filter = "brightness(1)";
-    }, 120);
+    /* === STAR-GAZER MINI-GAME IN FLOATING WINDOW === */
+    const gameCanvas = document.getElementById("gameStars");
+    const gctx = gameCanvas.getContext("2d");
+    let gw, gh, gameStarsArr = [];
+    let gmx = 0, gmy = 0;
 
-    // --- MARKDOWN TO HTML (kept logic, just formatted) ---
+    function resizeGame() {
+      gw = gameCanvas.width = gameCanvas.clientWidth;
+      gh = gameCanvas.height = gameCanvas.clientHeight;
+    }
+    resizeGame();
+    window.addEventListener("resize", resizeGame);
+
+    function initGameStars(n = 160) {
+      gameStarsArr = [];
+      for (let i = 0; i < n; i++) {
+        gameStarsArr.push({
+          x: Math.random() * gw,
+          y: Math.random() * gh,
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: (Math.random() - 0.5) * 0.4,
+          r: Math.random() * 1.8 + 0.4
+        });
+      }
+    }
+    initGameStars();
+
+    gameCanvas.addEventListener("mousemove", e => {
+      const rect = gameCanvas.getBoundingClientRect();
+      gmx = e.clientX - rect.left;
+      gmy = e.clientY - rect.top;
+    });
+
+    const starAchievement = document.getElementById("starAchievement");
+    let achievementShown = false;
+
+    function showAchievement() {
+      if (achievementShown) return;
+      achievementShown = true;
+      starAchievement.style.opacity = "1";
+      starAchievement.style.transform = "translateX(-50%) scale(1)";
+      setTimeout(() => {
+        starAchievement.style.opacity = "0";
+        starAchievement.style.transform = "translateX(-50%) scale(0.9)";
+      }, 2200);
+    }
+
+    gameCanvas.addEventListener("click", () => {
+      for (let s of gameStarsArr) {
+        s.vx = (Math.random() - 0.5) * 3;
+        s.vy = (Math.random() - 0.5) * 3;
+      }
+      showAchievement();
+    });
+
+    function loopGame() {
+      gctx.clearRect(0, 0, gw, gh);
+      gctx.fillStyle = "#0b1120";
+      gctx.fillRect(0, 0, gw, gh);
+      gctx.fillStyle = "#e5e7eb";
+
+      for (let s of gameStarsArr) {
+        const dx = s.x - gmx;
+        const dy = s.y - gmy;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        if (dist < 120) {
+          s.x += dx * 0.01;
+          s.y += dy * 0.01;
+        }
+
+        s.x += s.vx;
+        s.y += s.vy;
+
+        if (s.x < 0 || s.x > gw) s.vx *= -1;
+        if (s.y < 0 || s.y > gh) s.vy *= -1;
+
+        gctx.beginPath();
+        gctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        gctx.fill();
+      }
+
+      requestAnimationFrame(loopGame);
+    }
+    loopGame();
+
+    /* === DRAGGABLE STAR WINDOW === */
+    const starWindow = document.getElementById("starWindow");
+    const starTitlebar = document.getElementById("starTitlebar");
+    const starClose = document.getElementById("starClose");
+
+    let drag = false;
+    let offsetX = 0, offsetY = 0;
+
+    starTitlebar.addEventListener("mousedown", e => {
+      drag = true;
+      const rect = starWindow.getBoundingClientRect();
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+      starTitlebar.style.cursor = "grabbing";
+      e.preventDefault();
+    });
+
+    window.addEventListener("mousemove", e => {
+      if (!drag) return;
+      let x = e.clientX - offsetX;
+      let y = e.clientY - offsetY;
+      const maxX = window.innerWidth - starWindow.offsetWidth - 10;
+      const maxY = window.innerHeight - starWindow.offsetHeight - 10;
+      if (x < 10) x = 10;
+      if (y < 10) y = 10;
+      if (x > maxX) x = maxX;
+      if (y > maxY) y = maxY;
+      starWindow.style.left = x + "px";
+      starWindow.style.top = y + "px";
+      starWindow.style.right = "auto";
+    });
+
+    window.addEventListener("mouseup", () => {
+      drag = false;
+      starTitlebar.style.cursor = "grab";
+    });
+
+    starClose.addEventListener("click", () => {
+      starWindow.style.transition = "opacity .25s ease, transform .25s ease";
+      starWindow.style.opacity = "0";
+      starWindow.style.transform = "translateY(6px)";
+      setTimeout(() => starWindow.remove(), 260);
+    });
+
+    /* === MARKDOWN TO HTML (READABLE, SENSITIVE REGEX AREAS COMMENTED) === */
     const toHTML = (md) => {
       md = md.replace(/\r/g, "");
 
+      // CODE FENCES (keep regex on one line)
       const fence = /(?:^|\n)```(\w+)?\n([\s\S]*?)\n```/g;
       md = md.replace(fence, (m, lang, code) =>
         `\n<pre><code data-lang="${lang || ""}">${code.replace(/[&<>]/g, s => ({
@@ -352,8 +597,10 @@
         }[s]))}</code></pre>\n`
       );
 
+      // HORIZONTAL RULES
       md = md.replace(/^(\-{3,}|\*{3,}|_{3,})$/gm, "<hr>");
 
+      // HEADINGS
       md = md
         .replace(/^###### (.*)$/gm, "<h6>$1</h6>")
         .replace(/^##### (.*)$/gm, "<h5>$1</h5>")
@@ -362,14 +609,17 @@
         .replace(/^## (.*)$/gm, "<h2>$1</h2>")
         .replace(/^# (.*)$/gm, "<h1>$1</h1>");
 
+      // IMAGES
       md = md.replace(/!\[(.*?)\]\((.*?)\)/g, (m, a, s) =>
         `<img alt="${a}" src="${s}">`
       );
 
+      // LINKS
       md = md.replace(/\[(.*?)\]\((.*?)\)/g, (m, t, u) =>
         `<a href="${u}" target="_blank" rel="noopener">${t}</a>`
       );
 
+      // INLINE STYLES
       md = md
         .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
         .replace(/\*(.+?)\*/g, "<em>$1</em>")
@@ -382,11 +632,14 @@
           }[s]))}</code>`
         );
 
+      // TASK LIST ITEMS
       md = md
-.replace(/(^|\n)(?:\s*)- \[ \] (.*)/g, '$1<li class="task">☐ $2</li>')
-.replace(/(^|\n)(?:\s*)- \[x\] (.*)/gi, '$1<li class="task">☑ $2</li>');
+        .replace(/(^|\n)(?:\s*)- \[ \] (.*)/g, '$1<li class="task">☐ $2</li>')
+        .replace(/(^|\n)(?:\s*)- \[x\] (.*)/gi, '$1<li class="task">☑ $2</li>');
 
       const listBlocks = [];
+
+      // UNORDERED LISTS (keep regex on one line)
       md = md.replace(
         /(^|\n)(\s*)([-*+] .*(\n\2[-*+] .*)*)/g,
         (m, p, indent, blk) => {
@@ -401,6 +654,7 @@
         }
       );
 
+      // ORDERED LISTS (keep regex on one line)
       md = md.replace(
         /(^|\n)(\s*)(\d+\. .*(\n\2\d+\. .*)*)/g,
         (m, p, indent, blk) => {
@@ -416,6 +670,8 @@
       );
 
       const tblBlocks = [];
+
+      // TABLES (keep regex on one line)
       md = md.replace(
         /(^|\n)(\|.*\|(?:\n\|.*\|)+)/g,
         (m, p, blk) => {
@@ -483,6 +739,7 @@
         }
       );
 
+      // PARAGRAPHS (keep regex on one line)
       md = md
         .replace(/\n{2,}/g, "\n\n")
         .replace(
@@ -490,6 +747,7 @@
           (m, p, txt) => p + `<p>${txt.trim()}</p>`
         );
 
+      // RESTORE TABLE/LIST BLOCKS
       md = md
         .replace(/§TABLE(\d+)§/g, (m, i) => tblBlocks[+i])
         .replace(/§LIST(\d+)§/g, (m, i) => listBlocks[+i]);
@@ -497,12 +755,14 @@
       return md;
     };
 
+    /* === LOAD README === */
     fetch("https://raw.githubusercontent.com/alaricholt677/alaricholt677.github.io/main/README.md")
       .then(r => r.text())
       .then(md => {
         document.getElementById("content").innerHTML = toHTML(md);
       });
 
+    /* === SCROLL PROGRESS === */
     window.addEventListener("scroll", () => {
       const st = document.documentElement.scrollTop || document.body.scrollTop;
       const sh = document.documentElement.scrollHeight - document.documentElement.clientHeight;

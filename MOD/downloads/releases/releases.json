@@ -17,6 +17,14 @@
       "date": "2026-02-20",
       "file": "game.zip",
       "notes": "Initial release, a full game, or at least one, w, a, s, d, t, and esc and you can make caine go crazy just use the scripted black words or mean words."
+    },
+    {
+      "version": "0.0.1",
+      "mc": "1.21.x / 26.x on bedrock",
+      "loader": "Minecraft Addon Launcher",
+      "date": "2026-02-20",
+      "file": "my_first_mod_1.21.x_or_26.x.mcaddon",
+      "notes": "my first mod in an addon"
     }
   ]
 }

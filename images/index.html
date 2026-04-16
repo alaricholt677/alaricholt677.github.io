@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Modern Auto‑Title Gallery</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #0d0d0d, #1a1a1a 60%, #111);
+      color: #fff;
+      padding: 60px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* --- Hero Title --- */
+    .hero-title {
+      font-size: 52px;
+      font-weight: 800;
+      margin-bottom: 50px;
+      background: linear-gradient(90deg, #ff3b3b, #ffa640);
+      -webkit-background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 25px rgba(255, 80, 80, 0.4);
+      animation: fadeIn 1.2s ease forwards;
+    }
+
+    /* --- Gallery Grid --- */
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 40px;
+      width: 100%;
+      max-width: 1300px;
+      animation: fadeUp 1.2s ease forwards;
+    }
+
+    /* --- Card --- */
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+
+    /* --- Auto Title Bar --- */
+    .card-title {
+      padding: 16px 20px;
+      font-size: 20px;
+      font-weight: 600;
+      background: linear-gradient(90deg, #ffa64033, #ff3b3b33);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(8px);
+      color: #fff;
+      text-shadow: 0 0 10px rgba(255,165,0,0.3);
+    }
+
+    img {
+      width: 100%;
+      display: block;
+      border-bottom-left-radius: 18px;
+      border-bottom-right-radius: 18px;
+    }
+
+    /* --- Animations --- */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="hero-title">My Windows Theme Gallery</div>
+
+  <div class="gallery" id="gallery"></div>
+
+  <script>
+    // Find all images with custom-title=""
+    const imgs = document.querySelectorAll("img[custom-title]");
+    const gallery = document.getElementById("gallery");
+
+    imgs.forEach(img => {
+      const title = img.getAttribute("custom-title");
+
+      // Create card
+      const card = document.createElement("div");
+      card.className = "card";
+
+      // Create title bar
+      const titleBar = document.createElement("div");
+      titleBar.className = "card-title";
+      titleBar.textContent = title;
+
+      // Move image into card
+      card.appendChild(titleBar);
+      card.appendChild(img);
+
+      // Add card to gallery
+      gallery.appendChild(card);
+    });
+  </script>
+
+  <!-- Your images go BELOW the script -->
+  <img src="image-1.png" custom-title="Theme Screenshot">
+  <img src="image-2.png" custom-title="Login Screenshot">
+
+</body>
+</html>

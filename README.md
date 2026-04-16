@@ -352,7 +352,7 @@ Your support helps the project grow.
 |------|--------|---------|
 | ![Win12 Icon](https://alaricholt677.github.io/win12-icon.svg) **Thank‑You Page** | [Click to visit](https://alaricholt677.github.io/thanks/thanks.html) | *Santuario de Agradecimiento* |
 | ![Search Icon](https://alaricholt677.github.io/search.svg) **MOD Hub** | [Click to visit](https://alaricholt677.github.io/MOD) | *Centro de Mods y Juegos* |
-| ![User Icon](https://alaricholt677.github.io/user.png) **Minecraft Recreation** | [Click to visit](https://alaricholt677.github.io/download/) | *Descarga de la Recreación de Minecraft* |
+| ![User Icon](https://alaricholt677.github.io/user.png) **Minecraft Recreation** | [Click to visit](https://alaricholt677.github.io/downloads/) | *Descarga de la Recreación de Minecraft* |
 | ![Win12 Icon](https://alaricholt677.github.io/win12-icon.svg) **Win12 Simulator Homepage** | [Click to visit](https://alaricholt677.github.io) | *Página Principal del Simulador Win12* |
 | ![Search Icon](https://alaricholt677.github.io/search.svg) **Win12 Preview (External)** | [Click to visit](https://tjy-gitnub.github.io/win12/desktop.html) | *Vista Previa Externa de Win12* |
 | ![User Icon](https://alaricholt677.github.io/user.png) **Recommended Files** | [Click to visit](view-source:https://alaricholt677.github.io) | *Archivos Recomendados* |

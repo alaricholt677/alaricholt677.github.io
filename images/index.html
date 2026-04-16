@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Modern Auto‑Title Gallery</title>
+  <title>Modern Gallery</title>
 
   <style>
     * {
@@ -15,11 +15,35 @@
       font-family: "Segoe UI", sans-serif;
       background: linear-gradient(135deg, #0d0d0d, #1a1a1a 60%, #111);
       color: #fff;
-      padding: 60px 20px;
+      padding-top: 80px;
       display: flex;
       flex-direction: column;
       align-items: center;
       min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* --- Floating Navbar --- */
+    .navbar {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      padding: 20px 40px;
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 999;
+    }
+
+    .navbar-title {
+      font-size: 24px;
+      font-weight: 700;
+      background: linear-gradient(90deg, #ff3b3b, #ffa640);
+      -webkit-background-clip: text;
+      color: transparent;
     }
 
     /* --- Hero Title --- */
@@ -44,16 +68,17 @@
       animation: fadeUp 1.2s ease forwards;
     }
 
-    /* --- Card --- */
+    /* --- Win12 Window Frame --- */
     .card {
       background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 18px;
       overflow: hidden;
       backdrop-filter: blur(12px);
       box-shadow: 0 10px 40px rgba(0,0,0,0.4);
       transition: transform 0.3s ease, box-shadow 0.3s ease;
       cursor: pointer;
+      position: relative;
     }
 
     .card:hover {
@@ -61,7 +86,6 @@
       box-shadow: 0 20px 60px rgba(0,0,0,0.6);
     }
 
-    /* --- Auto Title Bar --- */
     .card-title {
       padding: 16px 20px;
       font-size: 20px;
@@ -80,10 +104,87 @@
       border-bottom-right-radius: 18px;
     }
 
+    /* --- Fullscreen Viewer --- */
+    #viewer {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(10px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      z-index: 9999;
+      animation: fadeIn 0.3s ease;
+    }
+
+    #viewer-img {
+      max-width: 90%;
+      max-height: 80%;
+      border-radius: 12px;
+      box-shadow: 0 0 40px rgba(0,0,0,0.7);
+      animation: zoomIn 0.25s ease;
+      transition: transform 0.2s ease;
+    }
+
+    #viewer-caption {
+      margin-top: 20px;
+      font-size: 22px;
+      opacity: 0.9;
+    }
+
+    /* --- Navigation Buttons --- */
+    .nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 50px;
+      padding: 10px 20px;
+      cursor: pointer;
+      user-select: none;
+      opacity: 0.5;
+      transition: 0.2s;
+    }
+
+    .nav-btn:hover {
+      opacity: 1;
+    }
+
+    #prev-btn { left: 30px; }
+    #next-btn { right: 30px; }
+
+    /* --- Close Button --- */
+    #close-btn {
+      position: absolute;
+      top: 30px;
+      right: 40px;
+      font-size: 40px;
+      cursor: pointer;
+      opacity: 0.6;
+      transition: 0.2s;
+    }
+
+    #close-btn:hover {
+      opacity: 1;
+    }
+
+    /* --- Footer --- */
+    .footer {
+      margin-top: 80px;
+      padding: 20px;
+      opacity: 0.5;
+      font-size: 14px;
+    }
+
     /* --- Animations --- */
+    @keyframes zoomIn {
+      from { transform: scale(0.8); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
 
     @keyframes fadeUp {
@@ -95,39 +196,109 @@
 
 <body>
 
+  <!-- Navbar -->
+  <div class="navbar">
+    <div class="navbar-title">My Gallery</div>
+  </div>
+
   <div class="hero-title">My Windows Theme Gallery</div>
 
   <div class="gallery" id="gallery"></div>
 
+  <!-- Fullscreen Viewer -->
+  <div id="viewer">
+    <div id="close-btn">✕</div>
+    <div id="prev-btn" class="nav-btn">❮</div>
+    <img id="viewer-img">
+    <div id="next-btn" class="nav-btn">❯</div>
+    <div id="viewer-caption"></div>
+  </div>
+
   <script>
-    // Find all images with custom-title=""
     const imgs = document.querySelectorAll("img[custom-title]");
     const gallery = document.getElementById("gallery");
 
-    imgs.forEach(img => {
+    const viewer = document.getElementById("viewer");
+    const viewerImg = document.getElementById("viewer-img");
+    const viewerCaption = document.getElementById("viewer-caption");
+
+    const prevBtn = document.getElementById("prev-btn");
+    const nextBtn = document.getElementById("next-btn");
+    const closeBtn = document.getElementById("close-btn");
+
+    let currentIndex = 0;
+    let zoom = 1;
+
+    // Build cards
+    imgs.forEach((img, index) => {
       const title = img.getAttribute("custom-title");
 
-      // Create card
       const card = document.createElement("div");
       card.className = "card";
 
-      // Create title bar
       const titleBar = document.createElement("div");
       titleBar.className = "card-title";
       titleBar.textContent = title;
 
-      // Move image into card
       card.appendChild(titleBar);
       card.appendChild(img);
 
-      // Add card to gallery
+      card.addEventListener("click", () => openViewer(index));
+
       gallery.appendChild(card);
+    });
+
+    function openViewer(index) {
+      currentIndex = index;
+      const img = imgs[index];
+      viewerImg.src = img.src;
+      viewerCaption.textContent = img.getAttribute("custom-title");
+      viewer.style.display = "flex";
+      zoom = 1;
+      viewerImg.style.transform = "scale(1)";
+    }
+
+    function closeViewer() {
+      viewer.style.display = "none";
+    }
+
+    function nextImage() {
+      currentIndex = (currentIndex + 1) % imgs.length;
+      openViewer(currentIndex);
+    }
+
+    function prevImage() {
+      currentIndex = (currentIndex - 1 + imgs.length) % imgs.length;
+      openViewer(currentIndex);
+    }
+
+    // Buttons
+    nextBtn.onclick = nextImage;
+    prevBtn.onclick = prevImage;
+    closeBtn.onclick = closeViewer;
+
+    // Keyboard navigation
+    document.addEventListener("keydown", e => {
+      if (viewer.style.display !== "flex") return;
+      if (e.key === "ArrowRight") nextImage();
+      if (e.key === "ArrowLeft") prevImage();
+      if (e.key === "Escape") closeViewer();
+    });
+
+    // Zoom with scroll
+    viewerImg.addEventListener("wheel", e => {
+      e.preventDefault();
+      zoom += e.deltaY * -0.001;
+      zoom = Math.min(Math.max(zoom, 0.5), 3);
+      viewerImg.style.transform = `scale(${zoom})`;
     });
   </script>
 
-  <!-- Your images go BELOW the script -->
+  <!-- Your two images -->
   <img src="image-1.png" custom-title="Theme Screenshot">
   <img src="image-2.png" custom-title="Login Screenshot">
+
+  <div class="footer">© 2026 Sean — Modern Gallery</div>
 
 </body>
 </html>

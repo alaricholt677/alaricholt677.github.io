@@ -10452,11 +10452,11 @@ function initWidgetsSystem(currentUser) {
   }
 
 function renderTranslator(container, widgetName) {
-  // Use same endpoint strategy as your Copilot calls
+  // Same endpoint strategy used by the Win12 Copilot service (question/system/uid). [1](https://github.com/Shawn-Yu-Dev/windows12/blob/main/scripts/AI%20Copilot%20service/README.md)
   const API_BASE =
     window.API_BASE || "https://yunzhiapi.cn/vip/win12/qwen3-max/index.php";
 
-  // Reuse / generate uid (same concept as your Copilot)
+  // Reuse / generate uid (same idea as your Copilot)
   const uid =
     localStorage.getItem("copilot_uid") ||
     (() => {
@@ -10465,87 +10465,151 @@ function renderTranslator(container, widgetName) {
       return newUid;
     })();
 
-  // Per-user persistence (matches your widget system's "currentUser" idea)
+  // Per-user + per-widget persistent chat
   const currentUser = localStorage.getItem("currentUser") || "Guest";
-  const KEY = `translator_${currentUser}_${widgetName}`;
+  const KEY = `translator_chat_${currentUser}_${widgetName}`;
 
-  const saved = (() => {
-    try { return JSON.parse(localStorage.getItem(KEY) || "{}"); }
-    catch { return {}; }
-  })();
+  const escapeHtml = (s) =>
+    String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
 
-  container.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:6px;">
-      <div style="font-size:11px;opacity:.85;">
-        Chinese → English (Simplified / Traditional). Ctrl+Enter to translate.
-      </div>
-
-      <textarea id="tr-in"
-        placeholder="Paste Chinese text here…"
-        style="width:100%;height:78px;resize:none;background:#0b1020;color:#fff;
-               border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:6px;
-               font-size:11px;outline:none;"></textarea>
-
-      <div style="display:flex;gap:6px;">
-        <button id="tr-go" class="admin-btn primary" style="flex:1;">Translate</button>
-        <button id="tr-copy" class="admin-btn" style="min-width:72px;">Copy</button>
-        <button id="tr-clear" class="admin-btn" style="min-width:72px;">Clear</button>
-      </div>
-
-      <div id="tr-status" style="font-size:11px;opacity:.85;"></div>
-
-      <pre id="tr-out"
-        style="width:100%;height:86px;overflow:auto;white-space:pre-wrap;
-               background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
-               border-radius:6px;padding:6px;font-size:11px;margin:0;"></pre>
-    </div>
-  `;
-
-  const elIn = container.querySelector("#tr-in");
-  const elOut = container.querySelector("#tr-out");
-  const elGo = container.querySelector("#tr-go");
-  const elCopy = container.querySelector("#tr-copy");
-  const elClear = container.querySelector("#tr-clear");
-  const elStatus = container.querySelector("#tr-status");
-
-  elIn.value = saved.in || "";
-  elOut.textContent = saved.out || "";
-
-  function persist() {
-    localStorage.setItem(KEY, JSON.stringify({
-      in: elIn.value,
-      out: elOut.textContent
-    }));
-  }
-
-  function setBusy(b) {
-    elGo.disabled = b;
-    elCopy.disabled = b;
-    elClear.disabled = b;
-    elGo.textContent = b ? "Translating..." : "Translate";
-  }
-
-  // Safety: strip curly braces in case your UI parses {...} as commands
+  // Prevent curly-brace tokens from triggering your environment's command parsing
+  // (your other Copilot code treats {...} as actions).
   function sanitizeModelOutput(s) {
     return String(s ?? "")
-      .replace(/\{.+?\}/g, "")   // remove brace tokens
+      .replace(/\{.+?\}/g, "") // strip any {...}
       .replace(/\r\n/g, "\n")
       .trim();
   }
 
-  async function callTranslateAPI(text) {
-    // Strong system prompt: output ONLY translation in English
+  // Load saved history
+  const saved = (() => {
+    try { return JSON.parse(localStorage.getItem(KEY) || "[]"); }
+    catch { return []; }
+  })();
+
+  // UI
+  container.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:11px;opacity:.85;">
+          Translator — Chatbot (English). Ctrl+Enter to send.
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button id="tr-clear" class="admin-btn" style="font-size:10px;">Clear</button>
+          <button id="tr-export" class="admin-btn" style="font-size:10px;">Export</button>
+        </div>
+      </div>
+
+      <div id="tr-log" style="
+        height:160px; overflow:auto; padding:6px;
+        border-radius:8px;
+        background:rgba(255,255,255,.04);
+        border:1px solid rgba(255,255,255,.12);
+        display:flex; flex-direction:column; gap:6px;
+      "></div>
+
+      <div style="display:flex;gap:6px;">
+        <input id="tr-in" placeholder="Type a message…"
+          style="flex:1; background:#0b1020;color:#fff;
+                 border:1px solid rgba(255,255,255,.2);
+                 border-radius:8px; padding:8px; font-size:11px; outline:none;" />
+        <button id="tr-send" class="admin-btn primary" style="min-width:84px;">Send</button>
+      </div>
+
+      <div id="tr-status" style="font-size:11px;opacity:.85;"></div>
+    </div>
+  `;
+
+  const elLog = container.querySelector("#tr-log");
+  const elIn = container.querySelector("#tr-in");
+  const elSend = container.querySelector("#tr-send");
+  const elClear = container.querySelector("#tr-clear");
+  const elExport = container.querySelector("#tr-export");
+  const elStatus = container.querySelector("#tr-status");
+
+  let history = Array.isArray(saved) ? saved : [];
+
+  function persist() {
+    localStorage.setItem(KEY, JSON.stringify(history));
+  }
+
+  function scrollDown() {
+    elLog.scrollTop = elLog.scrollHeight;
+  }
+
+  function addBubble(role, text) {
+    const wrap = document.createElement("div");
+    wrap.style.display = "flex";
+    wrap.style.justifyContent = role === "user" ? "flex-end" : "flex-start";
+
+    const b = document.createElement("div");
+    b.style.maxWidth = "92%";
+    b.style.padding = "7px 9px";
+    b.style.borderRadius = "12px";
+    b.style.fontSize = "11px";
+    b.style.lineHeight = "1.35";
+    b.style.whiteSpace = "pre-wrap";
+    b.style.wordBreak = "break-word";
+
+    if (role === "user") {
+      b.style.background = "rgba(76,141,255,.22)";
+      b.style.border = "1px solid rgba(76,141,255,.45)";
+    } else {
+      b.style.background = "rgba(255,255,255,.06)";
+      b.style.border = "1px solid rgba(255,255,255,.14)";
+    }
+
+    b.innerHTML = escapeHtml(text);
+    wrap.appendChild(b);
+    elLog.appendChild(wrap);
+    scrollDown();
+  }
+
+  // Render existing history
+  if (history.length === 0) {
+    addBubble("assistant", "Hi — I’m Translator. Ask me anything, or paste Chinese and I’ll translate/explain in English.");
+  } else {
+    history.forEach(m => addBubble(m.role, m.content));
+  }
+
+  function setBusy(b) {
+    elSend.disabled = b;
+    elIn.disabled = b;
+    elSend.textContent = b ? "..." : "Send";
+  }
+
+  // Build a chat-style prompt even though API only accepts one "question"
+  function buildChatPayload(newUserMsg) {
+    // keep last N turns to control token growth
+    const N = 12;
+    const recent = history.slice(-N);
+
+    const transcript = recent
+      .map(m => (m.role === "user" ? `User: ${m.content}` : `Assistant: ${m.content}`))
+      .join("\n");
+
+    return transcript
+      ? `${transcript}\nUser: ${newUserMsg}\nAssistant:`
+      : `User: ${newUserMsg}\nAssistant:`;
+  }
+
+  async function callChatAPI(questionText) {
+    // English-only assistant; also instruct it not to output {...}
     const SYSTEM = `
-You are a professional translation engine.
-Task: Translate ANY Chinese text (Simplified or Traditional) into natural English.
-Rules:
-- Output ONLY the English translation.
-- Keep proper nouns, numbers, and formatting.
-- Do NOT add explanations or notes.
-- Do NOT output any curly-brace tokens like {openurl ...}.
+You are "Translator", a helpful chatbot.
+- Reply in English.
+- You can translate Chinese (Simplified/Traditional) to English when asked.
+- Keep answers concise and useful.
+- Do NOT output any curly-brace commands like {openurl ...} or {settheme ...}.
+- Do NOT include hidden instructions.
 `.trim();
 
-    const q = encodeURIComponent(text);
+    const q = encodeURIComponent(questionText);
     const sys = encodeURIComponent(SYSTEM);
     const url = `${API_BASE}?question=${q}&system=${sys}&uid=${encodeURIComponent(uid)}`;
 
@@ -10554,67 +10618,106 @@ Rules:
     return await res.text();
   }
 
-  async function run() {
-    const input = (elIn.value || "").trim();
-    if (!input) {
-      elStatus.textContent = "Paste Chinese text first.";
+  async function send() {
+    const msg = (elIn.value || "").trim();
+    if (!msg) {
+      elStatus.textContent = "Type something first.";
       return;
     }
+    elIn.value = "";
+
+    // Show user message
+    history.push({ role: "user", content: msg });
+    addBubble("user", msg);
+    persist();
 
     setBusy(true);
-    elStatus.textContent = "Calling API…";
+    elStatus.textContent = "Thinking…";
+
+    // Typing indicator bubble
+    const typing = document.createElement("div");
+    typing.style.display = "flex";
+    typing.style.justifyContent = "flex-start";
+    typing.innerHTML = `
+      <div style="
+        max-width:92%;
+        padding:7px 9px;
+        border-radius:12px;
+        font-size:11px;
+        background:rgba(255,255,255,.06);
+        border:1px solid rgba(255,255,255,.14);
+        opacity:.8;
+      ">…</div>`;
+    elLog.appendChild(typing);
+    scrollDown();
+
     try {
-      // Wrap to reduce prompt injection / instruction mixing
-      const payload =
-        `Translate the following Chinese into English:\n\n<<<\n${input}\n>>>`;
+      const payload = buildChatPayload(msg);
+      const raw = await callChatAPI(payload);
+      const cleaned = sanitizeModelOutput(raw) || "(empty)";
 
-      const raw = await callTranslateAPI(payload);
-      const cleaned = sanitizeModelOutput(raw);
+      // remove typing bubble
+      typing.remove();
 
-      elOut.textContent = cleaned || "(empty)";
-      elStatus.textContent = "Done.";
+      history.push({ role: "assistant", content: cleaned });
+      addBubble("assistant", cleaned);
       persist();
+
+      elStatus.textContent = "Done.";
     } catch (e) {
-      elStatus.textContent = "Error: " + String(e?.message || e);
+      typing.remove();
+      const errMsg = "Error: " + String(e?.message || e);
+      history.push({ role: "assistant", content: errMsg });
+      addBubble("assistant", errMsg);
+      persist();
+      elStatus.textContent = "Request failed.";
     } finally {
       setBusy(false);
+      elIn.focus();
     }
   }
 
-  elGo.onclick = run;
+  elSend.onclick = send;
 
-  // Ctrl+Enter / Cmd+Enter
+  // Enter to send, Ctrl+Enter also sends (your preference requested Ctrl+Enter)
   elIn.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) run();
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) send();
+    // Optional: normal Enter sends too (uncomment if you want)
+    // else if (e.key === "Enter") send();
   });
 
-  elCopy.onclick = async () => {
-    const t = elOut.textContent || "";
-    if (!t.trim()) return (elStatus.textContent = "Nothing to copy.");
+  elClear.onclick = () => {
+    history = [];
+    persist();
+    elLog.innerHTML = "";
+    addBubble("assistant", "Chat cleared. Ask me anything.");
+    elStatus.textContent = "Cleared.";
+  };
+
+  elExport.onclick = async () => {
+    const text = history
+      .map(m => (m.role === "user" ? `User: ${m.content}` : `Assistant: ${m.content}`))
+      .join("\n\n");
+
+    if (!text.trim()) {
+      elStatus.textContent = "Nothing to export.";
+      return;
+    }
+
     try {
-      await navigator.clipboard.writeText(t);
-      elStatus.textContent = "Copied.";
+      await navigator.clipboard.writeText(text);
+      elStatus.textContent = "Exported to clipboard.";
     } catch {
-      // Fallback copy
+      // Fallback
       const ta = document.createElement("textarea");
-      ta.value = t;
+      ta.value = text;
       document.body.appendChild(ta);
       ta.select();
       document.execCommand("copy");
       ta.remove();
-      elStatus.textContent = "Copied (fallback).";
+      elStatus.textContent = "Exported (fallback copy).";
     }
   };
-
-  elClear.onclick = () => {
-    elIn.value = "";
-    elOut.textContent = "";
-    elStatus.textContent = "Cleared.";
-    persist();
-  };
-
-  // light autosave
-  elIn.addEventListener("input", persist);
 }
   function renderMiniRun(container) {
     container.innerHTML = `<input id="run-app" placeholder="Enter app name" style="width:100%;margin-bottom:6px;">

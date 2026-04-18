@@ -4065,6 +4065,7 @@
         <option>MiniCMD</option>
         <option>MiniWord</option>
         <option>Weather</option>
+        <option>Translator</option>
         <option>Custom</option>
       </select>
       <div id="widget-extra" style="margin-top:8px;"></div>
@@ -10243,6 +10244,7 @@ function initWidgetsSystem(currentUser) {
             <option>MiniCMD</option>
             <option>MiniWord</option>
             <option>Weather</option>
+            <option>Translator</option>
             <option>Custom</option>
           </select>
           <div id="widget-extra" style="margin-top:8px;"></div>
@@ -10349,6 +10351,8 @@ function initWidgetsSystem(currentUser) {
     } else if (type === 'MiniWord') {
       const widgetId = Date.now().toString(36) + Math.random().toString(36).slice(2);
       renderMiniWordWidget(body, widgetId);
+    } else if (type === 'Translator') {
+      renderTranslator(body, name);
     }
 
     widgetEl.appendChild(body);
@@ -10447,6 +10451,171 @@ function initWidgetsSystem(currentUser) {
     });
   }
 
+function renderTranslator(container, widgetName) {
+  // Use same endpoint strategy as your Copilot calls
+  const API_BASE =
+    window.API_BASE || "https://yunzhiapi.cn/vip/win12/qwen3-max/index.php";
+
+  // Reuse / generate uid (same concept as your Copilot)
+  const uid =
+    localStorage.getItem("copilot_uid") ||
+    (() => {
+      const newUid = String(Math.floor(100000 + Math.random() * 900000));
+      localStorage.setItem("copilot_uid", newUid);
+      return newUid;
+    })();
+
+  // Per-user persistence (matches your widget system's "currentUser" idea)
+  const currentUser = localStorage.getItem("currentUser") || "Guest";
+  const KEY = `translator_${currentUser}_${widgetName}`;
+
+  const saved = (() => {
+    try { return JSON.parse(localStorage.getItem(KEY) || "{}"); }
+    catch { return {}; }
+  })();
+
+  container.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <div style="font-size:11px;opacity:.85;">
+        Chinese → English (Simplified / Traditional). Ctrl+Enter to translate.
+      </div>
+
+      <textarea id="tr-in"
+        placeholder="Paste Chinese text here…"
+        style="width:100%;height:78px;resize:none;background:#0b1020;color:#fff;
+               border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:6px;
+               font-size:11px;outline:none;"></textarea>
+
+      <div style="display:flex;gap:6px;">
+        <button id="tr-go" class="admin-btn primary" style="flex:1;">Translate</button>
+        <button id="tr-copy" class="admin-btn" style="min-width:72px;">Copy</button>
+        <button id="tr-clear" class="admin-btn" style="min-width:72px;">Clear</button>
+      </div>
+
+      <div id="tr-status" style="font-size:11px;opacity:.85;"></div>
+
+      <pre id="tr-out"
+        style="width:100%;height:86px;overflow:auto;white-space:pre-wrap;
+               background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+               border-radius:6px;padding:6px;font-size:11px;margin:0;"></pre>
+    </div>
+  `;
+
+  const elIn = container.querySelector("#tr-in");
+  const elOut = container.querySelector("#tr-out");
+  const elGo = container.querySelector("#tr-go");
+  const elCopy = container.querySelector("#tr-copy");
+  const elClear = container.querySelector("#tr-clear");
+  const elStatus = container.querySelector("#tr-status");
+
+  elIn.value = saved.in || "";
+  elOut.textContent = saved.out || "";
+
+  function persist() {
+    localStorage.setItem(KEY, JSON.stringify({
+      in: elIn.value,
+      out: elOut.textContent
+    }));
+  }
+
+  function setBusy(b) {
+    elGo.disabled = b;
+    elCopy.disabled = b;
+    elClear.disabled = b;
+    elGo.textContent = b ? "Translating..." : "Translate";
+  }
+
+  // Safety: strip curly braces in case your UI parses {...} as commands
+  function sanitizeModelOutput(s) {
+    return String(s ?? "")
+      .replace(/\{.+?\}/g, "")   // remove brace tokens
+      .replace(/\r\n/g, "\n")
+      .trim();
+  }
+
+  async function callTranslateAPI(text) {
+    // Strong system prompt: output ONLY translation in English
+    const SYSTEM = `
+You are a professional translation engine.
+Task: Translate ANY Chinese text (Simplified or Traditional) into natural English.
+Rules:
+- Output ONLY the English translation.
+- Keep proper nouns, numbers, and formatting.
+- Do NOT add explanations or notes.
+- Do NOT output any curly-brace tokens like {openurl ...}.
+`.trim();
+
+    const q = encodeURIComponent(text);
+    const sys = encodeURIComponent(SYSTEM);
+    const url = `${API_BASE}?question=${q}&system=${sys}&uid=${encodeURIComponent(uid)}`;
+
+    const res = await fetch(url, { method: "GET" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return await res.text();
+  }
+
+  async function run() {
+    const input = (elIn.value || "").trim();
+    if (!input) {
+      elStatus.textContent = "Paste Chinese text first.";
+      return;
+    }
+
+    setBusy(true);
+    elStatus.textContent = "Calling API…";
+    try {
+      // Wrap to reduce prompt injection / instruction mixing
+      const payload =
+        `Translate the following Chinese into English:\n\n<<<\n${input}\n>>>`;
+
+      const raw = await callTranslateAPI(payload);
+      const cleaned = sanitizeModelOutput(raw);
+
+      elOut.textContent = cleaned || "(empty)";
+      elStatus.textContent = "Done.";
+      persist();
+    } catch (e) {
+      elStatus.textContent = "Error: " + String(e?.message || e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  elGo.onclick = run;
+
+  // Ctrl+Enter / Cmd+Enter
+  elIn.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) run();
+  });
+
+  elCopy.onclick = async () => {
+    const t = elOut.textContent || "";
+    if (!t.trim()) return (elStatus.textContent = "Nothing to copy.");
+    try {
+      await navigator.clipboard.writeText(t);
+      elStatus.textContent = "Copied.";
+    } catch {
+      // Fallback copy
+      const ta = document.createElement("textarea");
+      ta.value = t;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      elStatus.textContent = "Copied (fallback).";
+    }
+  };
+
+  elClear.onclick = () => {
+    elIn.value = "";
+    elOut.textContent = "";
+    elStatus.textContent = "Cleared.";
+    persist();
+  };
+
+  // light autosave
+  elIn.addEventListener("input", persist);
+}
   function renderMiniRun(container) {
     container.innerHTML = `<input id="run-app" placeholder="Enter app name" style="width:100%;margin-bottom:6px;">
                            <button style="width:100%;">Run</button>`;
@@ -11599,7 +11768,8 @@ async function initTaskbarBattery(pillEl) {
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
   }
-});function createFullCMDApp() {
+});
+      function createFullCMDApp() {
 
   /*──────────────────────────────────────
       1. CREATE CMD WINDOW
@@ -14061,7 +14231,8 @@ console.log(`%c
   window.addEventListener("load", () => window.checkAndRunBIOS());
 
 })();
-</script><script id="clock_script">
+</script>
+<script id="clock_script">
 (() => {
   // Prevent double-load
   if (window.__clock_app_loaded__) return;

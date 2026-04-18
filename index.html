@@ -10466,6 +10466,7 @@ function renderTranslator(container, widgetName) {
   const currentUser = localStorage.getItem("currentUser") || "Guest";
   const KEY = `translator_chat_${currentUser}_${widgetName}`;
 
+  // ---------- SAFE ESCAPE ----------
   const escapeHtml = (s) =>
     String(s ?? "")
       .replace(/&/g, "&amp;")
@@ -10474,9 +10475,90 @@ function renderTranslator(container, widgetName) {
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
 
-  // Only sanitize what we DISPLAY, not the raw response (because we may parse JSON).
+  // ---------- MARKDOWN LITE RENDERER ----------
+  // Supports ONLY:
+  //  - **bold** and ****bold****
+  //  - ```lang\ncode\n```
+  //  - `inline code`
+  //  - [text](url)
+  //  - bare URLs (http/https/www)
+  function renderMarkdownLite(input) {
+    let text = String(input ?? "").replace(/\r\n/g, "\n");
+
+    // 1) Extract code fences ```lang ... ```
+    const codeBlocks = [];
+    text = text.replace(/```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g, (_, lang, code) => {
+      const idx = codeBlocks.length;
+      codeBlocks.push({ lang: (lang || "").trim(), code: String(code ?? "") });
+      return `@@CODEBLOCK_${idx}@@`;
+    });
+
+    // 2) Extract inline code `...`
+    const inlineCodes = [];
+    text = text.replace(/`([^`\n]+)`/g, (_, code) => {
+      const idx = inlineCodes.length;
+      inlineCodes.push(String(code ?? ""));
+      return `@@INLINECODE_${idx}@@`;
+    });
+
+    // 3) Escape everything (prevents HTML injection)
+    text = escapeHtml(text);
+
+    // 4) Markdown links [text](url) (http/https only)
+    text = text.replace(
+      /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+      (_, label, url) =>
+        `<a href="${url}" target="_blank" rel="noopener noreferrer" class="md-link">${label}</a>`
+    );
+
+    // 5) Auto-link bare URLs (http/https or www.)
+    // Avoid linking inside existing anchors by running AFTER markdown-links,
+    // and excluding "href=" patterns crudely.
+    text = text.replace(
+      /(^|[\s(])((https?:\/\/[^\s<]+|www\.[^\s<]+))/g,
+      (m, lead, url) => {
+        const href = url.startsWith("http") ? url : `https://${url}`;
+        return `${lead}<a href="${href}" target="_blank" rel="noopener noreferrer" class="md-link">${url}</a>`;
+      }
+    );
+
+    // 6) Bold:
+    // - ****text**** (treat as bold)
+    // - **text**
+    // Optional: ***text*** becomes bold+italic (harmless extra)
+    text = text
+      .replace(/\*\*\*\*([^*]+?)\*\*\*\*/g, "<strong>$1</strong>")
+      .replace(/\*\*\*([^*]+?)\*\*\*/g, "<strong><em>$1</em></strong>")
+      .replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>");
+
+    // 7) Restore inline code (no markdown inside)
+    text = text.replace(/@@INLINECODE_(\d+)@@/g, (_, i) => {
+      const code = escapeHtml(inlineCodes[Number(i)] ?? "");
+      return `<code class="md-inline">${code}</code>`;
+    });
+
+    // 8) Convert newlines to <br> (outside code blocks)
+    text = text.replace(/\n/g, "<br>");
+
+    // 9) Restore code blocks (no markdown inside)
+    text = text.replace(/@@CODEBLOCK_(\d+)@@/g, (_, i) => {
+      const b = codeBlocks[Number(i)];
+      const lang = (b?.lang || "").toLowerCase();
+      const code = escapeHtml(b?.code || "");
+      const langLabel = lang ? `<div class="md-lang">${escapeHtml(lang)}</div>` : "";
+      return `
+        <div class="md-block">
+          ${langLabel}
+          <pre class="md-pre"><code class="md-code">${code}</code></pre>
+        </div>
+      `;
+    });
+
+    return text;
+  }
+
+  // Strip ONLY command-style tokens from what is shown (keeps markdown safe)
   function sanitizeForDisplay(s) {
-    // remove brace-tokens that your environment might treat as commands
     return String(s ?? "")
       .replace(/\{openurl\s+.+?\}/gi, "")
       .replace(/\{openapp\s+.+?\}/gi, "")
@@ -10485,17 +10567,44 @@ function renderTranslator(container, widgetName) {
       .trim();
   }
 
-  // Load saved memory (the hidden history returned by model)
+  // Load hidden memory
   const saved = (() => {
     try { return JSON.parse(localStorage.getItem(KEY) || "[]"); }
     catch { return []; }
   })();
 
   container.innerHTML = `
+    <style>
+      .md-link{ color:#8ab4ff; text-decoration:underline; }
+      .md-inline{
+        padding:1px 4px; border-radius:6px;
+        background:rgba(255,255,255,.08);
+        border:1px solid rgba(255,255,255,.12);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size: 10.5px;
+      }
+      .md-block{ margin-top:4px; }
+      .md-lang{
+        font-size:10px; opacity:.75; margin:2px 0 4px 2px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+      .md-pre{
+        margin:0; padding:8px; border-radius:10px;
+        background:rgba(0,0,0,.35);
+        border:1px solid rgba(255,255,255,.12);
+        overflow:auto;
+      }
+      .md-code{
+        white-space:pre; display:block;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size: 10.5px;
+      }
+    </style>
+
     <div style="display:flex;flex-direction:column;gap:6px;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:11px;opacity:.85;">
-          Translator — Chatbot (hidden memory). Ctrl+Enter to send.
+          Translator — Chatbot (MD‑Lite + hidden memory). Ctrl+Enter to send.
         </div>
         <div style="display:flex;gap:6px;">
           <button id="tr-clear" class="admin-btn" style="font-size:10px;">Clear</button>
@@ -10530,8 +10639,6 @@ function renderTranslator(container, widgetName) {
   const elExport = container.querySelector("#tr-export");
   const elStatus = container.querySelector("#tr-status");
 
-  // This is the "real memory" store (hidden).
-  // Structure: [{role:"user"|"assistant", content:"..."}...]
   let memory = Array.isArray(saved) ? saved : [];
 
   function persist() {
@@ -10542,6 +10649,7 @@ function renderTranslator(container, widgetName) {
     elLog.scrollTop = elLog.scrollHeight;
   }
 
+  // ---------- BUBBLES USE MD-LITE ----------
   function addBubble(role, text) {
     const wrap = document.createElement("div");
     wrap.style.display = "flex";
@@ -10564,15 +10672,18 @@ function renderTranslator(container, widgetName) {
       b.style.border = "1px solid rgba(255,255,255,.14)";
     }
 
-    b.innerHTML = escapeHtml(text);
+    // Render MD‑Lite safely
+    const safeText = sanitizeForDisplay(text);
+    b.innerHTML = renderMarkdownLite(safeText);
+
     wrap.appendChild(b);
     elLog.appendChild(wrap);
     scrollDown();
   }
 
-  // Render UI from memory (user sees conversation as normal)
+  // Initial render
   if (memory.length === 0) {
-    addBubble("assistant", "Hi — I’m Translator. Chat with me, or paste Chinese and I’ll respond in English.");
+    addBubble("assistant", "Hi — I’m Translator. Use **bold**, `inline code`, or ```js\\ncode\\n``` and links like [Bing](https://bing.com).");
   } else {
     memory.forEach(m => addBubble(m.role, m.content));
   }
@@ -10583,50 +10694,38 @@ function renderTranslator(container, widgetName) {
     elSend.textContent = b ? "..." : "Send";
   }
 
-  // Build hidden prompt with history + new message.
-  // We DO NOT display this anywhere.
   function buildHiddenPrompt(newUserMsg) {
-    const N = 14; // last N turns
+    const N = 14;
     const recent = memory.slice(-N);
-
     const transcript = recent.map(m =>
       (m.role === "user" ? `User: ${m.content}` : `Assistant: ${m.content}`)
     ).join("\n");
 
     return `
-You MUST follow the SYSTEM rules.
 Below is chat history for memory. Do NOT repeat it.
 [CHAT_HISTORY_START]
 ${transcript}
 [CHAT_HISTORY_END]
 
-Now reply to the user's latest message:
 User: ${newUserMsg}
 `.trim();
   }
 
-  // Ask model to return JSON so we can "hide" memory in response.
   async function callChatAPI(questionText) {
     const SYSTEM = `
 You are "Translator", a helpful chatbot.
-You MUST reply in English.
+Reply in English.
 
-CRITICAL OUTPUT FORMAT:
-Return ONLY valid JSON (no markdown, no extra text).
-Schema:
-{
-  "reply": "assistant reply text",
-  "memory": [
-    {"role":"user","content":"..."},
-    {"role":"assistant","content":"..."}
-  ]
-}
+OUTPUT FORMAT:
+Return ONLY valid JSON (no markdown fences, no extra text):
+{"reply":"...","memory":[{"role":"user","content":"..."},{"role":"assistant","content":"..."}]}
 
-Rules:
-- "reply" should be what the user sees.
-- "memory" MUST include the entire updated conversation history.
-- Never include commands like {openurl ...} inside reply.
-- Do not add any extra keys or commentary.
+Formatting allowed INSIDE "reply" ONLY:
+- **bold** or ****bold****
+- \`inline code\`
+- triple backtick code blocks: \`\`\`lang\\ncode\\n\`\`\`
+- links: [text](https://url) and bare urls
+Do not output any {openurl ...} style commands.
 `.trim();
 
     const q = encodeURIComponent(questionText);
@@ -10638,18 +10737,13 @@ Rules:
     return await res.text();
   }
 
-  // Try hard to parse JSON even if model adds junk.
   function extractJSON(text) {
     const t = String(text || "").trim();
-    // Fast path: direct parse
     try { return JSON.parse(t); } catch {}
-
-    // Fallback: find first { and last } and parse substring
     const i = t.indexOf("{");
     const j = t.lastIndexOf("}");
     if (i >= 0 && j > i) {
-      const sub = t.slice(i, j + 1);
-      try { return JSON.parse(sub); } catch {}
+      try { return JSON.parse(t.slice(i, j + 1)); } catch {}
     }
     return null;
   }
@@ -10662,7 +10756,6 @@ Rules:
     }
     elIn.value = "";
 
-    // Update visible + hidden memory with user message
     memory.push({ role: "user", content: msg });
     addBubble("user", msg);
     persist();
@@ -10670,7 +10763,7 @@ Rules:
     setBusy(true);
     elStatus.textContent = "Thinking…";
 
-    // typing indicator
+    // typing bubble
     const typing = document.createElement("div");
     typing.style.display = "flex";
     typing.style.justifyContent = "flex-start";
@@ -10688,9 +10781,7 @@ Rules:
     scrollDown();
 
     try {
-      // Hidden prompt includes history but user never sees it
       const hiddenPrompt = buildHiddenPrompt(msg);
-
       const raw = await callChatAPI(hiddenPrompt);
       const obj = extractJSON(raw);
 
@@ -10698,18 +10789,16 @@ Rules:
       let newMemory = null;
 
       if (obj && typeof obj === "object") {
-        replyText = sanitizeForDisplay(obj.reply ?? "");
+        replyText = String(obj.reply ?? "");
         if (Array.isArray(obj.memory)) newMemory = obj.memory;
       }
 
-      // Fallback if JSON failed
-      if (!replyText) {
-        replyText = sanitizeForDisplay(raw) || "(empty)";
-      }
+      // fallback if JSON fails
+      if (!replyText) replyText = String(raw ?? "");
 
       typing.remove();
 
-      // If model returned memory, adopt it (hidden), otherwise just append reply.
+      // adopt returned hidden memory if present
       if (newMemory && newMemory.length) {
         memory = newMemory
           .filter(m => m && (m.role === "user" || m.role === "assistant"))
@@ -10718,7 +10807,6 @@ Rules:
         memory.push({ role: "assistant", content: replyText });
       }
 
-      // Show ONLY the reply (not history)
       addBubble("assistant", replyText);
       persist();
 
@@ -10746,7 +10834,7 @@ Rules:
     memory = [];
     persist();
     elLog.innerHTML = "";
-    addBubble("assistant", "Chat cleared. Ask me anything.");
+    addBubble("assistant", "Chat cleared. You can use **bold**, `code`, and links.");
     elStatus.textContent = "Cleared.";
   };
 

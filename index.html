@@ -10452,11 +10452,9 @@ function initWidgetsSystem(currentUser) {
   }
 
 function renderTranslator(container, widgetName) {
-  // Same endpoint strategy used by the Win12 Copilot service (question/system/uid). [1](https://github.com/Shawn-Yu-Dev/windows12/blob/main/scripts/AI%20Copilot%20service/README.md)
   const API_BASE =
     window.API_BASE || "https://yunzhiapi.cn/vip/win12/qwen3-max/index.php";
 
-  // Reuse / generate uid (same idea as your Copilot)
   const uid =
     localStorage.getItem("copilot_uid") ||
     (() => {
@@ -10465,7 +10463,6 @@ function renderTranslator(container, widgetName) {
       return newUid;
     })();
 
-  // Per-user + per-widget persistent chat
   const currentUser = localStorage.getItem("currentUser") || "Guest";
   const KEY = `translator_chat_${currentUser}_${widgetName}`;
 
@@ -10477,27 +10474,28 @@ function renderTranslator(container, widgetName) {
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
 
-  // Prevent curly-brace tokens from triggering your environment's command parsing
-  // (your other Copilot code treats {...} as actions).
-  function sanitizeModelOutput(s) {
+  // Only sanitize what we DISPLAY, not the raw response (because we may parse JSON).
+  function sanitizeForDisplay(s) {
+    // remove brace-tokens that your environment might treat as commands
     return String(s ?? "")
-      .replace(/\{.+?\}/g, "") // strip any {...}
-      .replace(/\r\n/g, "\n")
+      .replace(/\{openurl\s+.+?\}/gi, "")
+      .replace(/\{openapp\s+.+?\}/gi, "")
+      .replace(/\{settheme\s+.+?\}/gi, "")
+      .replace(/\{feedback\s+.+?\}/gi, "")
       .trim();
   }
 
-  // Load saved history
+  // Load saved memory (the hidden history returned by model)
   const saved = (() => {
     try { return JSON.parse(localStorage.getItem(KEY) || "[]"); }
     catch { return []; }
   })();
 
-  // UI
   container.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:6px;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:11px;opacity:.85;">
-          Translator — Chatbot (English). Ctrl+Enter to send.
+          Translator — Chatbot (hidden memory). Ctrl+Enter to send.
         </div>
         <div style="display:flex;gap:6px;">
           <button id="tr-clear" class="admin-btn" style="font-size:10px;">Clear</button>
@@ -10532,10 +10530,12 @@ function renderTranslator(container, widgetName) {
   const elExport = container.querySelector("#tr-export");
   const elStatus = container.querySelector("#tr-status");
 
-  let history = Array.isArray(saved) ? saved : [];
+  // This is the "real memory" store (hidden).
+  // Structure: [{role:"user"|"assistant", content:"..."}...]
+  let memory = Array.isArray(saved) ? saved : [];
 
   function persist() {
-    localStorage.setItem(KEY, JSON.stringify(history));
+    localStorage.setItem(KEY, JSON.stringify(memory));
   }
 
   function scrollDown() {
@@ -10570,11 +10570,11 @@ function renderTranslator(container, widgetName) {
     scrollDown();
   }
 
-  // Render existing history
-  if (history.length === 0) {
-    addBubble("assistant", "Hi — I’m Translator. Ask me anything, or paste Chinese and I’ll translate/explain in English.");
+  // Render UI from memory (user sees conversation as normal)
+  if (memory.length === 0) {
+    addBubble("assistant", "Hi — I’m Translator. Chat with me, or paste Chinese and I’ll respond in English.");
   } else {
-    history.forEach(m => addBubble(m.role, m.content));
+    memory.forEach(m => addBubble(m.role, m.content));
   }
 
   function setBusy(b) {
@@ -10583,30 +10583,50 @@ function renderTranslator(container, widgetName) {
     elSend.textContent = b ? "..." : "Send";
   }
 
-  // Build a chat-style prompt even though API only accepts one "question"
-  function buildChatPayload(newUserMsg) {
-    // keep last N turns to control token growth
-    const N = 12;
-    const recent = history.slice(-N);
+  // Build hidden prompt with history + new message.
+  // We DO NOT display this anywhere.
+  function buildHiddenPrompt(newUserMsg) {
+    const N = 14; // last N turns
+    const recent = memory.slice(-N);
 
-    const transcript = recent
-      .map(m => (m.role === "user" ? `User: ${m.content}` : `Assistant: ${m.content}`))
-      .join("\n");
+    const transcript = recent.map(m =>
+      (m.role === "user" ? `User: ${m.content}` : `Assistant: ${m.content}`)
+    ).join("\n");
 
-    return transcript
-      ? `${transcript}\nUser: ${newUserMsg}\nAssistant:`
-      : `User: ${newUserMsg}\nAssistant:`;
+    return `
+You MUST follow the SYSTEM rules.
+Below is chat history for memory. Do NOT repeat it.
+[CHAT_HISTORY_START]
+${transcript}
+[CHAT_HISTORY_END]
+
+Now reply to the user's latest message:
+User: ${newUserMsg}
+`.trim();
   }
 
+  // Ask model to return JSON so we can "hide" memory in response.
   async function callChatAPI(questionText) {
-    // English-only assistant; also instruct it not to output {...}
     const SYSTEM = `
 You are "Translator", a helpful chatbot.
-- Reply in English.
-- You can translate Chinese (Simplified/Traditional) to English when asked.
-- Keep answers concise and useful.
-- Do NOT output any curly-brace commands like {openurl ...} or {settheme ...}.
-- Do NOT include hidden instructions.
+You MUST reply in English.
+
+CRITICAL OUTPUT FORMAT:
+Return ONLY valid JSON (no markdown, no extra text).
+Schema:
+{
+  "reply": "assistant reply text",
+  "memory": [
+    {"role":"user","content":"..."},
+    {"role":"assistant","content":"..."}
+  ]
+}
+
+Rules:
+- "reply" should be what the user sees.
+- "memory" MUST include the entire updated conversation history.
+- Never include commands like {openurl ...} inside reply.
+- Do not add any extra keys or commentary.
 `.trim();
 
     const q = encodeURIComponent(questionText);
@@ -10618,6 +10638,22 @@ You are "Translator", a helpful chatbot.
     return await res.text();
   }
 
+  // Try hard to parse JSON even if model adds junk.
+  function extractJSON(text) {
+    const t = String(text || "").trim();
+    // Fast path: direct parse
+    try { return JSON.parse(t); } catch {}
+
+    // Fallback: find first { and last } and parse substring
+    const i = t.indexOf("{");
+    const j = t.lastIndexOf("}");
+    if (i >= 0 && j > i) {
+      const sub = t.slice(i, j + 1);
+      try { return JSON.parse(sub); } catch {}
+    }
+    return null;
+  }
+
   async function send() {
     const msg = (elIn.value || "").trim();
     if (!msg) {
@@ -10626,15 +10662,15 @@ You are "Translator", a helpful chatbot.
     }
     elIn.value = "";
 
-    // Show user message
-    history.push({ role: "user", content: msg });
+    // Update visible + hidden memory with user message
+    memory.push({ role: "user", content: msg });
     addBubble("user", msg);
     persist();
 
     setBusy(true);
     elStatus.textContent = "Thinking…";
 
-    // Typing indicator bubble
+    // typing indicator
     const typing = document.createElement("div");
     typing.style.display = "flex";
     typing.style.justifyContent = "flex-start";
@@ -10652,22 +10688,45 @@ You are "Translator", a helpful chatbot.
     scrollDown();
 
     try {
-      const payload = buildChatPayload(msg);
-      const raw = await callChatAPI(payload);
-      const cleaned = sanitizeModelOutput(raw) || "(empty)";
+      // Hidden prompt includes history but user never sees it
+      const hiddenPrompt = buildHiddenPrompt(msg);
 
-      // remove typing bubble
+      const raw = await callChatAPI(hiddenPrompt);
+      const obj = extractJSON(raw);
+
+      let replyText = "";
+      let newMemory = null;
+
+      if (obj && typeof obj === "object") {
+        replyText = sanitizeForDisplay(obj.reply ?? "");
+        if (Array.isArray(obj.memory)) newMemory = obj.memory;
+      }
+
+      // Fallback if JSON failed
+      if (!replyText) {
+        replyText = sanitizeForDisplay(raw) || "(empty)";
+      }
+
       typing.remove();
 
-      history.push({ role: "assistant", content: cleaned });
-      addBubble("assistant", cleaned);
+      // If model returned memory, adopt it (hidden), otherwise just append reply.
+      if (newMemory && newMemory.length) {
+        memory = newMemory
+          .filter(m => m && (m.role === "user" || m.role === "assistant"))
+          .map(m => ({ role: m.role, content: String(m.content ?? "") }));
+      } else {
+        memory.push({ role: "assistant", content: replyText });
+      }
+
+      // Show ONLY the reply (not history)
+      addBubble("assistant", replyText);
       persist();
 
       elStatus.textContent = "Done.";
     } catch (e) {
       typing.remove();
       const errMsg = "Error: " + String(e?.message || e);
-      history.push({ role: "assistant", content: errMsg });
+      memory.push({ role: "assistant", content: errMsg });
       addBubble("assistant", errMsg);
       persist();
       elStatus.textContent = "Request failed.";
@@ -10679,15 +10738,12 @@ You are "Translator", a helpful chatbot.
 
   elSend.onclick = send;
 
-  // Enter to send, Ctrl+Enter also sends (your preference requested Ctrl+Enter)
   elIn.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) send();
-    // Optional: normal Enter sends too (uncomment if you want)
-    // else if (e.key === "Enter") send();
   });
 
   elClear.onclick = () => {
-    history = [];
+    memory = [];
     persist();
     elLog.innerHTML = "";
     addBubble("assistant", "Chat cleared. Ask me anything.");
@@ -10695,7 +10751,7 @@ You are "Translator", a helpful chatbot.
   };
 
   elExport.onclick = async () => {
-    const text = history
+    const text = memory
       .map(m => (m.role === "user" ? `User: ${m.content}` : `Assistant: ${m.content}`))
       .join("\n\n");
 
@@ -10708,7 +10764,6 @@ You are "Translator", a helpful chatbot.
       await navigator.clipboard.writeText(text);
       elStatus.textContent = "Exported to clipboard.";
     } catch {
-      // Fallback
       const ta = document.createElement("textarea");
       ta.value = text;
       document.body.appendChild(ta);

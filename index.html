@@ -10451,632 +10451,432 @@ function initWidgetsSystem(currentUser) {
     });
   }
 
-function renderTranslator(container, widgetName) {
-  const API_BASE =
-    window.API_BASE || "https://yunzhiapi.cn/vip/win12/qwen3-max/index.php";
+/* ============================================================
+   “desktop.js copilot logic style” but iframe-safe (enhanced):
+   - Commands handled locally:
+       {openurl ...}  => opens in Viewer iframe
+       {settheme ...} => toggles local theme class
+       {openapp ...}/{feedback ...} => shown as action blocks only
+   - Memory chatbot: includes last N turns in each request
+   - English-only: system prompt updated
+   - Basic Markdown renderer:
+       **bold** / ****bold****
+       `inline`
+       ```lang
+       code
+       ```
+       auto-link URLs
+   - Code blocks have Copy button (p + svg)
+   - Fixed API query construction (URLSearchParams, no &amp; bug)
+   - Shrinks memory if URL gets too long (helps avoid blocks)
+   ============================================================ */
 
-  // Optional: if your backend/provider requires a key, set ONE of these globally:
-  // window.YUNZHI_KEY = "xxx";
-  // window.YUNZHI_TOKEN = "xxx";
-  // window.YUNZHI_APIKEY = "xxx";
-  const EXTRA_AUTH = {
-    key: window.YUNZHI_KEY || "",
-    token: window.YUNZHI_TOKEN || "",
-    apikey: window.YUNZHI_APIKEY || ""
-  };
+const API_BASE = "https://yunzhiapi.cn/vip/win12/qwen3-max/index.php";
 
-  // Same uid strategy
-  const uid =
-    localStorage.getItem("copilot_uid") ||
-    (() => {
-      const newUid = String(Math.floor(100000 + Math.random() * 900000));
-      localStorage.setItem("copilot_uid", newUid);
-      return newUid;
-    })();
+// ENGLISH system prompt (you said you don’t speak Chinese)
+const SYSTEM_PROMPT = `
+Please speak English only.
 
-  const currentUser = localStorage.getItem("currentUser") || "Guest";
-  const KEY = `translator_chat_${currentUser}_${widgetName}`;
+You are an AI assistant named AI Copilot (github@NB-Group).
+You may optionally include command tokens ONLY at the very end of your message:
+- {openurl url}
+- {settheme light|dark}
+- {openapp appid}
+- {feedback copilot|win12}
 
-  // -------------------- HELPERS --------------------
-  const escapeHtml = (s) =>
-    String(s ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-
-  function sanitizeForDisplay(s) {
-    return String(s ?? "")
-      .replace(/\{openurl\s+.+?\}/gi, "")
-      .replace(/\{openapp\s+.+?\}/gi, "")
-      .replace(/\{settheme\s+.+?\}/gi, "")
-      .replace(/\{feedback\s+.+?\}/gi, "")
-      .trim();
-  }
-
-  // Clipboard copy (modern + fallback)
-  async function copyToClipboard(text) {
-    const t = String(text ?? "");
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
-      try {
-        await navigator.clipboard.writeText(t);
-        return true;
-      } catch (e) {}
-    }
-    try {
-      const ta = document.createElement("textarea");
-      ta.value = t;
-      ta.setAttribute("readonly", "");
-      ta.style.position = "fixed";
-      ta.style.top = "-9999px";
-      ta.style.left = "-9999px";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.focus({ preventScroll: true });
-      ta.select();
-      const ok = document.execCommand("copy");
-      ta.remove();
-      return !!ok;
-    } catch {
-      return false;
-    }
-  }
-
-  // -------------------- MD-LITE RENDERER --------------------
-  function renderMarkdownLite(rawText) {
-    let text = String(rawText ?? "").replace(/\r\n/g, "\n");
-
-    // Extract fenced code blocks
-    const codeBlocks = [];
-    text = text.replace(/```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g, (_, lang, code) => {
-      const idx = codeBlocks.length;
-      codeBlocks.push({ lang: String(lang || "").trim(), code: String(code ?? "") });
-      return `@@CODEBLOCK_${idx}@@`;
-    });
-
-    // Extract inline code
-    const inlineCodes = [];
-    text = text.replace(/`([^`\n]+)`/g, (_, code) => {
-      const idx = inlineCodes.length;
-      inlineCodes.push(String(code ?? ""));
-      return `@@INLINECODE_${idx}@@`;
-    });
-
-    // Escape all
-    text = escapeHtml(text);
-
-    // Markdown links [label](https://url)
-    text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, url) => {
-      const safeLabel = escapeHtml(label);
-      const safeUrl = escapeHtml(url);
-      return `<a class="md-link" target="_blank" rel="noopener noreferrer" href="${safeUrl}">${safeLabel}</a>`;
-    });
-
-    // Auto-link bare URLs (http/https/www)
-    text = text.replace(/(^|[\s(])((https?:\/\/[^\s<]+|www\.[^\s<]+))/g, (_, lead, url) => {
-      const href = url.startsWith("http") ? url : `https://${url}`;
-      const safeHref = escapeHtml(href);
-      const safeText = escapeHtml(url);
-      return `${lead}<a class="md-link" target="_blank" rel="noopener noreferrer" href="${safeHref}">${safeText}</a>`;
-    });
-
-    // Bold: ****text**** and **text**
-    text = text
-      .replace(/\*\*\*\*([^*]+?)\*\*\*\*/g, "<strong>$1</strong>")
-      .replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>");
-
-    // Restore inline code
-    text = text.replace(/@@INLINECODE_(\d+)@@/g, (_, i) => {
-      const code = escapeHtml(inlineCodes[Number(i)] ?? "");
-      return `<code class="md-inline">${code}</code>`;
-    });
-
-    // Newlines to <br>
-    text = text.replace(/\n/g, "<br>");
-
-    // Restore code blocks with toolbar + copy button
-    text = text.replace(/@@CODEBLOCK_(\d+)@@/g, (_, i) => {
-      const b = codeBlocks[Number(i)];
-      const lang = (b?.lang || "").trim();
-      const code = escapeHtml(b?.code || "");
-      const langLabel = lang ? `<span class="md-lang">${escapeHtml(lang)}</span>` : `<span class="md-lang muted">code</span>`;
-      return `
-        <div class="md-block" data-copy-wrap="1">
-          <div class="md-toolbar">
-            ${langLabel}
-            <button class="md-copy-btn" type="button" data-copy="1" aria-label="Copy code">
-              <p class="md-copy-text">Copy</p>
-              <svg class="md-copy-ico" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
-                <path fill="currentColor" d="M16 1H6c-1.1 0-2 .9-2 2v12h2V3h10V1zm3 4H10c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h9c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16h-9V7h9v14z"/>
-              </svg>
-            </button>
-          </div>
-          <pre class="md-pre"><code class="md-code">${code}</code></pre>
-        </div>
-      `;
-    });
-
-    return text;
-  }
-
-  // -------------------- LOAD MEMORY --------------------
-  const saved = (() => {
-    try { return JSON.parse(localStorage.getItem(KEY) || "[]"); }
-    catch { return []; }
-  })();
-  let memory = Array.isArray(saved) ? saved : [];
-
-  function persist() {
-    localStorage.setItem(KEY, JSON.stringify(memory));
-  }
-
-  // -------------------- UI --------------------
-  container.innerHTML = `
-    <style>
-      .md-link{ color:#8ab4ff; text-decoration:underline; }
-      .md-inline{
-        padding:1px 4px; border-radius:6px;
-        background:rgba(255,255,255,.08);
-        border:1px solid rgba(255,255,255,.12);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-        font-size: 10.5px;
-      }
-      .md-block{ margin-top:6px; }
-      .md-toolbar{
-        display:flex; align-items:center; justify-content:space-between;
-        gap:8px;
-        padding:6px 8px;
-        border-radius:10px 10px 0 0;
-        background:rgba(0,0,0,.22);
-        border:1px solid rgba(255,255,255,.12);
-        border-bottom:none;
-      }
-      .md-lang{
-        font-size:10px; opacity:.85;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      }
-      .md-lang.muted{ opacity:.65; }
-      .md-copy-btn{
-        display:flex; align-items:center; gap:6px;
-        padding:4px 8px;
-        border-radius:999px;
-        border:1px solid rgba(255,255,255,.18);
-        background:rgba(255,255,255,.06);
-        color:#fff;
-        cursor:pointer;
-        user-select:none;
-        font-size:10px;
-      }
-      .md-copy-btn:hover{ background:rgba(255,255,255,.10); }
-      .md-copy-btn:active{ transform:translateY(1px); }
-      .md-copy-text{ margin:0; font-size:10px; opacity:.92; }
-      .md-copy-ico{ opacity:.9; }
-      .md-pre{
-        margin:0;
-        padding:8px;
-        border-radius:0 0 10px 10px;
-        background:rgba(0,0,0,.35);
-        border:1px solid rgba(255,255,255,.12);
-        overflow:auto;
-      }
-      .md-code{
-        white-space:pre;
-        display:block;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-        font-size: 10.5px;
-      }
-    </style>
-
-    <div style="display:flex;flex-direction:column;gap:6px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:11px;opacity:.85;">
-          Translator — Chatbot (403‑hardened). Ctrl+Enter to send.
-        </div>
-        <div style="display:flex;gap:6px;">
-          <button id="tr-clear" class="admin-btn" style="font-size:10px;">Clear</button>
-          <button id="tr-export" class="admin-btn" style="font-size:10px;">Export</button>
-        </div>
-      </div>
-
-      <div id="tr-log" style="
-        height:170px; overflow:auto; padding:6px;
-        border-radius:8px;
-        background:rgba(255,255,255,.04);
-        border:1px solid rgba(255,255,255,.12);
-        display:flex; flex-direction:column; gap:6px;
-      "></div>
-
-      <div style="display:flex;gap:6px;">
-        <input id="tr-in" placeholder="Type a message…"
-          style="flex:1; background:#0b1020;color:#fff;
-                 border:1px solid rgba(255,255,255,.2);
-                 border-radius:8px; padding:8px; font-size:11px; outline:none;" />
-        <button id="tr-send" class="admin-btn primary" style="min-width:84px;">Send</button>
-      </div>
-
-      <div id="tr-status" style="font-size:11px;opacity:.85;"></div>
-    </div>
-  `;
-
-  const elLog = container.querySelector("#tr-log");
-  const elIn = container.querySelector("#tr-in");
-  const elSend = container.querySelector("#tr-send");
-  const elClear = container.querySelector("#tr-clear");
-  const elExport = container.querySelector("#tr-export");
-  const elStatus = container.querySelector("#tr-status");
-
-  function scrollDown() {
-    elLog.scrollTop = elLog.scrollHeight;
-  }
-
-  // Copy buttons via delegation
-  elLog.addEventListener("click", async (e) => {
-    const btn = e.target.closest(".md-copy-btn");
-    if (!btn) return;
-    const wrap = btn.closest(".md-block");
-    const codeEl = wrap ? wrap.querySelector(".md-code") : null;
-    const codeText = codeEl ? codeEl.innerText : "";
-    const p = btn.querySelector(".md-copy-text");
-    const old = p ? p.textContent : "Copy";
-    const ok = await copyToClipboard(codeText);
-
-    if (p) p.textContent = ok ? "Copied!" : "Failed";
-    setTimeout(() => { if (p) p.textContent = old || "Copy"; }, 1200);
-  });
-
-  function addBubble(role, text) {
-    const wrap = document.createElement("div");
-    wrap.style.display = "flex";
-    wrap.style.justifyContent = role === "user" ? "flex-end" : "flex-start";
-
-    const b = document.createElement("div");
-    b.style.maxWidth = "92%";
-    b.style.padding = "7px 9px";
-    b.style.borderRadius = "12px";
-    b.style.fontSize = "11px";
-    b.style.lineHeight = "1.35";
-    b.style.whiteSpace = "pre-wrap";
-    b.style.wordBreak = "break-word";
-
-    if (role === "user") {
-      b.style.background = "rgba(76,141,255,.22)";
-      b.style.border = "1px solid rgba(76,141,255,.45)";
-    } else {
-      b.style.background = "rgba(255,255,255,.06)";
-      b.style.border = "1px solid rgba(255,255,255,.14)";
-    }
-
-    const safe = sanitizeForDisplay(text);
-    b.innerHTML = renderMarkdownLite(safe);
-
-    wrap.appendChild(b);
-    elLog.appendChild(wrap);
-    scrollDown();
-  }
-
-  // Initial render
-  if (memory.length === 0) {
-    addBubble(
-      "assistant",
-      "Hi — I’m Translator.\nUse **bold**, `inline code`, and code blocks:\n```js\nconsole.log('hello')\n```\nLinks: https://bing.com"
-    );
-  } else {
-    memory.forEach((m) => addBubble(m.role, m.content));
-  }
-
-  function setBusy(b) {
-    elSend.disabled = b;
-    elIn.disabled = b;
-    elSend.textContent = b ? "..." : "Send";
-  }
-
-  // -------------------- 403 HARDENING --------------------
-
-  // Throttle sends (rate-limit protection)
-  let lastSendAt = 0;
-  const MIN_SEND_INTERVAL_MS = 900; // reduce bursts
-
-  // Build hidden prompt from memory, but keep it small
-  function buildHiddenPrompt(newUserMsg, maxTurns) {
-    const recent = memory.slice(-maxTurns);
-    const transcript = recent
-      .map((m) => (m.role === "user" ? `User: ${m.content}` : `Assistant: ${m.content}`))
-      .join("\n");
-    return `
-Below is chat history for memory. Do NOT repeat it.
-[CHAT_HISTORY_START]
-${transcript}
-[CHAT_HISTORY_END]
-
-User: ${newUserMsg}
-`.trim();
-  }
-
-  // Extract JSON safely
-  function extractJSON(text) {
-    const t = String(text || "").trim();
-    try { return JSON.parse(t); } catch {}
-    const i = t.indexOf("{");
-    const j = t.lastIndexOf("}");
-    if (i >= 0 && j > i) {
-      try { return JSON.parse(t.slice(i, j + 1)); } catch {}
-    }
-    return null;
-  }
-
-  // Abortable fetch helper
-  async function fetchWithTimeout(url, opts, ms) {
-    const ctrl = new AbortController();
-    const id = setTimeout(() => ctrl.abort(), ms);
-    try {
-      const res = await fetch(url, { ...opts, signal: ctrl.signal });
-      return res;
-    } finally {
-      clearTimeout(id);
-    }
-  }
-
-  // Build endpoint URL with optional auth params (if you set them)
-  function buildURL(params) {
-    const usp = new URLSearchParams();
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && String(v).length) usp.set(k, String(v));
-    });
-    if (EXTRA_AUTH.key) usp.set("key", EXTRA_AUTH.key);
-    if (EXTRA_AUTH.token) usp.set("token", EXTRA_AUTH.token);
-    if (EXTRA_AUTH.apikey) usp.set("apikey", EXTRA_AUTH.apikey);
-
-    // cache-bust
-    usp.set("_t", String(Date.now()));
-    return `${API_BASE}?${usp.toString()}`;
-  }
-
-  // Main API call:
-  // 1) Try POST (short URL, less WAF triggers)
-  // 2) If POST fails, fall back to GET but shrink payload to avoid huge URLs
-  async function callChatAPI_403Hardened(questionText) {
-    const SYSTEM = `
-You are "Translator", a helpful chatbot.
-Reply in English.
-
-OUTPUT FORMAT:
-Return ONLY valid JSON:
-{"reply":"...","memory":[{"role":"user","content":"..."},{"role":"assistant","content":"..."}]}
-
-Allowed formatting inside "reply" ONLY:
-- **bold** or ****bold****
-- \`inline code\`
-- triple backtick code blocks: \`\`\`lang\\ncode\\n\`\`\`
-- markdown links: https://url
-- bare urls: https://... or www....
-Never output any {openurl ...} style commands.
+Rules:
+- Never place command tokens in the middle of normal text.
+- Never ask the user to execute commands.
+- Replies may use ONLY basic formatting: **bold**, \`inline code\`, triple backtick code blocks, and plain URLs.
+- Do NOT output any other markdown features (no headings/lists/tables).
 `.trim();
 
-    // Prefer POST
-    const postURL = buildURL({}); // auth + cache bust in URL only (small)
-    const body = new URLSearchParams();
-    body.set("question", questionText);
-    body.set("system", SYSTEM);
-    body.set("uid", uid);
+const state = {
+  uid: localStorage.getItem("copilot_uid") || (() => {
+    const newUid = String(Math.floor(100000 + Math.random() * 900000));
+    localStorage.setItem("copilot_uid", newUid);
+    return newUid;
+  })(),
+  history: [
+    { role: "system", content: SYSTEM_PROMPT }
+  ],
+  viewerHist: [],
+  viewerIdx: -1
+};
 
-    // POST attempt
-    try {
-      const res = await fetchWithTimeout(
-        postURL,
-        {
-          method: "POST",
-          mode: "cors",
-          cache: "no-store",
-          redirect: "follow",
-          referrerPolicy: "no-referrer-when-downgrade",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-            "Accept": "text/plain,*/*"
-          },
-          body
-        },
-        15000
-      );
+// DOM
+const elChat = document.getElementById("chat");
+const elInput = document.getElementById("msgInput");
+const elInputBox = document.getElementById("inputbox");
+const elUrl = document.getElementById("urlInput");
+const elViewerWrap = document.getElementById("viewerWrap");
+const elViewer = document.getElementById("viewer");
 
-      if (res.ok) return await res.text();
-
-      // If forbidden, still try GET fallback with smaller payload
-      if (res.status !== 403) {
-        // non-403 error might still succeed with GET; continue to fallback
-      }
-    } catch (e) {
-      // POST may fail due to CORS preflight or server not allowing POST; fall back to GET
-    }
-
-    // GET fallback: keep URL short
-    // Limit sizes aggressively to reduce 403/414 triggers.
-    const q = String(questionText).slice(0, 1800);
-    const sys = String(SYSTEM).slice(0, 1800);
-
-    const getURL = buildURL({
-      question: q,
-      system: sys,
-      uid
-    });
-
-    const res2 = await fetchWithTimeout(
-      getURL,
-      {
-        method: "GET",
-        mode: "cors",
-        cache: "no-store",
-        redirect: "follow",
-        referrerPolicy: "no-referrer-when-downgrade",
-        headers: { "Accept": "text/plain,*/*" }
-      },
-      15000
-    );
-
-    if (!res2.ok) {
-      const txt = await res2.text().catch(() => "");
-      const err = new Error(`HTTP ${res2.status} ${txt ? "- " + txt.slice(0, 140) : ""}`);
-      err.status = res2.status;
-      throw err;
-    }
-    return await res2.text();
-  }
-
-  // Try sending with shrinking memory windows if we hit 403 or request too big
-  async function robustChatRequest(userMsg) {
-    // Try with more context first, then shrink.
-    const tries = [
-      { turns: 14 },
-      { turns: 10 },
-      { turns: 6 },
-      { turns: 3 }
-    ];
-
-    let lastErr = null;
-
-    for (let attempt = 0; attempt < tries.length; attempt++) {
-      const { turns } = tries[attempt];
-
-      const hiddenPrompt = buildHiddenPrompt(userMsg, turns);
-
-      try {
-        // gentle backoff between retries
-        if (attempt > 0) {
-          const delay = 500 + attempt * 700;
-          await new Promise(r => setTimeout(r, delay));
-        }
-
-        const raw = await callChatAPI_403Hardened(hiddenPrompt);
-        return raw;
-      } catch (e) {
-        lastErr = e;
-        // If it is 403, shrinking helps; if other errors, still try next step once
-      }
-    }
-
-    throw lastErr || new Error("Request failed.");
-  }
-
-  // -------------------- SEND --------------------
-  async function send() {
-    const now = Date.now();
-    if (now - lastSendAt < MIN_SEND_INTERVAL_MS) {
-      elStatus.textContent = "Slow down a bit (rate protection).";
-      return;
-    }
-    lastSendAt = now;
-
-    const msg = (elIn.value || "").trim();
-    if (!msg) {
-      elStatus.textContent = "Type something first.";
-      return;
-    }
-    elIn.value = "";
-
-    // Save user message to memory and UI
-    memory.push({ role: "user", content: msg });
-    addBubble("user", msg);
-    persist();
-
-    setBusy(true);
-    elStatus.textContent = "Thinking…";
-
-    // typing indicator
-    const typing = document.createElement("div");
-    typing.style.display = "flex";
-    typing.style.justifyContent = "flex-start";
-    typing.innerHTML = `
-      <div style="
-        max-width:92%;
-        padding:7px 9px;
-        border-radius:12px;
-        font-size:11px;
-        background:rgba(255,255,255,.06);
-        border:1px solid rgba(255,255,255,.14);
-        opacity:.8;
-      ">…</div>`;
-    elLog.appendChild(typing);
-    scrollDown();
-
-    try {
-      const raw = await robustChatRequest(msg);
-      const obj = extractJSON(raw);
-
-      let replyText = "";
-      let newMemory = null;
-
-      if (obj && typeof obj === "object") {
-        replyText = String(obj.reply ?? "");
-        if (Array.isArray(obj.memory)) newMemory = obj.memory;
-      }
-
-      if (!replyText) replyText = String(raw ?? "");
-
-      typing.remove();
-
-      // adopt returned memory if present; else append reply
-      if (newMemory && newMemory.length) {
-        memory = newMemory
-          .filter((m) => m && (m.role === "user" || m.role === "assistant"))
-          .map((m) => ({ role: m.role, content: String(m.content ?? "") }));
-      } else {
-        memory.push({ role: "assistant", content: replyText });
-      }
-
-      addBubble("assistant", replyText);
-      persist();
-
-      elStatus.textContent = "Done.";
-    } catch (e) {
-      typing.remove();
-
-      // Helpful error text (without guessing provider internals)
-      const errMsg = "Error: " + String(e?.message || e);
-      memory.push({ role: "assistant", content: errMsg });
-      addBubble("assistant", errMsg);
-      persist();
-
-      // If it's 403 specifically, show what to try next (not code-breaking)
-      const status = e?.status;
-      if (String(errMsg).includes("HTTP 403") || status === 403) {
-        elStatus.textContent =
-          "403 Forbidden. Likely blocked by server policy/WAF or rate limit. This build already uses POST + shrink + throttling.";
-      } else {
-        elStatus.textContent = "Request failed.";
-      }
-    } finally {
-      setBusy(false);
-      elIn.focus();
-    }
-  }
-
-  // Wire up UI
-  elSend.onclick = send;
-  elIn.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) send();
-  });
-
-  elClear.onclick = () => {
-    memory = [];
-    persist();
-    elLog.innerHTML = "";
-    addBubble("assistant", "Chat cleared.");
-    elStatus.textContent = "Cleared.";
-  };
-
-  elExport.onclick = async () => {
-    const text = memory
-      .map((m) => (m.role === "user" ? `User: ${m.content}` : `Assistant: ${m.content}`))
-      .join("\n\n");
-
-    if (!text.trim()) {
-      elStatus.textContent = "Nothing to export.";
-      return;
-    }
-    const ok = await copyToClipboard(text);
-    elStatus.textContent = ok ? "Exported to clipboard." : "Export failed.";
-  };
+// -------------------- Utilities --------------------
+function escapeHtml(s){
+  return String(s ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
 }
+
+function setBusy(b){
+  elInputBox.classList.toggle("disable", b);
+  if(!b) setTimeout(() => elInput.focus(), 30);
+}
+
+function addLine(kind, html){
+  const div = document.createElement("div");
+  div.className = "line " + kind;
+
+  const p = document.createElement("div");
+  p.className = "bubble";
+  p.innerHTML = html;
+
+  div.appendChild(p);
+  elChat.appendChild(div);
+  elChat.scrollTop = elChat.scrollHeight;
+}
+
+function addAction(title, detailHtml){
+  const a = document.createElement("div");
+  a.className = "action";
+  a.innerHTML = `<p class="t">${escapeHtml(title)}</p><p class="d">${detailHtml}</p>`;
+
+  const wrap = document.createElement("div");
+  wrap.className = "line ai";
+
+  const b = document.createElement("div");
+  b.className = "bubble";
+  b.appendChild(a);
+
+  wrap.appendChild(b);
+  elChat.appendChild(wrap);
+  elChat.scrollTop = elChat.scrollHeight;
+}
+
+// -------------------- Viewer --------------------
+function normalizeUrlOrSearch(v){
+  const s = (v||"").trim();
+  if(!s) return "";
+  const looksUrl = /^(https?:\/\/)/i.test(s) || s.includes(".") || s.startsWith("localhost");
+  if(looksUrl) return s.startsWith("http") ? s : ("https://" + s);
+  return "https://www.bing.com/search?q=" + encodeURIComponent(s);
+}
+
+function viewerGoto(v){
+  const url = normalizeUrlOrSearch(v);
+  if(!url) return;
+  elViewerWrap.classList.remove("hidden");
+  elViewer.src = url;
+
+  state.viewerHist = state.viewerHist.slice(0, state.viewerIdx + 1);
+  state.viewerHist.push(url);
+  state.viewerIdx = state.viewerHist.length - 1;
+}
+function viewerBack(){
+  if(state.viewerIdx > 0){
+    state.viewerIdx--;
+    elViewer.src = state.viewerHist[state.viewerIdx];
+  }
+}
+function viewerFwd(){
+  if(state.viewerIdx < state.viewerHist.length - 1){
+    state.viewerIdx++;
+    elViewer.src = state.viewerHist[state.viewerIdx];
+  }
+}
+function viewerReload(){
+  try { elViewer.contentWindow.location.reload(); }
+  catch(e){ elViewer.src = elViewer.src; }
+}
+
+// -------------------- Command handling (local only) --------------------
+function applyCommand(cmd){
+  if (/^\{openurl\s+.+\}$/i.test(cmd)) {
+    const u = cmd.match(/^\{openurl\s+(.+)\}$/i)[1];
+    viewerGoto(u);
+    addAction("Open URL (local viewer)", escapeHtml(u));
+    return "";
+  }
+  if (/^\{settheme\s+.+\}$/i.test(cmd)) {
+    const mode = cmd.match(/^\{settheme\s+(.+)\}$/i)[1].trim().toLowerCase();
+    if (mode === "dark") document.documentElement.classList.add("dark");
+    if (mode === "light") document.documentElement.classList.remove("dark");
+    addAction("Set theme (local)", escapeHtml(mode));
+    return "";
+  }
+  if (/^\{openapp\s+.+\}$/i.test(cmd)) {
+    const app = cmd.match(/^\{openapp\s+(.+)\}$/i)[1];
+    addAction("Open app (ignored in iframe)", escapeHtml(app));
+    return "";
+  }
+  if (/^\{feedback\s+.+\}$/i.test(cmd)) {
+    const what = cmd.match(/^\{feedback\s+(.+)\}$/i)[1];
+    addAction(
+      "Feedback (local)",
+      escapeHtml(what) + "<br><span class='small'>This iframe cannot open Win12 feedback UI.</span>"
+    );
+    return "";
+  }
+  return cmd;
+}
+
+// Only extract known commands (prevents breaking code blocks containing {...})
+function extractAndApplyCommands(text){
+  let rt = String(text ?? "");
+  const cmdRegex = /\{(?:openurl|settheme|openapp|feedback)\s+[^}]+\}/gi;
+  const matches = rt.match(cmdRegex) || [];
+  for(const token of matches){
+    const replacement = applyCommand(token);
+    rt = rt.replace(token, replacement);
+  }
+  return rt;
+}
+
+// -------------------- Basic Markdown renderer (safe) --------------------
+// Supports ONLY:
+// - **bold** and ****bold****
+// - `inline`
+// - ```lang\ncode\n``` with copy button
+// - URLs auto-linked
+function renderBasicMdToHtml(raw){
+  let text = String(raw ?? "").replace(/\r\n/g, "\n");
+
+  // 1) Extract fenced code blocks
+  const blocks = [];
+  text = text.replace(/```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g, (_, lang, code) => {
+    const id = blocks.length;
+    blocks.push({ lang: (lang||"").trim(), code: String(code||"") });
+    return `@@BLOCK_${id}@@`;
+  });
+
+  // 2) Extract inline code
+  const inlines = [];
+  text = text.replace(/`([^`\n]+)`/g, (_, code) => {
+    const id = inlines.length;
+    inlines.push(String(code||""));
+    return `@@INLINE_${id}@@`;
+  });
+
+  // 3) Escape everything
+  text = escapeHtml(text);
+
+  // 4) Auto-link URLs (http/https + www)
+  text = text.replace(/(^|[\s(])((https?:\/\/[^\s<]+|www\.[^\s<]+))/g, (_, lead, url) => {
+    const href = url.startsWith("http") ? url : `https://${url}`;
+    return `${lead}<a class="md-link" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>`;
+  });
+
+  // 5) Bold
+  text = text
+    .replace(/\*\*\*\*([^*]+?)\*\*\*\*/g, "<strong>$1</strong>")
+    .replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>");
+
+  // 6) Restore inline code
+  text = text.replace(/@@INLINE_(\d+)@@/g, (_, i) => {
+    const code = escapeHtml(inlines[Number(i)] ?? "");
+    return `<code class="md-inline">${code}</code>`;
+  });
+
+  // 7) Newlines -> <br>
+  text = text.replace(/\n/g, "<br>");
+
+  // 8) Restore code blocks with toolbar + copy button
+  text = text.replace(/@@BLOCK_(\d+)@@/g, (_, i) => {
+    const b = blocks[Number(i)];
+    const lang = (b?.lang || "").trim() || "code";
+    const code = escapeHtml(b?.code || "");
+
+    return `
+      <div class="md-block">
+        <div class="md-toolbar">
+          <span class="md-lang">${escapeHtml(lang)}</span>
+          <button class="md-copy-btn" type="button" data-copy="1" aria-label="Copy code">
+            <p class="md-copy-text">Copy</p>
+            <svg class="md-copy-ico" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+              <path fill="currentColor" d="M16 1H6c-1.1 0-2 .9-2 2v12h2V3h10V1zm3 4H10c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h9c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16h-9V7h9v14z"/>
+            </svg>
+          </button>
+        </div>
+        <pre class="md-pre"><code class="md-code">${code}</code></pre>
+      </div>
+    `;
+  });
+
+  return text;
+}
+
+// Copy helper (clipboard + fallback)
+async function copyToClipboard(text){
+  const t = String(text ?? "");
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try { await navigator.clipboard.writeText(t); return true; } catch {}
+  }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = t;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "-9999px";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return !!ok;
+  } catch {
+    return false;
+  }
+}
+
+// Enable copy buttons (event delegation)
+elChat.addEventListener("click", async (e) => {
+  const btn = e.target.closest(".md-copy-btn");
+  if (!btn) return;
+  const block = btn.closest(".md-block");
+  const codeEl = block ? block.querySelector(".md-code") : null;
+  const codeText = codeEl ? codeEl.innerText : "";
+  const p = btn.querySelector(".md-copy-text");
+  const old = p ? p.textContent : "Copy";
+
+  const ok = await copyToClipboard(codeText);
+  if (p) p.textContent = ok ? "Copied!" : "Failed";
+  setTimeout(() => { if (p) p.textContent = old || "Copy"; }, 1200);
+});
+
+// -------------------- Render assistant response --------------------
+function renderAssistantResponse(text){
+  // 1) apply commands
+  const withoutCmd = extractAndApplyCommands(text);
+
+  // 2) render remaining with basic markdown
+  const html = renderBasicMdToHtml(withoutCmd);
+
+  addLine("ai", html || "<span class='small'>(no text)</span>");
+}
+
+// -------------------- Memory prompt building --------------------
+function buildQuestionWithMemory(userText, maxTurns){
+  // last N non-system messages
+  const msgs = state.history.filter(m => m.role !== "system").slice(-maxTurns);
+
+  const transcript = msgs.map(m => (
+    m.role === "user" ? `User: ${m.content}` : `Assistant: ${m.content}`
+  )).join("\n");
+
+  return (transcript ? transcript + "\n" : "") + `User: ${userText}\nAssistant:`;
+}
+
+// -------------------- API call (fixed, shrink-on-long-url) --------------------
+async function askApi(userText){
+  const sys = state.history[0].content;
+
+  // try with more memory first, then shrink
+  const turnOptions = [12, 8, 5, 3, 0];
+  let lastErr = null;
+
+  for(const turns of turnOptions){
+    try{
+      const question = buildQuestionWithMemory(userText, turns);
+
+      const params = new URLSearchParams({
+        question,
+        system: sys,
+        uid: state.uid,
+        _t: String(Date.now()) // cache-bust
+      });
+
+      const url = `${API_BASE}?${params.toString()}`;
+
+      // if too long, shrink memory and retry
+      if (url.length > 7500 && turns > 0) continue;
+
+      // timeout wrapper
+      const ctrl = new AbortController();
+      const to = setTimeout(() => ctrl.abort(), 15000);
+
+      const res = await fetch(url, {
+        method: "GET",
+        cache: "no-store",
+        headers: { "Accept": "text/plain,*/*" },
+        signal: ctrl.signal
+      }).finally(() => clearTimeout(to));
+
+      const txt = await res.text();
+      if(!res.ok) throw new Error(`HTTP ${res.status}: ${txt.slice(0, 240)}`);
+      return txt;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+
+  throw lastErr || new Error("Request failed.");
+}
+
+// -------------------- Send message --------------------
+async function sendMessage(){
+  const t = (elInput.value || "").trim();
+  if(!t){
+    addLine("system", "Please type something meaningful 🙂");
+    return;
+  }
+  elInput.value = "";
+  addLine("user", renderBasicMdToHtml(t)); // user can see basic md too
+  state.history.push({ role:"user", content:t });
+
+  setBusy(true);
+  try{
+    const respText = await askApi(t);
+    state.history.push({ role:"assistant", content: respText });
+    renderAssistantResponse(respText);
+  }catch(err){
+    addLine("system", "Error calling Copilot API. Check network / CORS / endpoint.");
+    addLine("system", "<span class='small'>" + escapeHtml(String(err)) + "</span>");
+  }finally{
+    setBusy(false);
+  }
+}
+
+// -------------------- UI actions --------------------
+document.getElementById("btnSend").addEventListener("click", sendMessage);
+
+document.getElementById("btnOpenUrl").addEventListener("click", () => {
+  const v = (elUrl.value || "").trim();
+  if(!v) return;
+  viewerGoto(v);
+  addLine("system", "Opened in local Viewer.");
+});
+
+document.getElementById("btnToggleViewer").addEventListener("click", () => {
+  elViewerWrap.classList.toggle("hidden");
+});
+
+document.getElementById("btnHelp").addEventListener("click", () => {
+  addLine("system",
+    "This Copilot runs inside an iframe and will not call parent Win12 functions.<br>" +
+    "Commands like {openurl ...} open in the local Viewer. {openapp ...} is ignored."
+  );
+});
+
+document.getElementById("btnViewerBack").addEventListener("click", viewerBack);
+document.getElementById("btnViewerFwd").addEventListener("click", viewerFwd);
+document.getElementById("btnViewerReload").addEventListener("click", viewerReload);
+
+// Optional: Ctrl+Enter to send
+elInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) sendMessage();
+});
+
+// -------------------- boot --------------------
+(function init(){
+  addLine("system", "Windows 12 Copilot (Embedded) ready.");
+  addLine("ai", renderBasicMdToHtml("Hi! I speak **English**. Ask me something, or paste a URL above to open it in Viewer."));
+  setBusy(false);
+  elInput.focus();
+})();
   function renderMiniRun(container) {
     container.innerHTML = `<input id="run-app" placeholder="Enter app name" style="width:100%;margin-bottom:6px;">
                            <button style="width:100%;">Run</button>`;

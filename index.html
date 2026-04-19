@@ -10455,6 +10455,7 @@ function renderTranslator(container, widgetName) {
   const API_BASE =
     window.API_BASE || "https://yunzhiapi.cn/vip/win12/qwen3-max/index.php";
 
+  // Same uid strategy you use elsewhere
   const uid =
     localStorage.getItem("copilot_uid") ||
     (() => {
@@ -10466,7 +10467,7 @@ function renderTranslator(container, widgetName) {
   const currentUser = localStorage.getItem("currentUser") || "Guest";
   const KEY = `translator_chat_${currentUser}_${widgetName}`;
 
-  // ---------- SAFE ESCAPE ----------
+  // -------------------- HELPERS --------------------
   const escapeHtml = (s) =>
     String(s ?? "")
       .replace(/&/g, "&amp;")
@@ -10475,89 +10476,8 @@ function renderTranslator(container, widgetName) {
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
 
-  // ---------- MARKDOWN LITE RENDERER ----------
-  // Supports ONLY:
-  //  - **bold** and ****bold****
-  //  - ```lang\ncode\n```
-  //  - `inline code`
-  //  - [text](url)
-  //  - bare URLs (http/https/www)
-  function renderMarkdownLite(input) {
-    let text = String(input ?? "").replace(/\r\n/g, "\n");
-
-    // 1) Extract code fences ```lang ... ```
-    const codeBlocks = [];
-    text = text.replace(/```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g, (_, lang, code) => {
-      const idx = codeBlocks.length;
-      codeBlocks.push({ lang: (lang || "").trim(), code: String(code ?? "") });
-      return `@@CODEBLOCK_${idx}@@`;
-    });
-
-    // 2) Extract inline code `...`
-    const inlineCodes = [];
-    text = text.replace(/`([^`\n]+)`/g, (_, code) => {
-      const idx = inlineCodes.length;
-      inlineCodes.push(String(code ?? ""));
-      return `@@INLINECODE_${idx}@@`;
-    });
-
-    // 3) Escape everything (prevents HTML injection)
-    text = escapeHtml(text);
-
-    // 4) Markdown links [text](url) (http/https only)
-    text = text.replace(
-      /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-      (_, label, url) =>
-        `<a href="${url}" target="_blank" rel="noopener noreferrer" class="md-link">${label}</a>`
-    );
-
-    // 5) Auto-link bare URLs (http/https or www.)
-    // Avoid linking inside existing anchors by running AFTER markdown-links,
-    // and excluding "href=" patterns crudely.
-    text = text.replace(
-      /(^|[\s(])((https?:\/\/[^\s<]+|www\.[^\s<]+))/g,
-      (m, lead, url) => {
-        const href = url.startsWith("http") ? url : `https://${url}`;
-        return `${lead}<a href="${href}" target="_blank" rel="noopener noreferrer" class="md-link">${url}</a>`;
-      }
-    );
-
-    // 6) Bold:
-    // - ****text**** (treat as bold)
-    // - **text**
-    // Optional: ***text*** becomes bold+italic (harmless extra)
-    text = text
-      .replace(/\*\*\*\*([^*]+?)\*\*\*\*/g, "<strong>$1</strong>")
-      .replace(/\*\*\*([^*]+?)\*\*\*/g, "<strong><em>$1</em></strong>")
-      .replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>");
-
-    // 7) Restore inline code (no markdown inside)
-    text = text.replace(/@@INLINECODE_(\d+)@@/g, (_, i) => {
-      const code = escapeHtml(inlineCodes[Number(i)] ?? "");
-      return `<code class="md-inline">${code}</code>`;
-    });
-
-    // 8) Convert newlines to <br> (outside code blocks)
-    text = text.replace(/\n/g, "<br>");
-
-    // 9) Restore code blocks (no markdown inside)
-    text = text.replace(/@@CODEBLOCK_(\d+)@@/g, (_, i) => {
-      const b = codeBlocks[Number(i)];
-      const lang = (b?.lang || "").toLowerCase();
-      const code = escapeHtml(b?.code || "");
-      const langLabel = lang ? `<div class="md-lang">${escapeHtml(lang)}</div>` : "";
-      return `
-        <div class="md-block">
-          ${langLabel}
-          <pre class="md-pre"><code class="md-code">${code}</code></pre>
-        </div>
-      `;
-    });
-
-    return text;
-  }
-
-  // Strip ONLY command-style tokens from what is shown (keeps markdown safe)
+  // Remove ONLY "command-like" braces from what you DISPLAY
+  // (Keeps normal braces that aren't commands intact.)
   function sanitizeForDisplay(s) {
     return String(s ?? "")
       .replace(/\{openurl\s+.+?\}/gi, "")
@@ -10567,12 +10487,154 @@ function renderTranslator(container, widgetName) {
       .trim();
   }
 
-  // Load hidden memory
+  // Clipboard copy (modern + fallback) [1](https://web.dev/patterns/clipboard/copy-text/)[2](https://stackoverflow.com/questions/60217202/copy-text-to-clipboard-now-that-execcommandcopy-is-obsolete)
+  async function copyToClipboard(text) {
+    const t = String(text ?? "");
+    // Modern
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      try {
+        await navigator.clipboard.writeText(t);
+        return true;
+      } catch (e) {
+        // fall through to legacy
+      }
+    }
+    // Legacy fallback
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = t;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "-9999px";
+      ta.style.left = "-9999px";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus({ preventScroll: true });
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return !!ok;
+    } catch {
+      return false;
+    }
+  }
+
+  // -------------------- MD-LITE RENDERER --------------------
+  // Allowed:
+  // - **bold** and ****bold****
+  // - `inline code`
+  // - ```lang\ncode\n```
+  // - markdown links: [text](https://...)
+  // - bare urls: https://... or www....
+  //
+  // Also embeds codeblock toolbars with:
+  // - language label
+  // - copy button (p + svg)
+  //
+  // IMPORTANT: This renderer returns SAFE HTML (escapes everything first)
+  // and then selectively injects the allowed tags.
+  function renderMarkdownLite(rawText) {
+    let text = String(rawText ?? "").replace(/\r\n/g, "\n");
+
+    // 1) Extract fenced code blocks
+    const codeBlocks = [];
+    text = text.replace(/```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g, (_, lang, code) => {
+      const idx = codeBlocks.length;
+      codeBlocks.push({
+        lang: String(lang || "").trim(),
+        code: String(code ?? "")
+      });
+      return `@@CODEBLOCK_${idx}@@`;
+    });
+
+    // 2) Extract inline code
+    const inlineCodes = [];
+    text = text.replace(/`([^`\n]+)`/g, (_, code) => {
+      const idx = inlineCodes.length;
+      inlineCodes.push(String(code ?? ""));
+      return `@@INLINECODE_${idx}@@`;
+    });
+
+    // 3) Escape all
+    text = escapeHtml(text);
+
+    // 4) Markdown links: [label](https://url)
+    text = text.replace(
+      /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+      (_, label, url) => {
+        const safeLabel = escapeHtml(label);
+        const safeUrl = escapeHtml(url);
+        return `<a class="md-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeLabel}</a>`;
+      }
+    );
+
+    // 5) Auto-link bare URLs (http/https/www)
+    // Keep it simple + safe.
+    text = text.replace(
+      /(^|[\s(])((https?:\/\/[^\s<]+|www\.[^\s<]+))/g,
+      (_, lead, url) => {
+        const href = url.startsWith("http") ? url : `https://${url}`;
+        const safeHref = escapeHtml(href);
+        const safeText = escapeHtml(url);
+        return `${lead}<a class="md-link" href="${safeHref}" target="_blank" rel="noopener noreferrer">${safeText}</a>`;
+      }
+    );
+
+    // 6) Bold:
+    // ****text****  -> bold
+    // **text**      -> bold
+    text = text
+      .replace(/\*\*\*\*([^*]+?)\*\*\*\*/g, "<strong>$1</strong>")
+      .replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>");
+
+    // 7) Restore inline code (no markdown inside)
+    text = text.replace(/@@INLINECODE_(\d+)@@/g, (_, i) => {
+      const code = escapeHtml(inlineCodes[Number(i)] ?? "");
+      return `<code class="md-inline">${code}</code>`;
+    });
+
+    // 8) Newlines to <br> (outside code blocks)
+    text = text.replace(/\n/g, "<br>");
+
+    // 9) Restore code blocks with toolbar + copy button
+    text = text.replace(/@@CODEBLOCK_(\d+)@@/g, (_, i) => {
+      const b = codeBlocks[Number(i)];
+      const lang = (b?.lang || "").trim();
+      const code = escapeHtml(b?.code || "");
+      const langLabel = lang ? `<span class="md-lang">${escapeHtml(lang)}</span>` : `<span class="md-lang muted">code</span>`;
+
+      // Copy button (p + svg). data-copy-id used for copy handler.
+      return `
+        <div class="md-block" data-copy-wrap="1">
+          <div class="md-toolbar">
+            ${langLabel}
+            <button class="md-copy-btn" type="button" data-copy-id="${Number(i)}" aria-label="Copy code">
+              <p class="md-copy-text">Copy</p>
+              <svg class="md-copy-ico" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                <path fill="currentColor" d="M16 1H6c-1.1 0-2 .9-2 2v12h2V3h10V1zm3 4H10c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h9c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16h-9V7h9v14z"/>
+              </svg>
+            </button>
+          </div>
+          <pre class="md-pre"><code class="md-code" data-code-id="${Number(i)}">${code}</code></pre>
+        </div>
+      `;
+    });
+
+    return text;
+  }
+
+  // -------------------- LOAD MEMORY --------------------
   const saved = (() => {
-    try { return JSON.parse(localStorage.getItem(KEY) || "[]"); }
-    catch { return []; }
+    try {
+      return JSON.parse(localStorage.getItem(KEY) || "[]");
+    } catch {
+      return [];
+    }
   })();
 
+  let memory = Array.isArray(saved) ? saved : [];
+
+  // -------------------- UI --------------------
   container.innerHTML = `
     <style>
       .md-link{ color:#8ab4ff; text-decoration:underline; }
@@ -10583,19 +10645,48 @@ function renderTranslator(container, widgetName) {
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
         font-size: 10.5px;
       }
-      .md-block{ margin-top:4px; }
+      .md-block{ margin-top:6px; }
+      .md-toolbar{
+        display:flex; align-items:center; justify-content:space-between;
+        gap:8px;
+        padding:6px 8px;
+        border-radius:10px 10px 0 0;
+        background:rgba(0,0,0,.22);
+        border:1px solid rgba(255,255,255,.12);
+        border-bottom:none;
+      }
       .md-lang{
-        font-size:10px; opacity:.75; margin:2px 0 4px 2px;
+        font-size:10px; opacity:.85;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       }
+      .md-lang.muted{ opacity:.65; }
+      .md-copy-btn{
+        display:flex; align-items:center; gap:6px;
+        padding:4px 8px;
+        border-radius:999px;
+        border:1px solid rgba(255,255,255,.18);
+        background:rgba(255,255,255,.06);
+        color:#fff;
+        cursor:pointer;
+        user-select:none;
+        font-size:10px;
+      }
+      .md-copy-btn:hover{ background:rgba(255,255,255,.10); }
+      .md-copy-btn:active{ transform:translateY(1px); }
+      .md-copy-text{ margin:0; font-size:10px; opacity:.92; }
+      .md-copy-ico{ opacity:.9; }
+
       .md-pre{
-        margin:0; padding:8px; border-radius:10px;
+        margin:0;
+        padding:8px;
+        border-radius:0 0 10px 10px;
         background:rgba(0,0,0,.35);
         border:1px solid rgba(255,255,255,.12);
         overflow:auto;
       }
       .md-code{
-        white-space:pre; display:block;
+        white-space:pre;
+        display:block;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
         font-size: 10.5px;
       }
@@ -10604,7 +10695,7 @@ function renderTranslator(container, widgetName) {
     <div style="display:flex;flex-direction:column;gap:6px;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:11px;opacity:.85;">
-          Translator — Chatbot (MD‑Lite + hidden memory). Ctrl+Enter to send.
+          Translator — Chatbot (MD‑Lite + copyable code blocks). Ctrl+Enter to send.
         </div>
         <div style="display:flex;gap:6px;">
           <button id="tr-clear" class="admin-btn" style="font-size:10px;">Clear</button>
@@ -10613,7 +10704,7 @@ function renderTranslator(container, widgetName) {
       </div>
 
       <div id="tr-log" style="
-        height:160px; overflow:auto; padding:6px;
+        height:170px; overflow:auto; padding:6px;
         border-radius:8px;
         background:rgba(255,255,255,.04);
         border:1px solid rgba(255,255,255,.12);
@@ -10639,8 +10730,6 @@ function renderTranslator(container, widgetName) {
   const elExport = container.querySelector("#tr-export");
   const elStatus = container.querySelector("#tr-status");
 
-  let memory = Array.isArray(saved) ? saved : [];
-
   function persist() {
     localStorage.setItem(KEY, JSON.stringify(memory));
   }
@@ -10649,7 +10738,31 @@ function renderTranslator(container, widgetName) {
     elLog.scrollTop = elLog.scrollHeight;
   }
 
-  // ---------- BUBBLES USE MD-LITE ----------
+  // Event delegation for copy buttons inside messages
+  // (Clean and avoids rebinding many listeners) [3](https://jordemort.dev/blog/adding-copy-buttons-to-code-blocks/)[4](https://spdevuk.com/how-to-create-code-copy-button/)
+  elLog.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".md-copy-btn");
+    if (!btn) return;
+
+    const wrap = btn.closest(".md-block");
+    if (!wrap) return;
+
+    const codeEl = wrap.querySelector(".md-code");
+    const codeText = codeEl ? codeEl.innerText : "";
+
+    const p = btn.querySelector(".md-copy-text");
+    const old = p ? p.textContent : "Copy";
+
+    const ok = await copyToClipboard(codeText); // modern + fallback [1](https://web.dev/patterns/clipboard/copy-text/)[2](https://stackoverflow.com/questions/60217202/copy-text-to-clipboard-now-that-execcommandcopy-is-obsolete)
+
+    if (p) p.textContent = ok ? "Copied!" : "Failed";
+    btn.style.opacity = ok ? "1" : "0.85";
+
+    setTimeout(() => {
+      if (p) p.textContent = old || "Copy";
+    }, 1200);
+  });
+
   function addBubble(role, text) {
     const wrap = document.createElement("div");
     wrap.style.display = "flex";
@@ -10672,20 +10785,22 @@ function renderTranslator(container, widgetName) {
       b.style.border = "1px solid rgba(255,255,255,.14)";
     }
 
-    // Render MD‑Lite safely
-    const safeText = sanitizeForDisplay(text);
-    b.innerHTML = renderMarkdownLite(safeText);
+    const safe = sanitizeForDisplay(text);
+    b.innerHTML = renderMarkdownLite(safe);
 
     wrap.appendChild(b);
     elLog.appendChild(wrap);
     scrollDown();
   }
 
-  // Initial render
+  // Render existing conversation
   if (memory.length === 0) {
-    addBubble("assistant", "Hi — I’m Translator. Use **bold**, `inline code`, or ```js\\ncode\\n``` and links like [Bing](https://bing.com).");
+    addBubble(
+      "assistant",
+      "Hi — I’m Translator.\nTry **bold**, `inline code`, and code blocks:\n```js\nconsole.log('hello')\n```\nLinks: [Bing](https://bing.com) or https://bing.com"
+    );
   } else {
-    memory.forEach(m => addBubble(m.role, m.content));
+    memory.forEach((m) => addBubble(m.role, m.content));
   }
 
   function setBusy(b) {
@@ -10694,12 +10809,13 @@ function renderTranslator(container, widgetName) {
     elSend.textContent = b ? "..." : "Send";
   }
 
+  // Hidden prompt includes memory
   function buildHiddenPrompt(newUserMsg) {
     const N = 14;
     const recent = memory.slice(-N);
-    const transcript = recent.map(m =>
-      (m.role === "user" ? `User: ${m.content}` : `Assistant: ${m.content}`)
-    ).join("\n");
+    const transcript = recent
+      .map((m) => (m.role === "user" ? `User: ${m.content}` : `Assistant: ${m.content}`))
+      .join("\n");
 
     return `
 Below is chat history for memory. Do NOT repeat it.
@@ -10720,12 +10836,13 @@ OUTPUT FORMAT:
 Return ONLY valid JSON (no markdown fences, no extra text):
 {"reply":"...","memory":[{"role":"user","content":"..."},{"role":"assistant","content":"..."}]}
 
-Formatting allowed INSIDE "reply" ONLY:
+Allowed formatting inside "reply" ONLY:
 - **bold** or ****bold****
 - \`inline code\`
 - triple backtick code blocks: \`\`\`lang\\ncode\\n\`\`\`
-- links: [text](https://url) and bare urls
-Do not output any {openurl ...} style commands.
+- markdown links: [text](https://url)
+- bare urls: https://... or www....
+Never output any {openurl ...} style commands.
 `.trim();
 
     const q = encodeURIComponent(questionText);
@@ -10739,11 +10856,15 @@ Do not output any {openurl ...} style commands.
 
   function extractJSON(text) {
     const t = String(text || "").trim();
-    try { return JSON.parse(t); } catch {}
+    try {
+      return JSON.parse(t);
+    } catch {}
     const i = t.indexOf("{");
     const j = t.lastIndexOf("}");
     if (i >= 0 && j > i) {
-      try { return JSON.parse(t.slice(i, j + 1)); } catch {}
+      try {
+        return JSON.parse(t.slice(i, j + 1));
+      } catch {}
     }
     return null;
   }
@@ -10756,6 +10877,7 @@ Do not output any {openurl ...} style commands.
     }
     elIn.value = "";
 
+    // Push user msg to memory + UI
     memory.push({ role: "user", content: msg });
     addBubble("user", msg);
     persist();
@@ -10763,7 +10885,7 @@ Do not output any {openurl ...} style commands.
     setBusy(true);
     elStatus.textContent = "Thinking…";
 
-    // typing bubble
+    // typing indicator
     const typing = document.createElement("div");
     typing.style.display = "flex";
     typing.style.justifyContent = "flex-start";
@@ -10793,16 +10915,15 @@ Do not output any {openurl ...} style commands.
         if (Array.isArray(obj.memory)) newMemory = obj.memory;
       }
 
-      // fallback if JSON fails
       if (!replyText) replyText = String(raw ?? "");
 
       typing.remove();
 
-      // adopt returned hidden memory if present
+      // Adopt returned memory if present; else append reply
       if (newMemory && newMemory.length) {
         memory = newMemory
-          .filter(m => m && (m.role === "user" || m.role === "assistant"))
-          .map(m => ({ role: m.role, content: String(m.content ?? "") }));
+          .filter((m) => m && (m.role === "user" || m.role === "assistant"))
+          .map((m) => ({ role: m.role, content: String(m.content ?? "") }));
       } else {
         memory.push({ role: "assistant", content: replyText });
       }
@@ -10834,13 +10955,13 @@ Do not output any {openurl ...} style commands.
     memory = [];
     persist();
     elLog.innerHTML = "";
-    addBubble("assistant", "Chat cleared. You can use **bold**, `code`, and links.");
+    addBubble("assistant", "Chat cleared. Use **bold**, `code`, and ```lang code blocks```.");
     elStatus.textContent = "Cleared.";
   };
 
   elExport.onclick = async () => {
     const text = memory
-      .map(m => (m.role === "user" ? `User: ${m.content}` : `Assistant: ${m.content}`))
+      .map((m) => (m.role === "user" ? `User: ${m.content}` : `Assistant: ${m.content}`))
       .join("\n\n");
 
     if (!text.trim()) {
@@ -10848,18 +10969,8 @@ Do not output any {openurl ...} style commands.
       return;
     }
 
-    try {
-      await navigator.clipboard.writeText(text);
-      elStatus.textContent = "Exported to clipboard.";
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      ta.remove();
-      elStatus.textContent = "Exported (fallback copy).";
-    }
+    const ok = await copyToClipboard(text); // modern + fallback [1](https://web.dev/patterns/clipboard/copy-text/)[2](https://stackoverflow.com/questions/60217202/copy-text-to-clipboard-now-that-execcommandcopy-is-obsolete)
+    elStatus.textContent = ok ? "Exported to clipboard." : "Export failed.";
   };
 }
   function renderMiniRun(container) {

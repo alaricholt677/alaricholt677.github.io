@@ -342,11 +342,11 @@ A modern, draggable, theme‑aware dock for Windows that replaces the pinned‑a
 **Windhawk Mod:**  
 search for in **`dicovery tab:`** ***"win12 floating dock"*** it might or might *not* appear
 
-This mod was created by **Sean** and is fully compatible with the Win12 aesthetic.
+This mod was created by **Alaric** and is fully compatible with the Win12 aesthetic.
 
 # 🏆 Credits
 
-- **Sean** — Creator, developer, designer  
+- **Alaric** — Creator, developer, designer  
 - **Copilot** — Assistant, collaborator  
 
 ---

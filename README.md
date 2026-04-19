@@ -326,6 +326,24 @@ Just raw code.
 
 ---
 
+# 🧩 Featured Enhancement — Win12 Floating Dock (Windhawk Mod)
+
+A modern, draggable, theme‑aware dock for Windows that replaces the pinned‑apps area with a clean, Win12‑style floating bar.
+
+### ✨ Features
+- Draggable floating dock
+- Pinned + running app icons
+- Underline indicators for active apps
+- Start + Quick Settings buttons
+- Theme, size, opacity, and spacing controls
+- Dynamic expansion based on icon count
+
+### 🔗 Download / Source
+**Windhawk Mod:**  
+search for in **`dicovery tab:`** ***"win12 floating dock"*** it might or might *not* appear
+
+This mod was created by **Sean** and is fully compatible with the Win12 aesthetic.
+
 # 🏆 Credits
 
 - **Sean** — Creator, developer, designer  

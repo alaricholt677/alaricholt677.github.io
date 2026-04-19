@@ -10450,433 +10450,583 @@ function initWidgetsSystem(currentUser) {
       }
     });
   }
+function renderTranslator(container, widgetName) {
+  // =========================
+  // Translator Widget (FULL)
+  // - Chatbot UI + Memory
+  // - English-only prompt
+  // - Basic MD: ** / **** / `inline` / ```lang``` / URLs
+  // - Code blocks: Copy button (p + svg)
+  // - Local command tokens:
+  //     {openurl ...} => opens in widget Viewer iframe
+  //     {settheme light|dark} => toggles local theme on widget root
+  //     {openapp ...}/{feedback ...} => shows action bubble only
+  // - Fixed API query via URLSearchParams (no &amp; bug)
+  // - Shrinks memory if URL too long
+  // - Null-safe: NO getElementById, all container-scoped + guarded
+  // =========================
 
-/* ============================================================
-   “desktop.js copilot logic style” but iframe-safe (enhanced):
-   - Commands handled locally:
-       {openurl ...}  => opens in Viewer iframe
-       {settheme ...} => toggles local theme class
-       {openapp ...}/{feedback ...} => shown as action blocks only
-   - Memory chatbot: includes last N turns in each request
-   - English-only: system prompt updated
-   - Basic Markdown renderer:
-       **bold** / ****bold****
-       `inline`
-       ```lang
-       code
-       ```
-       auto-link URLs
-   - Code blocks have Copy button (p + svg)
-   - Fixed API query construction (URLSearchParams, no &amp; bug)
-   - Shrinks memory if URL gets too long (helps avoid blocks)
-   ============================================================ */
+  // ---------- Config ----------
+  const API_BASE =
+    window.API_BASE || "https://yunzhiapi.cn/vip/win12/qwen3-max/index.php";
 
-const API_BASE = "https://yunzhiapi.cn/vip/win12/qwen3-max/index.php";
+  const uid =
+    localStorage.getItem("copilot_uid") ||
+    (() => {
+      const newUid = String(Math.floor(100000 + Math.random() * 900000));
+      localStorage.setItem("copilot_uid", newUid);
+      return newUid;
+    })();
 
-// ENGLISH system prompt (you said you don’t speak Chinese)
-const SYSTEM_PROMPT = `
+  const currentUser = localStorage.getItem("currentUser") || "Guest";
+  const KEY = `translator_chat_${currentUser}_${widgetName}`;
+
+  const SYSTEM_PROMPT = `
 Please speak English only.
+You are "Translator", a helpful chatbot. If the user writes Chinese (Simplified or Traditional), translate it into natural English and continue helping.
 
-You are an AI assistant named AI Copilot (github@NB-Group).
-You may optionally include command tokens ONLY at the very end of your message:
-- {openurl url}
-- {settheme light|dark}
-- {openapp appid}
-- {feedback copilot|win12}
+You may include command tokens ONLY at the very end of your response (never mid-sentence):
+{openurl url}
+{settheme light|dark}
+{openapp appid}
+{feedback copilot|win12}
 
-Rules:
-- Never place command tokens in the middle of normal text.
-- Never ask the user to execute commands.
-- Replies may use ONLY basic formatting: **bold**, \`inline code\`, triple backtick code blocks, and plain URLs.
-- Do NOT output any other markdown features (no headings/lists/tables).
+Formatting rules:
+- Allowed: **bold** (also ****bold****), \`inline code\`, triple-backtick code blocks, and plain URLs.
+- Do NOT use other markdown (no headings, lists, tables).
+- Do NOT output any other { ... } tokens besides the four commands above.
 `.trim();
 
-const state = {
-  uid: localStorage.getItem("copilot_uid") || (() => {
-    const newUid = String(Math.floor(100000 + Math.random() * 900000));
-    localStorage.setItem("copilot_uid", newUid);
-    return newUid;
-  })(),
-  history: [
-    { role: "system", content: SYSTEM_PROMPT }
-  ],
-  viewerHist: [],
-  viewerIdx: -1
-};
+  // ---------- Load memory ----------
+  let history = (() => {
+    try {
+      const v = JSON.parse(localStorage.getItem(KEY) || "[]");
+      return Array.isArray(v) ? v : [];
+    } catch {
+      return [];
+    }
+  })();
+  const persist = () => localStorage.setItem(KEY, JSON.stringify(history));
 
-// DOM
-const elChat = document.getElementById("chat");
-const elInput = document.getElementById("msgInput");
-const elInputBox = document.getElementById("inputbox");
-const elUrl = document.getElementById("urlInput");
-const elViewerWrap = document.getElementById("viewerWrap");
-const elViewer = document.getElementById("viewer");
+  // ---------- Helpers ----------
+  const escapeHtml = (s) =>
+    String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
 
-// -------------------- Utilities --------------------
-function escapeHtml(s){
-  return String(s ?? "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
-}
-
-function setBusy(b){
-  elInputBox.classList.toggle("disable", b);
-  if(!b) setTimeout(() => elInput.focus(), 30);
-}
-
-function addLine(kind, html){
-  const div = document.createElement("div");
-  div.className = "line " + kind;
-
-  const p = document.createElement("div");
-  p.className = "bubble";
-  p.innerHTML = html;
-
-  div.appendChild(p);
-  elChat.appendChild(div);
-  elChat.scrollTop = elChat.scrollHeight;
-}
-
-function addAction(title, detailHtml){
-  const a = document.createElement("div");
-  a.className = "action";
-  a.innerHTML = `<p class="t">${escapeHtml(title)}</p><p class="d">${detailHtml}</p>`;
-
-  const wrap = document.createElement("div");
-  wrap.className = "line ai";
-
-  const b = document.createElement("div");
-  b.className = "bubble";
-  b.appendChild(a);
-
-  wrap.appendChild(b);
-  elChat.appendChild(wrap);
-  elChat.scrollTop = elChat.scrollHeight;
-}
-
-// -------------------- Viewer --------------------
-function normalizeUrlOrSearch(v){
-  const s = (v||"").trim();
-  if(!s) return "";
-  const looksUrl = /^(https?:\/\/)/i.test(s) || s.includes(".") || s.startsWith("localhost");
-  if(looksUrl) return s.startsWith("http") ? s : ("https://" + s);
-  return "https://www.bing.com/search?q=" + encodeURIComponent(s);
-}
-
-function viewerGoto(v){
-  const url = normalizeUrlOrSearch(v);
-  if(!url) return;
-  elViewerWrap.classList.remove("hidden");
-  elViewer.src = url;
-
-  state.viewerHist = state.viewerHist.slice(0, state.viewerIdx + 1);
-  state.viewerHist.push(url);
-  state.viewerIdx = state.viewerHist.length - 1;
-}
-function viewerBack(){
-  if(state.viewerIdx > 0){
-    state.viewerIdx--;
-    elViewer.src = state.viewerHist[state.viewerIdx];
+  function normalizeUrlOrSearch(v) {
+    const s = (v || "").trim();
+    if (!s) return "";
+    const looksUrl = /^(https?:\/\/)/i.test(s) || s.includes(".") || s.startsWith("localhost");
+    if (looksUrl) return s.startsWith("http") ? s : ("https://" + s);
+    return "https://www.bing.com/search?q=" + encodeURIComponent(s);
   }
-}
-function viewerFwd(){
-  if(state.viewerIdx < state.viewerHist.length - 1){
-    state.viewerIdx++;
-    elViewer.src = state.viewerHist[state.viewerIdx];
-  }
-}
-function viewerReload(){
-  try { elViewer.contentWindow.location.reload(); }
-  catch(e){ elViewer.src = elViewer.src; }
-}
 
-// -------------------- Command handling (local only) --------------------
-function applyCommand(cmd){
-  if (/^\{openurl\s+.+\}$/i.test(cmd)) {
-    const u = cmd.match(/^\{openurl\s+(.+)\}$/i)[1];
-    viewerGoto(u);
-    addAction("Open URL (local viewer)", escapeHtml(u));
-    return "";
-  }
-  if (/^\{settheme\s+.+\}$/i.test(cmd)) {
-    const mode = cmd.match(/^\{settheme\s+(.+)\}$/i)[1].trim().toLowerCase();
-    if (mode === "dark") document.documentElement.classList.add("dark");
-    if (mode === "light") document.documentElement.classList.remove("dark");
-    addAction("Set theme (local)", escapeHtml(mode));
-    return "";
-  }
-  if (/^\{openapp\s+.+\}$/i.test(cmd)) {
-    const app = cmd.match(/^\{openapp\s+(.+)\}$/i)[1];
-    addAction("Open app (ignored in iframe)", escapeHtml(app));
-    return "";
-  }
-  if (/^\{feedback\s+.+\}$/i.test(cmd)) {
-    const what = cmd.match(/^\{feedback\s+(.+)\}$/i)[1];
-    addAction(
-      "Feedback (local)",
-      escapeHtml(what) + "<br><span class='small'>This iframe cannot open Win12 feedback UI.</span>"
-    );
-    return "";
-  }
-  return cmd;
-}
-
-// Only extract known commands (prevents breaking code blocks containing {...})
-function extractAndApplyCommands(text){
-  let rt = String(text ?? "");
-  const cmdRegex = /\{(?:openurl|settheme|openapp|feedback)\s+[^}]+\}/gi;
-  const matches = rt.match(cmdRegex) || [];
-  for(const token of matches){
-    const replacement = applyCommand(token);
-    rt = rt.replace(token, replacement);
-  }
-  return rt;
-}
-
-// -------------------- Basic Markdown renderer (safe) --------------------
-// Supports ONLY:
-// - **bold** and ****bold****
-// - `inline`
-// - ```lang\ncode\n``` with copy button
-// - URLs auto-linked
-function renderBasicMdToHtml(raw){
-  let text = String(raw ?? "").replace(/\r\n/g, "\n");
-
-  // 1) Extract fenced code blocks
-  const blocks = [];
-  text = text.replace(/```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g, (_, lang, code) => {
-    const id = blocks.length;
-    blocks.push({ lang: (lang||"").trim(), code: String(code||"") });
-    return `@@BLOCK_${id}@@`;
-  });
-
-  // 2) Extract inline code
-  const inlines = [];
-  text = text.replace(/`([^`\n]+)`/g, (_, code) => {
-    const id = inlines.length;
-    inlines.push(String(code||""));
-    return `@@INLINE_${id}@@`;
-  });
-
-  // 3) Escape everything
-  text = escapeHtml(text);
-
-  // 4) Auto-link URLs (http/https + www)
-  text = text.replace(/(^|[\s(])((https?:\/\/[^\s<]+|www\.[^\s<]+))/g, (_, lead, url) => {
-    const href = url.startsWith("http") ? url : `https://${url}`;
-    return `${lead}<a class="md-link" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>`;
-  });
-
-  // 5) Bold
-  text = text
-    .replace(/\*\*\*\*([^*]+?)\*\*\*\*/g, "<strong>$1</strong>")
-    .replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>");
-
-  // 6) Restore inline code
-  text = text.replace(/@@INLINE_(\d+)@@/g, (_, i) => {
-    const code = escapeHtml(inlines[Number(i)] ?? "");
-    return `<code class="md-inline">${code}</code>`;
-  });
-
-  // 7) Newlines -> <br>
-  text = text.replace(/\n/g, "<br>");
-
-  // 8) Restore code blocks with toolbar + copy button
-  text = text.replace(/@@BLOCK_(\d+)@@/g, (_, i) => {
-    const b = blocks[Number(i)];
-    const lang = (b?.lang || "").trim() || "code";
-    const code = escapeHtml(b?.code || "");
-
-    return `
-      <div class="md-block">
-        <div class="md-toolbar">
-          <span class="md-lang">${escapeHtml(lang)}</span>
-          <button class="md-copy-btn" type="button" data-copy="1" aria-label="Copy code">
-            <p class="md-copy-text">Copy</p>
-            <svg class="md-copy-ico" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
-              <path fill="currentColor" d="M16 1H6c-1.1 0-2 .9-2 2v12h2V3h10V1zm3 4H10c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h9c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16h-9V7h9v14z"/>
-            </svg>
-          </button>
-        </div>
-        <pre class="md-pre"><code class="md-code">${code}</code></pre>
-      </div>
-    `;
-  });
-
-  return text;
-}
-
-// Copy helper (clipboard + fallback)
-async function copyToClipboard(text){
-  const t = String(text ?? "");
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    try { await navigator.clipboard.writeText(t); return true; } catch {}
-  }
-  try {
-    const ta = document.createElement("textarea");
-    ta.value = t;
-    ta.setAttribute("readonly", "");
-    ta.style.position = "fixed";
-    ta.style.top = "-9999px";
-    ta.style.left = "-9999px";
-    document.body.appendChild(ta);
-    ta.select();
-    const ok = document.execCommand("copy");
-    ta.remove();
-    return !!ok;
-  } catch {
-    return false;
-  }
-}
-
-// Enable copy buttons (event delegation)
-elChat.addEventListener("click", async (e) => {
-  const btn = e.target.closest(".md-copy-btn");
-  if (!btn) return;
-  const block = btn.closest(".md-block");
-  const codeEl = block ? block.querySelector(".md-code") : null;
-  const codeText = codeEl ? codeEl.innerText : "";
-  const p = btn.querySelector(".md-copy-text");
-  const old = p ? p.textContent : "Copy";
-
-  const ok = await copyToClipboard(codeText);
-  if (p) p.textContent = ok ? "Copied!" : "Failed";
-  setTimeout(() => { if (p) p.textContent = old || "Copy"; }, 1200);
-});
-
-// -------------------- Render assistant response --------------------
-function renderAssistantResponse(text){
-  // 1) apply commands
-  const withoutCmd = extractAndApplyCommands(text);
-
-  // 2) render remaining with basic markdown
-  const html = renderBasicMdToHtml(withoutCmd);
-
-  addLine("ai", html || "<span class='small'>(no text)</span>");
-}
-
-// -------------------- Memory prompt building --------------------
-function buildQuestionWithMemory(userText, maxTurns){
-  // last N non-system messages
-  const msgs = state.history.filter(m => m.role !== "system").slice(-maxTurns);
-
-  const transcript = msgs.map(m => (
-    m.role === "user" ? `User: ${m.content}` : `Assistant: ${m.content}`
-  )).join("\n");
-
-  return (transcript ? transcript + "\n" : "") + `User: ${userText}\nAssistant:`;
-}
-
-// -------------------- API call (fixed, shrink-on-long-url) --------------------
-async function askApi(userText){
-  const sys = state.history[0].content;
-
-  // try with more memory first, then shrink
-  const turnOptions = [12, 8, 5, 3, 0];
-  let lastErr = null;
-
-  for(const turns of turnOptions){
-    try{
-      const question = buildQuestionWithMemory(userText, turns);
-
-      const params = new URLSearchParams({
-        question,
-        system: sys,
-        uid: state.uid,
-        _t: String(Date.now()) // cache-bust
-      });
-
-      const url = `${API_BASE}?${params.toString()}`;
-
-      // if too long, shrink memory and retry
-      if (url.length > 7500 && turns > 0) continue;
-
-      // timeout wrapper
-      const ctrl = new AbortController();
-      const to = setTimeout(() => ctrl.abort(), 15000);
-
-      const res = await fetch(url, {
-        method: "GET",
-        cache: "no-store",
-        headers: { "Accept": "text/plain,*/*" },
-        signal: ctrl.signal
-      }).finally(() => clearTimeout(to));
-
-      const txt = await res.text();
-      if(!res.ok) throw new Error(`HTTP ${res.status}: ${txt.slice(0, 240)}`);
-      return txt;
-    } catch (e) {
-      lastErr = e;
+  async function copyToClipboard(text) {
+    const t = String(text ?? "");
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(t);
+        return true;
+      } catch {}
+    }
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = t;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "-9999px";
+      ta.style.left = "-9999px";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return !!ok;
+    } catch {
+      return false;
     }
   }
 
-  throw lastErr || new Error("Request failed.");
-}
+  // ---------- Basic Markdown Renderer (limited) ----------
+  // Supports ONLY:
+  // - **bold** and ****bold****
+  // - `inline`
+  // - ```lang\ncode\n``` (with copy button)
+  // - auto-link URLs (http/https/www)
+  function renderBasicMd(raw) {
+    let text = String(raw ?? "").replace(/\r\n/g, "\n");
 
-// -------------------- Send message --------------------
-async function sendMessage(){
-  const t = (elInput.value || "").trim();
-  if(!t){
-    addLine("system", "Please type something meaningful 🙂");
-    return;
+    // 1) Extract fenced code blocks
+    const blocks = [];
+    text = text.replace(/```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g, (_, lang, code) => {
+      const id = blocks.length;
+      blocks.push({
+        lang: (lang || "").trim() || "code",
+        code: String(code ?? "")
+      });
+      return `@@BLOCK_${id}@@`;
+    });
+
+    // 2) Extract inline code
+    const inlines = [];
+    text = text.replace(/`([^`\n]+)`/g, (_, code) => {
+      const id = inlines.length;
+      inlines.push(String(code ?? ""));
+      return `@@INLINE_${id}@@`;
+    });
+
+    // 3) Escape all
+    text = escapeHtml(text);
+
+    // 4) Auto-link URLs
+    text = text.replace(/(^|[\s(])((https?:\/\/[^\s<]+|www\.[^\s<]+))/g, (_, lead, url) => {
+      const href = url.startsWith("http") ? url : `https://${url}`;
+      return `${lead}<a class="md-link" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">${escapeHtml(url)}</a>`;
+    });
+
+    // 5) Bold
+    text = text
+      .replace(/\*\*\*\*([^*]+?)\*\*\*\*/g, "<strong>$1</strong>")
+      .replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>");
+
+    // 6) Restore inline code
+    text = text.replace(/@@INLINE_(\d+)@@/g, (_, i) => {
+      const code = escapeHtml(inlines[Number(i)] ?? "");
+      return `<code class="md-inline">${code}</code>`;
+    });
+
+    // 7) Newlines -> <br>
+    text = text.replace(/\n/g, "<br>");
+
+    // 8) Restore code blocks w/ toolbar + copy
+    text = text.replace(/@@BLOCK_(\d+)@@/g, (_, i) => {
+      const b = blocks[Number(i)];
+      const lang = escapeHtml(b?.lang || "code");
+      const code = escapeHtml(b?.code || "");
+      return `
+        <div class="md-block">
+          <div class="md-toolbar">
+            <span class="md-lang">${lang}</span>
+            <button class="md-copy-btn" type="button" data-copy="1" aria-label="Copy code">
+              <p class="md-copy-text">Copy</p>
+              <svg class="md-copy-ico" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                <path fill="currentColor" d="M16 1H6c-1.1 0-2 .9-2 2v12h2V3h10V1zm3 4H10c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h9c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16h-9V7h9v14z"/>
+              </svg>
+            </button>
+          </div>
+          <pre class="md-pre"><code class="md-code">${code}</code></pre>
+        </div>
+      `;
+    });
+
+    return text;
   }
-  elInput.value = "";
-  addLine("user", renderBasicMdToHtml(t)); // user can see basic md too
-  state.history.push({ role:"user", content:t });
 
-  setBusy(true);
-  try{
-    const respText = await askApi(t);
-    state.history.push({ role:"assistant", content: respText });
-    renderAssistantResponse(respText);
-  }catch(err){
-    addLine("system", "Error calling Copilot API. Check network / CORS / endpoint.");
-    addLine("system", "<span class='small'>" + escapeHtml(String(err)) + "</span>");
-  }finally{
-    setBusy(false);
+  // ---------- Command handling (local) ----------
+  // Only these 4 commands are recognized.
+  const CMD_REGEX = /\{(?:openurl|settheme|openapp|feedback)\s+[^}]+\}/gi;
+
+  function applyCommand(token, api) {
+    if (/^\{openurl\s+.+\}$/i.test(token)) {
+      const u = token.match(/^\{openurl\s+(.+)\}$/i)[1];
+      api.viewerGoto(u);
+      api.addAction("Open URL (local viewer)", escapeHtml(u));
+      return "";
+    }
+    if (/^\{settheme\s+.+\}$/i.test(token)) {
+      const mode = token.match(/^\{settheme\s+(.+)\}$/i)[1].trim().toLowerCase();
+      api.setTheme(mode);
+      api.addAction("Set theme (local)", escapeHtml(mode));
+      return "";
+    }
+    if (/^\{openapp\s+.+\}$/i.test(token)) {
+      const app = token.match(/^\{openapp\s+(.+)\}$/i)[1];
+      api.addAction("Open app (widget cannot open apps)", escapeHtml(app));
+      return "";
+    }
+    if (/^\{feedback\s+.+\}$/i.test(token)) {
+      const what = token.match(/^\{feedback\s+(.+)\}$/i)[1];
+      api.addAction("Feedback (widget)", escapeHtml(what));
+      return "";
+    }
+    return token;
   }
+
+  function extractAndApplyCommands(text, api) {
+    let rt = String(text ?? "");
+    const matches = rt.match(CMD_REGEX) || [];
+    for (const token of matches) {
+      const replacement = applyCommand(token, api);
+      rt = rt.replace(token, replacement);
+    }
+    return rt;
+  }
+
+  // ---------- UI (container-scoped, null-safe) ----------
+  const root = container; // local theme target
+  root.innerHTML = `
+    <style>
+      .tw-root{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+      .tw-root.tw-dark{ background: rgba(10,10,30,.0); }
+      .tw-row{ display:flex; gap:6px; align-items:center; }
+      .tw-btn{
+        cursor:pointer; user-select:none;
+        background: rgba(255,255,255,.08);
+        border: 1px solid rgba(255,255,255,.14);
+        color: #fff; border-radius: 10px;
+        padding: 6px 10px; font-size: 11px;
+      }
+      .tw-btn.primary{ background: rgba(76,141,255,.22); border-color: rgba(76,141,255,.45); }
+      .tw-btn:disabled{ opacity:.55; cursor:not-allowed; }
+      .tw-input{
+        flex:1; background:#0b1020; color:#fff;
+        border:1px solid rgba(255,255,255,.2);
+        border-radius:10px; padding:8px; font-size:11px; outline:none;
+      }
+      .tw-card{
+        border-radius: 12px;
+        background: rgba(255,255,255,.04);
+        border: 1px solid rgba(255,255,255,.12);
+        padding: 8px;
+      }
+      .tw-log{ height:170px; overflow:auto; display:flex; flex-direction:column; gap:6px; }
+      .tw-bubble{
+        max-width:92%;
+        padding:7px 9px; border-radius:12px;
+        font-size:11px; line-height:1.35;
+        word-break: break-word;
+      }
+      .tw-user{ align-self:flex-end; background: rgba(76,141,255,.22); border:1px solid rgba(76,141,255,.45); }
+      .tw-ai{ align-self:flex-start; background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); }
+      .tw-system{ align-self:flex-start; background: rgba(180,80,255,.10); border:1px solid rgba(180,80,255,.22); }
+      .tw-small{ font-size:11px; opacity:.85; }
+
+      /* Basic MD */
+      .md-link{ color:#8ab4ff; text-decoration:underline; }
+      .md-inline{
+        padding:1px 4px; border-radius:6px;
+        background:rgba(255,255,255,.08);
+        border:1px solid rgba(255,255,255,.12);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size: 10.5px;
+      }
+      .md-block{ margin-top:6px; }
+      .md-toolbar{
+        display:flex; align-items:center; justify-content:space-between;
+        gap:8px; padding:6px 8px;
+        border-radius:10px 10px 0 0;
+        background:rgba(0,0,0,.22);
+        border:1px solid rgba(255,255,255,.12);
+        border-bottom:none;
+      }
+      .md-lang{
+        font-size:10px; opacity:.85;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+      .md-copy-btn{
+        display:flex; align-items:center; gap:6px;
+        padding:4px 8px; border-radius:999px;
+        border:1px solid rgba(255,255,255,.18);
+        background:rgba(255,255,255,.06);
+        color:#fff; cursor:pointer; user-select:none;
+        font-size:10px;
+      }
+      .md-copy-btn:hover{ background:rgba(255,255,255,.10); }
+      .md-copy-text{ margin:0; font-size:10px; opacity:.92; }
+      .md-pre{
+        margin:0; padding:8px;
+        border-radius:0 0 10px 10px;
+        background:rgba(0,0,0,.35);
+        border:1px solid rgba(255,255,255,.12);
+        overflow:auto;
+      }
+      .md-code{
+        white-space:pre; display:block;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size: 10.5px;
+      }
+
+      /* Viewer */
+      .tw-viewerWrap{ margin-top:6px; display:none; }
+      .tw-viewerWrap.show{ display:block; }
+      .tw-viewerFrame{
+        width:100%; height:140px; border:none; border-radius:12px;
+        background:#fff;
+      }
+    </style>
+
+    <div class="tw-root">
+      <div class="tw-row" style="justify-content:space-between;">
+        <div class="tw-small">Translator — Chatbot (English + memory + basic MD)</div>
+        <div class="tw-row">
+          <button class="tw-btn" data-act="toggleViewer">Viewer</button>
+          <button class="tw-btn" data-act="clear">Clear</button>
+          <button class="tw-btn" data-act="export">Export</button>
+        </div>
+      </div>
+
+      <div class="tw-card tw-viewerWrap" data-role="viewerWrap">
+        <div class="tw-row" style="margin-bottom:6px;">
+          <button class="tw-btn" data-act="vBack">◀</button>
+          <button class="tw-btn" data-act="vFwd">▶</button>
+          <button class="tw-btn" data-act="vReload">⟳</button>
+          <input class="tw-input" data-role="vInput" placeholder="URL or search..." />
+          <button class="tw-btn primary" data-act="vGo">Go</button>
+        </div>
+        <iframe class="tw-viewerFrame" data-role="viewer"></iframe>
+      </div>
+
+      <div class="tw-card" style="margin-top:6px;">
+        <div class="tw-log" data-role="log"></div>
+      </div>
+
+      <div class="tw-row" style="margin-top:6px;">
+        <input class="tw-input" data-role="input" placeholder="Type a message... (Ctrl+Enter to send)" />
+        <button class="tw-btn primary" data-act="send" style="min-width:84px;">Send</button>
+      </div>
+
+      <div class="tw-small" data-role="status" style="margin-top:4px;"></div>
+    </div>
+  `;
+
+  // ---------- Query nodes (guarded) ----------
+  const elLog = root.querySelector('[data-role="log"]');
+  const elInput = root.querySelector('[data-role="input"]');
+  const elStatus = root.querySelector('[data-role="status"]');
+
+  const elViewerWrap = root.querySelector('[data-role="viewerWrap"]');
+  const elViewer = root.querySelector('[data-role="viewer"]');
+  const elVInput = root.querySelector('[data-role="vInput"]');
+
+  const btnSend = root.querySelector('[data-act="send"]');
+  const btnClear = root.querySelector('[data-act="clear"]');
+  const btnExport = root.querySelector('[data-act="export"]');
+  const btnToggleViewer = root.querySelector('[data-act="toggleViewer"]');
+
+  const btnVGo = root.querySelector('[data-act="vGo"]');
+  const btnVBack = root.querySelector('[data-act="vBack"]');
+  const btnVFwd = root.querySelector('[data-act="vFwd"]');
+  const btnVReload = root.querySelector('[data-act="vReload"]');
+
+  if (!elLog || !elInput || !elStatus || !btnSend || !btnClear || !btnExport) return;
+
+  // ---------- Local theme ----------
+  function setTheme(mode) {
+    if (mode === "dark") root.classList.add("tw-dark");
+    if (mode === "light") root.classList.remove("tw-dark");
+  }
+
+  // ---------- Viewer logic ----------
+  const viewerState = { hist: [], idx: -1 };
+
+  function viewerGoto(v) {
+    if (!elViewer || !elViewerWrap) return;
+    const url = normalizeUrlOrSearch(v);
+    if (!url) return;
+
+    elViewerWrap.classList.add("show");
+    elViewer.src = url;
+
+    viewerState.hist = viewerState.hist.slice(0, viewerState.idx + 1);
+    viewerState.hist.push(url);
+    viewerState.idx = viewerState.hist.length - 1;
+  }
+  function viewerBack() {
+    if (!elViewer) return;
+    if (viewerState.idx > 0) {
+      viewerState.idx--;
+      elViewer.src = viewerState.hist[viewerState.idx];
+    }
+  }
+  function viewerFwd() {
+    if (!elViewer) return;
+    if (viewerState.idx < viewerState.hist.length - 1) {
+      viewerState.idx++;
+      elViewer.src = viewerState.hist[viewerState.idx];
+    }
+  }
+  function viewerReload() {
+    if (!elViewer) return;
+    try { elViewer.contentWindow.location.reload(); }
+    catch { elViewer.src = elViewer.src; }
+  }
+
+  // ---------- Bubble helpers ----------
+  function addBubble(kind, html) {
+    const div = document.createElement("div");
+    div.className = "tw-bubble " + (kind === "user" ? "tw-user" : kind === "system" ? "tw-system" : "tw-ai");
+    div.innerHTML = html;
+    elLog.appendChild(div);
+    elLog.scrollTop = elLog.scrollHeight;
+  }
+
+  function addAction(title, detailHtml) {
+    addBubble("system", `<strong>${escapeHtml(title)}</strong><br>${detailHtml}`);
+  }
+
+  // ---------- Render stored history ----------
+  if (history.length === 0) {
+    addBubble("ai", renderBasicMd("Hi! I speak **English**. Paste Chinese and I’ll translate, or ask anything.\n```js\nconsole.log('hello')\n```"));
+  } else {
+    for (const m of history) {
+      addBubble(m.role === "user" ? "user" : "ai", renderBasicMd(m.content));
+    }
+  }
+
+  // ---------- Delegated copy handler ----------
+  root.addEventListener("click", async (e) => {
+    const copyBtn = e.target.closest?.(".md-copy-btn");
+    if (!copyBtn) return;
+    const block = copyBtn.closest(".md-block");
+    const codeEl = block?.querySelector(".md-code");
+    const codeText = codeEl ? codeEl.innerText : "";
+    const p = copyBtn.querySelector(".md-copy-text");
+    const old = p ? p.textContent : "Copy";
+    const ok = await copyToClipboard(codeText);
+    if (p) p.textContent = ok ? "Copied!" : "Failed";
+    setTimeout(() => { if (p) p.textContent = old || "Copy"; }, 1200);
+  });
+
+  // ---------- API: memory prompt ----------
+  function buildQuestionWithMemory(userMsg, maxTurns) {
+    const recent = history.slice(-maxTurns);
+    const transcript = recent
+      .map(m => (m.role === "user" ? `User: ${m.content}` : `Assistant: ${m.content}`))
+      .join("\n");
+    return (transcript ? transcript + "\n" : "") + `User: ${userMsg}\nAssistant:`;
+  }
+
+  async function askApiWithShrink(userMsg) {
+    const turnOptions = [12, 8, 5, 3, 0];
+    let lastErr = null;
+
+    for (const turns of turnOptions) {
+      try {
+        const question = buildQuestionWithMemory(userMsg, turns);
+
+        // FIX: URLSearchParams (prevents &amp; bug)
+        const params = new URLSearchParams({
+          question,
+          system: SYSTEM_PROMPT,
+          uid,
+          _t: String(Date.now())
+        });
+
+        const url = `${API_BASE}?${params.toString()}`;
+
+        // avoid giant URLs that can cause blocks
+        if (url.length > 7500 && turns > 0) continue;
+
+        const ctrl = new AbortController();
+        const to = setTimeout(() => ctrl.abort(), 15000);
+
+        const res = await fetch(url, {
+          method: "GET",
+          cache: "no-store",
+          headers: { "Accept": "text/plain,*/*" },
+          signal: ctrl.signal
+        }).finally(() => clearTimeout(to));
+
+        const txt = await res.text();
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${txt.slice(0, 240)}`);
+        return txt;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+
+    throw lastErr || new Error("Request failed.");
+  }
+
+  // ---------- Busy ----------
+  function setBusy(b) {
+    btnSend.disabled = b;
+    elInput.disabled = b;
+    btnSend.textContent = b ? "..." : "Send";
+  }
+
+  // ---------- Send ----------
+  async function send() {
+    const msg = (elInput.value || "").trim();
+    if (!msg) { elStatus.textContent = "Type something first."; return; }
+    elInput.value = "";
+
+    history.push({ role: "user", content: msg });
+    addBubble("user", renderBasicMd(msg));
+    persist();
+
+    setBusy(true);
+    elStatus.textContent = "Thinking…";
+
+    // typing bubble
+    const typing = document.createElement("div");
+    typing.className = "tw-bubble tw-ai";
+    typing.innerHTML = "…";
+    elLog.appendChild(typing);
+    elLog.scrollTop = elLog.scrollHeight;
+
+    try {
+      const raw = await askApiWithShrink(msg);
+
+      // Apply commands (local viewer/theme/actions), then render remaining text
+      const api = { viewerGoto, addAction, setTheme };
+      const withoutCmd = extractAndApplyCommands(raw, api);
+
+      typing.remove();
+
+      history.push({ role: "assistant", content: withoutCmd });
+      persist();
+
+      addBubble("ai", renderBasicMd(withoutCmd));
+      elStatus.textContent = "Done.";
+    } catch (e) {
+      typing.remove();
+      const errMsg = `Error: ${String(e?.message || e)}`;
+      history.push({ role: "assistant", content: errMsg });
+      persist();
+      addBubble("system", renderBasicMd(errMsg));
+      elStatus.textContent = "Request failed.";
+    } finally {
+      setBusy(false);
+      elInput.focus();
+    }
+  }
+
+  // ---------- Wire events (guarded) ----------
+  btnSend.addEventListener("click", send);
+  elInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) send();
+  });
+
+  btnClear.addEventListener("click", () => {
+    history = [];
+    persist();
+    elLog.innerHTML = "";
+    addBubble("ai", renderBasicMd("Chat cleared. I speak **English**."));
+    elStatus.textContent = "Cleared.";
+  });
+
+  btnExport.addEventListener("click", async () => {
+    const text = history.map(m => (m.role === "user" ? `User: ${m.content}` : `Assistant: ${m.content}`)).join("\n\n");
+    if (!text.trim()) { elStatus.textContent = "Nothing to export."; return; }
+    const ok = await copyToClipboard(text);
+    elStatus.textContent = ok ? "Exported to clipboard." : "Export failed.";
+  });
+
+  if (btnToggleViewer && elViewerWrap) {
+    btnToggleViewer.addEventListener("click", () => elViewerWrap.classList.toggle("show"));
+  }
+
+  if (btnVGo && elVInput) btnVGo.addEventListener("click", () => viewerGoto(elVInput.value));
+  if (elVInput) elVInput.addEventListener("keydown", (e) => { if (e.key === "Enter") viewerGoto(elVInput.value); });
+  if (btnVBack) btnVBack.addEventListener("click", viewerBack);
+  if (btnVFwd) btnVFwd.addEventListener("click", viewerFwd);
+  if (btnVReload) btnVReload.addEventListener("click", viewerReload);
 }
-
-// -------------------- UI actions --------------------
-document.getElementById("btnSend").addEventListener("click", sendMessage);
-
-document.getElementById("btnOpenUrl").addEventListener("click", () => {
-  const v = (elUrl.value || "").trim();
-  if(!v) return;
-  viewerGoto(v);
-  addLine("system", "Opened in local Viewer.");
-});
-
-document.getElementById("btnToggleViewer").addEventListener("click", () => {
-  elViewerWrap.classList.toggle("hidden");
-});
-
-document.getElementById("btnHelp").addEventListener("click", () => {
-  addLine("system",
-    "This Copilot runs inside an iframe and will not call parent Win12 functions.<br>" +
-    "Commands like {openurl ...} open in the local Viewer. {openapp ...} is ignored."
-  );
-});
-
-document.getElementById("btnViewerBack").addEventListener("click", viewerBack);
-document.getElementById("btnViewerFwd").addEventListener("click", viewerFwd);
-document.getElementById("btnViewerReload").addEventListener("click", viewerReload);
-
-// Optional: Ctrl+Enter to send
-elInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) sendMessage();
-});
-
-// -------------------- boot --------------------
-(function init(){
-  addLine("system", "Windows 12 Copilot (Embedded) ready.");
-  addLine("ai", renderBasicMdToHtml("Hi! I speak **English**. Ask me something, or paste a URL above to open it in Viewer."));
-  setBusy(false);
-  elInput.focus();
-})();
   function renderMiniRun(container) {
     container.innerHTML = `<input id="run-app" placeholder="Enter app name" style="width:100%;margin-bottom:6px;">
                            <button style="width:100%;">Run</button>`;

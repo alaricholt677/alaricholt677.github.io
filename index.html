@@ -10452,18 +10452,14 @@ function initWidgetsSystem(currentUser) {
   }
 function renderTranslator(container, widgetName) {
   // =========================
-  // Translator Widget (FULL)
-  // - Chatbot UI + Memory
-  // - English-only prompt
-  // - Basic MD: ** / **** / `inline` / ```lang``` / URLs
-  // - Code blocks: Copy button (p + svg)
-  // - Local command tokens:
-  //     {openurl ...} => opens in widget Viewer iframe
-  //     {settheme light|dark} => toggles local theme on widget root
-  //     {openapp ...}/{feedback ...} => shows action bubble only
-  // - Fixed API query via URLSearchParams (no &amp; bug)
-  // - Shrinks memory if URL too long
-  // - Null-safe: NO getElementById, all container-scoped + guarded
+  // Translator Widget (FULL + Multi-Chat)
+  // - Per-chat memory stored in localStorage
+  // - Create / Rename / Delete (Delete wipes memory)
+  // - English-only
+  // - Basic MD (limited) + code copy button
+  // - Local commands + local Viewer
+  // - Fixed URLSearchParams + shrink-on-long-url
+  // - Container-scoped, null-safe
   // =========================
 
   // ---------- Config ----------
@@ -10479,7 +10475,11 @@ function renderTranslator(container, widgetName) {
     })();
 
   const currentUser = localStorage.getItem("currentUser") || "Guest";
-  const KEY = `translator_chat_${currentUser}_${widgetName}`;
+
+  // Storage keys (per user + per widget instance name)
+  const BASE = `translator_multi_${currentUser}_${widgetName}`;
+  const INDEX_KEY = `${BASE}_index`; // { activeId, chats:[{id,name,updatedAt}] }
+  const CHAT_KEY = (id) => `${BASE}_chat_${id}`; // messages array
 
   const SYSTEM_PROMPT = `
 Please speak English only.
@@ -10497,17 +10497,6 @@ Formatting rules:
 - Do NOT output any other { ... } tokens besides the four commands above.
 `.trim();
 
-  // ---------- Load memory ----------
-  let history = (() => {
-    try {
-      const v = JSON.parse(localStorage.getItem(KEY) || "[]");
-      return Array.isArray(v) ? v : [];
-    } catch {
-      return [];
-    }
-  })();
-  const persist = () => localStorage.setItem(KEY, JSON.stringify(history));
-
   // ---------- Helpers ----------
   const escapeHtml = (s) =>
     String(s ?? "")
@@ -10516,14 +10505,6 @@ Formatting rules:
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
-
-  function normalizeUrlOrSearch(v) {
-    const s = (v || "").trim();
-    if (!s) return "";
-    const looksUrl = /^(https?:\/\/)/i.test(s) || s.includes(".") || s.startsWith("localhost");
-    if (looksUrl) return s.startsWith("http") ? s : ("https://" + s);
-    return "https://www.bing.com/search?q=" + encodeURIComponent(s);
-  }
 
   async function copyToClipboard(text) {
     const t = String(text ?? "");
@@ -10551,23 +10532,38 @@ Formatting rules:
     }
   }
 
-  // ---------- Basic Markdown Renderer (limited) ----------
+  function normalizeUrlOrSearch(v) {
+    const s = (v || "").trim();
+    if (!s) return "";
+    const looksUrl = /^(https?:\/\/)/i.test(s) || s.includes(".") || s.startsWith("localhost");
+    if (looksUrl) return s.startsWith("http") ? s : ("https://" + s);
+    return "https://www.bing.com/search?q=" + encodeURIComponent(s);
+  }
+
+  function safeJsonParse(str, fallback) {
+    try { return JSON.parse(str); } catch { return fallback; }
+  }
+
+  function nowTs() { return Date.now(); }
+
+  function genId() {
+    return (Date.now().toString(36) + Math.random().toString(36).slice(2));
+  }
+
+  // ---------- Basic MD Renderer (limited) ----------
   // Supports ONLY:
   // - **bold** and ****bold****
   // - `inline`
   // - ```lang\ncode\n``` (with copy button)
-  // - auto-link URLs (http/https/www)
+  // - auto-link URLs
   function renderBasicMd(raw) {
     let text = String(raw ?? "").replace(/\r\n/g, "\n");
 
-    // 1) Extract fenced code blocks
+    // 1) Extract fenced blocks
     const blocks = [];
     text = text.replace(/```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g, (_, lang, code) => {
       const id = blocks.length;
-      blocks.push({
-        lang: (lang || "").trim() || "code",
-        code: String(code ?? "")
-      });
+      blocks.push({ lang: (lang || "").trim() || "code", code: String(code ?? "") });
       return `@@BLOCK_${id}@@`;
     });
 
@@ -10585,7 +10581,7 @@ Formatting rules:
     // 4) Auto-link URLs
     text = text.replace(/(^|[\s(])((https?:\/\/[^\s<]+|www\.[^\s<]+))/g, (_, lead, url) => {
       const href = url.startsWith("http") ? url : `https://${url}`;
-      return `${lead}<a class="md-link" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">${escapeHtml(url)}</a>`;
+      return `${lead}${escapeHtml(href)}${escapeHtml(url)}</a>`;
     });
 
     // 5) Bold
@@ -10626,52 +10622,51 @@ Formatting rules:
     return text;
   }
 
-  // ---------- Command handling (local) ----------
-  // Only these 4 commands are recognized.
+  // ---------- Local commands ----------
   const CMD_REGEX = /\{(?:openurl|settheme|openapp|feedback)\s+[^}]+\}/gi;
 
-  function applyCommand(token, api) {
-    if (/^\{openurl\s+.+\}$/i.test(token)) {
-      const u = token.match(/^\{openurl\s+(.+)\}$/i)[1];
-      api.viewerGoto(u);
-      api.addAction("Open URL (local viewer)", escapeHtml(u));
-      return "";
-    }
-    if (/^\{settheme\s+.+\}$/i.test(token)) {
-      const mode = token.match(/^\{settheme\s+(.+)\}$/i)[1].trim().toLowerCase();
-      api.setTheme(mode);
-      api.addAction("Set theme (local)", escapeHtml(mode));
-      return "";
-    }
-    if (/^\{openapp\s+.+\}$/i.test(token)) {
-      const app = token.match(/^\{openapp\s+(.+)\}$/i)[1];
-      api.addAction("Open app (widget cannot open apps)", escapeHtml(app));
-      return "";
-    }
-    if (/^\{feedback\s+.+\}$/i.test(token)) {
-      const what = token.match(/^\{feedback\s+(.+)\}$/i)[1];
-      api.addAction("Feedback (widget)", escapeHtml(what));
-      return "";
-    }
-    return token;
+  // ---------- Storage: index + chats ----------
+  function loadIndex() {
+    const idx = safeJsonParse(localStorage.getItem(INDEX_KEY), null);
+    if (idx && Array.isArray(idx.chats) && idx.chats.length) return idx;
+
+    // Create default chat
+    const id = genId();
+    const newIdx = {
+      activeId: id,
+      chats: [{ id, name: "Chat 1", updatedAt: nowTs() }]
+    };
+    localStorage.setItem(INDEX_KEY, JSON.stringify(newIdx));
+    localStorage.setItem(CHAT_KEY(id), JSON.stringify([]));
+    return newIdx;
   }
 
-  function extractAndApplyCommands(text, api) {
-    let rt = String(text ?? "");
-    const matches = rt.match(CMD_REGEX) || [];
-    for (const token of matches) {
-      const replacement = applyCommand(token, api);
-      rt = rt.replace(token, replacement);
-    }
-    return rt;
+  function saveIndex(idx) {
+    localStorage.setItem(INDEX_KEY, JSON.stringify(idx));
   }
 
-  // ---------- UI (container-scoped, null-safe) ----------
-  const root = container; // local theme target
+  function loadChatMessages(id) {
+    return safeJsonParse(localStorage.getItem(CHAT_KEY(id)), []);
+  }
+
+  function saveChatMessages(id, msgs) {
+    localStorage.setItem(CHAT_KEY(id), JSON.stringify(msgs));
+  }
+
+  function deleteChatStorage(id) {
+    localStorage.removeItem(CHAT_KEY(id));
+  }
+
+  // ---------- Initialize index + active chat ----------
+  let index = loadIndex();
+  let activeId = index.activeId;
+  let history = loadChatMessages(activeId);
+
+  // ---------- Build UI ----------
+  const root = container;
   root.innerHTML = `
     <style>
-      .tw-root{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-      .tw-root.tw-dark{ background: rgba(10,10,30,.0); }
+      .tw-root{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; color:#fff; }
       .tw-row{ display:flex; gap:6px; align-items:center; }
       .tw-btn{
         cursor:pointer; user-select:none;
@@ -10681,6 +10676,7 @@ Formatting rules:
         padding: 6px 10px; font-size: 11px;
       }
       .tw-btn.primary{ background: rgba(76,141,255,.22); border-color: rgba(76,141,255,.45); }
+      .tw-btn.danger{ background: rgba(255,70,120,.14); border-color: rgba(255,70,120,.30); }
       .tw-btn:disabled{ opacity:.55; cursor:not-allowed; }
       .tw-input{
         flex:1; background:#0b1020; color:#fff;
@@ -10704,6 +10700,12 @@ Formatting rules:
       .tw-ai{ align-self:flex-start; background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); }
       .tw-system{ align-self:flex-start; background: rgba(180,80,255,.10); border:1px solid rgba(180,80,255,.22); }
       .tw-small{ font-size:11px; opacity:.85; }
+      .tw-select{
+        background:#0b1020; color:#fff;
+        border:1px solid rgba(255,255,255,.2);
+        border-radius:10px; padding:6px 8px; font-size:11px; outline:none;
+        max-width: 180px;
+      }
 
       /* Basic MD */
       .md-link{ color:#8ab4ff; text-decoration:underline; }
@@ -10757,14 +10759,20 @@ Formatting rules:
         width:100%; height:140px; border:none; border-radius:12px;
         background:#fff;
       }
+      .tw-dark{ filter: none; } /* placeholder hook */
     </style>
 
     <div class="tw-root">
       <div class="tw-row" style="justify-content:space-between;">
-        <div class="tw-small">Translator — Chatbot (English + memory + basic MD)</div>
+        <div class="tw-row" style="gap:8px;">
+          <span class="tw-small">Translator</span>
+          <select class="tw-select" data-role="chatSelect"></select>
+        </div>
         <div class="tw-row">
-          <button class="tw-btn" data-act="toggleViewer">Viewer</button>
-          <button class="tw-btn" data-act="clear">Clear</button>
+          <button class="tw-btn" data-act="new">New</button>
+          <button class="tw-btn" data-act="rename">Edit</button>
+          <button class="tw-btn danger" data-act="delete">Delete</button>
+          <button class="tw-btn" data-act="viewerToggle">Viewer</button>
           <button class="tw-btn" data-act="export">Export</button>
         </div>
       </div>
@@ -10785,7 +10793,7 @@ Formatting rules:
       </div>
 
       <div class="tw-row" style="margin-top:6px;">
-        <input class="tw-input" data-role="input" placeholder="Type a message... (Ctrl+Enter to send)" />
+        <input class="tw-input" data-role="input" placeholder="Type a message… (Ctrl+Enter to send)" />
         <button class="tw-btn primary" data-act="send" style="min-width:84px;">Send</button>
       </div>
 
@@ -10798,21 +10806,28 @@ Formatting rules:
   const elInput = root.querySelector('[data-role="input"]');
   const elStatus = root.querySelector('[data-role="status"]');
 
+  const elChatSelect = root.querySelector('[data-role="chatSelect"]');
+
   const elViewerWrap = root.querySelector('[data-role="viewerWrap"]');
   const elViewer = root.querySelector('[data-role="viewer"]');
   const elVInput = root.querySelector('[data-role="vInput"]');
 
   const btnSend = root.querySelector('[data-act="send"]');
-  const btnClear = root.querySelector('[data-act="clear"]');
+  const btnNew = root.querySelector('[data-act="new"]');
+  const btnRename = root.querySelector('[data-act="rename"]');
+  const btnDelete = root.querySelector('[data-act="delete"]');
+  const btnViewerToggle = root.querySelector('[data-act="viewerToggle"]');
   const btnExport = root.querySelector('[data-act="export"]');
-  const btnToggleViewer = root.querySelector('[data-act="toggleViewer"]');
 
   const btnVGo = root.querySelector('[data-act="vGo"]');
   const btnVBack = root.querySelector('[data-act="vBack"]');
   const btnVFwd = root.querySelector('[data-act="vFwd"]');
   const btnVReload = root.querySelector('[data-act="vReload"]');
 
-  if (!elLog || !elInput || !elStatus || !btnSend || !btnClear || !btnExport) return;
+  if (!elLog || !elInput || !elStatus || !elChatSelect || !btnSend || !btnNew || !btnRename || !btnDelete || !btnExport) {
+    console.error("[Translator] Widget DOM missing required parts. Aborting safely.");
+    return;
+  }
 
   // ---------- Local theme ----------
   function setTheme(mode) {
@@ -10820,14 +10835,13 @@ Formatting rules:
     if (mode === "light") root.classList.remove("tw-dark");
   }
 
-  // ---------- Viewer logic ----------
+  // ---------- Viewer state ----------
   const viewerState = { hist: [], idx: -1 };
 
   function viewerGoto(v) {
     if (!elViewer || !elViewerWrap) return;
     const url = normalizeUrlOrSearch(v);
     if (!url) return;
-
     elViewerWrap.classList.add("show");
     elViewer.src = url;
 
@@ -10868,16 +10882,72 @@ Formatting rules:
     addBubble("system", `<strong>${escapeHtml(title)}</strong><br>${detailHtml}`);
   }
 
-  // ---------- Render stored history ----------
-  if (history.length === 0) {
-    addBubble("ai", renderBasicMd("Hi! I speak **English**. Paste Chinese and I’ll translate, or ask anything.\n```js\nconsole.log('hello')\n```"));
-  } else {
+  function rerenderChatSelect() {
+    elChatSelect.innerHTML = "";
+    for (const c of index.chats) {
+      const opt = document.createElement("option");
+      opt.value = c.id;
+      opt.textContent = c.name;
+      if (c.id === activeId) opt.selected = true;
+      elChatSelect.appendChild(opt);
+    }
+  }
+
+  function renderActiveChat() {
+    elLog.innerHTML = "";
+    if (!history.length) {
+      addBubble("ai", renderBasicMd("Hi! I speak **English**. Paste Chinese and I’ll translate, or ask anything.\n```js\nconsole.log('hello')\n```"));
+      return;
+    }
     for (const m of history) {
       addBubble(m.role === "user" ? "user" : "ai", renderBasicMd(m.content));
     }
   }
 
-  // ---------- Delegated copy handler ----------
+  function setStatus(msg) { elStatus.textContent = msg || ""; }
+
+  function saveActiveChat() {
+    // persist messages for active chat
+    saveChatMessages(activeId, history);
+    // update updatedAt
+    const c = index.chats.find(x => x.id === activeId);
+    if (c) c.updatedAt = nowTs();
+    saveIndex(index);
+  }
+
+  function switchChat(newId) {
+    if (!newId || newId === activeId) return;
+    // save current
+    saveActiveChat();
+    // load new
+    activeId = newId;
+    index.activeId = activeId;
+    saveIndex(index);
+
+    history = loadChatMessages(activeId);
+    rerenderChatSelect();
+    renderActiveChat();
+    setStatus(`Switched to "${index.chats.find(c => c.id === activeId)?.name || "Chat"}".`);
+  }
+
+  // ---------- Command execution API ----------
+  const cmdApi = {
+    viewerGoto,
+    addAction,
+    setTheme
+  };
+
+  function extractAndApplyCommandsToText(text) {
+    let rt = String(text ?? "");
+    const matches = rt.match(CMD_REGEX) || [];
+    for (const token of matches) {
+      const replaced = applyCommand(token, cmdApi);
+      rt = rt.replace(token, replaced);
+    }
+    return rt;
+  }
+
+  // ---------- Copy button (delegated) ----------
   root.addEventListener("click", async (e) => {
     const copyBtn = e.target.closest?.(".md-copy-btn");
     if (!copyBtn) return;
@@ -10891,7 +10961,7 @@ Formatting rules:
     setTimeout(() => { if (p) p.textContent = old || "Copy"; }, 1200);
   });
 
-  // ---------- API: memory prompt ----------
+  // ---------- API prompt ----------
   function buildQuestionWithMemory(userMsg, maxTurns) {
     const recent = history.slice(-maxTurns);
     const transcript = recent
@@ -10908,7 +10978,7 @@ Formatting rules:
       try {
         const question = buildQuestionWithMemory(userMsg, turns);
 
-        // FIX: URLSearchParams (prevents &amp; bug)
+        // Fixed query building
         const params = new URLSearchParams({
           question,
           system: SYSTEM_PROMPT,
@@ -10917,8 +10987,6 @@ Formatting rules:
         });
 
         const url = `${API_BASE}?${params.toString()}`;
-
-        // avoid giant URLs that can cause blocks
         if (url.length > 7500 && turns > 0) continue;
 
         const ctrl = new AbortController();
@@ -10938,7 +11006,6 @@ Formatting rules:
         lastErr = e;
       }
     }
-
     throw lastErr || new Error("Request failed.");
   }
 
@@ -10949,18 +11016,18 @@ Formatting rules:
     btnSend.textContent = b ? "..." : "Send";
   }
 
-  // ---------- Send ----------
+  // ---------- Actions ----------
   async function send() {
     const msg = (elInput.value || "").trim();
-    if (!msg) { elStatus.textContent = "Type something first."; return; }
+    if (!msg) { setStatus("Type something first."); return; }
     elInput.value = "";
 
     history.push({ role: "user", content: msg });
     addBubble("user", renderBasicMd(msg));
-    persist();
+    saveActiveChat();
 
     setBusy(true);
-    elStatus.textContent = "Thinking…";
+    setStatus("Thinking…");
 
     // typing bubble
     const typing = document.createElement("div");
@@ -10971,61 +11038,137 @@ Formatting rules:
 
     try {
       const raw = await askApiWithShrink(msg);
-
-      // Apply commands (local viewer/theme/actions), then render remaining text
-      const api = { viewerGoto, addAction, setTheme };
-      const withoutCmd = extractAndApplyCommands(raw, api);
+      const withoutCmd = extractAndApplyCommandsToText(raw);
 
       typing.remove();
 
       history.push({ role: "assistant", content: withoutCmd });
-      persist();
-
       addBubble("ai", renderBasicMd(withoutCmd));
-      elStatus.textContent = "Done.";
+      saveActiveChat();
+
+      setStatus("Done.");
     } catch (e) {
       typing.remove();
       const errMsg = `Error: ${String(e?.message || e)}`;
       history.push({ role: "assistant", content: errMsg });
-      persist();
       addBubble("system", renderBasicMd(errMsg));
-      elStatus.textContent = "Request failed.";
+      saveActiveChat();
+      setStatus("Request failed.");
     } finally {
       setBusy(false);
       elInput.focus();
     }
   }
 
-  // ---------- Wire events (guarded) ----------
+  function createNewChat() {
+    // save current first
+    saveActiveChat();
+
+    const newId = genId();
+    const num = index.chats.length + 1;
+    index.chats.push({ id: newId, name: `Chat ${num}`, updatedAt: nowTs() });
+    index.activeId = newId;
+    saveIndex(index);
+    localStorage.setItem(CHAT_KEY(newId), JSON.stringify([]));
+
+    activeId = newId;
+    history = [];
+    rerenderChatSelect();
+    renderActiveChat();
+    setStatus("Created a new chat.");
+  }
+
+  function renameChat() {
+    const chat = index.chats.find(c => c.id === activeId);
+    if (!chat) return;
+
+    const next = (prompt("Rename chat:", chat.name) || "").trim();
+    if (!next) return;
+
+    chat.name = next;
+    chat.updatedAt = nowTs();
+    saveIndex(index);
+    rerenderChatSelect();
+    setStatus(`Renamed to "${next}".`);
+  }
+
+  function deleteChat() {
+    // This is what you asked: "Delete" wipes memory
+    const chat = index.chats.find(c => c.id === activeId);
+    if (!chat) return;
+
+    const ok = confirm(`Delete "${chat.name}"? This will wipe its memory permanently.`);
+    if (!ok) return;
+
+    // Remove storage for this chat
+    deleteChatStorage(activeId);
+
+    // Remove from index
+    index.chats = index.chats.filter(c => c.id !== activeId);
+
+    // If no chats left, create a fresh one
+    if (index.chats.length === 0) {
+      const id = genId();
+      index.chats = [{ id, name: "Chat 1", updatedAt: nowTs() }];
+      index.activeId = id;
+      saveIndex(index);
+      localStorage.setItem(CHAT_KEY(id), JSON.stringify([]));
+      activeId = id;
+      history = [];
+      rerenderChatSelect();
+      renderActiveChat();
+      setStatus("Deleted chat. Created a new empty chat.");
+      return;
+    }
+
+    // Otherwise switch to first chat
+    index.activeId = index.chats[0].id;
+    saveIndex(index);
+
+    activeId = index.activeId;
+    history = loadChatMessages(activeId);
+    rerenderChatSelect();
+    renderActiveChat();
+    setStatus("Deleted chat (memory wiped). Switched to another chat.");
+  }
+
+  async function exportChat() {
+    const chat = index.chats.find(c => c.id === activeId);
+    const title = chat?.name || "Chat";
+    const text = history
+      .map(m => (m.role === "user" ? `User: ${m.content}` : `Assistant: ${m.content}`))
+      .join("\n\n");
+
+    if (!text.trim()) { setStatus("Nothing to export."); return; }
+    const ok = await copyToClipboard(text);
+    setStatus(ok ? `Exported "${title}" to clipboard.` : "Export failed.");
+  }
+
+  // ---------- Wire events ----------
   btnSend.addEventListener("click", send);
   elInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) send();
   });
 
-  btnClear.addEventListener("click", () => {
-    history = [];
-    persist();
-    elLog.innerHTML = "";
-    addBubble("ai", renderBasicMd("Chat cleared. I speak **English**."));
-    elStatus.textContent = "Cleared.";
-  });
+  elChatSelect.addEventListener("change", () => switchChat(elChatSelect.value));
+  btnNew.addEventListener("click", createNewChat);
+  btnRename.addEventListener("click", renameChat);
+  btnDelete.addEventListener("click", deleteChat);
+  btnExport.addEventListener("click", exportChat);
 
-  btnExport.addEventListener("click", async () => {
-    const text = history.map(m => (m.role === "user" ? `User: ${m.content}` : `Assistant: ${m.content}`)).join("\n\n");
-    if (!text.trim()) { elStatus.textContent = "Nothing to export."; return; }
-    const ok = await copyToClipboard(text);
-    elStatus.textContent = ok ? "Exported to clipboard." : "Export failed.";
-  });
-
-  if (btnToggleViewer && elViewerWrap) {
-    btnToggleViewer.addEventListener("click", () => elViewerWrap.classList.toggle("show"));
+  if (btnViewerToggle && elViewerWrap) {
+    btnViewerToggle.addEventListener("click", () => elViewerWrap.classList.toggle("show"));
   }
-
   if (btnVGo && elVInput) btnVGo.addEventListener("click", () => viewerGoto(elVInput.value));
   if (elVInput) elVInput.addEventListener("keydown", (e) => { if (e.key === "Enter") viewerGoto(elVInput.value); });
   if (btnVBack) btnVBack.addEventListener("click", viewerBack);
   if (btnVFwd) btnVFwd.addEventListener("click", viewerFwd);
   if (btnVReload) btnVReload.addEventListener("click", viewerReload);
+
+  // ---------- Boot ----------
+  rerenderChatSelect();
+  renderActiveChat();
+  setStatus(`Loaded "${index.chats.find(c => c.id === activeId)?.name || "Chat"}".`);
 }
   function renderMiniRun(container) {
     container.innerHTML = `<input id="run-app" placeholder="Enter app name" style="width:100%;margin-bottom:6px;">

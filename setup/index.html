@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Win12 AIM Installer – alaricholt677.github.io</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0b0b10;
+      --accent: #2563eb;
+      --border: rgba(255,255,255,0.08);
+      --text: #f9fafb;
+      --muted: #9ca3af;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --card: rgba(15,23,42,0.96);
+      --shadow: 0 24px 60px rgba(0,0,0,0.6);
+      --radius-lg: 18px;
+      --radius-md: 10px;
+      --radius-sm: 6px;
+      --blur: 22px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1f2937 0, #020617 55%, #000 100%);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .shell {
+      width: 100%;
+      max-width: 1100px;
+      height: 640px;
+      background: linear-gradient(135deg, rgba(15,23,42,0.96), rgba(15,23,42,0.9));
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(148,163,184,0.25);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      backdrop-filter: blur(var(--blur));
+    }
+    .shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 0 0, rgba(59,130,246,0.25), transparent 55%),
+        radial-gradient(circle at 100% 100%, rgba(236,72,153,0.18), transparent 55%);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    .shell-inner {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(148,163,184,0.25);
+      background: linear-gradient(to right, rgba(15,23,42,0.9), rgba(15,23,42,0.7));
+    }
+    .title-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .win-logo {
+      width: 18px;
+      height: 18px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 2px;
+    }
+    .win-logo span {
+      background: linear-gradient(135deg, #60a5fa, #1d4ed8);
+      border-radius: 2px;
+    }
+    .title-text-main {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .title-text-sub {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .title-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .caption-btn {
+      width: 32px;
+      height: 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      cursor: default;
+      font-size: 11px;
+    }
+    .caption-btn.close {
+      color: #f97373;
+    }
+    .content {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      min-height: 0;
+    }
+    .sidebar {
+      border-right: 1px solid rgba(148,163,184,0.25);
+      padding: 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      background: radial-gradient(circle at top left, rgba(37,99,235,0.18), transparent 60%);
+    }
+    .sidebar-header {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+    }
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      cursor: default;
+      color: var(--muted);
+    }
+    .step-item.active {
+      background: linear-gradient(90deg, rgba(37,99,235,0.25), rgba(37,99,235,0.05));
+      color: var(--text);
+    }
+    .step-item.done {
+      color: #a7f3d0;
+    }
+    .step-badge {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+    }
+    .step-item.active .step-badge {
+      border-color: rgba(96,165,250,0.9);
+      background: radial-gradient(circle, rgba(59,130,246,0.7), rgba(37,99,235,0.1));
+      color: #eff6ff;
+    }
+    .step-item.done .step-badge {
+      border-color: rgba(34,197,94,0.9);
+      background: radial-gradient(circle, rgba(34,197,94,0.7), rgba(22,163,74,0.1));
+      color: #ecfdf5;
+    }
+    .step-label-main {
+      font-weight: 500;
+    }
+    .step-label-sub {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .sidebar-footer {
+      margin-top: auto;
+      font-size: 11px;
+      color: var(--muted);
+      border-top: 1px dashed rgba(148,163,184,0.35);
+      padding-top: 10px;
+    }
+    .sidebar-footer strong {
+      color: #e5e7eb;
+      font-weight: 500;
+    }
+    .main {
+      padding: 18px 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+      min-height: 0;
+    }
+    .main-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .main-title {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .main-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .badge {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.5);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: radial-gradient(circle at top, rgba(15,23,42,0.9), rgba(15,23,42,0.7));
+    }
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 0 4px rgba(34,197,94,0.25);
+    }
+    .card {
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, rgba(15,23,42,0.96), rgba(15,23,42,0.9));
+      border: 1px solid rgba(148,163,184,0.35);
+      padding: 14px 16px;
+      box-shadow: 0 18px 40px rgba(15,23,42,0.8);
+      position: relative;
+      overflow: hidden;
+    }
+    .card-inner {
+      position: relative;
+      z-index: 1;
+    }
+    .card-row {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .card-col {
+      flex: 1;
+      min-width: 0;
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .card-text {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .option {
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(148,163,184,0.4);
+      padding: 9px 10px;
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: radial-gradient(circle at top left, rgba(15,23,42,0.96), rgba(15,23,42,0.9));
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    .option.selected {
+      border-color: rgba(59,130,246,0.9);
+      box-shadow: 0 0 0 1px rgba(59,130,246,0.6);
+      background: radial-gradient(circle at top left, rgba(37,99,235,0.25), rgba(15,23,42,0.96));
+    }
+    .option-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .option-title {
+      font-weight: 500;
+      font-size: 12px;
+    }
+    .option-pill {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.6);
+      color: var(--muted);
+    }
+    .option-desc {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .field-group {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+    }
+    .field-label {
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .field-input {
+      width: 100%;
+      padding: 7px 9px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(148,163,184,0.6);
+      background: rgba(15,23,42,0.9);
+      color: var(--text);
+      font-size: 12px;
+      outline: none;
+    }
+    .field-input:focus {
+      border-color: rgba(59,130,246,0.9);
+      box-shadow: 0 0 0 1px rgba(59,130,246,0.6);
+    }
+    .field-hint {
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .error-text {
+      font-size: 11px;
+      color: var(--danger);
+      margin-top: 4px;
+    }
+    .success-text {
+      font-size: 11px;
+      color: var(--success);
+      margin-top: 4px;
+    }
+    .log-box {
+      margin-top: 8px;
+      padding: 8px 9px;
+      border-radius: var(--radius-md);
+      border: 1px dashed rgba(148,163,184,0.6);
+      background: rgba(15,23,42,0.9);
+      font-size: 11px;
+      color: var(--muted);
+      max-height: 120px;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+    .sim-shell {
+      margin-top: 10px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(148,163,184,0.5);
+      background: radial-gradient(circle at top left, rgba(15,23,42,0.96), rgba(15,23,42,0.9));
+      overflow: hidden;
+      min-height: 260px;
+      display: flex;
+      flex-direction: column;
+    }
+    .sim-titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      border-bottom: 1px solid rgba(148,163,184,0.4);
+      font-size: 11px;
+      color: var(--muted);
+      background: linear-gradient(to right, rgba(15,23,42,0.95), rgba(15,23,42,0.8));
+    }
+    .sim-title-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sim-dots {
+      display: flex;
+      gap: 4px;
+    }
+    .sim-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(148,163,184,0.7);
+    }
+    .sim-dot.red { background: #f97373; }
+    .sim-dot.yellow { background: #facc15; }
+    .sim-dot.green { background: #22c55e; }
+    .sim-body {
+      flex: 1;
+      background: radial-gradient(circle at top, #020617, #020617 40%, #000 100%);
+    }
+    .sim-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: transparent;
+    }
+    .footer {
+      padding: 8px 16px 10px;
+      border-top: 1px solid rgba(148,163,184,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 11px;
+      color: var(--muted);
+      background: linear-gradient(to top, rgba(15,23,42,0.96), rgba(15,23,42,0.9));
+    }
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .footer-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn {
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.6);
+      padding: 6px 14px;
+      font-size: 12px;
+      background: radial-gradient(circle at top, rgba(15,23,42,0.96), rgba(15,23,42,0.9));
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary {
+      border-color: rgba(59,130,246,0.9);
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      box-shadow: 0 10px 25px rgba(37,99,235,0.6);
+    }
+    .btn-primary[disabled] {
+      opacity: 0.6;
+      cursor: default;
+      box-shadow: none;
+    }
+    .btn-ghost {
+      border-style: dashed;
+      color: var(--muted);
+    }
+    .btn-icon {
+      font-size: 14px;
+    }
+    .progress {
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.9);
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #3b82f6, #22c55e);
+      transition: width 0.15s linear;
+    }
+    .pill {
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.6);
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .pill-strong {
+      border-color: rgba(59,130,246,0.9);
+      color: #bfdbfe;
+    }
+    .hidden { display: none !important; }
+    @media (max-width: 900px) {
+      .shell {
+        height: auto;
+        max-height: none;
+      }
+      .content {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <div class="shell-inner">
+    <div class="titlebar">
+      <div class="title-left">
+        <div class="win-logo">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div>
+          <div class="title-text-main">Win12 AIM Setup</div>
+          <div class="title-text-sub">Remote payload from alaricholt677.github.io</div>
+        </div>
+      </div>
+      <div class="title-right">
+        <div class="caption-btn">─</div>
+        <div class="caption-btn">☐</div>
+        <div class="caption-btn close">✕</div>
+      </div>
+    </div>
+
+    <div class="content">
+      <aside class="sidebar">
+        <div class="sidebar-header">Setup steps</div>
+        <div class="step-list">
+          <div class="step-item active" data-step-indicator="0">
+            <div class="step-badge">1</div>
+            <div>
+              <div class="step-label-main">Welcome</div>
+              <div class="step-label-sub">Overview & license</div>
+            </div>
+          </div>
+          <div class="step-item" data-step-indicator="1">
+            <div class="step-badge">2</div>
+            <div>
+              <div class="step-label-main">Options</div>
+              <div class="step-label-sub">Storage & auth</div>
+            </div>
+          </div>
+          <div class="step-item" data-step-indicator="2">
+            <div class="step-badge">3</div>
+            <div>
+              <div class="step-label-main">Download</div>
+              <div class="step-label-sub">Fetch remote payload</div>
+            </div>
+          </div>
+          <div class="step-item" data-step-indicator="3">
+            <div class="step-badge">4</div>
+            <div>
+              <div class="step-label-main">Launch</div>
+              <div class="step-label-sub">Sign‑in & desktop</div>
+            </div>
+          </div>
+        </div>
+        <div class="sidebar-footer">
+          <div><strong>Local‑only</strong> after download</div>
+          <div>Payload is fetched once from your site, then cached in <strong>localStorage</strong>.</div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="main-header">
+          <div>
+            <div class="main-title" id="mainTitle">Welcome to Win12 AIM</div>
+            <div class="main-subtitle" id="mainSubtitle">
+              A Windows‑style environment with a remote desktop payload.
+            </div>
+          </div>
+          <div class="badge">
+            <span class="badge-dot"></span>
+            <span id="badgeText">Ready to install</span>
+          </div>
+        </div>
+
+        <!-- STEP 0 -->
+        <section class="card" data-step="0">
+          <div class="card-inner">
+            <div class="card-row">
+              <div class="card-col">
+                <div class="card-title">Remote Win12 desktop</div>
+                <div class="card-text">
+                  This installer will download your Win12 desktop HTML from
+                  <code>https://alaricholt677.github.io/index.html</code>,
+                  cache it in localStorage, and then boot it inside a controlled
+                  <code>&lt;iframe srcdoc&gt;</code> with extra JS logic injected.
+                </div>
+              </div>
+              <div class="card-col">
+                <div class="option selected" id="optEula">
+                  <div class="option-header">
+                    <div class="option-title">I accept the Win12 AIM terms</div>
+                    <div class="option-pill">Required</div>
+                  </div>
+                  <div class="option-desc">
+                    The installer fetches only from the configured URL and then runs
+                    locally from cache.
+                  </div>
+                  <div class="field-group">
+                    <label style="display:flex;align-items:center;font-size:11px;">
+                      <input type="checkbox" id="chkEula" checked />
+                      I understand this is an experimental local simulator.
+                    </label>
+                  </div>
+                </div>
+                <div class="log-box" id="welcomeLog">
+                  [Win12 Setup] Shell initialized.
+                  [Win12 Setup] Ready to begin installation.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 1 -->
+        <section class="card hidden" data-step="1">
+          <div class="card-inner">
+            <div class="card-row">
+              <div class="card-col">
+                <div class="card-title">Installer & storage options</div>
+                <div class="card-text">
+                  These preferences are stored in the installer’s own localStorage
+                  key when enabled.
+                </div>
+                <div class="options-grid">
+                  <label class="option" id="optRemember">
+                    <div class="option-header">
+                      <div class="option-title">Remember my choices</div>
+                      <div class="option-pill">Installer storage</div>
+                    </div>
+                    <div class="option-desc">
+                      Saves your setup options under a Win12 installer key in localStorage.
+                    </div>
+                    <div class="field-group">
+                      <label style="display:flex;align-items:center;font-size:11px;">
+                        <input type="checkbox" id="chkRemember" checked />
+                        Enable installer localStorage
+                      </label>
+                    </div>
+                  </label>
+
+                  <label class="option" id="optSimStorage">
+                    <div class="option-header">
+                      <div class="option-title">Simulator localStorage</div>
+                      <div class="option-pill">Namespaced</div>
+                    </div>
+                    <div class="option-desc">
+                      The desktop simulator uses its own <code>sim_*</code> key
+                      namespace so it doesn’t collide with other apps.
+                    </div>
+                    <div class="field-group">
+                      <span class="field-hint">
+                        Implemented as a wrapper around browser localStorage.
+                      </span>
+                    </div>
+                  </label>
+
+                  <label class="option" id="optIntegratedAuth">
+                    <div class="option-header">
+                      <div class="option-title">Integrated authentication</div>
+                      <div class="option-pill">Mini MS‑style</div>
+                    </div>
+                    <div class="option-desc">
+                      Sign in with an email and password that look like a Microsoft account.
+                    </div>
+                    <div class="field-group">
+                      <label style="display:flex;align-items:center;font-size:11px;">
+                        <input type="checkbox" id="chkIntegratedAuth" checked />
+                        Enable integrated sign‑in screen
+                      </label>
+                    </div>
+                  </label>
+
+                  <label class="option" id="optAutoLogin">
+                    <div class="option-header">
+                      <div class="option-title">Auto‑login last user</div>
+                      <div class="option-pill">Optional</div>
+                    </div>
+                    <div class="option-desc">
+                      After the first successful sign‑in, the installer can remember
+                      and auto‑select that user next time.
+                    </div>
+                    <div class="field-group">
+                      <label style="display:flex;align-items:center;font-size:11px;">
+                        <input type="checkbox" id="chkAutoLogin" />
+                        Enable auto‑login
+                      </label>
+                    </div>
+                  </label>
+                </div>
+              </div>
+              <div class="card-col">
+                <div class="card-title">Authentication preview</div>
+                <div class="card-text">
+                  This is how the integrated sign‑in will validate your input.
+                </div>
+                <div class="field-group">
+                  <div class="field-label">Email (looks like an MS account)</div>
+                  <input class="field-input" id="previewEmail" placeholder="you@example.com" />
+                  <div class="field-hint">
+                    Must be a valid email format. Shape only, no real auth.
+                  </div>
+                </div>
+                <div class="field-group">
+                  <div class="field-label">Password (shape only)</div>
+                  <input class="field-input" id="previewPassword" type="password" placeholder="At least 8 characters, include a number" />
+                </div>
+                <div id="previewAuthMsg" class="field-hint">
+                  This preview doesn’t log you in; it just shows validation behavior.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 2 -->
+        <section class="card hidden" data-step="2">
+          <div class="card-inner">
+            <div class="card-row">
+              <div class="card-col">
+                <div class="card-title">Download remote desktop payload</div>
+                <div class="card-text">
+                  The installer will fetch your Win12 desktop HTML from
+                  <code>https://alaricholt677.github.io/index.html</code>,
+                  then cache it in localStorage as a simulator payload.
+                </div>
+                <div class="field-group">
+                  <div class="field-label">Simulator URL</div>
+                  <input class="field-input" id="simUrlInput" />
+                  <div class="field-hint">
+                    This is where the installer fetches the desktop HTML from.
+                  </div>
+                </div>
+                <div class="field-group">
+                  <div class="field-label">Download progress</div>
+                  <div class="progress">
+                    <div class="progress-bar" id="installProgress"></div>
+                  </div>
+                  <div class="field-hint" id="installStatus">
+                    Waiting to start download…
+                  </div>
+                </div>
+                <div class="log-box" id="installLog">
+                  [Win12 Setup] Ready.
+                </div>
+              </div>
+              <div class="card-col">
+                <div class="card-title">Payload snapshot</div>
+                <div class="field-group">
+                  <div class="field-label">Cached in localStorage key</div>
+                  <div class="pill pill-strong">win12_aim_sim_payload</div>
+                </div>
+                <div class="field-group">
+                  <div class="field-label">Preview (first 400 chars)</div>
+                  <div class="log-box" style="max-height:160px;" id="payloadPreview">
+                    (No payload downloaded yet.)
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 3 -->
+        <section class="card hidden" data-step="3">
+          <div class="card-inner">
+            <div class="card-row">
+              <div class="card-col">
+                <div class="card-title">Sign in to Win12 AIM</div>
+                <div class="card-text">
+                  Use integrated authentication or a simple built‑in user.
+                </div>
+
+                <div class="options-grid" style="margin-top:10px;">
+                  <label class="option selected" id="optLoginIntegrated">
+                    <div class="option-header">
+                      <div class="option-title">Integrated sign‑in</div>
+                      <div class="option-pill">Mini MS‑style</div>
+                    </div>
+                    <div class="option-desc">
+                      Enter an email and password that pass the shape checks to sign in.
+                    </div>
+                    <div class="field-group">
+                      <div class="field-label">Email</div>
+                      <input class="field-input" id="loginEmail" placeholder="you@example.com" />
+                    </div>
+                    <div class="field-group">
+                      <div class="field-label">Password</div>
+                      <input class="field-input" id="loginPassword" type="password" placeholder="At least 8 characters, include a number" />
+                    </div>
+                  </label>
+
+                  <label class="option" id="optLoginBuiltIn">
+                    <div class="option-header">
+                      <div class="option-title">Use built‑in user</div>
+                      <div class="option-pill">Win12 AIM</div>
+                    </div>
+                    <div class="option-desc">
+                      Logs in as the preconfigured user <code>"User"</code> with ID <code>ml1l23jh</code>.
+                    </div>
+                    <div class="field-group">
+                      <span class="field-hint">
+                        Filesystem and notes are defined in the installer JSON.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+
+                <div id="loginMessage" class="field-hint" style="margin-top:8px;">
+                  Choose a sign‑in method and click <strong>Launch Win12</strong>.
+                </div>
+              </div>
+
+              <div class="card-col">
+                <div class="card-title">Win12 desktop simulator</div>
+                <div class="card-text">
+                  The simulator runs inside a <code>srcdoc</code> iframe built from
+                  the downloaded payload. Extra JS logic is injected after load.
+                </div>
+                <div class="sim-shell">
+                  <div class="sim-titlebar">
+                    <div class="sim-title-left">
+                      <div class="sim-dots">
+                        <div class="sim-dot red"></div>
+                        <div class="sim-dot yellow"></div>
+                        <div class="sim-dot green"></div>
+                      </div>
+                      <span id="simTitle">Win12 AIM Desktop</span>
+                    </div>
+                    <div class="pill" id="simStatusPill">Not running</div>
+                  </div>
+                  <div class="sim-body">
+                    <iframe class="sim-iframe" id="simFrame"></iframe>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <div class="footer">
+      <div class="footer-left">
+        <span>Install location:</span>
+        <span class="pill">Browser localStorage · Keys: <code>win12_aim_installer</code>, <code>win12_aim_sim_payload</code></span>
+      </div>
+      <div class="footer-right">
+        <button class="btn btn-ghost" id="btnBack">
+          <span class="btn-icon">◀</span>
+          Back
+        </button>
+        <button class="btn btn-primary" id="btnNext">
+          Next
+          <span class="btn-icon">▶</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FULLSCREEN LAUNCH OVERLAY -->
+<div id="fullscreenLaunch" style="
+  position: fixed;
+  inset: 0;
+  background: #020617;
+  color: #e5e7eb;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+">
+  <div style="font-size: 22px; margin-bottom: 20px;">Launching Win12 AIM…</div>
+  <div style="width: 60%; max-width: 500px; height: 6px; background: #111827; border-radius: 999px; overflow: hidden;">
+    <div id="launchBar" style="height: 100%; width: 0%; background: linear-gradient(90deg,#3b82f6,#22c55e); transition: width 0.15s;"></div>
+  </div>
+  <div id="launchStatus" style="margin-top: 12px; font-size: 13px; opacity: 0.8;">
+    Preparing simulator…
+  </div>
+</div>
+
+<!-- FULLSCREEN SIMULATOR -->
+<div id="fullscreenSim" style="
+  position: fixed;
+  inset: 0;
+  background: black;
+  display: none;
+  z-index: 999998;
+">
+  <iframe id="fullscreenFrame" style="width:100%; height:100%; border:none;"></iframe>
+</div>
+
+<script>
+  const SIMULATOR_URL = "https://alaricholt677.github.io/index.html";
+
+  const WIN12_INSTALLER_KEY = "win12_aim_installer";
+  const WIN12_SIM_PAYLOAD_KEY = "win12_aim_sim_payload";
+  const WIN12_FS_KEY = "win12_aim_fs";
+  const WIN12_LAST_USER_KEY = "win12_aim_last_user";
+
+  const defaultWin12Data = {
+    "users":[
+      {
+        "id":"ml1l23jh",
+        "name":"User",
+        "createdAt":"2026-01-31T00:37:55.181Z",
+        "notes":"Welcome to your Win12 AIM filesystem.\n\nThis Notes window is per-user, independent of files.\nDesktop icons = /desktop.\nRecommended = /recommended-files.\nImported = /imported.\n.exe files run in Host.exe via base64 HTML payloads.\nClock shows a flyout when clicked.\nRight-click anywhere: desktop, Explorer, files, folders, recommended, imported.","themeCss":"",
+        "fs":[
+          {"path":"/desktop","name":"Welcome.txt","type":"file","ext":".txt","content":"Hello from the Win12 AIM relic.\n\nThis is your desktop Welcome.txt file."},
+          {"path":"/desktop","name":"Readme.md","type":"file","ext":".md","content":"# Readme\n\nThis is a markdown file in /desktop."},
+          {"path":"/desktop","name":"SampleApp.exe","type":"file","ext":".exe","content":"(Unsupported type or Binary)","exePayloadBase64":"CjwhRE9DVFlQRSBodG1sPgo8aHRtbD48aGVhZD48bWV0YSBjaGFyc2V0PSJVVEYtOCI+PHRpdGxlPlNhbXBsZSBFWEUgQXBwPC90aXRsZT4KPHN0eWxlPmJvZHl7bWFyZ2luOjA7cGFkZGluZzoxMHB4O2ZvbnQtZmFtaWx5OnNhbnMtc2VyaWY7YmFja2dyb3VuZDojMDIwNjE3O2NvbG9yOiNlNWU3ZWI7fQpoMXtmb250LXNpemU6MThweDttYXJnaW46MCAwIDhweDt9CnNtYWxse2NvbG9yOiM5Y2EzYWY7fQpidXR0b257cGFkZGluZzo0cHggOHB4O2JvcmRlci1yYWRpdXM6OTk5cHg7Ym9yZGVyOjFweCBzb2xpZCAjNGM4ZGZmO2JhY2tncm91bmQ6IzAyMDYxNztjb2xvcjojZTVlN2ViO2N1cnNvcjpwb2ludGVyO30KYnV0dG9uOmhvdmVye2JhY2tncm91bmQ6IzFlMjkzYjt9Cjwvc3R5bGU+PC9oZWFkPgo8Ym9keT4KPGgxPlNhbXBsZSAuZXhlIEhUTUwgcGF5bG9hZDwvaDE+CjxzbWFsbD5TdG9yZWQgYXMgYmFzZTY0IGluc2lkZSBTYW1wbGVBcHAuZXhlIGluIEZTLjwvc21hbGw+CjxwPllvdSBsYXVuY2hlZCB0aGlzIHZpYSB0aGUgV2luZG93cyBIb3N0IEFwcGxpY2F0aW9uIGluc2lkZSB0aGUgV2luMTIgQUlNIHJlbGljLjwvcD4KPGJ1dHRvbiBvbmNsaWNrPSJhbGVydCgnSGVsbG8gZnJvbSBpbnNpZGUgdGhlIHBheWxvYWQgKHNpbXVsYXRlZCBhbGVydCkuJykiPkNsaWNrPC9idXR0b24+CjwvYm9keT48L2h0bWw+"},
+          {"path":"/documents","name":"Session.log","type":"file","ext":".log","content":"Session started.\nUser created.\nExplorer, Notepad, Browser, and Host.exe online."},
+          {"path":"/recommended-files","name":"win12PreviewPlans.txt","type":"file","ext":".txt","content":"Ideas: \n make url tjy-gitnub.github.io/win12/desktop.html \n make AIM preview \n avoid simulator requests ex: \n File:/// localstorage for FS and much much more"},
+          {"path":"/recommended-files","name":"RecommendedFS.txt","type":"file","ext":".txt","content":"Most of us started as a coca cola employ and I and most of us like coca cola so yeah It will be coca cola plans."},
+          {"path":"/recommended-files","name":"win12PreviewFinal.html","type":"file","ext":".html","content":"<iframe src=https://tjy-gitnub.github.io/win12/desktop.html></iframe>"}
+        ],
+        "regAssociations":{
+          ".txt":"notepad",".md":"notepad",".log":"notepad",".css":"settings",".html":"browser",".js":"notepad",".json":"notepad",".exe":"host",".png":"paint",".jpg":"paint",".jpeg":"paint",".gif":"paint",".mp4":"media",".webm":"media",".mp3":"media",".wav":"media",".ogg":"media",".xml":"browser",".svg":"browser"
+        }
+      }
+    ],
+    "currentUserId":"ml1l23jh"
+  };
+
+  const qs = (sel) => document.querySelector(sel);
+  const qsa = (sel) => Array.from(document.querySelectorAll(sel));
+
+  const stepCards = qsa("[data-step]");
+  const stepIndicators = qsa("[data-step-indicator]");
+  const btnBack = qs("#btnBack");
+  const btnNext = qs("#btnNext");
+  const mainTitle = qs("#mainTitle");
+  const mainSubtitle = qs("#mainSubtitle");
+  const badgeText = qs("#badgeText");
+
+  let currentStep = 0;
+  let installerOptions = {
+    remember: true,
+    simStorage: true,
+    integratedAuth: true,
+    autoLogin: false
+  };
+  let simPayload = null;
+  let installedFs = null;
+  let currentUser = null;
+
+  function loadInstallerOptions() {
+    try {
+      const raw = localStorage.getItem(WIN12_INSTALLER_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      installerOptions = Object.assign(installerOptions, parsed.options || {});
+    } catch (e) {}
+  }
+
+  function saveInstallerOptions() {
+    if (!installerOptions.remember) return;
+    const payload = { options: installerOptions };
+    localStorage.setItem(WIN12_INSTALLER_KEY, JSON.stringify(payload));
+  }
+
+  function updateStepUI() {
+    stepCards.forEach(card => {
+      const step = Number(card.getAttribute("data-step"));
+      card.classList.toggle("hidden", step !== currentStep);
+    });
+    stepIndicators.forEach(ind => {
+      const step = Number(ind.getAttribute("data-step-indicator"));
+      ind.classList.toggle("active", step === currentStep);
+      ind.classList.toggle("done", step < currentStep);
+    });
+
+    btnBack.disabled = currentStep === 0;
+    btnNext.textContent = currentStep === stepCards.length - 1 ? "Launch Win12" : "Next";
+
+    if (currentStep === 0) {
+      mainTitle.textContent = "Welcome to Win12 AIM";
+      mainSubtitle.textContent = "A Windows‑style environment with a remote desktop payload.";
+      badgeText.textContent = "Ready to install";
+    } else if (currentStep === 1) {
+      mainTitle.textContent = "Configure installer & storage";
+      mainSubtitle.textContent = "Choose how the installer and simulator use localStorage and authentication.";
+      badgeText.textContent = "Options configured";
+    } else if (currentStep === 2) {
+      mainTitle.textContent = "Download desktop payload";
+      mainSubtitle.textContent = "Fetching your Win12 desktop HTML and caching it in localStorage.";
+      badgeText.textContent = "Downloading…";
+    } else if (currentStep === 3) {
+      mainTitle.textContent = "Sign in & launch desktop";
+      mainSubtitle.textContent = "Use integrated authentication or the built‑in user to boot the desktop simulator.";
+      badgeText.textContent = "Ready to launch";
+    }
+  }
+
+  function goToStep(step) {
+    currentStep = Math.max(0, Math.min(stepCards.length - 1, step));
+    updateStepUI();
+  }
+
+  const chkEula = qs("#chkEula");
+  const welcomeLog = qs("#welcomeLog");
+  function appendWelcomeLog(line) {
+    welcomeLog.textContent += "\n" + line;
+    welcomeLog.scrollTop = welcomeLog.scrollHeight;
+  }
+
+  const chkRemember = qs("#chkRemember");
+  const chkIntegratedAuth = qs("#chkIntegratedAuth");
+  const chkAutoLogin = qs("#chkAutoLogin");
+  const previewEmail = qs("#previewEmail");
+  const previewPassword = qs("#previewPassword");
+  const previewAuthMsg = qs("#previewAuthMsg");
+
+  function validateEmailShape(email) {
+    if (!email) return false;
+    const basic = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return basic.test(email);
+  }
+
+  function validatePasswordShape(pw) {
+    if (!pw || pw.length < 8) return false;
+    if (!/[0-9]/.test(pw)) return false;
+    return true;
+  }
+
+  function updatePreviewAuth() {
+    const email = previewEmail.value.trim();
+    const pw = previewPassword.value;
+    const emailOk = validateEmailShape(email);
+    const pwOk = validatePasswordShape(pw);
+
+    if (!email && !pw) {
+      previewAuthMsg.textContent = "This preview doesn’t log you in; it just shows validation behavior.";
+      previewAuthMsg.className = "field-hint";
+      return;
+    }
+
+    if (emailOk && pwOk) {
+      previewAuthMsg.textContent = "Looks good. This would pass the integrated sign‑in checks.";
+      previewAuthMsg.className = "success-text";
+    } else {
+      let msg = [];
+      if (!emailOk) msg.push("Email format is invalid.");
+      if (!pwOk) msg.push("Password must be at least 8 characters and include a number.");
+      previewAuthMsg.textContent = msg.join(" ");
+      previewAuthMsg.className = "error-text";
+    }
+  }
+
+  const installProgressBar = qs("#installProgress");
+  const installStatus = qs("#installStatus");
+  const installLog = qs("#installLog");
+  const payloadPreview = qs("#payloadPreview");
+  const simUrlInput = qs("#simUrlInput");
+
+  function appendInstallLog(line) {
+    installLog.textContent += "\n" + line;
+    installLog.scrollTop = installLog.scrollHeight;
+  }
+
+  function setProgress(pct) {
+    installProgressBar.style.width = pct + "%";
+  }
+
+  async function runDownload() {
+    const url = SIMULATOR_URL;
+    simUrlInput.value = url;
+
+    setProgress(0);
+    installStatus.textContent = "Connecting…";
+    installLog.textContent = "[Win12 Setup] Starting real streaming download: " + url;
+
+    try {
+      const res = await fetch(url, { cache: "no-cache" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+
+      let chunks = [];
+      let received = 0;
+      let htmlEnded = false;
+
+      installStatus.textContent = "Downloading…";
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          installLog.textContent += "\n[Win12 Setup] Stream ended normally.";
+          break;
+        }
+
+        received += value.byteLength;
+
+        const textChunk = decoder.decode(value, { stream: true });
+        chunks.push(textChunk);
+
+        if (textChunk.includes("</html>")) {
+          htmlEnded = true;
+          installLog.textContent += "\n[Win12 Setup] Detected </html> — continuing until stream closes.";
+        }
+
+        installStatus.textContent = `Downloading… (${Math.round(received / 1024)} KB)`;
+      }
+
+      chunks.push(decoder.decode());
+
+      const fullHtml = chunks.join("");
+
+      simPayload = fullHtml;
+      localStorage.setItem(WIN12_SIM_PAYLOAD_KEY, fullHtml);
+
+      setProgress(100);
+      installStatus.textContent = "Download complete.";
+      payloadPreview.textContent = fullHtml.slice(0, 400) || "(Payload is empty)";
+      badgeText.textContent = "Payload cached";
+
+      installLog.textContent += `\n[Win12 Setup] Finished. Total bytes: ${received}. HTML ended: ${htmlEnded}`;
+    } catch (err) {
+      installStatus.textContent = "Download failed: " + err.message;
+      installLog.textContent += "\n[Win12 Setup] ERROR: " + err.message;
+      payloadPreview.textContent = "(Download failed)";
+      setProgress(0);
+    }
+  }
+
+  const optLoginIntegrated = qs("#optLoginIntegrated");
+  const optLoginBuiltIn = qs("#optLoginBuiltIn");
+  const loginEmail = qs("#loginEmail");
+  const loginPassword = qs("#loginPassword");
+  const loginMessage = qs("#loginMessage");
+  const simFrame = qs("#simFrame");
+  const simTitle = qs("#simTitle");
+  const simStatusPill = qs("#simStatusPill");
+
+  let loginMode = "integrated";
+
+  function setLoginMode(mode) {
+    loginMode = mode;
+    optLoginIntegrated.classList.toggle("selected", mode === "integrated");
+    optLoginBuiltIn.classList.toggle("selected", mode === "builtin");
+  }
+
+  optLoginIntegrated.addEventListener("click", () => setLoginMode("integrated"));
+  optLoginBuiltIn.addEventListener("click", () => setLoginMode("builtin"));
+
+  function setSimStatus(text, kind) {
+    simStatusPill.textContent = text;
+    simStatusPill.className = "pill";
+    if (kind === "running") {
+      simStatusPill.classList.add("pill-strong");
+    } else if (kind === "error") {
+      simStatusPill.style.borderColor = "#ef4444";
+      simStatusPill.style.color = "#fecaca";
+    }
+  }
+
+  function ensureFsInstalled() {
+    if (installedFs) return;
+    const raw = localStorage.getItem(WIN12_FS_KEY);
+    if (raw) {
+      try { installedFs = JSON.parse(raw); } catch (e) {}
+    }
+    if (!installedFs) {
+      installedFs = JSON.parse(JSON.stringify(defaultWin12Data));
+      localStorage.setItem(WIN12_FS_KEY, JSON.stringify(installedFs));
+    }
+    currentUser = installedFs.users.find(u => u.id === installedFs.currentUserId) || installedFs.users[0];
+  }
+
+  function injectSimulatorScripts(iframe, user, fsData) {
+    const doc = iframe.contentDocument;
+    if (!doc || !doc.body) return;
+
+    const script = doc.createElement("script");
+    const userJson = JSON.stringify(user);
+    const fsJson = JSON.stringify(fsData);
+
+    script.textContent = "(function(){\n" +
+      "  window.simLocalStorage = {\n" +
+      "    setItem: function(key, value) {\n" +
+      "      try { localStorage.setItem('sim_' + key, value); } catch(e) {}\n" +
+      "    },\n" +
+      "    getItem: function(key) {\n" +
+      "      try { return localStorage.getItem('sim_' + key); } catch(e) { return null; }\n" +
+      "    },\n" +
+      "    removeItem: function(key) {\n" +
+      "      try { localStorage.removeItem('sim_' + key); } catch(e) {}\n" +
+      "    },\n" +
+      "    clear: function() {\n" +
+      "      try {\n" +
+      "        var keys = [];\n" +
+      "        for (var i = 0; i < localStorage.length; i++) {\n" +
+      "          var k = localStorage.key(i);\n" +
+      "          if (k && k.indexOf('sim_') === 0) keys.push(k);\n" +
+      "        }\n" +
+      "        keys.forEach(function(k){ localStorage.removeItem(k); });\n" +
+      "      } catch(e) {}\n" +
+      "    }\n" +
+      "  };\n" +
+      "  window.win12User = " + userJson + ";\n" +
+      "  window.win12Fs = " + fsJson + ";\n" +
+      "  function markBoot() {\n" +
+      "    try { window.simLocalStorage.setItem('last_boot', new Date().toISOString()); } catch(e) {}\n" +
+      "  }\n" +
+      "  function patchClock() {\n" +
+      "    var el = document.getElementById('tbClock') || document.querySelector('[data-win12-clock]');\n" +
+      "    if (!el) return;\n" +
+      "    function update() {\n" +
+      "      var now = new Date();\n" +
+      "      var time = now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});\n" +
+      "      var date = now.toLocaleDateString();\n" +
+      "      el.textContent = time + '  ' + date;\n" +
+      "    }\n" +
+      "    update();\n" +
+      "    setInterval(update, 30000);\n" +
+      "  }\n" +
+      "  if (document.readyState === 'complete' || document.readyState === 'interactive') {\n" +
+      "    markBoot();\n" +
+      "    patchClock();\n" +
+      "  } else {\n" +
+      "    document.addEventListener('DOMContentLoaded', function(){\n" +
+      "      markBoot();\n" +
+      "      patchClock();\n" +
+      "    });\n" +
+      "  }\n" +
+      "})();";
+
+    doc.body.appendChild(script);
+  }
+
+  function performLoginAndLaunch() {
+    if (!simPayload) {
+      const cached = localStorage.getItem(WIN12_SIM_PAYLOAD_KEY);
+      if (cached) simPayload = cached;
+    }
+    if (!simPayload) {
+      loginMessage.textContent = "No simulator payload cached. Go back to Download step.";
+      loginMessage.className = "error-text";
+      setSimStatus("Not running", "error");
+      return;
+    }
+
+    ensureFsInstalled();
+
+    let userToUse = null;
+
+    if (loginMode === "builtin") {
+      userToUse = installedFs.users.find(u => u.id === installedFs.currentUserId) || installedFs.users[0];
+      loginMessage.textContent = 'Signed in as built‑in user "' + userToUse.name + '".';
+      loginMessage.className = "success-text";
+    } else {
+      const email = loginEmail.value.trim();
+      const pw = loginPassword.value;
+      const emailOk = validateEmailShape(email);
+      const pwOk = validatePasswordShape(pw);
+      if (!emailOk || !pwOk) {
+        let msg = [];
+        if (!emailOk) msg.push("Email format is invalid.");
+        if (!pwOk) msg.push("Password must be at least 8 characters and include a number.");
+        loginMessage.textContent = msg.join(" ");
+        loginMessage.className = "error-text";
+        setSimStatus("Sign‑in failed", "error");
+        return;
+      }
+      userToUse = installedFs.users.find(u => u.id === installedFs.currentUserId) || installedFs.users[0];
+      loginMessage.textContent = 'Integrated sign‑in successful. Logged in as "' + userToUse.name + '".';
+      loginMessage.className = "success-text";
+    }
+
+    currentUser = userToUse;
+    installedFs.currentUserId = userToUse.id;
+    localStorage.setItem(WIN12_FS_KEY, JSON.stringify(installedFs));
+    localStorage.setItem(WIN12_LAST_USER_KEY, userToUse.id);
+
+    if (installerOptions.remember) {
+      saveInstallerOptions();
+    }
+
+    // Hide installer shell
+    const shell = document.querySelector(".shell");
+    shell.style.display = "none";
+
+    // Show fullscreen launch overlay
+    const fsLaunch = document.getElementById("fullscreenLaunch");
+    const launchBar = document.getElementById("launchBar");
+    const launchStatus = document.getElementById("launchStatus");
+    fsLaunch.style.display = "flex";
+    launchBar.style.width = "0%";
+    launchStatus.textContent = "Building simulator frame…";
+
+    // Hidden iframe to pre-load srcdoc
+    const hiddenFrame = document.createElement("iframe");
+    hiddenFrame.style.display = "none";
+    document.body.appendChild(hiddenFrame);
+
+    let pct = 0;
+    const interval = setInterval(() => {
+      pct += 5;
+      if (pct > 90) pct = 90;
+      launchBar.style.width = pct + "%";
+    }, 120);
+
+    hiddenFrame.onload = () => {
+      clearInterval(interval);
+      launchBar.style.width = "100%";
+      launchStatus.textContent = "Finalizing…";
+
+      injectSimulatorScripts(hiddenFrame, userToUse, installedFs);
+
+      setTimeout(() => {
+        fsLaunch.style.display = "none";
+
+        const fsSim = document.getElementById("fullscreenSim");
+        const fsFrame = document.getElementById("fullscreenFrame");
+
+        fsSim.style.display = "block";
+        fsFrame.srcdoc = simPayload;
+
+        fsFrame.onload = () => {
+          injectSimulatorScripts(fsFrame, userToUse, installedFs);
+        };
+      }, 400);
+    };
+
+    hiddenFrame.srcdoc = simPayload;
+  }
+
+  const optRemember = qs("#optRemember");
+  const optSimStorage = qs("#optSimStorage");
+  const optIntegratedAuth = qs("#optIntegratedAuth");
+  const optAutoLogin = qs("#optAutoLogin");
+
+  optRemember.addEventListener("click", (e) => {
+    if (e.target.tagName.toLowerCase() === "input") return;
+    chkRemember.checked = !chkRemember.checked;
+  });
+  optSimStorage.addEventListener("click", () => {});
+  optIntegratedAuth.addEventListener("click", (e) => {
+    if (e.target.tagName.toLowerCase() === "input") return;
+    chkIntegratedAuth.checked = !chkIntegratedAuth.checked;
+  });
+  optAutoLogin.addEventListener("click", (e) => {
+    if (e.target.tagName.toLowerCase() === "input") return;
+    chkAutoLogin.checked = !chkAutoLogin.checked;
+  });
+
+  btnBack.addEventListener("click", () => {
+    if (currentStep > 0) goToStep(currentStep - 1);
+  });
+
+  btnNext.addEventListener("click", async () => {
+    if (currentStep === 0) {
+      if (!chkEula.checked) {
+        appendWelcomeLog("[Win12 Setup] You must accept the terms to continue.");
+        return;
+      }
+      appendWelcomeLog("[Win12 Setup] Terms accepted.");
+      goToStep(1);
+    } else if (currentStep === 1) {
+      installerOptions.remember = chkRemember.checked;
+      installerOptions.integratedAuth = chkIntegratedAuth.checked;
+      installerOptions.autoLogin = chkAutoLogin.checked;
+      saveInstallerOptions();
+      goToStep(2);
+      await runDownload();
+    } else if (currentStep === 2) {
+      goToStep(3);
+      setSimStatus("Ready", "idle");
+    } else if (currentStep === 3) {
+      performLoginAndLaunch();
+    }
+  });
+
+  previewEmail.addEventListener("input", updatePreviewAuth);
+  previewPassword.addEventListener("input", updatePreviewAuth);
+
+  loadInstallerOptions();
+  chkRemember.checked = installerOptions.remember;
+  chkIntegratedAuth.checked = installerOptions.integratedAuth;
+  chkAutoLogin.checked = installerOptions.autoLogin;
+  simUrlInput.value = SIMULATOR_URL;
+
+  updateStepUI();
+</script>
+</body>
+</html>

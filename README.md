@@ -376,4 +376,5 @@ Your support helps the project grow.
 | ![User Icon](https://alaricholt677.github.io/user.png) **Recommended Files** | [Click to visit](view-source:https://alaricholt677.github.io) | *Archivos Recomendados* |
 | ![Cat Icon](https://alaricholt677.github.io/github_mascot_README.svg) **Github-Style REPO Viewer (do not get confused with github)** | [Click to visit](https://alaricholt677.github.io/github-style-previewer) | *Visor de REPO al estilo Github (no te confundas con github)* |
 | ![Search](https://alaricholt677.github.io/search.svg) **MoreOS Selection** | [Click to visit](https://alaricholt677.github.io/moreOS) | *Selección de MoreOS* |
-| ![UserIcon](https://alaricholt677.github.io/github_mascot_README.svg) **DOWNLOAD THE KINGERSOLUTION** | [Click to visit](https://alaricholt677.github.io/KingerSolution2.0/) | *DESCARGA EL KINGERSOLUTION* |
+| ![GitIcon](https://alaricholt677.github.io/github_mascot_README.svg) **DOWNLOAD THE KINGERSOLUTION** | [Click to visit](https://alaricholt677.github.io/KingerSolution2.0/) | *DESCARGA EL KINGERSOLUTION* |
+| ![UserIcon](https://alaricholt677.github.io/github_mascot_README.svg) **Setup Before Use** | [Click to visit](https://alaricholt677.github.io/setup/) | *Configuración antes de usar* |

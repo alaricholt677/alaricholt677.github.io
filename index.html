@@ -13871,29 +13871,35 @@ function initLoginDisclaimerPopupSystem() {
   }
 }
 
-function initWindowFullscreenSupport() {
-    // Observe all windows as they are created
+function initFullscreenSystem() {
+    const winContainer =
+        document.getElementById("windows-area") ||
+        document.getElementById("desktop-area") ||
+        document.body;
+
     const observer = new MutationObserver(mutations => {
         for (const m of mutations) {
             for (const node of m.addedNodes) {
-                if (node.classList && node.classList.contains("window")) {
+                if (!node.classList) continue;
+
+                // Detect your real window class
+                if (node.classList.contains("window")) {
                     injectFullscreenButton(node);
                 }
             }
         }
     });
 
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(winContainer, { childList: true, subtree: true });
 }
 
-function injectFullscreenButton(win, osRoot) {
-    const titlebar =
-        win.querySelector(".windows-header") ||   // YOUR REAL TITLEBAR
-        win.querySelector(".titlebar") ||
-        win.querySelector(".window-titlebar") ||
-        win.querySelector(".titlebar12");
+function injectFullscreenButton(win) {
+    const titlebar = win.querySelector(".windows-header");
+    const body = win.querySelector(".window-body");
 
-    if (!titlebar) return;
+    if (!titlebar || !body) return;
+
+    // Prevent duplicates
     if (titlebar.querySelector(".window-fullscreen")) return;
 
     const fsBtn = document.createElement("div");
@@ -13906,6 +13912,7 @@ function injectFullscreenButton(win, osRoot) {
 
     fsBtn.onclick = () => {
         if (!isFullscreen) {
+            // Save window geometry
             prevBounds = {
                 x: win.style.left,
                 y: win.style.top,
@@ -13913,8 +13920,10 @@ function injectFullscreenButton(win, osRoot) {
                 h: win.style.height
             };
 
-            osRoot.requestFullscreen?.();
+            // Fullscreen the window-body ONLY
+            body.requestFullscreen?.();
 
+            // Make the window fill the screen visually
             win.style.left = "0px";
             win.style.top = "0px";
             win.style.width = "100vw";
@@ -13923,8 +13932,10 @@ function injectFullscreenButton(win, osRoot) {
 
             isFullscreen = true;
         } else {
+            // Exit fullscreen
             document.exitFullscreen?.();
 
+            // Restore geometry
             win.style.left = prevBounds.x;
             win.style.top = prevBounds.y;
             win.style.width = prevBounds.w;
@@ -13935,8 +13946,6 @@ function injectFullscreenButton(win, osRoot) {
         }
     };
 }
-
-
       /* initial */
       function initialSetup(){
         initWindowFullscreenSupport();

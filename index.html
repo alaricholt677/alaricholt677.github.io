@@ -2512,6 +2512,17 @@
   .window .window-body #win-msstore .app-card { padding:10px; }
 }
 
+.window.fullscreen {
+    border-radius: 0;
+    transition: all 0.15s ease;
+}
+
+.window-btn.window-fullscreen {
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0 6px;
+}
+
   </style>
   <style id="theme-style"></style>
 </head>
@@ -13860,9 +13871,78 @@ function initLoginDisclaimerPopupSystem() {
   }
 }
 
+function initWindowFullscreenSupport() {
+    // Observe all windows as they are created
+    const observer = new MutationObserver(mutations => {
+        for (const m of mutations) {
+            for (const node of m.addedNodes) {
+                if (node.classList && node.classList.contains("window")) {
+                    injectFullscreenButton(node);
+                }
+            }
+        }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+}
+
+function injectFullscreenButton(win) {
+    const titlebar = win.querySelector(".titlebar");
+    if (!titlebar) return;
+
+    // Prevent double injection
+    if (titlebar.querySelector(".window-fullscreen")) return;
+
+    const fsBtn = document.createElement("div");
+    fsBtn.className = "window-btn window-fullscreen";
+    fsBtn.innerHTML = "⛶";
+    titlebar.appendChild(fsBtn);
+
+    let isFullscreen = false;
+    let prevBounds = null;
+
+    fsBtn.onclick = () => {
+        const osRoot = document.getElementById("body"); // your OS container
+
+        if (!isFullscreen) {
+            // Save window geometry
+            prevBounds = {
+                x: win.style.left,
+                y: win.style.top,
+                w: win.style.width,
+                h: win.style.height
+            };
+
+            // Request browser fullscreen
+            if (osRoot.requestFullscreen) osRoot.requestFullscreen();
+
+            // Make window fill the OS container
+            win.style.left = "0px";
+            win.style.top = "0px";
+            win.style.width = "100vw";
+            win.style.height = "100vh";
+            win.classList.add("fullscreen");
+
+            isFullscreen = true;
+        } else {
+            // Exit browser fullscreen
+            if (document.fullscreenElement) document.exitFullscreen();
+
+            // Restore window geometry
+            win.style.left = prevBounds.x;
+            win.style.top = prevBounds.y;
+            win.style.width = prevBounds.w;
+            win.style.height = prevBounds.h;
+            win.classList.remove("fullscreen");
+
+            isFullscreen = false;
+        }
+    };
+}
 
       /* initial */
       function initialSetup(){
+        initWindowFullscreenSupport();
         initLoginDisclaimerPopupSystem();
         initExplorerTabs();
         initTaskbarBattery(document.querySelector(".taskbar-battery-pill"));

@@ -78,6 +78,7 @@
       background: var(--bg-main);
       color: var(--text-main);
       font-family: var(--font-ui);
+      cursor: none;
     }
     #theme-style {}
 
@@ -95,7 +96,17 @@
       background:rgba(30,40,76,0.98);
       border-color:rgba(255,255,255,0.4);
     }
-
+#cursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 46px;
+    height: 46px;
+    pointer-events: none;
+    transform-origin: center;
+    transition: transform 0.08s linear;
+    filter: drop-shadow(0 0 6px #ff4bff) drop-shadow(0 0 12px #b43bff);
+}
     /* login */
     #login-overlay {
       position: fixed; inset: 0;
@@ -4055,6 +4066,25 @@
   </div>
 
 <audio id="troubleshooterAudio" src="troubleshooter.mp3" style="display: none;"></audio>
+<div id="cursor">
+    <svg width="46" height="46" viewBox="0 0 46 46">
+        <defs>
+            <!-- Pink‑purple gradient -->
+            <linearGradient id="cursorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#ff4bff"/>
+                <stop offset="50%" stop-color="#c43bff"/>
+                <stop offset="100%" stop-color="#8a2bff"/>
+            </linearGradient>
+        </defs>
+
+        <!-- Rounded arrow -->
+        <path d="M6 23 Q6 10 18 10 L30 10 Q40 10 40 23 Q40 36 30 36 L18 36 Q6 36 6 23 Z"
+              fill="url(#cursorGrad)" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+
+        <!-- Tip circle -->
+        <circle cx="38" cy="23" r="4" fill="white" opacity="0.9"/>
+    </svg>
+</div>
 
   <script>
     (function(){
@@ -13946,6 +13976,37 @@ function injectFullscreenButton(win) {
         }
     };
 }
+const cursor = document.getElementById("cursor");
+
+let lastX = 0;
+let lastY = 0;
+let lastTime = performance.now();
+
+document.addEventListener("mousemove", (e) => {
+    const now = performance.now();
+    const dt = now - lastTime;
+
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+
+    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+    const speed = Math.sqrt(dx*dx + dy*dy) / dt;
+
+    // Stretch more gently for rounded cursor
+    const stretch = Math.min(1 + speed * 0.25, 1.8);
+
+    cursor.style.transform = `
+        translate(${e.clientX}px, ${e.clientY}px)
+        rotate(${angle}deg)
+        scale(${stretch}, ${1/stretch})
+    `;
+
+    lastX = e.clientX;
+    lastY = e.clientY;
+    lastTime = now;
+});
+
       /* initial */
       function initialSetup(){
         initFullscreenSystem();

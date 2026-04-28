@@ -14,7 +14,18 @@ self.addEventListener("install", event => {
 self.addEventListener("fetch", event => {
   event.respondWith(
     caches.match(event.request).then(response => {
-      return response || fetch(event.request);
+      // Return cached response if available
+      if (response) {
+        return response;
+      }
+      
+      // Try to fetch from network
+      return fetch(event.request).catch(error => {
+        // Silently fail for network errors (CORS, offline, etc)
+        console.warn("Fetch failed for:", event.request.url, error);
+        // Return offline placeholder or cached response
+        return caches.match("/index.html");
+      });
     })
   );
 });

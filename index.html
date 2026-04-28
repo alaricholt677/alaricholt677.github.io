@@ -14007,6 +14007,72 @@ document.addEventListener("mousemove", (e) => {
     lastTime = now;
 });
 
+const setupErrorMonitor = () => {
+  const originalLog = console.log;
+
+  console.log = (...args) => {
+    // Call the original log so you don't lose debugging info
+    originalLog.apply(console, args);
+
+    // Check if any argument contains the target error phrase
+    const hasMisparseError = args.some(arg => 
+      typeof arg === 'string' && arg.toLowerCase().includes('misparsed')
+    );
+
+    if (hasMisparseError) {
+      triggerCriticalErrorUI();
+    }
+  };
+};
+
+const triggerCriticalErrorUI = () => {
+  // Create the overlay container
+  const overlay = document.createElement('div');
+  overlay.id = 'critical-error-overlay';
+  
+  // Style the overlay for a "Black Screen" look
+  Object.assign(overlay.style, {
+    position: 'fixed',
+    top: '0',
+    left: '0',
+    width: '100vw',
+    height: '100vh',
+    backgroundColor: 'black',
+    color: 'white',
+    zIndex: '99999',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center',
+    fontFamily: 'sans-serif'
+  });
+
+  overlay.innerHTML = `
+    <h1 style="font-style: italic; color: #ff4d4d; margin-bottom: 20px;">
+      YOUR SYSTEM HAS HIT A CRITICAL ERROR!!!!
+    </h1>
+    <button id="reset-storage-btn" style="
+      background: none; 
+      border: 1px solid white; 
+      color: white; 
+      padding: 10px 20px; 
+      cursor: pointer;
+      text-decoration: underline;
+    ">
+      click here to reset your local storage
+    </button>
+  `;
+
+  document.body.appendChild(overlay);
+
+  // Handle the reset action
+  document.getElementById('reset-storage-btn').addEventListener('click', () => {
+    localStorage.clear();
+    window.location.reload(); // Refresh to clear the error state
+  });
+};
+
       /* initial */
       function initialSetup(){
         initFullscreenSystem();

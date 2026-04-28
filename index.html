@@ -14006,75 +14006,93 @@ document.addEventListener("mousemove", (e) => {
     lastY = e.clientY;
     lastTime = now;
 });
+/**
+ * Monitors for JSON parsing failures specifically 
+ * and triggers the critical error overlay.
+ */
+const initCriticalMonitor = () => {
+    // 1. Listen for Uncaught SyntaxErrors (like the one in your log)
+    window.addEventListener('error', (event) => {
+        const isParseError = event.message.toLowerCase().includes('unexpected token') || 
+                             event.message.toLowerCase().includes('is not valid json');
 
-const setupErrorMonitor = () => {
-  const originalLog = console.log;
+        if (isParseError) {
+            renderErrorOverlay(event.message);
+        }
+    });
 
-  console.log = (...args) => {
-    // Call the original log so you don't lose debugging info
-    originalLog.apply(console, args);
+    // 2. Wrap console.error to catch handled but logged misparsed errors
+    const nativeConsoleError = console.error;
+    console.error = (...args) => {
+        nativeConsoleError.apply(console, args);
+        
+        const hasMisparse = args.some(arg => 
+            typeof arg === 'string' && 
+            (arg.includes('SyntaxError') || arg.includes('valid JSON'))
+        );
 
-    // Check if any argument contains the target error phrase
-    const hasMisparseError = args.some(arg => 
-      typeof arg === 'string' && arg.toLowerCase().includes('misparsed')
-    );
-
-    if (hasMisparseError) {
-      triggerCriticalErrorUI();
-    }
-  };
+        if (hasMisparse) {
+            renderErrorOverlay("Detected misparsed data in console.");
+        }
+    };
 };
 
-const triggerCriticalErrorUI = () => {
-  // Create the overlay container
-  const overlay = document.createElement('div');
-  overlay.id = 'critical-error-overlay';
-  
-  // Style the overlay for a "Black Screen" look
-  Object.assign(overlay.style, {
-    position: 'fixed',
-    top: '0',
-    left: '0',
-    width: '100vw',
-    height: '100vh',
-    backgroundColor: 'black',
-    color: 'white',
-    zIndex: '99999',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    textAlign: 'center',
-    fontFamily: 'sans-serif'
-  });
+const renderErrorOverlay = (msg) => {
+    // Prevent multiple overlays
+    if (document.getElementById('critical-error-screen')) return;
 
-  overlay.innerHTML = `
-    <h1 style="font-style: italic; color: #ff4d4d; margin-bottom: 20px;">
-      YOUR SYSTEM HAS HIT A CRITICAL ERROR!!!!
-    </h1>
-    <button id="reset-storage-btn" style="
-      background: none; 
-      border: 1px solid white; 
-      color: white; 
-      padding: 10px 20px; 
-      cursor: pointer;
-      text-decoration: underline;
-    ">
-      click here to reset your local storage
-    </button>
-  `;
+    const screen = document.createElement('div');
+    screen.id = 'critical-error-screen';
+    
+    // Applying the black-screen "Front" styles
+    Object.assign(screen.style, {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: '#000000',
+        color: '#ffffff',
+        zIndex: '2147483647', // Maximum possible z-index
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        fontFamily: '"Courier New", Courier, monospace',
+        textAlign: 'center',
+        padding: '20px'
+    });
 
-  document.body.appendChild(overlay);
+    screen.innerHTML = `
+        <h1 style="font-style: italic; color: #ff0000; letter-spacing: 2px;">
+            YOUR SYSTEM HAS HIT A CRITICAL ERROR!!!!
+        </h1>
+        <p style="color: #555; margin-bottom: 30px;">Source: ${msg}</p>
+        <button id="reset-trigger" style="
+            background: transparent;
+            border: 2px solid #ff0000;
+            color: #ff0000;
+            padding: 15px 30px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+        ">
+            click here to reset your local storage
+        </button>
+    `;
 
-  // Handle the reset action
-  document.getElementById('reset-storage-btn').addEventListener('click', () => {
-    localStorage.clear();
-    window.location.reload(); // Refresh to clear the error state
-  });
+    document.body.appendChild(screen);
+
+    document.getElementById('reset-trigger').onclick = () => {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.reload();
+    };
 };
 
       /* initial */
       function initialSetup(){
+        initCriticalMonitor();
         initFullscreenSystem();
         initLoginDisclaimerPopupSystem();
         initExplorerTabs();

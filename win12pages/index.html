@@ -2,10 +2,10 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Dynamic Loader (GitHub Safe)</title>
+    <title>GitHub-Safe Router</title>
     <style>
         body { margin: 0; }
-        #app { width: 100%; height: 100%; }
+        #app { width: 100%; height: 100vh; border: 0; }
     </style>
 
     <script>
@@ -14,12 +14,11 @@
             if (!hash) return;
 
             try {
-                const pages = await fetch("/pages.json").then(r => r.json());
+                const pages = await fetch("/win12pages/pages.json").then(r => r.json());
 
                 let entry = pages.pages?.[hash];
                 if (!entry) return show404();
 
-                // Router helper
                 if (entry["url-to-hide-html-url"]) {
                     const helper = pages.pages?.[entry["url-to-hide-html-url"]];
                     if (helper) entry = helper;
@@ -29,20 +28,16 @@
                 const target = entry.url || entry.fileurl;
                 if (!target) return show404();
 
-                // Always treat as root-relative path unless it's http(s)
                 let finalURL = target;
                 if (!/^https?:\/\//.test(target)) {
-                    finalURL = "/" + target.replace(/^\/+/, "");
+                    finalURL = "/win12pages/" + target.replace(/^\/+/, "");
                 }
 
-                // Fetch HTML as text
                 const html = await fetch(finalURL).then(r => {
                     if (!r.ok) throw new Error("Fetch failed");
                     return r.text();
                 });
 
-                // Instead of replacing the document (which triggers navigation),
-                // we inject the HTML into a sandboxed iframe.
                 const iframe = document.getElementById("app");
                 const doc = iframe.contentWindow.document;
 
@@ -60,7 +55,7 @@
             const doc = iframe.contentWindow.document;
 
             try {
-                const html = await fetch("/404.html").then(r => r.text());
+                const html = await fetch("/win12pages/404.html").then(r => r.text());
                 doc.open();
                 doc.write(html);
                 doc.close();
@@ -77,7 +72,6 @@
 </head>
 
 <body>
-    <!-- Sandboxed iframe prevents GitHub Pages from hijacking navigation -->
-    <iframe id="app" sandbox="allow-same-origin allow-scripts" style="border:0;width:100%;height:100vh;"></iframe>
+    <iframe id="app" sandbox="allow-same-origin allow-scripts"></iframe>
 </body>
 </html>

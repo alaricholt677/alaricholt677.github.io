@@ -1,79 +1,286 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Releases</title>
+<title>MOD — Releases</title>
+
 <style>
-body{margin:0;font-family:system-ui;background:#0e0e11;color:#eaeaf0;display:flex}
-nav{width:220px;background:#15151c;padding:20px}
-nav h2{margin-top:0}
-nav a{display:block;color:#9aa0ff;text-decoration:none;margin:10px 0}
-main{flex:1;padding:24px}
-aside{width:320px;background:#111118;padding:20px;overflow-y:auto}
-.article img{width:100%;border-radius:6px}
-button{background:#4b5cff;color:white;border:none;padding:8px 14px;border-radius:6px;cursor:pointer}
-button:hover{background:#6a78ff}
+/* ---------- THEME ---------- */
+:root {
+    --bg: #0a0a0d;
+    --panel: rgba(20,20,30,0.65);
+    --panel-solid: #15151d;
+    --accent: #6d7bff;
+    --accent-hover: #8a96ff;
+    --text: #f0f0ff;
+    --text-dim: #9b9bb5;
+    --radius: 16px;
+    --shadow: 0 12px 32px rgba(0,0,0,0.45);
+    --transition: 0.25s ease;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, sans-serif;
+    display: flex;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+/* ---------- SIDEBAR ---------- */
+nav {
+    width: 260px;
+    padding: 32px;
+    background: var(--panel);
+    backdrop-filter: blur(14px);
+    border-right: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+nav h2 {
+    font-size: 1.7rem;
+    margin-bottom: 12px;
+    background: linear-gradient(90deg, #7f88ff, #b0b6ff);
+    -webkit-background-clip: text;
+    color: transparent;
+}
+
+nav a {
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 10px 12px;
+    border-radius: 8px;
+    transition: var(--transition);
+}
+
+nav a:hover {
+    background: rgba(255,255,255,0.06);
+    color: white;
+    transform: translateX(6px);
+}
+
+/* ---------- MAIN ---------- */
+main {
+    flex: 1;
+    padding: 48px;
+    overflow-y: auto;
+}
+
+main h1 {
+    font-size: 2.6rem;
+    margin-bottom: 20px;
+}
+
+/* ---------- RELEASE LIST ---------- */
+.release-card {
+    background: var(--panel-solid);
+    padding: 20px;
+    border-radius: var(--radius);
+    margin-bottom: 22px;
+    border: 1px solid rgba(255,255,255,0.05);
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+}
+
+.release-card:hover {
+    transform: translateY(-6px);
+    background: #1d1d27;
+}
+
+.release-card h3 {
+    margin-bottom: 6px;
+    font-size: 1.4rem;
+}
+
+.release-card p {
+    opacity: 0.85;
+    margin: 4px 0;
+}
+
+.release-card button {
+    margin-top: 12px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: var(--transition);
+}
+
+.release-card button:hover {
+    background: var(--accent-hover);
+    transform: translateY(-3px);
+}
+
+/* ---------- NEWS SIDEBAR ---------- */
+aside {
+    width: 380px;
+    padding: 32px;
+    background: var(--panel);
+    backdrop-filter: blur(14px);
+    border-left: 1px solid rgba(255,255,255,0.05);
+    overflow-y: auto;
+}
+
+aside h3 {
+    font-size: 1.3rem;
+    margin-bottom: 16px;
+}
+
+/* ---------- NEWS CARDS ---------- */
+.article {
+    background: var(--panel-solid);
+    padding: 16px;
+    border-radius: var(--radius);
+    margin-bottom: 22px;
+    border: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+    transition: transform 0.35s ease, background 0.25s ease;
+    transform-style: preserve-3d;
+}
+
+.article:hover {
+    transform: translateY(-10px) rotateX(8deg) rotateY(5deg);
+    background: #1d1d27;
+    box-shadow: var(--shadow);
+}
+
+.article img {
+    width: 100%;
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+}
+
+/* ---------- POPUP ---------- */
+#popupOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(10px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+}
+
+#popupBox {
+    width: 90%;
+    max-width: 720px;
+    background: var(--panel-solid);
+    padding: 28px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+#popupClose {
+    float: right;
+    background: var(--accent);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: white;
+}
 </style>
 </head>
+
 <body>
 
 <nav>
-<h2>MOD</h2>
-<a href="/MOD/">Home</a>
-<a href="/MOD/downloads/">Downloads</a>
-<a href="/MOD/downloads/releases/">Releases</a>
-<a href="/MOD/downloads/snapshots/">Snapshots</a>
-<hr>
-<a href="/">Windows 12 Simulator</a>
-<a href="/thanks/thanks.html">Thanks</a>
+    <h2>MOD</h2>
+    <a href="/MOD/">Home</a>
+    <a href="/MOD/downloads/">Downloads</a>
+    <a href="/MOD/downloads/releases/">Releases</a>
+    <a href="/MOD/downloads/snapshots/">Snapshots</a>
+    <hr style="border-color:rgba(255,255,255,0.05)">
+    <a href="/">Windows 12 Simulator</a>
+    <a href="/thanks/thanks.html">Thanks</a>
 </nav>
 
 <main>
-<h1>Releases</h1>
-<div id="list"></div>
+    <h1>Releases</h1>
+    <div id="list"></div>
 
 <script>
 fetch('releases.json')
-.then(r=>r.json())
-.then(d=>{
-const base=location.href.replace('index.html','');
-d.entries.forEach(e=>{
-list.innerHTML+=`
-<h3>${e.version}</h3>
-<p>Minecraft ${e.mc} • ${e.loader}</p>
-<p>${e.notes||''}</p>
-<button onclick="dl('${base+e.file}')">Download</button>
-<hr>`;
+.then(r => r.json())
+.then(d => {
+    const base = location.href.replace('index.html','');
+    d.entries.forEach(e => {
+        list.innerHTML += `
+        <div class="release-card">
+            <h3>${e.version}</h3>
+            <p>Minecraft ${e.mc} • ${e.loader}</p>
+            <p>${e.notes || ''}</p>
+            <button onclick="dl('${base + e.file}')">Download</button>
+        </div>`;
+    });
 });
-});
+
 function dl(u){
-const a=document.createElement('a');
-a.href=u;
-a.download='';
-a.click();
+    const a=document.createElement('a');
+    a.href=u;
+    a.download='';
+    a.click();
 }
 </script>
 </main>
 
 <aside>
-<h3>Latest News</h3>
-<div id="news"></div>
+    <h3>Latest News</h3>
+    <div id="news"></div>
+
 <script>
 fetch('https://alaricholt677.github.io/news/news.json')
-.then(r=>r.json())
-.then(d=>{
-d.articles.slice(0,4).forEach(a=>{
-news.innerHTML+=`
-<div class="article">
-<img src="${a.imageURL}">
-<h4>${a.name}</h4>
-<small>${a.date}</small>
-<p>${a.content.substring(0,120)}...</p>
-</div>`;
-});
+.then(r => r.json())
+.then(d => {
+    d.articles.slice(0,4).forEach(a => {
+        news.innerHTML += `
+        <div class="article" onclick="openPopup(${JSON.stringify(a).replace(/"/g,'&quot;')})">
+            <img src="${a.imageURL}">
+            <h4>${a.name}</h4>
+            <small>${a.date}</small>
+            <p>${a.content.substring(0,120)}...</p>
+        </div>`;
+    });
 });
 </script>
 </aside>
 
+<!-- POPUP -->
+<div id="popupOverlay" onclick="closePopup(event)">
+    <div id="popupBox">
+        <button id="popupClose" onclick="closePopup()">Close</button>
+        <img id="popupImg">
+        <h2 id="popupTitle"></h2>
+        <small id="popupDate"></small>
+        <p id="popupContent"></p>
+    </div>
+</div>
+
+<script>
+function openPopup(a){
+    popupImg.src = a.imageURL;
+    popupTitle.textContent = a.name;
+    popupDate.textContent = a.date;
+    popupContent.textContent = a.content;
+    popupOverlay.style.display = "flex";
+}
+
+function closePopup(e){
+    if (!e || e.target === popupOverlay) {
+        popupOverlay.style.display = "none";
+    }
+}
+</script>
+
 </body>
 </html>
+

@@ -2,66 +2,72 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Dynamic Loader</title>
+    <title>Dynamic Loader (GitHub Safe)</title>
+    <style>
+        body { margin: 0; }
+        #app { width: 100%; height: 100%; }
+    </style>
+
     <script>
         async function loadPage() {
-            const hash = location.hash.replace("#", "").trim();
+            const hash = location.hash.slice(1).trim();
             if (!hash) return;
 
             try {
                 const pages = await fetch("/pages.json").then(r => r.json());
 
-                // Main lookup
                 let entry = pages.pages?.[hash];
-                if (!entry) return load404();
+                if (!entry) return show404();
 
-                // Router helper: url-to-hide-html-url points to another object
+                // Router helper
                 if (entry["url-to-hide-html-url"]) {
-                    const helperKey = entry["url-to-hide-html-url"];
-                    const helperObj = pages.pages?.[helperKey];
-
-                    if (helperObj) {
-                        entry = helperObj;
-                    } else {
-                        return load404();
-                    }
+                    const helper = pages.pages?.[entry["url-to-hide-html-url"]];
+                    if (helper) entry = helper;
+                    else return show404();
                 }
 
-                // Determine final URL
                 const target = entry.url || entry.fileurl;
-                if (!target) return load404();
+                if (!target) return show404();
 
+                // Always treat as root-relative path unless it's http(s)
                 let finalURL = target;
-
-                // If not http(s), treat as local file path
                 if (!/^https?:\/\//.test(target)) {
-                    const base = location.pathname.split("/").slice(0, -1).join("/");
-                    finalURL = base + "/" + target;
+                    finalURL = "/" + target.replace(/^\/+/, "");
                 }
 
-                // Fetch and replace document
+                // Fetch HTML as text
                 const html = await fetch(finalURL).then(r => {
                     if (!r.ok) throw new Error("Fetch failed");
                     return r.text();
                 });
 
-                document.open();
-                document.write(html);
-                document.close();
+                // Instead of replacing the document (which triggers navigation),
+                // we inject the HTML into a sandboxed iframe.
+                const iframe = document.getElementById("app");
+                const doc = iframe.contentWindow.document;
 
-            } catch (err) {
-                load404();
+                doc.open();
+                doc.write(html);
+                doc.close();
+
+            } catch (e) {
+                show404();
             }
         }
 
-        async function load404() {
+        async function show404() {
+            const iframe = document.getElementById("app");
+            const doc = iframe.contentWindow.document;
+
             try {
                 const html = await fetch("/404.html").then(r => r.text());
-                document.open();
-                document.write(html);
-                document.close();
+                doc.open();
+                doc.write(html);
+                doc.close();
             } catch {
-                document.body.innerHTML = "<h1>404 - Page Not Found</h1>";
+                doc.open();
+                doc.write("<h1>404 - Page Not Found</h1>");
+                doc.close();
             }
         }
 
@@ -69,7 +75,9 @@
         window.addEventListener("DOMContentLoaded", loadPage);
     </script>
 </head>
+
 <body>
-    <h1>Loading…</h1>
+    <!-- Sandboxed iframe prevents GitHub Pages from hijacking navigation -->
+    <iframe id="app" sandbox="allow-same-origin allow-scripts" style="border:0;width:100%;height:100vh;"></iframe>
 </body>
 </html>

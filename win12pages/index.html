@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Win12Pages</title>
+<title>Loading…</title>
 
 <style>
     body {
@@ -37,14 +37,11 @@
         to { transform: rotate(360deg); }
     }
 
-    #app {
-        padding: 20px;
-        animation: fadeIn .4s ease;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+    #appframe {
+        width: 100vw;
+        height: 100vh;
+        border: none;
+        background: #0d0d0d;
     }
 
     .error-box {
@@ -55,6 +52,8 @@
         max-width: 500px;
         margin: 60px auto;
         box-shadow: 0 0 20px rgba(0,0,0,0.4);
+        color: white;
+        font-family: Segoe UI, sans-serif;
     }
 
     .error-box h1 {
@@ -70,30 +69,19 @@
 </style>
 
 <script>
-const repo = "/win12pages/";
-
-// Check if file exists WITHOUT downloading GitHub's 404
-async function safeExists(url) {
-    try {
-        const res = await fetch(url, { method: "HEAD" });
-        return res.ok;
-    } catch {
-        return false;
-    }
-}
-
 async function loadPage() {
     const hash = location.hash.slice(1);
-    if (!hash) return;
-
+    const frame = document.getElementById("appframe");
     showLoader(true);
 
     try {
-        const pages = await fetch(repo + "pages.json").then(r => r.json());
+        // Load JSON
+        const pages = await fetch("/pages.json").then(r => r.json());
 
         let entry = pages.pages[hash];
         if (!entry) return show404();
 
+        // Router helper
         if (entry["url-to-hide-html-url"]) {
             const helper = pages.pages[entry["url-to-hide-html-url"]];
             if (helper) entry = helper;
@@ -103,14 +91,14 @@ async function loadPage() {
         const target = entry.url || entry.fileurl;
         if (!target) return show404();
 
-        const finalURL = repo + target.replace(/^\/+/, "");
+        // Fetch the page HTML
+        const res = await fetch(target);
+        if (!res.ok) return show404();
 
-        // Check existence BEFORE fetching
-        const exists = await safeExists(finalURL);
-        if (!exists) return show404();
+        const html = await res.text();
 
-        const html = await fetch(finalURL).then(r => r.text());
-        document.getElementById("app").innerHTML = html;
+        // Render inside iframe using srcdoc
+        frame.srcdoc = html;
 
     } catch {
         show404();
@@ -119,26 +107,23 @@ async function loadPage() {
     showLoader(false);
 }
 
-async function show404() {
-    const html = `
+function show404() {
+    const frame = document.getElementById("appframe");
+
+    frame.srcdoc = `
         <div class="error-box">
             <h1>404</h1>
             <p>The page you're looking for doesn't exist.</p>
         </div>
     `;
-    document.getElementById("app").innerHTML = html;
+
     showLoader(false);
 }
 
 function showLoader(state) {
     const loader = document.getElementById("loader");
-    if (state) {
-        loader.style.opacity = "1";
-        loader.style.pointerEvents = "auto";
-    } else {
-        loader.style.opacity = "0";
-        setTimeout(() => loader.style.pointerEvents = "none", 400);
-    }
+    loader.style.opacity = state ? "1" : "0";
+    if (!state) setTimeout(() => loader.style.display = "none", 400);
 }
 
 window.addEventListener("hashchange", loadPage);
@@ -152,10 +137,7 @@ window.addEventListener("DOMContentLoaded", loadPage);
     <div class="spinner"></div>
 </div>
 
-<div id="app">
-    <h1>Welcome</h1>
-    <p>Use #2 or any page defined in pages.json.</p>
-</div>
+<iframe id="appframe" sandbox="allow-scripts allow-same-origin"></iframe>
 
 </body>
 </html>

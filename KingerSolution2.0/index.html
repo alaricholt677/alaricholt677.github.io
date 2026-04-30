@@ -1,61 +1,185 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>KingerSolution 2.0 Download</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0d1117;
-      color: #e6edf3;
-      padding: 40px;
-    }
-    h1 {
-      color: #f0b429;
-    }
-    a {
-      color: #58a6ff;
-      font-size: 18px;
-      display: block;
-      margin: 10px 0;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-    .section {
-      margin-bottom: 30px;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>KingerSolution 2.0 Download</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --text: #e6edf3;
+    --accent: #f0b429;
+    --link: #58a6ff;
+    --card: rgba(255,255,255,0.05);
+  }
+
+  body.light {
+    --bg: #f5f5f5;
+    --text: #222;
+    --accent: #c27b00;
+    --link: #0059c9;
+    --card: rgba(0,0,0,0.05);
+  }
+
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 40px;
+    transition: background .3s, color .3s;
+  }
+
+  h1 {
+    color: var(--accent);
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .card {
+    background: var(--card);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .toggle-btn {
+    background: var(--accent);
+    color: #000;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    float: right;
+    margin-top: -20px;
+    margin-right: -20px;
+  }
+
+  .section-header {
+    font-size: 22px;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.08);
+    transition: background .2s;
+  }
+
+  .section-header:hover {
+    background: rgba(255,255,255,0.15);
+  }
+
+  .content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .4s ease;
+    padding-left: 10px;
+  }
+
+  .btn {
+    display: inline-block;
+    background: var(--link);
+    color: white;
+    padding: 12px 18px;
+    border-radius: 8px;
+    margin: 10px 0;
+    text-decoration: none;
+    font-size: 17px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn:hover {
+    opacity: 0.9;
+  }
+
+  /* Floating icon animation */
+  .icon {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    opacity: 0.8;
+    animation: floatUp 1.5s linear forwards;
+  }
+
+  @keyframes floatUp {
+    from { transform: translateY(0) scale(1); opacity: 1; }
+    to { transform: translateY(-120px) scale(0.3); opacity: 0; }
+  }
+</style>
 </head>
 <body>
 
-  <h1>KingerSolution 2.0 Download Guide</h1>
+<button class="toggle-btn" onclick="toggleTheme()">Toggle Theme</button>
 
-  <div class="section">
-    <h2>Step 1 — Install Python</h2>
-    <p>Select your operating system to go to the official Python download page:</p>
+<h1>KingerSolution 2.0 Download Guide</h1>
 
-    <!-- Redirects to correct Python pages -->
-    <a href="https://www.python.org/downloads/windows/" target="_blank">Download Python for Windows</a>
-    <a href="https://www.python.org/downloads/source/" target="_blank">Download Python for Linux</a>
-    <a href="https://www.python.org/downloads/macos/" target="_blank">Download Python for macOS</a>
+<div class="card">
+  <div class="section-header" onclick="toggleSection(this)">Step 1 — Install Python</div>
+  <div class="content">
+    <p>Select your operating system:</p>
+    <a class="btn" href="https://www.python.org/downloads/windows/" target="_blank">Python for Windows</a>
+    <a class="btn" href="https://www.python.org/downloads/source/" target="_blank">Python for Linux</a>
+    <a class="btn" href="https://www.python.org/downloads/macos/" target="_blank">Python for macOS</a>
   </div>
+</div>
 
-  <div class="section">
-    <h2>Step 2 — Download KingerSolution 2.0</h2>
-    <p>Click below to download <strong>log.py</strong> (stored in the same folder as this page):</p>
-
-    <!-- Direct file in same directory -->
-    <a href="log.py" download>Download log.py</a>
+<div class="card">
+  <div class="section-header" onclick="toggleSection(this)">Step 2 — Download KingerSolution 2.0</div>
+  <div class="content">
+    <p>Download <strong>log.py</strong>:</p>
+    <a class="btn" href="log.py" download>Download log.py</a>
   </div>
+</div>
 
-  <div class="section">
-    <h2>Step 3 — Run the Script</h2>
-    <p>After downloading, run:</p>
+<div class="card">
+  <div class="section-header" onclick="toggleSection(this)">Step 3 — Run the Script</div>
+  <div class="content">
+    <p>Run the script:</p>
     <p><code>python log.py</code> (Windows)</p>
     <p><code>python3 log.py</code> (Linux/macOS)</p>
   </div>
+</div>
+
+<script>
+  // Collapsible sections
+  function toggleSection(header) {
+    const content = header.nextElementSibling;
+    content.style.maxHeight = content.style.maxHeight ? null : content.scrollHeight + "px";
+  }
+
+  // Theme toggle with saving
+  function toggleTheme() {
+    document.body.classList.toggle("light");
+    localStorage.setItem("theme", document.body.classList.contains("light") ? "light" : "dark");
+  }
+
+  // Load saved theme
+  if (localStorage.getItem("theme") === "light") {
+    document.body.classList.add("light");
+  }
+
+  // Floating icons on hover
+  const svgIcon = `
+    <svg viewBox="0 0 24 24" fill="white">
+      <circle cx="12" cy="12" r="10"/>
+    </svg>
+  `;
+
+  document.querySelectorAll(".btn").forEach(btn => {
+    btn.addEventListener("mouseenter", () => {
+      for (let i = 0; i < 30; i++) {
+        const icon = document.createElement("div");
+        icon.classList.add("icon");
+        icon.innerHTML = svgIcon;
+        icon.style.left = Math.random() * 100 + "%";
+        icon.style.bottom = "0px";
+        btn.appendChild(icon);
+        setTimeout(() => icon.remove(), 1500);
+      }
+    });
+  });
+</script>
 
 </body>
 </html>

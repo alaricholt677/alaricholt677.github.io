@@ -1,57 +1,284 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>MOD</title>
+<title>MOD — Modern Distribution Hub</title>
+
 <style>
-body{margin:0;font-family:system-ui;background:#0e0e11;color:#eaeaf0;display:flex}
-nav{width:220px;background:#15151c;padding:20px}
-nav h2{margin-top:0}
-nav a{display:block;color:#9aa0ff;text-decoration:none;margin:10px 0}
-main{flex:1;padding:24px}
-aside{width:320px;background:#111118;padding:20px;overflow-y:auto}
-.article img{width:100%;border-radius:6px}
-button{background:#4b5cff;color:white;border:none;padding:8px 14px;border-radius:6px;cursor:pointer}
+/* ---------- THEME ---------- */
+:root {
+    --bg: #0a0a0d;
+    --panel: rgba(20,20,30,0.65);
+    --panel-solid: #15151d;
+    --accent: #6d7bff;
+    --accent-hover: #8a96ff;
+    --text: #f0f0ff;
+    --text-dim: #9b9bb5;
+    --radius: 16px;
+    --shadow: 0 12px 32px rgba(0,0,0,0.45);
+    --transition: 0.25s ease;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, sans-serif;
+    display: flex;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+/* ---------- SIDEBAR ---------- */
+nav {
+    width: 260px;
+    padding: 32px;
+    background: var(--panel);
+    backdrop-filter: blur(14px);
+    border-right: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+nav h2 {
+    font-size: 1.7rem;
+    margin-bottom: 12px;
+    background: linear-gradient(90deg, #7f88ff, #b0b6ff);
+    -webkit-background-clip: text;
+    color: transparent;
+}
+
+nav a {
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 10px 12px;
+    border-radius: 8px;
+    transition: var(--transition);
+}
+
+nav a:hover {
+    background: rgba(255,255,255,0.06);
+    color: white;
+    transform: translateX(6px);
+}
+
+/* ---------- MAIN ---------- */
+main {
+    flex: 1;
+    padding: 48px;
+    overflow-y: auto;
+}
+
+main h1 {
+    font-size: 2.6rem;
+    margin-bottom: 12px;
+}
+
+main p {
+    font-size: 1.15rem;
+    opacity: 0.85;
+    margin-bottom: 24px;
+}
+
+button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: var(--transition);
+    box-shadow: var(--shadow);
+}
+
+button:hover {
+    background: var(--accent-hover);
+    transform: translateY(-3px);
+}
+
+/* ---------- NEWS SIDEBAR ---------- */
+aside {
+    width: 380px;
+    padding: 32px;
+    background: var(--panel);
+    backdrop-filter: blur(14px);
+    border-left: 1px solid rgba(255,255,255,0.05);
+    overflow-y: auto;
+}
+
+aside h3 {
+    font-size: 1.3rem;
+    margin-bottom: 16px;
+}
+
+/* ---------- NEWS CARDS ---------- */
+.article {
+    background: var(--panel-solid);
+    padding: 16px;
+    border-radius: var(--radius);
+    margin-bottom: 22px;
+    border: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+    transition: transform 0.35s ease, background 0.25s ease;
+    transform-style: preserve-3d;
+    box-shadow: 0 0 0 rgba(0,0,0,0);
+}
+
+.article:hover {
+    transform: translateY(-10px) rotateX(8deg) rotateY(5deg);
+    background: #1d1d27;
+    box-shadow: var(--shadow);
+}
+
+.article img {
+    width: 100%;
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+}
+
+.article h4 {
+    margin-bottom: 4px;
+    font-size: 1.1rem;
+}
+
+.article small {
+    opacity: 0.6;
+    font-size: 0.8rem;
+}
+
+.article p {
+    margin-top: 10px;
+    opacity: 0.85;
+    line-height: 1.45;
+}
+
+/* ---------- POPUP MODAL ---------- */
+#popupOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(10px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+}
+
+#popupBox {
+    width: 90%;
+    max-width: 720px;
+    background: var(--panel-solid);
+    padding: 28px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    animation: popupIn 0.35s ease;
+}
+
+#popupBox img {
+    width: 100%;
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+}
+
+#popupClose {
+    float: right;
+    background: var(--accent);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: white;
+    margin-top: -10px;
+    margin-right: -10px;
+}
+
+@keyframes popupIn {
+    from { transform: scale(0.85); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 1100px) {
+    body { flex-direction: column; overflow: auto; }
+    nav, aside { width: 100%; border: none; }
+}
 </style>
 </head>
+
 <body>
 
 <nav>
-<h2>MOD</h2>
-<a href="/MOD/">Home</a>
-<a href="/MOD/downloads/">Downloads</a>
-<a href="/MOD/downloads/releases/">Releases</a>
-<a href="/MOD/downloads/snapshots/">Snapshots</a>
-<hr>
-<a href="/">Windows 12 Simulator</a>
-<a href="/thanks/thanks.html">Thanks</a>
+    <h2>MOD</h2>
+    <a href="/MOD/">Home</a>
+    <a href="/MOD/downloads/">Downloads</a>
+    <a href="/MOD/downloads/releases/">Releases</a>
+    <a href="/MOD/downloads/snapshots/">Snapshots</a>
+    <hr style="border-color:rgba(255,255,255,0.05)">
+    <a href="/">Windows 12 Simulator</a>
+    <a href="/thanks/thanks.html">Thanks</a>
 </nav>
 
 <main>
-<h1>MOD</h1>
-<p>Official distribution hub for the MOD project.</p>
-<button onclick="location.href='downloads/'">Go to Downloads</button>
+    <h1>MOD</h1>
+    <p>The official distribution hub for the MOD project — now rebuilt with a premium UI.</p>
+    <button onclick="location.href='downloads/'">Go to Downloads</button>
 </main>
 
 <aside>
-<h3>Latest News</h3>
-<div id="news"></div>
+    <h3>Latest News</h3>
+    <div id="news"></div>
+
 <script>
 fetch('https://alaricholt677.github.io/news/news.json')
-.then(r=>r.json())
-.then(d=>{
-d.articles.slice(0,4).forEach(a=>{
-news.innerHTML+=`
-<div class="article">
-<img src="${a.imageURL}">
-<h4>${a.name}</h4>
-<small>${a.date}</small>
-<p>${a.content.substring(0,120)}...</p>
-</div>`;
+.then(r => r.json())
+.then(d => {
+    d.articles.slice(0, 4).forEach(a => {
+        const card = document.createElement("div");
+        card.className = "article";
+        card.innerHTML = `
+            <img src="${a.imageURL}">
+            <h4>${a.name}</h4>
+            <small>${a.date}</small>
+            <p>${a.content.substring(0, 120)}...</p>
+        `;
+        card.onclick = () => openPopup(a);
+        news.appendChild(card);
+    });
 });
-});
+
+function openPopup(article) {
+    popupImg.src = article.imageURL;
+    popupTitle.textContent = article.name;
+    popupDate.textContent = article.date;
+    popupContent.textContent = article.content;
+    popupOverlay.style.display = "flex";
+}
+
+popupClose.onclick = () => popupOverlay.style.display = "none";
+popupOverlay.onclick = e => {
+    if (e.target === popupOverlay) popupOverlay.style.display = "none";
+};
 </script>
 </aside>
 
+<!-- POPUP -->
+<div id="popupOverlay">
+    <div id="popupBox">
+        <button id="popupClose">Close</button>
+        <img id="popupImg">
+        <h2 id="popupTitle"></h2>
+        <small id="popupDate"></small>
+        <p id="popupContent"></p>
+    </div>
+</div>
+
 </body>
 </html>
+

@@ -1,7 +1,22 @@
 {
   "pages": {
-    "2": {
-      "url": "pages/2.html"
+    "mod.com": {
+      "url": "../MOD/index.html"
+    },
+    "moreos.com": {
+      "url": "../moreOS/index.html"
+    },
+    "2.com": {
+      "url": "/pages/2.html"
+    },
+    "home.com": {
+      "url": "../index.html"
+    },
+    "secret": {
+      "url-to-hide-html-url": "hidden"
+    },
+    "hidden.com": {
+      "url": "../thanks/thanks.html"
     }
   }
 }

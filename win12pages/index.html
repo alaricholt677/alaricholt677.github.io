@@ -75,13 +75,12 @@ async function loadPage() {
     showLoader(true);
 
     try {
-        // Load JSON
-        const pages = await fetch("/pages.json").then(r => r.json());
+        // ⭐ FIXED: Correct JSON path
+        const pages = await fetch("pages.json").then(r => r.json());
 
         let entry = pages.pages[hash];
         if (!entry) return show404();
 
-        // Router helper
         if (entry["url-to-hide-html-url"]) {
             const helper = pages.pages[entry["url-to-hide-html-url"]];
             if (helper) entry = helper;
@@ -91,13 +90,10 @@ async function loadPage() {
         const target = entry.url || entry.fileurl;
         if (!target) return show404();
 
-        // Fetch the page HTML
         const res = await fetch(target);
         if (!res.ok) return show404();
 
         const html = await res.text();
-
-        // Render inside iframe using srcdoc
         frame.srcdoc = html;
 
     } catch {

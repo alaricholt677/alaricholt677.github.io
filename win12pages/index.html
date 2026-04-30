@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Dynamic Loader</title>
+    <script>
+        async function loadPage() {
+            const hash = location.hash.replace("#", "").trim();
+            if (!hash) return;
+
+            try {
+                const pages = await fetch("/pages.json").then(r => r.json());
+
+                // Main lookup
+                let entry = pages.pages?.[hash];
+                if (!entry) return load404();
+
+                // Router helper: url-to-hide-html-url points to another object
+                if (entry["url-to-hide-html-url"]) {
+                    const helperKey = entry["url-to-hide-html-url"];
+                    const helperObj = pages.pages?.[helperKey];
+
+                    if (helperObj) {
+                        entry = helperObj;
+                    } else {
+                        return load404();
+                    }
+                }
+
+                // Determine final URL
+                const target = entry.url || entry.fileurl;
+                if (!target) return load404();
+
+                let finalURL = target;
+
+                // If not http(s), treat as local file path
+                if (!/^https?:\/\//.test(target)) {
+                    const base = location.pathname.split("/").slice(0, -1).join("/");
+                    finalURL = base + "/" + target;
+                }
+
+                // Fetch and replace document
+                const html = await fetch(finalURL).then(r => {
+                    if (!r.ok) throw new Error("Fetch failed");
+                    return r.text();
+                });
+
+                document.open();
+                document.write(html);
+                document.close();
+
+            } catch (err) {
+                load404();
+            }
+        }
+
+        async function load404() {
+            try {
+                const html = await fetch("/404.html").then(r => r.text());
+                document.open();
+                document.write(html);
+                document.close();
+            } catch {
+                document.body.innerHTML = "<h1>404 - Page Not Found</h1>";
+            }
+        }
+
+        window.addEventListener("hashchange", loadPage);
+        window.addEventListener("DOMContentLoaded", loadPage);
+    </script>
+</head>
+<body>
+    <h1>Loading…</h1>
+</body>
+</html>

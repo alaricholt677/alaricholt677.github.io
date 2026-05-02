@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Android 14 Ultra - Full Recode</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { --nav-h: 65px; --status-h: 28px; --accent: #3b82f6; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; touch-action: none; outline: none; }
+        body, html { height: 100%; width: 100%; background: #000; color: #fff; overflow: hidden; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        
+        .layer { position: absolute; inset: 0; display: none; z-index: 10; flex-direction: column; overflow: hidden; }
+        .layer.active { display: flex; }
+        
+        /* Navigation Bar - Front Layer */
+        #global-nav { position: fixed; bottom: 0; width: 100%; height: var(--nav-h); background: rgba(0,0,0,0.8); backdrop-filter: blur(25px); z-index: 999999; display: none; justify-content: space-around; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); }
+        .nav-btn { width: 60px; height: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .nav-back { width: 12px; height: 12px; border-left: 3px solid #fff; border-bottom: 3px solid #fff; transform: rotate(45deg); opacity: 0.8; }
+        .nav-home { width: 18px; height: 18px; border: 3px solid #fff; border-radius: 50%; opacity: 0.8; }
+        .nav-recents { width: 16px; height: 16px; border: 3px solid #fff; border-radius: 4px; opacity: 0.8; }
+
+        /* Window System */
+        .app-window { position: absolute; inset: 0; background: #fff; color: #000; z-index: 50000; display: none; flex-direction: column; padding-bottom: var(--nav-h); animation: appOpen 0.35s cubic-bezier(0.1, 0.9, 0.2, 1); }
+        .app-window.active { display: flex; }
+        @keyframes appOpen { from { transform: translateY(100px) scale(0.9); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+
+        /* Icon Grid */
+        .icon-wrap { width: 80px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; position: relative; padding: 10px 0; touch-action: auto; }
+        .icon-box { width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.1s, opacity 0.2s; position: relative; overflow: hidden; }
+        .icon-box:active { transform: scale(0.9); }
+        .icon-label { font-size: 11px; text-align: center; color: white; text-shadow: 0 1px 3px #000; font-weight: 500; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* Group Preview */
+        .group-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; padding: 10px; background: rgba(255,255,255,0.15); width: 100%; height: 100%; border-radius: 18px; }
+        .group-mini { font-size: 12px; display: flex; align-items: center; justify-content: center; }
+
+        /* Keypad Styles */
+        .kp-btn { width: 70px; height: 70px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; transition: background 0.2s; border: none; }
+        .kp-btn:active { background: rgba(255,255,255,0.3); }
+
+        /* Quick Settings Shade */
+        #shade { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(30px); z-index: 900000; transform: translateY(-100%); transition: transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1); padding: 60px 25px; }
+        #shade.active { transform: translateY(0); }
+
+        /* Chrome Specific */
+        .chrome-tabs { display: flex; overflow-x: auto; background: #e0e0e0; padding: 8px 8px 0; gap: 4px; border-bottom: 1px solid #ccc; }
+        .chrome-tab { background: #d0d0d0; padding: 6px 12px; border-radius: 8px 8px 0 0; min-width: 100px; font-size: 11px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid #bbb; border-bottom: none; }
+        .chrome-tab.active { background: #fff; border-color: #aaa; font-weight: bold; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 0; height: 0; }
+
+        #drag-ghost { position: fixed; pointer-events: none; z-index: 2000000; width: 64px; height: 64px; border-radius: 18px; opacity: 0.7; display: none; }
+    </style>
+</head>
+<body onload="initSystem()">
+
+<div id="os-container" class="w-full h-full relative overflow-hidden bg-black">
+
+    <!-- LAYER: BOOTING -->
+    <div id="l-boot" class="layer active bg-black items-center justify-center p-8">
+        <div id="boot-anim" class="text-6xl mb-8 animate-bounce">🤖</div>
+        <div id="boot-console" class="w-full h-48 bg-zinc-900 rounded-xl p-4 font-mono text-[10px] text-green-500 overflow-y-auto border border-white/10"></div>
+        <div id="boot-ready-ui" class="hidden flex flex-col items-center mt-8">
+            <button onclick="goToLockScreen()" class="px-12 py-4 bg-white text-black rounded-full font-black uppercase tracking-widest text-xs">Initialize OS</button>
+            <button onclick="location.reload()" class="mt-4 text-[10px] opacity-40 uppercase tracking-widest">Restart Kernel</button>
+        </div>
+    </div>
+
+    <!-- LAYER: LOCKSCREEN -->
+    <div id="l-lock" class="layer bg-zinc-950 items-center justify-between py-20">
+        <div class="text-center pt-10">
+            <h1 id="lock-clock" class="text-8xl font-thin tracking-tighter">00:00</h1>
+            <p id="lock-date" class="text-sm tracking-[0.4em] opacity-40 uppercase">Thurs, Jan 29</p>
+        </div>
+        <div id="user-selector" class="flex flex-wrap justify-center gap-8 px-8"></div>
+        <div class="flex flex-col items-center gap-4">
+            <button onclick="openModal('create_user')" class="bg-white/5 border border-white/10 px-8 py-3 rounded-full text-[10px] font-bold tracking-widest uppercase">Add Account</button>
+            <div class="text-[9px] opacity-20 uppercase tracking-[0.3em]">Swipe up to Unlock</div>
+        </div>
+    </div>
+
+    <!-- LAYER: PIN INPUT -->
+    <div id="l-pin" class="layer bg-black items-center justify-center">
+        <div id="pin-avatar" class="w-20 h-20 rounded-full bg-zinc-800 mb-4 flex items-center justify-center text-3xl">👤</div>
+        <h2 id="pin-label" class="text-lg font-bold mb-10 tracking-widest uppercase">Enter PIN</h2>
+        <div id="pin-dots" class="flex gap-4 mb-16">
+            <div class="w-3 h-3 rounded-full border border-white/40"></div>
+            <div class="w-3 h-3 rounded-full border border-white/40"></div>
+            <div class="w-3 h-3 rounded-full border border-white/40"></div>
+            <div class="w-3 h-3 rounded-full border border-white/40"></div>
+        </div>
+        <div id="pin-pad" class="grid grid-cols-3 gap-6"></div>
+        <div class="mt-12 flex gap-12">
+            <button onclick="goToLockScreen()" class="text-[10px] font-bold opacity-30 uppercase">Cancel</button>
+            <button onclick="attemptLogin()" class="text-[10px] font-bold text-blue-500 uppercase">Login</button>
+        </div>
+    </div>
+
+    <!-- LAYER: HOME -->
+    <div id="l-home" class="layer bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=2000');">
+        <div id="home-grid" class="flex-1 p-6 pt-16 grid grid-cols-4 content-start gap-y-10 overflow-y-auto no-scrollbar"></div>
+        <div id="dock" class="mx-4 mb-6 h-20 bg-black/20 backdrop-blur-3xl rounded-[35px] border border-white/10 flex items-center justify-around px-2"></div>
+    </div>
+
+    <!-- LAYER: APP DRAWER -->
+    <div id="l-drawer" class="layer bg-black/70 backdrop-blur-3xl px-6 pt-20">
+        <div class="mb-10 bg-white/10 p-4 rounded-2xl border border-white/5 flex items-center gap-3">
+            <span class="opacity-30">🔍</span>
+            <input type="text" placeholder="Search apps..." class="bg-transparent border-none w-full text-sm outline-none text-white">
+        </div>
+        <div id="drawer-grid" class="grid grid-cols-4 gap-y-10 overflow-y-auto pb-40 no-scrollbar"></div>
+    </div>
+
+    <!-- LAYER: RECENTS -->
+    <div id="l-recents" class="layer bg-black/90 backdrop-blur-xl items-center justify-center">
+        <div id="recents-list" class="flex gap-6 px-16 overflow-x-auto w-full snap-x snap-mandatory no-scrollbar pb-10"></div>
+        <button onclick="killAllApps()" class="mt-8 bg-white text-black px-10 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest">Clear All</button>
+    </div>
+
+    <!-- QUICK SETTINGS SHADE -->
+    <div id="shade">
+        <div class="flex justify-between items-center mb-10">
+            <div>
+                <h1 id="shade-clock" class="text-6xl font-bold">00:00</h1>
+                <p id="shade-date" class="text-[10px] opacity-40 font-bold uppercase tracking-widest mt-1">Jan 29, 2026</p>
+            </div>
+            <div class="bg-white/10 p-4 rounded-2xl" onclick="launchApp('settings')">⚙️</div>
+        </div>
+        <div class="grid grid-cols-4 gap-4 mb-10">
+            <div class="flex flex-col items-center gap-2"><div class="w-14 h-14 bg-blue-500 rounded-2xl flex items-center justify-center text-xl">📶</div><span class="text-[9px] uppercase font-bold">Wi-Fi</span></div>
+            <div class="flex flex-col items-center gap-2"><div class="w-14 h-14 bg-zinc-800 rounded-2xl flex items-center justify-center text-xl">🔦</div><span class="text-[9px] uppercase font-bold">Torch</span></div>
+            <div class="flex flex-col items-center gap-2"><div class="w-14 h-14 bg-zinc-800 rounded-2xl flex items-center justify-center text-xl">✈️</div><span class="text-[9px] uppercase font-bold">Flight</span></div>
+            <div class="flex flex-col items-center gap-2"><div class="w-14 h-14 bg-zinc-800 rounded-2xl flex items-center justify-center text-xl">🌙</div><span class="text-[9px] uppercase font-bold">DND</span></div>
+        </div>
+        <div class="bg-white/5 p-5 rounded-3xl border border-white/5">
+            <p class="text-[10px] font-bold uppercase opacity-30 mb-2">Notifications</p>
+            <div class="flex gap-4 items-center">
+                <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-lg">🤖</div>
+                <div>
+                    <p class="text-xs font-bold">System Update</p>
+                    <p class="text-[10px] opacity-40">Your Android 14 Ultra is up to date.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NAV BAR -->
+    <div id="global-nav">
+        <div class="nav-btn" onclick="handleBack()"><div class="nav-back"></div></div>
+        <div class="nav-btn" onclick="handleHome()"><div class="nav-home"></div></div>
+        <div class="nav-btn" onclick="handleRecents()"><div class="nav-recents"></div></div>
+    </div>
+
+    <!-- STATUS BAR -->
+    <div class="fixed top-0 left-0 w-full h-[var(--status-h)] z-[1000000] px-6 flex justify-between items-center text-[10px] font-bold pointer-events-none">
+        <span id="stat-time">00:00</span>
+        <div class="flex gap-3"><span>5G</span><span>🔋 98%</span></div>
+    </div>
+
+    <!-- APP VIEWPORT -->
+    <div id="app-viewport" class="pointer-events-none"></div>
+
+    <!-- MODAL -->
+    <div id="modal" class="fixed inset-0 z-[2000000] bg-black/90 hidden items-center justify-center p-6 backdrop-blur-lg">
+        <div id="modal-body" class="bg-zinc-900 border border-white/10 w-full max-w-sm rounded-[35px] p-8 shadow-2xl"></div>
+    </div>
+
+    <!-- GHOST -->
+    <div id="drag-ghost"></div>
+
+</div>
+
+<script>
+/** * ANDROID 14 ULTRA - SYSTEM ENGINE 
+ */
+
+const STORAGE_KEY = "ANDROID14_ULTRADB_V3";
+
+const state = {
+    users: JSON.parse(localStorage.getItem(STORAGE_KEY)) || [
+        {
+            id: 'u_default',
+            name: 'Master',
+            pin: '0000',
+            color: '#3b82f6',
+            theme: 'dark',
+            fs: {
+                '/': { type: 'dir', children: ['Documents', 'Pictures', 'Apps'] },
+                '/Documents': { type: 'dir', children: ['readme.txt'] },
+                '/Documents/readme.txt': { type: 'file', content: 'Welcome to the full Android 14 recode.' },
+                '/Pictures': { type: 'dir', children: [] },
+                '/Apps': { type: 'dir', children: [] }
+            },
+            chrome: {
+                homepage: 'https://www.google.com/search?igu=1',
+                activeTabId: 0,
+                tabs: [{ id: 0, title: 'Google', url: 'https://www.google.com/search?igu=1' }]
+            },
+            notes: [{ id: Date.now(), title: 'My First Note', content: 'This system is fully functional.' }],
+            contacts: [{ name: 'System Admin', num: '000', color: '#6366f1' }],
+            groups: []
+        }
+    ],
+    curUser: null,
+    activeApps: [],
+    pinBuffer: "",
+    touch: { x: 0, y: 0, startTime: 0 },
+    appLib: [
+        { id: 'phone', name: 'Phone', icon: '📞', color: '#10b981' },
+        { id: 'msgs', name: 'Messages', icon: '💬', color: '#3b82f6' },
+        { id: 'chrome', name: 'Chrome', icon: '🌐', color: '#fff', text: '#000' },
+        { id: 'files', name: 'My Files', icon: '📁', color: '#f59e0b' },
+        { id: 'play', name: 'Play Store', icon: '🛍️', color: '#ef4444' },
+        { id: 'camera', name: 'Camera', icon: '📷', color: '#18181b' },
+        { id: 'gallery', name: 'Gallery', icon: '🖼️', color: '#f97316' },
+        { id: 'notes', name: 'Notes', icon: '📝', color: '#8b5cf6' },
+        { id: 'calc', name: 'Calculator', icon: '➗', color: '#4b5563' },
+        { id: 'cal', name: 'Calendar', icon: '📅', color: '#fff', text: '#ef4444' },
+        { id: 'settings', name: 'Settings', icon: '⚙️', color: '#71717a' },
+        { id: 'clock', name: 'Clock', icon: '🕒', color: '#000' }
+    ]
+};
+
+// --- BOOTING ---
+
+async function initSystem() {
+    const consoleEl = document.getElementById('boot-console');
+    const log = (msg) => {
+        const d = document.createElement('div');
+        d.className = 'mb-1';
+        d.textContent = `> ${msg}`;
+        consoleEl.appendChild(d);
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+    };
+
+    const steps = [
+        "Verifying System Integrity...", "Loading Kernel v14.0.0-PRO...", "Mounting User Partitions...",
+        "Starting Dalvik Runtime...", "Connecting to Firestore-Cloud (Emulated)...", "Initializing UI Engine...",
+        "Setting up Nav-Bar Layer...", "Booting System Apps...", "Ready."
+    ];
+
+    for (let s of steps) {
+        log(s);
+        await new Promise(r => setTimeout(r, 200));
+    }
+    document.getElementById('boot-ready-ui').classList.remove('hidden');
+
+    // Start Real-time Clock
+    setInterval(() => {
+        const d = new Date();
+        const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        const dateStr = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+        
+        document.getElementById('stat-time').textContent = timeStr;
+        document.getElementById('lock-clock').textContent = timeStr;
+        document.getElementById('shade-clock').textContent = timeStr;
+        document.getElementById('lock-date').textContent = dateStr;
+        document.getElementById('shade-date').textContent = dateStr;
+    }, 1000);
+}
+
+function goToLockScreen() {
+    state.curUser = null;
+    showLayer('lock');
+    renderUserGrid();
+}
+
+function renderUserGrid() {
+    const grid = document.getElementById('user-selector');
+    grid.innerHTML = "";
+    state.users.forEach(u => {
+        const div = document.createElement('div');
+        div.className = "flex flex-col items-center gap-3 transition-transform active:scale-90";
+        div.innerHTML = `
+            <div class="w-20 h-20 rounded-full flex items-center justify-center text-3xl border-2 border-white/10" style="background:${u.color}">${u.name[0]}</div>
+            <span class="text-[10px] font-black uppercase tracking-widest">${u.name}</span>
+        `;
+        div.onclick = () => startPinEntry(u);
+        grid.appendChild(div);
+    });
+}
+
+// --- PIN / LOGIN ---
+
+function startPinEntry(u) {
+    state.curUser = u;
+    state.pinBuffer = "";
+    document.getElementById('pin-avatar').textContent = u.name[0];
+    document.getElementById('pin-avatar').style.background = u.color;
+    document.getElementById('pin-label').textContent = `Enter PIN for ${u.name}`;
+    showLayer('pin');
+    renderPinPad();
+    updatePinDots();
+}
+
+function renderPinPad() {
+    const pad = document.getElementById('pin-pad');
+    pad.innerHTML = "";
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, "C", 0, "⌫"].forEach(key => {
+        const btn = document.createElement('button');
+        btn.className = "kp-btn";
+        btn.textContent = key;
+        btn.onclick = () => {
+            if (key === "C") state.pinBuffer = "";
+            else if (key === "⌫") state.pinBuffer = state.pinBuffer.slice(0, -1);
+            else if (state.pinBuffer.length < 4) state.pinBuffer += key;
+            updatePinDots();
+        };
+        pad.appendChild(btn);
+    });
+}
+
+function updatePinDots() {
+    const dots = document.getElementById('pin-dots').children;
+    for (let i = 0; i < 4; i++) {
+        dots[i].classList.toggle('bg-white', i < state.pinBuffer.length);
+    }
+}
+
+function attemptLogin() {
+    if (state.pinBuffer === state.curUser.pin) {
+        showLayer('home');
+        renderDesktop();
+    } else {
+        state.pinBuffer = "";
+        updatePinDots();
+    }
+}
+
+// --- DESKTOP & GESTURES ---
+
+function showLayer(id) {
+    document.querySelectorAll('.layer').forEach(l => l.classList.remove('active'));
+    document.getElementById(`l-${id}`).classList.add('active');
+    document.getElementById('global-nav').style.display = (['home', 'drawer', 'recents'].includes(id) || state.activeApps.length > 0) ? 'flex' : 'none';
+}
+
+function renderDesktop() {
+    const grid = document.getElementById('home-grid');
+    const dock = document.getElementById('dock');
+    grid.innerHTML = ""; dock.innerHTML = "";
+
+    const apps = [...state.appLib, ...state.curUser.groups];
+    apps.forEach((app, i) => {
+        const icon = createIconElement(app);
+        if (i < 4) dock.appendChild(icon);
+        else grid.appendChild(icon);
+    });
+}
+
+function renderDrawer() {
+    const grid = document.getElementById('drawer-grid');
+    grid.innerHTML = "";
+    state.appLib.forEach(app => grid.appendChild(createIconElement(app)));
+}
+
+function createIconElement(app) {
+    const wrap = document.createElement('div');
+    wrap.className = "icon-wrap";
+    wrap.dataset.id = app.id;
+    
+    let inner = `<div class="icon-box" style="background:${app.color}; color:${app.text || '#fff'}">${app.icon}</div>`;
+    if (app.isGroup) {
+        inner = `
+            <div class="icon-box" style="background:${app.color}">
+                <div class="group-grid">
+                    ${app.apps.slice(0, 4).map(a => `<div class="group-mini">${a.icon}</div>`).join('')}
+                </div>
+            </div>`;
+    }
+
+    wrap.innerHTML = `${inner}<span class="icon-label">${app.name}</span>`;
+    wrap.onclick = () => launchApp(app.id);
+
+    // Drag Logic
+    wrap.onpointerdown = (e) => {
+        state.touch.startTime = Date.now();
+        const timer = setTimeout(() => {
+            if (Date.now() - state.touch.startTime > 300) initIconDrag(e, app);
+        }, 300);
+        wrap.onpointerup = () => clearTimeout(timer);
+    };
+
+    return wrap;
+}
+
+function initIconDrag(e, app) {
+    const ghost = document.getElementById('drag-ghost');
+    ghost.style.display = 'block';
+    ghost.style.background = app.color;
+    ghost.innerHTML = `<div class="w-full h-full flex items-center justify-center text-3xl">${app.icon}</div>`;
+    
+    const move = (me) => {
+        ghost.style.left = (me.clientX - 32) + 'px';
+        ghost.style.top = (me.clientY - 32) + 'px';
+    };
+
+    const end = (ue) => {
+        ghost.style.display = 'none';
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', end);
+        
+        const target = document.elementFromPoint(ue.clientX, ue.clientY)?.closest('.icon-wrap');
+        if (target && target.dataset.id !== app.id) {
+            handleAppGrouping(app.id, target.dataset.id);
+        }
+    };
+
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end);
+}
+
+function handleAppGrouping(id1, id2) {
+    const a1 = state.appLib.find(a => a.id === id1);
+    const a2 = state.appLib.find(a => a.id === id2) || state.curUser.groups.find(g => g.id === id2);
+    
+    if (!a1 || !a2 || a1.isGroup) return;
+
+    if (a2.isGroup) {
+        a2.apps.push(a1);
+    } else {
+        const newGroup = {
+            id: 'g_' + Date.now(),
+            name: 'New Folder',
+            color: 'rgba(255,255,255,0.15)',
+            isGroup: true,
+            apps: [a2, a1]
+        };
+        state.curUser.groups.push(newGroup);
+    }
+    saveData();
+    renderDesktop();
+}
+
+// --- APP RUNTIME ---
+
+function launchApp(id) {
+    const existing = state.activeApps.find(a => a.id === id);
+    if (existing) { focusApp(id); return; }
+
+    const info = state.appLib.find(a => a.id === id) || state.curUser.groups.find(g => g.id === id);
+    const win = document.createElement('div');
+    win.id = `win_${id}`;
+    win.className = "app-window active";
+    win.innerHTML = `
+        <div class="h-14 flex items-center justify-between px-6 bg-zinc-50 border-b">
+            <div class="flex items-center gap-3">
+                <span class="text-xl">${info.icon || '📁'}</span>
+                <span class="text-[10px] font-black uppercase tracking-widest opacity-40">${info.name}</span>
+            </div>
+            <button onclick="closeApp('${id}')" class="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center text-xs">✕</button>
+        </div>
+        <div id="body_${id}" class="flex-1 overflow-hidden relative"></div>
+    `;
+
+    document.getElementById('app-viewport').appendChild(win);
+    document.getElementById('app-viewport').classList.remove('pointer-events-none');
+    state.activeApps.push({ id, el: win });
+    renderAppUI(id, info);
+}
+
+function focusApp(id) {
+    document.querySelectorAll('.app-window').forEach(w => w.classList.remove('active'));
+    document.getElementById(`win_${id}`).classList.add('active');
+    document.getElementById('app-viewport').classList.remove('pointer-events-none');
+}
+
+function closeApp(id) {
+    document.getElementById(`win_${id}`)?.remove();
+    state.activeApps = state.activeApps.filter(a => a.id !== id);
+    if (state.activeApps.length === 0) document.getElementById('app-viewport').classList.add('pointer-events-none');
+}
+
+function killAllApps() {
+    state.activeApps.forEach(a => a.el.remove());
+    state.activeApps = [];
+    document.getElementById('app-viewport').classList.add('pointer-events-none');
+    showLayer('home');
+}
+
+// --- NAV ACTIONS ---
+
+function handleHome() {
+    document.querySelectorAll('.app-window').forEach(w => w.classList.remove('active'));
+    document.getElementById('app-viewport').classList.add('pointer-events-none');
+    showLayer('home');
+}
+
+function handleBack() {
+    if (state.activeApps.length > 0) {
+        const top = state.activeApps[state.activeApps.length - 1];
+        closeApp(top.id);
+    } else if (document.getElementById('l-drawer').classList.contains('active')) {
+        showLayer('home');
+    }
+}
+
+function handleRecents() {
+    showLayer('recents');
+    const list = document.getElementById('recents-list');
+    list.innerHTML = "";
+    state.activeApps.forEach(a => {
+        const info = state.appLib.find(x => x.id === a.id);
+        const card = document.createElement('div');
+        card.className = "min-w-[260px] h-[420px] bg-white rounded-[35px] snap-center shadow-2xl flex flex-col items-center justify-center border-4 border-white/5";
+        card.innerHTML = `<div class="text-7xl mb-4">${info.icon}</div><div class="font-black text-[10px] uppercase tracking-widest">${info.name}</div>`;
+        card.onclick = () => focusApp(a.id);
+        list.appendChild(card);
+    });
+}
+
+// --- APP DEFINITIONS ---
+
+function renderAppUI(id, app) {
+    const body = document.getElementById(`body_${id}`);
+    
+    if (app.isGroup) {
+        body.innerHTML = `
+            <div class="h-full bg-black/10 backdrop-blur-3xl p-8 grid grid-cols-3 gap-8">
+                ${app.apps.map(ga => `
+                    <div class="flex flex-col items-center gap-3" onclick="launchApp('${ga.id}')">
+                        <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg" style="background:${ga.color}">${ga.icon}</div>
+                        <span class="text-[9px] font-black uppercase text-center">${ga.name}</span>
+                    </div>
+                `).join('')}
+            </div>`;
+        return;
+    }
+
+    switch(id) {
+        case 'calc':
+            body.innerHTML = `
+                <div class="h-full flex flex-col bg-zinc-950 p-6">
+                    <div id="calc-res" class="flex-1 flex flex-col justify-end items-end text-white text-6xl font-thin pb-8 overflow-hidden">0</div>
+                    <div class="grid grid-cols-4 gap-3">
+                        ${['C','/','*','-','7','8','9','+','4','5','6','=','1','2','3','0','.','CLR'].map(k => `
+                            <button onclick="runCalc('${k}')" class="h-16 rounded-full text-xl ${['/','*','-','+','='].includes(k) ? 'bg-orange-500 text-white' : 'bg-zinc-800 text-white'}">${k}</button>
+                        `).join('')}
+                    </div>
+                </div>`;
+            break;
+
+        case 'chrome':
+            renderChrome(body);
+            break;
+
+        case 'files':
+            renderFS(body, '/');
+            break;
+
+        case 'notes':
+            renderNotes(body);
+            break;
+
+        case 'camera':
+            body.innerHTML = `
+                <div class="h-full flex flex-col bg-black">
+                    <div class="flex-1 bg-zinc-900 relative">
+                        <video id="cam-feed" autoplay playsinline class="w-full h-full object-cover"></video>
+                        <div class="absolute top-4 left-4 text-white text-2xl">⚡</div>
+                    </div>
+                    <div class="h-40 flex items-center justify-around">
+                        <div id="cam-preview" class="w-12 h-12 bg-zinc-800 rounded-lg overflow-hidden border border-white/20" onclick="launchApp('gallery')"></div>
+                        <button onclick="takeSnap()" class="w-20 h-20 rounded-full border-4 border-white p-1"><div class="w-full h-full bg-white rounded-full"></div></button>
+                        <button class="text-white text-3xl">🔄</button>
+                    </div>
+                </div>`;
+            navigator.mediaDevices.getUserMedia({video:true}).then(s=>document.getElementById('cam-feed').srcObject=s).catch(()=>{});
+            break;
+
+        case 'gallery':
+            renderGallery(body);
+            break;
+
+        case 'msgs':
+            renderMessages(body);
+            break;
+
+        case 'phone':
+            body.innerHTML = `
+                <div class="h-full flex flex-col bg-zinc-50 p-8">
+                    <div id="ph-num" class="text-5xl text-center mb-10 h-16 font-thin"></div>
+                    <div class="grid grid-cols-3 gap-6">
+                        ${[1,2,3,4,5,6,7,8,9,'*',0,'#'].map(n => `<button class="h-16 rounded-full bg-white text-2xl shadow-sm border border-black/5" onclick="document.getElementById('ph-num').innerText+='${n}'">${n}</button>`).join('')}
+                    </div>
+                    <button onclick="startCall(document.getElementById('ph-num').innerText)" class="mt-10 h-20 bg-green-500 rounded-full text-white text-4xl shadow-xl flex items-center justify-center">📞</button>
+                    <button onclick="document.getElementById('ph-num').innerText=''" class="mt-4 text-[10px] font-bold opacity-30 uppercase tracking-widest">Delete</button>
+                </div>`;
+            break;
+
+        case 'play':
+            renderPlayStore(body);
+            break;
+
+        case 'settings':
+            renderSettings(body);
+            break;
+            
+        case 'cal':
+            body.innerHTML = `
+                <div class="p-8 h-full bg-white">
+                    <div class="flex justify-between items-end mb-8">
+                        <h2 class="text-4xl font-black text-red-500">${new Date().toLocaleString('default', {month:'long'})}</h2>
+                        <span class="font-bold opacity-20">${new Date().getFullYear()}</span>
+                    </div>
+                    <div class="grid grid-cols-7 gap-y-8 text-center">
+                        ${['S','M','T','W','T','F','S'].map(d=>`<div class="text-[9px] font-black opacity-30">${d}</div>`).join('')}
+                        ${Array.from({length:31}, (_,i)=>`<div class="h-10 flex items-center justify-center text-sm ${i+1===new Date().getDate()?'bg-red-500 text-white rounded-full font-bold':''}">${i+1}</div>`).join('')}
+                    </div>
+                </div>`;
+            break;
+            
+        case 'clock':
+            body.innerHTML = `
+                <div class="h-full flex flex-col items-center justify-center bg-black text-white p-10">
+                    <div id="big-clock" class="text-7xl font-thin tracking-tighter mb-4">00:00:00</div>
+                    <div class="text-[10px] font-bold tracking-[0.5em] opacity-30 uppercase mb-20">Greenwich Mean Time</div>
+                    <div class="grid grid-cols-2 gap-4 w-full">
+                        <div class="bg-zinc-900 p-6 rounded-3xl text-center"><p class="text-xs font-bold">Alarm</p><p class="text-[9px] opacity-20">None</p></div>
+                        <div class="bg-zinc-900 p-6 rounded-3xl text-center"><p class="text-xs font-bold">Timer</p><p class="text-[9px] opacity-20">00:00</p></div>
+                    </div>
+                </div>`;
+            setInterval(()=>{const el=document.getElementById('big-clock'); if(el) el.innerText=new Date().toLocaleTimeString([],{hour12:false});}, 1000);
+            break;
+    }
+}
+
+// --- SPECIFIC APP LOGIC ---
+
+function renderChrome(el) {
+    const c = state.curUser.chrome;
+    const tab = c.tabs.find(t => t.id === c.activeTabId);
+    el.innerHTML = `
+        <div class="h-full flex flex-col bg-zinc-100">
+            <div class="chrome-tabs no-scrollbar">
+                ${c.tabs.map(t => `
+                    <div class="chrome-tab ${t.id === c.activeTabId ? 'active' : ''}" onclick="switchTab(${t.id})">
+                        <span class="truncate w-16">${t.title}</span>
+                        <span class="ml-2 opacity-30" onclick="event.stopPropagation(); closeTab(${t.id})">✕</span>
+                    </div>
+                `).join('')}
+                <button onclick="newTab()" class="px-4 py-2 text-xl font-bold">+</button>
+            </div>
+            <div class="p-3 bg-white border-b flex gap-2">
+                <input id="chrome-url" value="${tab.url}" class="flex-1 bg-zinc-100 p-3 rounded-xl text-xs outline-none">
+                <button onclick="navigateChrome()" class="bg-blue-600 text-white px-4 rounded-xl font-bold text-[10px]">GO</button>
+            </div>
+            <iframe id="chrome-frame" src="${tab.url}" class="flex-1 bg-white border-none"></iframe>
+        </div>`;
+}
+
+function newTab() {
+    const c = state.curUser.chrome;
+    const id = Date.now();
+    c.tabs.push({ id, title: 'New Tab', url: c.homepage });
+    c.activeTabId = id;
+    saveData(); renderChrome(document.getElementById('body_chrome'));
+}
+
+function switchTab(id) {
+    state.curUser.chrome.activeTabId = id;
+    saveData(); renderChrome(document.getElementById('body_chrome'));
+}
+
+function closeTab(id) {
+    const c = state.curUser.chrome;
+    if (c.tabs.length <= 1) return;
+    c.tabs = c.tabs.filter(t => t.id !== id);
+    if (c.activeTabId === id) c.activeTabId = c.tabs[0].id;
+    saveData(); renderChrome(document.getElementById('body_chrome'));
+}
+
+function navigateChrome() {
+    const url = document.getElementById('chrome-url').value;
+    const final = url.startsWith('http') ? url : 'https://' + url;
+    const c = state.curUser.chrome;
+    const tab = c.tabs.find(t => t.id === c.activeTabId);
+    tab.url = final;
+    tab.title = final.split('/')[2] || "Web";
+    saveData(); renderChrome(document.getElementById('body_chrome'));
+}
+
+function renderFS(el, path) {
+    const dir = state.curUser.fs[path];
+    el.innerHTML = `
+        <div class="p-6 bg-white border-b flex justify-between items-center sticky top-0 z-10">
+            <h3 class="text-[10px] font-black uppercase tracking-widest opacity-30">${path}</h3>
+            <div class="flex gap-3">
+                <button onclick="createFSItem('${path}', 'dir')" class="bg-blue-600 text-white px-3 py-1 rounded-lg text-[9px] font-bold">+DIR</button>
+                <button onclick="createFSItem('${path}', 'file')" class="bg-blue-600 text-white px-3 py-1 rounded-lg text-[9px] font-bold">+FILE</button>
+            </div>
+        </div>
+        <div class="divide-y divide-zinc-100 overflow-y-auto h-full pb-20">
+            ${dir.children.map(name => {
+                const full = path === '/' ? '/'+name : path+'/'+name;
+                const item = state.curUser.fs[full];
+                return `
+                    <div class="p-5 flex items-center gap-5 active:bg-zinc-50" onclick="${item.type==='dir' ? `renderFS(document.getElementById('body_files'),'${full}')` : `openFileInNotes('${full}')`}">
+                        <span class="text-3xl">${item.type==='dir'?'📁':'📄'}</span>
+                        <div class="flex-1">
+                            <p class="font-bold text-sm">${name}</p>
+                            <p class="text-[9px] opacity-30 uppercase">${item.type==='dir'?'Folder':'File'}</p>
+                        </div>
+                        <button onclick="event.stopPropagation(); deleteFSItem('${path}','${name}')" class="text-zinc-300">🗑️</button>
+                    </div>`;
+            }).join('')}
+        </div>`;
+}
+
+function createFSItem(path, type) {
+    const name = prompt(`Name for new ${type}:`);
+    if (!name) return;
+    const full = path === '/' ? '/'+name : path+'/'+name;
+    state.curUser.fs[path].children.push(name);
+    state.curUser.fs[full] = { type, children: type==='dir' ? [] : undefined, content: type==='file' ? '' : undefined };
+    saveData(); renderFS(document.getElementById('body_files'), path);
+}
+
+function deleteFSItem(path, name) {
+    state.curUser.fs[path].children = state.curUser.fs[path].children.filter(x => x !== name);
+    // Recursion would be needed for children in real FS, but for this sim we keep it flat.
+    saveData(); renderFS(document.getElementById('body_files'), path);
+}
+
+function renderNotes(el) {
+    el.innerHTML = `
+        <div class="h-full flex flex-col bg-zinc-50">
+            <div id="notes-list" class="p-6 space-y-4">
+                <button onclick="newNote()" class="w-full py-4 bg-white rounded-2xl shadow-sm border border-black/5 font-bold text-xs uppercase">+ Create New Note</button>
+                ${state.curUser.notes.map(n => `
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-black/5" onclick="editNote(${n.id})">
+                        <h4 class="font-bold mb-1">${n.title}</h4>
+                        <p class="text-[10px] opacity-40 truncate">${n.content}</p>
+                    </div>
+                `).join('')}
+            </div>
+            <div id="notes-editor" class="hidden h-full flex flex-col bg-white">
+                <div class="p-4 flex justify-between items-center border-b">
+                    <button onclick="document.getElementById('notes-list').classList.remove('hidden'); document.getElementById('notes-editor').classList.add('hidden')" class="text-xs font-bold text-blue-500 uppercase">Back</button>
+                    <input id="note-title" class="text-center font-bold outline-none" placeholder="Title">
+                    <button id="note-save-btn" class="text-xs font-bold text-green-500 uppercase">Save</button>
+                </div>
+                <textarea id="note-content" class="flex-1 p-6 text-sm outline-none resize-none" placeholder="Start writing..."></textarea>
+            </div>
+        </div>`;
+}
+
+function openFileInNotes(path) {
+    launchApp('notes');
+    const f = state.curUser.fs[path];
+    document.getElementById('notes-list').classList.add('hidden');
+    document.getElementById('notes-editor').classList.remove('hidden');
+    document.getElementById('note-title').value = path.split('/').pop();
+    document.getElementById('note-content').value = f.content;
+    document.getElementById('note-save-btn').onclick = () => {
+        f.content = document.getElementById('note-content').value;
+        saveData();
+        alert("File Saved to System");
+    };
+}
+
+function editNote(id) {
+    const note = state.curUser.notes.find(n => n.id === id);
+    document.getElementById('notes-list').classList.add('hidden');
+    document.getElementById('notes-editor').classList.remove('hidden');
+    document.getElementById('note-title').value = note.title;
+    document.getElementById('note-content').value = note.content;
+    document.getElementById('note-save-btn').onclick = () => {
+        note.title = document.getElementById('note-title').value;
+        note.content = document.getElementById('note-content').value;
+        saveData();
+        renderNotes(document.getElementById('body_notes'));
+    };
+}
+
+function newNote() {
+    const note = { id: Date.now(), title: 'Untitled', content: '' };
+    state.curUser.notes.push(note);
+    editNote(note.id);
+}
+
+function renderMessages(el) {
+    el.innerHTML = `
+        <div class="h-full flex flex-col bg-white">
+            <div class="p-8 border-b flex justify-between items-center">
+                <h2 class="text-3xl font-black">Chats</h2>
+                <button onclick="openModal('new_contact')" class="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center text-xl">+</button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                ${state.curUser.contacts.map(c => `
+                    <div class="flex items-center gap-4 p-4 active:bg-zinc-50 rounded-2xl" onclick="openChatUI('${c.name}')">
+                        <div class="w-14 h-14 rounded-full flex items-center justify-center text-white font-black" style="background:${c.color}">${c.name[0]}</div>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-sm">${c.name}</h4>
+                            <p class="text-[10px] opacity-40">Tap to message...</p>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>`;
+}
+
+function openChatUI(name) {
+    const c = state.curUser.contacts.find(x => x.name === name);
+    const body = document.getElementById('body_msgs');
+    body.innerHTML = `
+        <div class="h-full flex flex-col bg-zinc-50">
+            <div class="p-5 bg-white border-b flex items-center gap-4">
+                <button onclick="renderAppUI('msgs')" class="text-xl">⬅️</button>
+                <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background:${c.color}">${name[0]}</div>
+                <div class="flex-1 font-black text-xs uppercase">${name}</div>
+                <button onclick="startCall('${c.num}')" class="text-blue-500 font-bold">📞</button>
+            </div>
+            <div id="chat-box" class="flex-1 p-6 flex flex-col justify-end space-y-4">
+                <div class="bg-blue-500 text-white p-4 rounded-3xl rounded-tr-none self-end text-sm max-w-[80%]">Welcome to Android 14 messaging!</div>
+            </div>
+            <div class="p-4 bg-white flex gap-3 border-t">
+                <input id="chat-in" class="flex-1 bg-zinc-100 p-4 rounded-full text-xs outline-none" placeholder="Message...">
+                <button onclick="sendChatMessage()" class="bg-blue-500 text-white w-12 h-12 rounded-full flex items-center justify-center">⬆️</button>
+            </div>
+        </div>`;
+}
+
+function sendChatMessage() {
+    const i = document.getElementById('chat-in'); if(!i.value) return;
+    const box = document.getElementById('chat-box');
+    box.innerHTML += `<div class="bg-blue-500 text-white p-4 rounded-3xl rounded-tr-none self-end text-sm max-w-[80%]">${i.value}</div>`;
+    i.value = "";
+    box.scrollTop = box.scrollHeight;
+}
+
+function renderSettings(el) {
+    el.innerHTML = `
+        <div class="h-full bg-zinc-50 overflow-y-auto pb-24">
+            <div class="p-8 space-y-8">
+                <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-6">
+                    <div class="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-black text-white" style="background:${state.curUser.color}">${state.curUser.name[0]}</div>
+                    <div><h4 class="font-bold">${state.curUser.name}</h4><p class="text-[9px] opacity-30 uppercase font-black">Android ID: ${state.curUser.id}</p></div>
+                </div>
+                <div class="space-y-3">
+                    <p class="text-[10px] font-black uppercase opacity-30 px-2">Account</p>
+                    <div class="bg-white p-5 rounded-2xl flex justify-between items-center" onclick="openModal('create_user')"><span>Add New Account</span><span>❯</span></div>
+                    <div class="bg-white p-5 rounded-2xl flex justify-between items-center" onclick="location.reload()"><span>Logout / Lock</span><span>❯</span></div>
+                </div>
+                <div class="space-y-3">
+                    <p class="text-[10px] font-black uppercase opacity-30 px-2">System</p>
+                    <div class="bg-white p-5 rounded-2xl flex justify-between items-center"><span>Display & Theme</span><span>❯</span></div>
+                    <div class="bg-white p-5 rounded-2xl flex justify-between items-center"><span>OS Version</span><span class="text-[10px] opacity-40 font-bold">14.0.0</span></div>
+                </div>
+            </div>
+        </div>`;
+}
+
+function renderPlayStore(el) {
+    el.innerHTML = `
+        <div class="h-full bg-white flex flex-col">
+            <div class="p-8 border-b"><h1 class="text-3xl font-black">App Publisher</h1></div>
+            <div class="flex-1 overflow-y-auto p-8 space-y-6">
+                <div class="bg-zinc-50 p-6 rounded-3xl border border-black/5">
+                    <p class="text-[10px] font-black uppercase opacity-30 mb-4">Metadata</p>
+                    <input id="ap-name" placeholder="App Name" class="w-full mb-3 p-4 bg-white rounded-xl text-sm border">
+                    <input id="ap-icon" placeholder="Emoji Icon" class="w-full p-4 bg-white rounded-xl text-sm border">
+                </div>
+                <div class="bg-zinc-50 p-6 rounded-3xl border border-black/5">
+                    <p class="text-[10px] font-black uppercase opacity-30 mb-4">HTML Code</p>
+                    <textarea id="ap-code" placeholder="<html><body>...</body></html>" class="w-full h-40 p-4 bg-white rounded-xl font-mono text-xs border"></textarea>
+                </div>
+                <button onclick="publishApp()" class="w-full py-5 bg-blue-600 text-white rounded-3xl font-black shadow-lg">Publish to My Apps</button>
+            </div>
+        </div>`;
+}
+
+// --- UTILS & MODALS ---
+
+function runCalc(k) {
+    const res = document.getElementById('calc-res');
+    if (k === 'C' || k === 'CLR') res.innerText = "0";
+    else if (k === '=') try { res.innerText = eval(res.innerText); } catch { res.innerText = "Err"; }
+    else res.innerText = res.innerText === "0" ? k : res.innerText + k;
+}
+
+function startCall(num) { openModal('calling', { num: num || 'Unknown' }); }
+
+function openModal(type, data={}) {
+    const m = document.getElementById('modal');
+    const b = document.getElementById('modal-body');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+    
+    if (type === 'create_user') {
+        b.innerHTML = `
+            <h2 class="text-2xl font-black mb-6">Create Account</h2>
+            <input id="nu-name" placeholder="Name" class="w-full p-4 bg-zinc-800 rounded-2xl mb-4 text-white">
+            <input id="nu-pin" placeholder="4-Digit PIN" maxlength="4" class="w-full p-4 bg-zinc-800 rounded-2xl mb-8 text-white">
+            <div class="flex gap-4">
+                <button onclick="closeModal()" class="flex-1 font-bold text-xs opacity-40">Cancel</button>
+                <button onclick="createNewUser()" class="flex-1 py-4 bg-white text-black rounded-2xl font-black">Create</button>
+            </div>`;
+    } else if (type === 'calling') {
+        b.innerHTML = `
+            <div class="text-center py-10">
+                <div class="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-8 animate-pulse text-4xl text-white">📞</div>
+                <h2 class="text-4xl font-thin mb-4">${data.num}</h2>
+                <p class="text-[10px] opacity-40 uppercase tracking-widest mb-16">Establishing Secure Link...</p>
+                <button onclick="closeModal()" class="w-full py-5 bg-red-500 text-white rounded-3xl font-black">End Session</button>
+            </div>`;
+    } else if (type === 'new_contact') {
+        b.innerHTML = `
+            <h2 class="text-2xl font-black mb-6">New Contact</h2>
+            <input id="nc-name" placeholder="Full Name" class="w-full p-4 bg-zinc-800 rounded-2xl mb-4 text-white">
+            <input id="nc-num" placeholder="Number" class="w-full p-4 bg-zinc-800 rounded-2xl mb-8 text-white">
+            <button onclick="saveContact()" class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black">Save Contact</button>
+        `;
+    }
+}
+
+function closeModal() { document.getElementById('modal').classList.replace('flex', 'hidden'); }
+
+function createNewUser() {
+    const n = document.getElementById('nu-name').value;
+    const p = document.getElementById('nu-pin').value;
+    if (!n || p.length < 4) return;
+    const colors = ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6'];
+    state.users.push({
+        id: 'u_' + Date.now(), name: n, pin: p, color: colors[Math.floor(Math.random()*colors.length)], 
+        fs: {'/':{type:'dir',children:['Docs']},'/Docs':{type:'dir',children:[]}},
+        chrome: { homepage: 'https://www.google.com/search?igu=1', activeTabId: 0, tabs: [{id:0, title:'Google', url:'https://www.google.com/search?igu=1'}] },
+        notes: [], contacts: [], groups: []
+    });
+    saveData();
+    renderUserGrid();
+    closeModal();
+}
+
+function saveContact() {
+    const n = document.getElementById('nc-name').value;
+    const num = document.getElementById('nc-num').value;
+    if(!n || !num) return;
+    state.curUser.contacts.push({ name: n, num, color: '#'+Math.floor(Math.random()*16777215).toString(16) });
+    saveData();
+    renderMessages(document.getElementById('body_msgs'));
+    closeModal();
+}
+
+function takeSnap() {
+    const v = document.getElementById('cam-feed');
+    const c = document.createElement('canvas');
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    c.getContext('2d').drawImage(v, 0, 0);
+    const data = c.toDataURL('image/png');
+    const name = `IMG_${Date.now()}.png`;
+    state.curUser.fs['/Pictures'].children.push(name);
+    state.curUser.fs['/Pictures/'+name] = { type: 'file', content: data };
+    saveData();
+    document.getElementById('cam-preview').innerHTML = `<img src="${data}" class="w-full h-full object-cover">`;
+}
+
+function renderGallery(el) {
+    const pics = state.curUser.fs['/Pictures'].children;
+    el.innerHTML = `
+        <div class="h-full bg-white flex flex-col">
+            <div class="p-6 border-b flex justify-between items-center"><h2 class="text-xl font-black">Photos</h2><span class="text-[10px] opacity-30">${pics.length} Items</span></div>
+            <div class="flex-1 overflow-y-auto p-1 grid grid-cols-3 gap-1">
+                ${pics.map(p => `
+                    <div class="aspect-square bg-zinc-100 border border-black/5">
+                        <img src="${state.curUser.fs['/Pictures/'+p].content}" class="w-full h-full object-cover">
+                    </div>
+                `).join('')}
+            </div>
+        </div>`;
+}
+
+function publishApp() {
+    const n = document.getElementById('ap-name').value;
+    const i = document.getElementById('ap-icon').value;
+    const c = document.getElementById('ap-code').value;
+    if (!n || !i) return;
+    const id = 'custom_'+Date.now();
+    state.appLib.push({ id, name: n, icon: i, color: '#000', custom: c });
+    saveData();
+    renderDesktop();
+    closeApp('play');
+}
+
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.users)); }
+
+// GESTURES
+window.addEventListener('touchstart', e => { 
+    state.touch.x = e.touches[0].clientX; 
+    state.touch.y = e.touches[0].clientY; 
+    state.touch.startTime = Date.now();
+});
+
+window.addEventListener('touchend', e => {
+    const dy = e.changedTouches[0].clientY - state.touch.y;
+    const dx = e.changedTouches[0].clientX - state.touch.x;
+    
+    // Swipe Up from bottom (Home / Drawer)
+    if (dy < -80 && state.touch.y > window.innerHeight - 100) {
+        if (state.curUser) showLayer('drawer');
+        else goToLockScreen();
+    }
+    
+    // Swipe Down from top (Shade)
+    if (dy > 80 && state.touch.y < 80) {
+        document.getElementById('shade').classList.add('active');
+    }
+    
+    // Close Shade
+    if (dy < -80 && document.getElementById('shade').classList.contains('active')) {
+        document.getElementById('shade').classList.remove('active');
+    }
+
+    // Close Drawer
+    if (dy > 80 && document.getElementById('l-drawer').classList.contains('active')) {
+        showLayer('home');
+    }
+});
+
+</script>
+</body>
+</html>

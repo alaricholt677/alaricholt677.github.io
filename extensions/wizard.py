@@ -1,87 +1,168 @@
-import os, sys, shutil, zipfile, tempfile, subprocess
+import os
+import sys
+import tkinter as tk
+from tkinter import ttk, messagebox
+import urllib.request
+import zipfile
+import tempfile
+import shutil
+import subprocess
+import winreg
+import logging
+import ctypes
 
-PATH_FILE = r"C:\all\path.txt"
+ZIP_URL = "https://alaricholt677.github.io/extension/files/all.zip"
+INSTALL_DIR = r"C:\all"
+RUN_BAT = r"C:\all\run.bat"
+ICON_PATH = r"C:\all\icon.ico"
 
-def read_pkg_path():
-    with open(PATH_FILE, "r", encoding="utf-8") as f:
-        raw = f.read().strip()
+EXT = ".ospyohtmlapp"
+PROG_ID = "MirrorReality.ospyohtmlapp"
 
-    # Remove wrapping quotes if present
-    if raw.startswith('"') and raw.endswith('"'):
-        raw = raw[1:-1]
 
-    # Remove any stray quotes
-    raw = raw.replace('"', '').replace("'", "")
+# ---------------------------------------------------------
+# Admin Elevation
+# ---------------------------------------------------------
+def is_admin():
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
 
-    # Normalize slashes
-    raw = raw.replace("\\\\", "\\").replace("/", "\\")
 
-    return raw
-
-def parse_opts(path):
-    opts = {}
-    if not os.path.exists(path):
-        return opts
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            if "=" in line:
-                k, v = line.strip().split("=", 1)
-                opts[k.lower()] = v.strip()
-    return opts
-
-def inject_fullscreen(script):
-    with open(script, "r", encoding="utf-8") as f:
-        code = f.read()
-    if "_MR_FULLSCREEN_PATCH" in code:
+def elevate_if_needed():
+    if is_admin():
         return
-    patch = """
-# --- _MR_FULLSCREEN_PATCH BEGIN ---
-try:
-    import tkinter as tk
-    _orig = tk.Tk
-    class _MR_FullscreenTk(tk.Tk):
-        def __init__(self, *a, **k):
-            super().__init__(*a, **k)
-            try:
-                self.attributes("-fullscreen", True)
-                self.attributes("-topmost", True)
-            except:
-                pass
-    tk.Tk = _MR_FullscreenTk
-except:
-    pass
-# --- _MR_FULLSCREEN_PATCH END ---
-"""
-    with open(script, "w", encoding="utf-8") as f:
-        f.write(patch + "\n" + code)
+    script = os.path.abspath(__file__)
+    params = f"\"{script}\""
+    ctypes.windll.shell32.ShellExecuteW(
+        None, "runas", sys.executable, params, None, 1
+    )
+    sys.exit(0)
 
-def main():
-    pkg = read_pkg_path()
-    base = os.path.splitext(os.path.basename(pkg))[0]
-    extract_dir = os.path.join(os.path.dirname(pkg), base + "_result")
 
-    if os.path.exists(extract_dir):
-        shutil.rmtree(extract_dir)
-    os.makedirs(extract_dir, exist_ok=True)
+# ---------------------------------------------------------
+# Logging
+# ---------------------------------------------------------
+logging.basicConfig(level=logging.INFO, format="[Wizard] %(message)s")
+log = logging.getLogger("Wizard")
 
-    tmp_zip = os.path.join(tempfile.gettempdir(), "ospyo_temp.zip")
-    shutil.copyfile(pkg, tmp_zip)
 
-    with zipfile.ZipFile(tmp_zip, "r") as z:
-        z.extractall(extract_dir)
+# ---------------------------------------------------------
+# UI Installer Window
+# ---------------------------------------------------------
+class InstallerUI:
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title("Extension Wizard Installer")
+        self.root.geometry("600x400")
 
-    opts = parse_opts(os.path.join(extract_dir, "opts.txt"))
-    fullscreen = opts.get("fullscreen", "no") == "yes"
-    rundir = opts.get("rundir", ".")
-    script = opts.get("script", "main.py")
+        ttk.Label(self.root, text="Mirror Reality Extension Wizard", font=("Segoe UI", 16)).pack(pady=10)
 
-    work_dir = os.path.join(extract_dir, rundir)
-    script_path = os.path.join(work_dir, script)
+        self.log_box = tk.Text(self.root, height=15, width=70, state="disabled")
+        self.log_box.pack(padx=10, pady=10)
 
-    if fullscreen:
-        inject_fullscreen(script_path)
+        self.install_btn = ttk.Button(self.root, text="Install", command=self.install)
+        self.install_btn.pack(pady=10)
 
-    subprocess.Popen([sys.executable, script_path], cwd=work_dir)
+    def log(self, msg):
+        self.log_box.config(state="normal")
+        self.log_box.insert("end", msg + "\n")
+        self.log_box.config(state="disabled")
+        self.log_box.see("end")
+        log.info(msg)
 
+    def install(self):
+        self.install_btn.config(state="disabled")
+        self.log("Starting installation...")
+
+        try:
+            ensure_tkwebview(self)
+            download_and_extract_zip(self)
+            setup_registry(self)
+            self.log("Installation complete!")
+            messagebox.showinfo("Done", "Extension Wizard installed successfully.")
+        except Exception as e:
+            self.log(f"ERROR: {e}")
+            messagebox.showerror("Error", str(e))
+
+    def run(self):
+        self.root.mainloop()
+
+
+# ---------------------------------------------------------
+# tkwebview Installer
+# ---------------------------------------------------------
+def ensure_tkwebview(ui):
+    ui.log("Checking for tkwebview...")
+
+    try:
+        import tkwebview
+        ui.log("tkwebview already installed.")
+        return
+    except ImportError:
+        ui.log("tkwebview missing. Installing...")
+
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "tkwebview"])
+    ui.log("tkwebview installed.")
+
+
+# ---------------------------------------------------------
+# Download + Extract ZIP
+# ---------------------------------------------------------
+def download_and_extract_zip(ui):
+    ui.log("Downloading package ZIP...")
+    tmp_zip = os.path.join(tempfile.gettempdir(), "mr_all.zip")
+    urllib.request.urlretrieve(ZIP_URL, tmp_zip)
+    ui.log("Download complete.")
+
+    if os.path.exists(INSTALL_DIR):
+        shutil.rmtree(INSTALL_DIR)
+
+    os.makedirs(INSTALL_DIR, exist_ok=True)
+
+    ui.log(f"Extracting ZIP to {INSTALL_DIR}...")
+    with zipfile.ZipFile(tmp_zip, "r") as zf:
+        zf.extractall(INSTALL_DIR)
+
+    ui.log("Extraction complete.")
+
+
+# ---------------------------------------------------------
+# Registry Setup
+# ---------------------------------------------------------
+def reg_set(ui, root, path, name, value):
+    key = winreg.CreateKeyEx(root, path, 0, winreg.KEY_SET_VALUE)
+    winreg.SetValueEx(key, name, 0, winreg.REG_SZ, value)
+    winreg.CloseKey(key)
+    ui.log(f"Registry: {path} -> {name} = {value}")
+
+
+def setup_registry(ui):
+    ui.log("Setting up registry...")
+
+    # Associate extension
+    reg_set(ui, winreg.HKEY_CLASSES_ROOT, EXT, "", PROG_ID)
+
+    # ProgID description
+    reg_set(ui, winreg.HKEY_CLASSES_ROOT, PROG_ID, "", "Mirror Reality HTML5 App")
+
+    # Icon
+    reg_set(ui, winreg.HKEY_CLASSES_ROOT, f"{PROG_ID}\\DefaultIcon", "", ICON_PATH)
+
+    # Open command → run.bat "%1"
+    cmd = f"\"{RUN_BAT}\" \"%1\""
+    reg_set(ui, winreg.HKEY_CLASSES_ROOT, f"{PROG_ID}\\shell\\open\\command", "", cmd)
+
+    # ShellNew
+    reg_set(ui, winreg.HKEY_CLASSES_ROOT, f"{EXT}\\ShellNew", "NullFile", "")
+
+    ui.log("Registry setup complete.")
+
+
+# ---------------------------------------------------------
+# Main
+# ---------------------------------------------------------
 if __name__ == "__main__":
-    main()
+    elevate_if_needed()
+    InstallerUI().run()

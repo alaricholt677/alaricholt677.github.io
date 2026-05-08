@@ -20,6 +20,14 @@
     },
     {
       "version": "0.0.1",
+      "mc": "the raw java enviroment",
+      "loader": "Java Runtime",
+      "date": "2026-02-20",
+      "file": "baldis_basics_-1.jar",
+      "notes": "my first mod in an addon"
+    },
+    {
+      "version": "0.0.1",
       "mc": "1.21.x / 26.x on bedrock",
       "loader": "Minecraft Addon Launcher",
       "date": "2026-02-20",

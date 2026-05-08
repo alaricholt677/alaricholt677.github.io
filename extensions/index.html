@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mirror Reality Extension Wizard Installer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #0d1117;
+        color: #e6edf3;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px;
+    }
+
+    h1 {
+        font-size: 32px;
+        margin-bottom: 10px;
+        color: #f0b429;
+    }
+
+    p {
+        opacity: 0.8;
+    }
+
+    .card {
+        background: #161b22;
+        padding: 30px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 600px;
+        text-align: center;
+        box-shadow: 0 0 20px rgba(0,0,0,0.4);
+        transition: 0.3s;
+    }
+
+    button {
+        background: #238636;
+        border: none;
+        padding: 14px 28px;
+        font-size: 18px;
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+        margin-top: 20px;
+        transition: 0.2s;
+    }
+
+    button:hover {
+        background: #2ea043;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    .os-buttons button {
+        background: #30363d;
+        margin: 10px;
+        width: 150px;
+    }
+
+    .os-buttons button:hover {
+        background: #484f58;
+    }
+
+    .steps {
+        margin-top: 40px;
+        text-align: center;
+    }
+
+    .steps img {
+        width: 90%;
+        max-width: 500px;
+        margin: 20px 0;
+        border-radius: 10px;
+        border: 2px solid #30363d;
+    }
+</style>
+
+<script>
+function showOS() {
+    document.getElementById("installCard").classList.add("hidden");
+    document.getElementById("osCard").classList.remove("hidden");
+}
+
+function chooseOS(os) {
+    window.selectedOS = os;
+    document.getElementById("osCard").classList.add("hidden");
+    document.getElementById("fileCard").classList.remove("hidden");
+}
+
+function downloadWizard() {
+    const link = document.createElement("a");
+    link.href = "wizard.py";
+    link.download = "wizard.py";
+    link.click();
+
+    document.getElementById("fileCard").classList.add("hidden");
+    document.getElementById("doneCard").classList.remove("hidden");
+}
+</script>
+
+</head>
+<body>
+
+<h1>Mirror Reality Extension Wizard</h1>
+<p>Install the platform in three simple steps.</p>
+
+<div id="installCard" class="card">
+    <h2>Start Installation</h2>
+    <p>Click below to begin.</p>
+    <button onclick="showOS()">Install</button>
+</div>
+
+<div id="osCard" class="card hidden">
+    <h2>Select Your OS</h2>
+    <div class="os-buttons">
+        <button onclick="chooseOS('windows')">Windows</button>
+        <button onclick="chooseOS('linux')">Linux</button>
+        <button onclick="chooseOS('mac')">macOS</button>
+    </div>
+</div>
+
+<div id="fileCard" class="card hidden">
+    <h2>Download Installer</h2>
+    <p>Click below to download wizard.py into this folder.</p>
+    <button onclick="downloadWizard()">Download wizard.py</button>
+</div>
+
+<div id="doneCard" class="card hidden">
+    <h2>All Set!</h2>
+    <p>Your installer has been downloaded.</p>
+</div>
+
+<div class="steps">
+    <h2>Installation Steps</h2>
+    <img src="steps/step1.png" alt="Step 1">
+    <img src="steps/step2.png" alt="Step 2">
+    <img src="steps/step3.png" alt="Step 3">
+</div>
+
+</body>
+</html>

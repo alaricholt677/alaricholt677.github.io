@@ -42,6 +42,13 @@
       "branch": "dev",
       "file": "my_first_mod-1.0.0-neoforge-1.21.8 (7).jar",
       "unstable": false
+    },
+    {
+      "id": "2026-03-08-f",
+      "mc": "1.21.8",
+      "branch": "dev",
+      "file": "my_first_mod-1.0.0-neoforge-1.21.8.jar",
+      "unstable": true
     }
   ]
 }

@@ -36,6 +36,14 @@
     },
     {
       "version": "0.0.1",
+      "mc": "the raw java enviroment",
+      "loader": "java runtime",
+      "date": "2026-05-12",
+      "file": "IRLSimulatorLauncher.java",
+      "notes": "IRL Simulator official launcher"
+    },
+    {
+      "version": "0.0.1",
       "mc": "1.21.x / 26.x on bedrock",
       "loader": "Minecraft Addon Launcher",
       "date": "2026-02-20",

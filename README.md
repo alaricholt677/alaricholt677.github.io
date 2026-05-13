@@ -340,7 +340,14 @@ A modern, draggable, theme‑aware dock for Windows that replaces the pinned‑a
 
 ### 🔗 Download / Source
 **Windhawk Mod:**  
-search for in **`dicovery tab:`** ***"win12 floating dock"*** it might or might *not* appear
+Download here: **Alaricholt677.github.io/dockmod/download**,
+**Then** Click *"create new mod"*,
+**Then you** open the downloaded file in **notepad**,
+**And then** copy and paste the code into the editor **and** get rid of the *placeholder* **code** before ***pasting***,
+**And lastly** Click *"Compile Mod"*,
+**Then click** *"exit editor"* and click *"i am sure"* **or** *"confirm"* **or** *"yes"* and **then** enable the mod.
+***BOOM***, You'll have the taskbar floating and ready to **use**
+***"win12 floating dock"*** it might or might *not* appear
 
 This mod was created by **Alaric** and is fully compatible with the Win12 aesthetic.
 

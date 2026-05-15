@@ -1,0 +1,32 @@
+[
+  {
+    "title": "Starter Pack",
+    "description": "A basic starter pack containing simple assets for new players.",
+    "icon": "https://alaricholt677.github.io/IRLStoreFree/icons/starter.png",
+    "download": "https://alaricholt677.github.io/IRLStoreFree/downloads/starter.zip"
+  },
+  {
+    "title": "Modern House",
+    "description": "A clean modern house build for your IRL world.",
+    "icon": "https://alaricholt677.github.io/IRLStoreFree/icons/modernhouse.png",
+    "download": "https://alaricholt677.github.io/IRLStoreFree/downloads/modernhouse.zip"
+  },
+  {
+    "title": "City Props",
+    "description": "Street lights, benches, signs, and other city decorations.",
+    "icon": "https://alaricholt677.github.io/IRLStoreFree/icons/cityprops.png",
+    "download": "https://alaricholt677.github.io/IRLStoreFree/downloads/cityprops.zip"
+  },
+  {
+    "title": "Vehicle Pack",
+    "description": "Cars, trucks, and bikes to place in your world.",
+    "icon": "https://alaricholt677.github.io/IRLStoreFree/icons/vehicles.png",
+    "download": "https://alaricholt677.github.io/IRLStoreFree/downloads/vehicles.zip"
+  },
+  {
+    "title": "Nature Expansion",
+    "description": "Trees, rocks, plants, and natural decorations.",
+    "icon": "https://alaricholt677.github.io/IRLStoreFree/icons/nature.png",
+    "download": "https://alaricholt677.github.io/IRLStoreFree/downloads/nature.zip"
+  }
+]

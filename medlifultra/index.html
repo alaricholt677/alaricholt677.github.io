@@ -1,0 +1,593 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MedliUltra | Red Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://alaricholt677.github.io/SpotifyProxyPKGHelper/os.spotify.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+        
+        :root {
+            --mu-red: #ff0000;
+            --mu-red-dark: #cc0000;
+            --mu-bg: #000000;
+            --mu-panel: #0a0a0a;
+            --mu-card: #141414;
+            --mu-text-dim: #b3b3b3;
+        }
+
+        body {
+            background-color: var(--mu-bg);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .red-glow-hover:hover {
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+        }
+
+        #desktop-sidebar {
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .active-nav {
+            color: var(--mu-red) !important;
+            border-right: 3px solid var(--mu-red);
+        }
+
+        .progress-bar-bg {
+            background: #333;
+            height: 4px;
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            background: var(--mu-red);
+            height: 100%;
+            width: 0%;
+            border-radius: 2px;
+            box-shadow: 0 0 10px var(--mu-red);
+        }
+
+        .track-row.playing {
+            color: var(--mu-red);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--mu-red); }
+
+        .modal-bg {
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <!-- FLOATING DRAGGABLE SIDEBAR (PC) -->
+    <aside id="desktop-sidebar" class="hidden lg:flex flex-col fixed top-6 left-6 bottom-[100px] w-64 rounded-3xl z-[1000] shadow-2xl">
+        <div id="drag-handle" class="cursor-grab p-4 flex justify-center border-b border-white/5 active:cursor-grabbing">
+            <div class="w-12 h-1 bg-white/10 rounded-full"></div>
+        </div>
+        <div class="p-6 flex flex-col h-full overflow-hidden">
+            <div class="flex items-center gap-3 mb-10">
+                <div class="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+                    <i data-lucide="zap" class="w-5 h-5 fill-current"></i>
+                </div>
+                <span class="font-black text-xl tracking-tighter uppercase">Medli<span class="text-red-600">Ultra</span></span>
+            </div>
+
+            <nav class="flex flex-col gap-2 mb-8">
+                <button onclick="switchView('home')" id="nav-home" class="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition font-semibold text-sm active-nav"><i data-lucide="home" class="w-5 h-5"></i> Home</button>
+                <button onclick="switchView('search')" id="nav-search" class="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition font-semibold text-sm"><i data-lucide="search" class="w-5 h-5"></i> Search</button>
+                <button onclick="switchView('library')" id="nav-library" class="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition font-semibold text-sm"><i data-lucide="library" class="w-5 h-5"></i> Library</button>
+            </nav>
+
+            <div class="flex-1 overflow-y-auto pr-2">
+                <div class="flex items-center justify-between text-[10px] uppercase tracking-widest text-white/40 mb-4 font-bold">
+                    <span>Your Clusters</span>
+                    <i data-lucide="plus" class="w-3 h-3 cursor-pointer hover:text-red-600" onclick="openModal('create-playlist')"></i>
+                </div>
+                <div id="sidebar-playlists-list" class="flex flex-col gap-1"></div>
+            </div>
+
+            <button onclick="openModal('settings')" class="mt-4 p-3 rounded-xl hover:bg-white/5 transition text-sm flex items-center gap-4 text-white/60"><i data-lucide="settings" class="w-5 h-5"></i> Settings</button>
+        </div>
+    </aside>
+
+    <!-- MAIN VIEWPORT -->
+    <main class="flex-1 overflow-y-auto lg:pl-[312px] pb-[180px] lg:pb-[120px]" id="viewport"></main>
+
+    <!-- MASTER PLAYER -->
+    <footer class="fixed bottom-0 left-0 w-full h-[100px] bg-black border-t border-white/5 z-[2000] px-4 lg:px-10 flex items-center justify-between pb-safe">
+        <!-- Track Info -->
+        <div class="flex items-center gap-4 w-1/3 min-w-[150px]">
+            <div class="w-14 h-14 bg-neutral-900 rounded-lg overflow-hidden flex-shrink-0">
+                <img id="p-cover" src="" class="w-full h-full object-cover hidden">
+            </div>
+            <div class="truncate">
+                <h4 id="p-title" class="text-sm font-bold text-white truncate">System Idle</h4>
+                <p id="p-artist" class="text-xs text-white/50 truncate">No track playing</p>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex-1 max-w-2xl flex flex-col items-center gap-2">
+            <div class="flex items-center gap-6">
+                <button onclick="prevTrack()" class="text-white/40 hover:text-red-600 transition"><i data-lucide="skip-back" class="w-5 h-5 fill-current"></i></button>
+                <button onclick="togglePlayback()" id="p-main-btn" class="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition shadow-lg shadow-white/5">
+                    <i data-lucide="play" id="p-icon" class="w-5 h-5 fill-current ml-0.5"></i>
+                </button>
+                <button onclick="nextTrack()" class="text-white/40 hover:text-red-600 transition"><i data-lucide="skip-forward" class="w-5 h-5 fill-current"></i></button>
+            </div>
+            <div class="w-full flex items-center gap-3">
+                <span id="p-time-curr" class="text-[10px] text-white/40 min-w-[30px]">0:00</span>
+                <div class="progress-bar-bg flex-1" onclick="seek(event)">
+                    <div id="p-fill" class="progress-bar-fill"></div>
+                </div>
+                <span id="p-time-total" class="text-[10px] text-white/40 min-w-[30px]">0:00</span>
+            </div>
+        </div>
+
+        <!-- Extra -->
+        <div class="w-1/3 hidden lg:flex justify-end items-center gap-4 text-white/40">
+            <i data-lucide="volume-2" class="w-4 h-4"></i>
+            <div class="w-24 progress-bar-bg"><div class="progress-bar-fill w-3/4"></div></div>
+        </div>
+    </footer>
+
+    <!-- MOBILE TABS -->
+    <nav class="lg:hidden fixed bottom-[100px] left-0 w-full bg-black/80 backdrop-blur-xl border-t border-white/5 h-16 flex items-center justify-around z-[1900]">
+        <button onclick="switchView('home')" class="flex flex-col items-center gap-1 text-white/40"><i data-lucide="home" class="w-5 h-5"></i><span class="text-[10px]">Home</span></button>
+        <button onclick="switchView('search')" class="flex flex-col items-center gap-1 text-white/40"><i data-lucide="search" class="w-5 h-5"></i><span class="text-[10px]">Search</span></button>
+        <button onclick="switchView('library')" class="flex flex-col items-center gap-1 text-white/40"><i data-lucide="library" class="w-5 h-5"></i><span class="text-[10px]">Library</span></button>
+    </nav>
+
+    <!-- MODAL OVERLAY -->
+    <div id="modal" class="fixed inset-0 z-[3000] modal-bg hidden flex items-center justify-center p-4">
+        <div id="modal-container" class="w-full max-w-md bg-neutral-900 rounded-3xl p-8 border border-white/5 shadow-2xl relative">
+            <button onclick="closeModal()" class="absolute top-6 right-6 text-white/20 hover:text-white transition"><i data-lucide="x"></i></button>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
+    <audio id="audio-engine" class="hidden"></audio>
+
+    <script>
+        // --- DATA PERSISTENCE ---
+        let vault = JSON.parse(localStorage.getItem('mu_vault_2026')) || []; 
+        let playlists = JSON.parse(localStorage.getItem('mu_playlists_2026')) || [
+            { id: 'liked', name: 'Liked Songs', tracks: [], cover: null }
+        ];
+        let cache = JSON.parse(localStorage.getItem('mu_cache_2026')) || {};
+
+        // --- STATE ---
+        let currentView = 'home';
+        let currentQueue = [];
+        let queueIndex = -1;
+        const audio = document.getElementById('audio-engine');
+        let audioCtx = null;
+
+        // --- INIT ---
+        window.onload = () => {
+            initDraggable();
+            switchView('home');
+            updateSidebarPlaylists();
+            lucide.createIcons();
+
+            audio.ontimeupdate = () => {
+                const p = (audio.currentTime / audio.duration) * 100 || 0;
+                document.getElementById('p-fill').style.width = p + '%';
+                document.getElementById('p-time-curr').innerText = formatTime(audio.currentTime);
+                document.getElementById('p-time-total').innerText = formatTime(audio.duration);
+            };
+
+            audio.onended = () => nextTrack();
+        };
+
+        function formatTime(s) {
+            const m = Math.floor(s / 60);
+            const r = Math.floor(s % 60);
+            return `${m}:${r < 10 ? '0' : ''}${r}`;
+        }
+
+        // --- SIDEBAR LOGIC ---
+        function initDraggable() {
+            const sidebar = document.getElementById('desktop-sidebar');
+            const handle = document.getElementById('drag-handle');
+            let isDragging = false, startX, startY, initL, initT;
+
+            handle.onmousedown = (e) => {
+                isDragging = true;
+                const r = sidebar.getBoundingClientRect();
+                startX = e.clientX; startY = e.clientY;
+                initL = r.left; initT = r.top;
+                sidebar.style.bottom = 'auto';
+            };
+
+            document.onmousemove = (e) => {
+                if (!isDragging) return;
+                sidebar.style.left = (initL + (e.clientX - startX)) + 'px';
+                sidebar.style.top = (initT + (e.clientY - startY)) + 'px';
+            };
+
+            document.onmouseup = () => isDragging = false;
+        }
+
+        function updateSidebarPlaylists() {
+            const list = document.getElementById('sidebar-playlists-list');
+            list.innerHTML = playlists.map(p => `
+                <button onclick="switchView('playlist_${p.id}')" class="text-left py-2 px-3 text-sm text-white/50 hover:text-white truncate transition">
+                    ${p.name}
+                </button>
+            `).join('');
+        }
+
+        // --- NAVIGATION ---
+        function switchView(v) {
+            currentView = v;
+            const vp = document.getElementById('viewport');
+            
+            // UI Active states
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active-nav'));
+            const btn = document.getElementById(`nav-${v}`);
+            if(btn) btn.classList.add('active-nav');
+
+            if (v === 'home') {
+                renderHome(vp);
+            } else if (v === 'search') {
+                renderSearch(vp);
+            } else if (v === 'library') {
+                renderLibrary(vp);
+            } else if (v.startsWith('playlist_')) {
+                renderPlaylist(vp, v.split('_')[1]);
+            }
+            lucide.createIcons();
+        }
+
+        // --- VIEW RENDERS ---
+        function renderHome(vp) {
+            vp.innerHTML = `
+                <div class="p-8 lg:p-12">
+                    <div class="flex items-center justify-between mb-10">
+                        <h1 class="text-4xl font-black tracking-tighter">RED <span class="text-red-600 uppercase">Vault</span></h1>
+                        <button onclick="openModal('inject')" class="bg-red-600 text-white px-6 py-2 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-red-700 transition">Inject URL</button>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-6" id="vault-grid">
+                        ${vault.length === 0 ? '<div class="col-span-full py-20 text-center text-white/20 font-bold uppercase tracking-widest border border-dashed border-white/5 rounded-3xl">No Packets Injected</div>' : ''}
+                        ${vault.map((u, i) => `<div id="vnode-${i}" class="bg-neutral-900/50 aspect-[3/4] rounded-2xl animate-pulse"></div>`).join('')}
+                    </div>
+                </div>
+            `;
+            vault.forEach((u, i) => resolveNode(u, `vnode-${i}`, 'card', vault));
+        }
+
+        function renderPlaylist(vp, id) {
+            const pl = playlists.find(p => p.id === id);
+            vp.innerHTML = `
+                <div class="p-8 lg:p-12">
+                    <div class="flex flex-col md:flex-row items-end gap-8 mb-12">
+                        <div class="w-48 h-48 md:w-64 md:h-64 bg-neutral-900 rounded-3xl shadow-2xl overflow-hidden flex-shrink-0 border border-white/5">
+                            <img src="${pl.cover || ''}" class="w-full h-full object-cover ${!pl.cover ? 'hidden' : ''}">
+                            ${!pl.cover ? '<div class="w-full h-full flex items-center justify-center"><i data-lucide="music" class="w-12 h-12 text-white/10"></i></div>' : ''}
+                        </div>
+                        <div class="flex-1">
+                            <span class="text-xs font-bold uppercase tracking-[0.3em] text-red-600 mb-2 block">Playlist Cluster</span>
+                            <h1 class="text-5xl md:text-7xl font-black tracking-tighter mb-6">${pl.name}</h1>
+                            <div class="flex items-center gap-4">
+                                <button onclick="playContext(${JSON.stringify(pl.tracks).replace(/"/g, '&quot;')})" class="w-16 h-16 bg-red-600 text-white rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition shadow-xl shadow-red-600/20"><i data-lucide="play" class="fill-current ml-1"></i></button>
+                                <button onclick="openModal('add-to-playlist', '${pl.id}')" class="p-4 rounded-full border border-white/10 hover:bg-white/5 transition"><i data-lucide="plus"></i></button>
+                                <button onclick="deletePlaylist('${pl.id}')" class="p-4 rounded-full border border-white/10 hover:bg-red-600/20 hover:text-red-600 transition"><i data-lucide="trash-2"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col gap-1" id="pl-tracks">
+                        ${pl.tracks.length === 0 ? '<div class="py-20 text-center text-white/20 uppercase tracking-widest font-bold">Cluster Empty</div>' : ''}
+                        ${pl.tracks.map((u, i) => `<div id="pnode-${i}" class="h-16 bg-neutral-900/20 rounded-xl"></div>`).join('')}
+                    </div>
+                </div>
+            `;
+            pl.tracks.forEach((u, i) => resolveNode(u, `pnode-${i}`, 'row', pl.tracks));
+        }
+
+        function renderSearch(vp) {
+            vp.innerHTML = `
+                <div class="p-8 lg:p-12">
+                    <h1 class="text-4xl font-black mb-8">Search</h1>
+                    <div class="relative max-w-2xl mb-12">
+                        <i data-lucide="search" class="absolute left-6 top-1/2 -translate-y-1/2 text-white/20"></i>
+                        <input type="text" oninput="doSearch(this.value)" placeholder="Search songs or artists..." class="w-full bg-neutral-900 border border-white/5 rounded-2xl py-5 pl-16 pr-6 outline-none focus:border-red-600/50 transition-all font-semibold">
+                    </div>
+                    <div id="search-results" class="flex flex-col gap-2"></div>
+                </div>
+            `;
+        }
+
+        function renderLibrary(vp) {
+            vp.innerHTML = `
+                <div class="p-8 lg:p-12">
+                    <h1 class="text-4xl font-black mb-10 tracking-tighter">Your Library</h1>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div onclick="openModal('create-playlist')" class="aspect-[16/9] border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center hover:bg-white/5 transition cursor-pointer group">
+                            <i data-lucide="plus" class="w-8 h-8 text-white/20 group-hover:text-red-600 transition"></i>
+                            <span class="text-xs font-bold uppercase tracking-widest mt-4 text-white/20">Create New Cluster</span>
+                        </div>
+                        ${playlists.map(p => `
+                            <div onclick="switchView('playlist_${p.id}')" class="aspect-[16/9] bg-neutral-900 rounded-3xl p-6 flex flex-col justify-between hover:scale-[1.02] transition cursor-pointer border border-white/5 group">
+                                <div class="w-12 h-12 rounded-xl bg-red-600/10 flex items-center justify-center group-hover:bg-red-600 transition">
+                                    <i data-lucide="music" class="text-red-600 group-hover:text-white transition"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold">${p.name}</h3>
+                                    <p class="text-xs text-white/30 font-bold uppercase tracking-widest mt-1">${p.tracks.length} Tracks</p>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- RESOLVER ---
+        async function resolveNode(url, containerId, style, contextQueue) {
+            const el = document.getElementById(containerId);
+            if (!el) return;
+
+            let data = cache[url];
+            if (!data) {
+                try {
+                    const res = await GetTrackMultiSource(url);
+                    const meta = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`).then(r => r.json());
+                    data = {
+                        url: url,
+                        title: meta.title.split(' — ')[0],
+                        artist: meta.title.split(' — ')[1] || meta.author_name,
+                        cover: res.albumImage || meta.thumbnail_url,
+                        audio: res.audioDataLink,
+                        playlists: playlists.filter(p => p.tracks.includes(url)).map(p => p.id)
+                    };
+                    cache[url] = data;
+                    localStorage.setItem('mu_cache_2026', JSON.stringify(cache));
+                } catch (e) {
+                    data = { url, title: "Failed to Resolve", artist: "Node Error", cover: null, audio: null, playlists: [] };
+                }
+            }
+
+            el.classList.remove('animate-pulse');
+            el.onclick = () => { currentQueue = contextQueue; playTrack(data); };
+
+            if (style === 'card') {
+                el.className = "group cursor-pointer bg-neutral-900 hover:bg-neutral-800 p-4 rounded-2xl transition-all border border-transparent hover:border-red-600/30";
+                el.innerHTML = `
+                    <div class="relative aspect-square rounded-xl overflow-hidden mb-4 shadow-xl">
+                        <img src="${data.cover}" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <div class="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center text-white scale-90 group-hover:scale-100 transition-transform shadow-2xl">
+                                <i data-lucide="play" class="fill-current ml-1"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <h4 class="font-bold text-sm truncate">${data.title}</h4>
+                    <p class="text-xs text-white/40 truncate mt-1">${data.artist}</p>
+                `;
+            } else {
+                el.className = "flex items-center gap-4 p-3 hover:bg-white/5 rounded-xl group transition cursor-pointer track-row";
+                el.innerHTML = `
+                    <div class="w-10 h-10 rounded-md overflow-hidden flex-shrink-0 shadow-lg">
+                        <img src="${data.cover}" class="w-full h-full object-cover">
+                    </div>
+                    <div class="flex-1 truncate pr-4">
+                        <h4 class="text-sm font-bold truncate">${data.title}</h4>
+                        <p class="text-[10px] text-white/40 font-bold uppercase tracking-widest truncate">${data.artist}</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button onclick="event.stopPropagation(); toggleLike('${url}')" class="hover:text-red-600 transition">
+                            <i data-lucide="heart" class="w-4 h-4 ${playlists.find(p=>p.id==='liked').tracks.includes(url) ? 'text-red-600 fill-current' : 'text-white/20'}"></i>
+                        </button>
+                        <i data-lucide="more-horizontal" class="w-4 h-4 text-white/20 cursor-pointer" onclick="event.stopPropagation(); openTrackMenu('${url}')"></i>
+                    </div>
+                `;
+            }
+            lucide.createIcons();
+        }
+
+        // --- PLAYER CONTROLLER ---
+        function playTrack(data) {
+            if (!data.audio) return alert("Track cannot be extracted.");
+            
+            document.getElementById('p-cover').src = data.cover;
+            document.getElementById('p-cover').classList.remove('hidden');
+            document.getElementById('p-title').innerText = data.title;
+            document.getElementById('p-artist').innerText = data.artist;
+
+            audio.src = data.audio;
+            audio.play();
+            
+            queueIndex = currentQueue.indexOf(data.url);
+            document.getElementById('p-icon').setAttribute('data-lucide', 'pause');
+            lucide.createIcons();
+        }
+
+        function togglePlayback() {
+            if (!audio.src) return;
+            if (audio.paused) {
+                audio.play();
+                document.getElementById('p-icon').setAttribute('data-lucide', 'pause');
+            } else {
+                audio.pause();
+                document.getElementById('p-icon').setAttribute('data-lucide', 'play');
+            }
+            lucide.createIcons();
+        }
+
+        function nextTrack() {
+            if (queueIndex < currentQueue.length - 1) {
+                const nextUrl = currentQueue[++queueIndex];
+                if (cache[nextUrl]) playTrack(cache[nextUrl]);
+                else resolveAndPlay(nextUrl);
+            }
+        }
+
+        function prevTrack() {
+            if (queueIndex > 0) {
+                const prevUrl = currentQueue[--queueIndex];
+                if (cache[prevUrl]) playTrack(cache[prevUrl]);
+                else resolveAndPlay(prevUrl);
+            }
+        }
+
+        async function resolveAndPlay(url) {
+            // Simplified: resolving here blocks UI. In production, we'd show a loader.
+            const res = await GetTrackMultiSource(url);
+            const meta = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`).then(r => r.json());
+            const data = { url, title: meta.title.split(' — ')[0], artist: meta.title.split(' — ')[1], cover: res.albumImage, audio: res.audioDataLink };
+            cache[url] = data;
+            playTrack(data);
+        }
+
+        function seek(e) {
+            if (!audio.duration) return;
+            const r = e.currentTarget.getBoundingClientRect();
+            audio.currentTime = ((e.clientX - r.left) / r.width) * audio.duration;
+        }
+
+        // --- MODAL ENGINE ---
+        function openModal(type, payload) {
+            const m = document.getElementById('modal');
+            const c = document.getElementById('modal-content');
+            m.classList.remove('hidden');
+
+            if (type === 'inject') {
+                c.innerHTML = `
+                    <h2 class="text-2xl font-black mb-6">Inject Packet</h2>
+                    <input id="inj-url" type="text" placeholder="Spotify Track URL" class="w-full bg-black/50 border border-white/10 rounded-2xl p-4 mb-4 outline-none focus:border-red-600">
+                    <button onclick="doInject()" class="w-full bg-red-600 py-4 rounded-2xl font-bold uppercase tracking-widest text-xs">Execute Injection</button>
+                `;
+            } else if (type === 'create-playlist') {
+                c.innerHTML = `
+                    <h2 class="text-2xl font-black mb-6">New Cluster</h2>
+                    <input id="cp-name" type="text" placeholder="Cluster Identifier" class="w-full bg-black/50 border border-white/10 rounded-2xl p-4 mb-4 outline-none focus:border-red-600">
+                    <button onclick="doCreatePlaylist()" class="w-full bg-white text-black py-4 rounded-2xl font-bold uppercase tracking-widest text-xs">Initialize Cluster</button>
+                `;
+            } else if (type === 'add-to-playlist') {
+                const pl = playlists.find(p => p.id === payload);
+                c.innerHTML = `
+                    <h2 class="text-xl font-bold mb-4">Add to ${pl.name}</h2>
+                    <div class="max-h-64 overflow-y-auto flex flex-col gap-2 mb-6">
+                        ${vault.filter(v => !pl.tracks.includes(v)).map(v => `
+                            <div class="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                                <span class="text-xs font-bold truncate pr-4">${cache[v]?.title || 'Unknown Node'}</span>
+                                <button onclick="addToCluster('${payload}', '${v}')" class="text-red-600 font-bold text-[10px] uppercase">Add</button>
+                            </div>
+                        `).join('')}
+                        ${vault.filter(v => !pl.tracks.includes(v)).length === 0 ? '<p class="text-center text-white/20 text-xs py-10">No new tracks available in vault</p>' : ''}
+                    </div>
+                `;
+            } else if (type === 'settings') {
+                c.innerHTML = `
+                    <h2 class="text-2xl font-black mb-6">Settings</h2>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl">
+                            <span class="text-sm font-semibold">Clear Neural Cache</span>
+                            <button onclick="localStorage.removeItem('mu_cache_2026'); location.reload()" class="text-xs text-red-600 font-bold">WIPE</button>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl">
+                            <span class="text-sm font-semibold">Factory Reset App</span>
+                            <button onclick="localStorage.clear(); location.reload()" class="text-xs text-red-600 font-bold">RESET</button>
+                        </div>
+                    </div>
+                `;
+            }
+            lucide.createIcons();
+        }
+
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+        // --- ACTIONS ---
+        function doInject() {
+            const url = document.getElementById('inj-url').value;
+            if (url && url.includes('spotify')) {
+                if (!vault.includes(url)) vault.unshift(url);
+                localStorage.setItem('mu_vault_2026', JSON.stringify(vault));
+                closeModal();
+                switchView('home');
+            }
+        }
+
+        function doCreatePlaylist() {
+            const name = document.getElementById('cp-name').value;
+            if (name) {
+                playlists.push({ id: 'p' + Date.now(), name, tracks: [], cover: null });
+                localStorage.setItem('mu_playlists_2026', JSON.stringify(playlists));
+                updateSidebarPlaylists();
+                closeModal();
+                switchView('library');
+            }
+        }
+
+        function addToCluster(plId, url) {
+            const pl = playlists.find(p => p.id === plId);
+            if (pl && !pl.tracks.includes(url)) {
+                pl.tracks.unshift(url);
+                // Update playlist cover to first track cover if exists in cache
+                if (cache[url]) pl.cover = cache[url].cover;
+                localStorage.setItem('mu_playlists_2026', JSON.stringify(playlists));
+                closeModal();
+                switchView('playlist_' + plId);
+            }
+        }
+
+        function deletePlaylist(id) {
+            if (id === 'liked') return alert("Cannot delete System Core.");
+            playlists = playlists.filter(p => p.id !== id);
+            localStorage.setItem('mu_playlists_2026', JSON.stringify(playlists));
+            updateSidebarPlaylists();
+            switchView('library');
+        }
+
+        function toggleLike(url) {
+            const liked = playlists.find(p => p.id === 'liked');
+            if (liked.tracks.includes(url)) {
+                liked.tracks = liked.tracks.filter(t => t !== url);
+            } else {
+                liked.tracks.unshift(url);
+                if (cache[url]) liked.cover = cache[url].cover;
+            }
+            localStorage.setItem('mu_playlists_2026', JSON.stringify(playlists));
+            renderMainView(); // Lazy refresh current view
+        }
+
+        function doSearch(q) {
+            const res = document.getElementById('search-results');
+            if (!q) { res.innerHTML = ''; return; }
+            
+            const matches = Object.values(cache).filter(t => 
+                t.title.toLowerCase().includes(q.toLowerCase()) || 
+                t.artist.toLowerCase().includes(q.toLowerCase())
+            );
+
+            res.innerHTML = matches.map((t, i) => `<div id="snode-${i}" class="h-16"></div>`).join('');
+            matches.forEach((t, i) => resolveNode(t.url, `snode-${i}`, 'row', matches.map(m => m.url)));
+        }
+
+        function renderMainView() { switchView(currentView); }
+
+    </script>
+</body>
+</html>
+
+

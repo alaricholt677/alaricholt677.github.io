@@ -1,14 +1,22 @@
-// os.spotify.js
-// "OS" proxy for Spotify metadata & artwork (JSON edition, CORS-safe).
-// NOTE: This does NOT bypass paywalls or give full audio.
-// It uses only public, allowed endpoints.
+// GetSpotifyOpenTrack.js
+// Returns JSON: { audioDataLink: "...", albumImage: "..." }
 
-(function(global){
-    const SpotifyOS = {};
+async function GetSpotifyOpenTrack(url) {
+
+    // Extract track ID from ANY open.spotify.com/track/... URL
+    const trackId = url.split("/track/")[1].split("?")[0];
+
+    // Spotify preview MP3 (public)
+    const previewUrl = `https://p.scdn.co/mp3-preview/${trackId}`;
+
+    // Spotify oEmbed for metadata + album art (public)
+    const oembedUrl = `https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`;
+    const meta = await fetch(oembedUrl).then(r => r.json());
+    const albumImageUrl = meta.thumbnail_url;
 
     // Helper: fetch → blob → dataURL
-    async function toDataURL(url){
-        const blob = await fetch(url).then(r => r.blob());
+    async function toDataURL(resourceUrl) {
+        const blob = await fetch(resourceUrl).then(r => r.blob());
         return new Promise(resolve => {
             const reader = new FileReader();
             reader.onloadend = () => resolve(reader.result);
@@ -16,30 +24,16 @@
         });
     }
 
-    // Main: given a Spotify URL, return JSON with metadata + image data URL
-    SpotifyOS.fetchTrackJSON = async function(spotifyUrl){
-        const oembedUrl = `https://open.spotify.com/oembed?url=${encodeURIComponent(spotifyUrl)}`;
+    // Convert both to data URLs
+    const audioDataLink = await toDataURL(previewUrl);
+    const albumImage = await toDataURL(albumImageUrl);
 
-        const meta = await fetch(oembedUrl).then(r => {
-            if (!r.ok) throw new Error("Spotify oEmbed failed");
-            return r.json();
-        });
-
-        const imageUrl = meta.thumbnail_url;
-
-        const imageDataUrl = await toDataURL(imageUrl);
-
-        return {
-            type: "spotify-track",
-            url: spotifyUrl,
-            title: meta.title,
-            author: meta.author_name,
-            provider: meta.provider_name,
-            thumbnail_url: imageUrl,
-            thumbnail_data_url: imageDataUrl,
-            html: meta.html // Spotify’s official embed HTML
-        };
+    // Final JSON object
+    return {
+        audioDataLink,
+        albumImage
     };
+}
 
-    global.SpotifyOS = SpotifyOS;
-})(window);
+// Export globally
+window.GetSpotifyOpenTrack = GetSpotifyOpenTrack;

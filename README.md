@@ -383,5 +383,11 @@ Your support helps the project grow.
 | ![User Icon](https://alaricholt677.github.io/user.png) **Recommended Files** | [Click to visit](view-source:https://alaricholt677.github.io) | *Archivos Recomendados* |
 | ![Cat Icon](https://alaricholt677.github.io/github_mascot_README.svg) **Github-Style REPO Viewer (do not get confused with github)** | [Click to visit](https://alaricholt677.github.io/github-style-previewer) | *Visor de REPO al estilo Github (no te confundas con github)* |
 | ![Search](https://alaricholt677.github.io/search.svg) **MoreOS Selection** | [Click to visit](https://alaricholt677.github.io/moreOS) | *Selección de MoreOS* |
-| ![GitIcon](https://alaricholt677.github.io/github_mascot_README.svg) **DOWNLOAD THE KINGERSOLUTION** | [Click to visit](https://alaricholt677.github.io/KingerSolution2.0/) | *DESCARGA EL KINGERSOLUTION* |
 | ![UserIcon](https://alaricholt677.github.io/github_mascot_README.svg) **Setup Before Use** | [Click to visit](https://alaricholt677.github.io/setup/) | *Configuración antes de usar* |
+| ![Folder Icon](https://alaricholt677.github.io/search.svg) **Extensions Manager** | [Click to visit](https://alaricholt677.github.io/extensions/) | *Administrador de Extensiones* |
+| ![Folder Icon](https://alaricholt677.github.io/search.svg) **Extension Files** | [Click to visit](https://alaricholt677.github.io/extension/files/) | *Archivos de Extensiones* |
+| ![Image Icon](https://alaricholt677.github.io/github_mascot_README.svg) **Images Directory** | [Click to visit](https://alaricholt677.github.io/images/) | *Directorio de Imágenes* |
+| ![Drive Icon](https://alaricholt677.github.io/user.png) **LocalDrive Embed Mode** | [Click to visit](https://alaricholt677.github.io/localdrive/embed/) | *Modo Incrustado de LocalDrive* |
+| ![Win12 Icon](https://alaricholt677.github.io/win12-icon.svg) **Win12 Pages (Dynamic)** | [Click to visit](https://alaricholt677.github.io/win12pages/) | *Páginas Dinámicas de Win12* |
+| ![Win12 Icon](https://alaricholt677.github.io/win12-icon.svg) **Win12 Page Selector** | [Click to visit](https://alaricholt677.github.io/win12pages/#home) | *Selector de Página Win12* |
+| ![GitIcon](https://alaricholt677.github.io/github_mascot_README.svg) **DOWNLOAD THE KINGERSOLUTION** | [Click to visit](https://alaricholt677.github.io/KingerSolution2.0/) | *DESCARGA EL KINGERSOLUTION* |

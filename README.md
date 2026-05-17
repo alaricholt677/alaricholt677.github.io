@@ -391,3 +391,4 @@ Your support helps the project grow.
 | ![Win12 Icon](https://alaricholt677.github.io/win12-icon.svg) **Win12 Pages (Dynamic)** | [Click to visit](https://alaricholt677.github.io/win12pages/) | *Páginas Dinámicas de Win12* |
 | ![Win12 Icon](https://alaricholt677.github.io/win12-icon.svg) **Win12 Page Selector** | [Click to visit](https://alaricholt677.github.io/win12pages/#home) | *Selector de Página Win12* |
 | ![GitIcon](https://alaricholt677.github.io/github_mascot_README.svg) **DOWNLOAD THE KINGERSOLUTION** | [Click to visit](https://alaricholt677.github.io/KingerSolution2.0/) | *DESCARGA EL KINGERSOLUTION* |
+| ![Win12 Icon](https://alaricholt677.github.io/win12-icon.svg) **WinUI3 Kit (PKG)** | [Click to visit](https://alaricholt677.github.io/PKGS/winui3/) | *Kit WinUI3 (Paquete)* |

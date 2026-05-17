@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>WinUI3 Kit – Web UI Framework</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <windows-options theme="light" mica="on" accent="blue"></windows-options>
+    <windows-options theme="dark" mica="on" accent="blue"></windows-options>
     <style>
         body {
             margin: 0;
@@ -86,19 +86,19 @@
 
 <header>
     <h1>WinUI3 Kit</h1>
-    <p>A lightweight Windows‑style UI framework for the web.</p>
+    <p>A lightweight Windows‑style UI framework for the web. better making windows like apps with it!!!</p>
 </header>
 
 <section>
     <h2>📦 CDN Script</h2>
-    <p>Include this script in any HTML file to enable WinUI3 components:</p>
+    <p>Include this script in any HTML file to enable WinUI3 components (tip: put it on the bottom of your html or your just saying for it to hide everything in your windows):</p>
 
     <pre>&lt;script src="https://alaricholt677.github.io/PKGS/winui3/winui3-kit.js"&gt;&lt;/script&gt;</pre>
 </section>
 
 <section>
     <h2>🚀 Quick Start</h2>
-    <p>Here’s the smallest possible WinUI3‑Kit app:</p>
+    <p>Here’s the smallest possible WinUI3‑Kit app for noobys and bigginers:</p>
 
     <pre>
 &lt;!DOCTYPE html&gt;
@@ -125,9 +125,15 @@
 
     <div class="demo-box">
         <win-window title="Demo Window" left="40px" top="40px">
+            <win-nav>
+                <win-nav-item label="navigation"></win-nav-item>
+                <win-nav-item label="TO!!! apps here are EPIC!!!"></win-nav-item>
+            </win-nav>
             <windows-icon type="edit">demo icon</windows-icon>
-            <h2>WinUI3 Kit Demo</h2>
+            <h2>WinUI3 Kit Demo with icons</h2>
             <p>This is running directly from the CDN.</p>
+            <win-textbox placeholder="cool right!!!"></win-textbox>
+            <win-checkbox label="i can make a form app to!!!"></win-checkbox>
             <win-button primary>Cool!</win-button>
         </win-window>
     </div>
@@ -299,6 +305,25 @@
     <windows-icon type="wifi"></windows-icon>
 
 </win-window>          
+<section>
+    <h1>tired of having lightning bright ui or boring colors like blue or hate or like the mica!</h1>
+    <p> tired of burning your retinas or want to change your color</p>
+    <p> or you wan to change your mica on or off</p>
+    <p><i><b>well we got just the thing for you</b></i></p>
+    <p> you can <b>switch</b> out:</p>
+    <section>
+        the <b>mica option</b> in <i>"<windows-options>"</i> metadata
+        <pre>
+            &lt;windows-options theme="dark" mica="here you put on or off to toggle it" accent="blue"&gt;
+        </pre>
+    </section>
+    <section>
+        in the <b>last code</b> you can even change theme="" from dark to light or light to dark if you do or not like burning your retinas
+    </section>
+    <section>
+        same in the code at the start <b>but</b> for accent="" you can enter any of the following: <b>blue, purple, red, orange, yellow, green, <i>or</i> pink</b>
+    </section>
+</section>
 <section>
     <h2>📁 Files in This Package</h2>
     <ul>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WinUI3 Kit – Web UI Framework</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            line-height: 1.6;
+        }
+
+        header {
+            padding: 70px 20px;
+            text-align: center;
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            color: white;
+        }
+
+        header h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 20px;
+            opacity: 0.9;
+        }
+
+        section {
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 0 20px;
+        }
+
+        h2 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        h3 {
+            font-size: 20px;
+            margin-top: 30px;
+        }
+
+        pre {
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+
+        .demo-box {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #cbd5e1;
+            min-height: 200px;
+            position: relative;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: #475569;
+        }
+
+        a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+
+        ul {
+            margin-left: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>WinUI3 Kit</h1>
+    <p>A lightweight Windows‑style UI framework for the web.</p>
+</header>
+
+<section>
+    <h2>📦 CDN Script</h2>
+    <p>Include this script in any HTML file to enable WinUI3 components:</p>
+
+    <pre>&lt;script src="https://alaricholt677.github.io/PKGS/winui3/winui3-kit.js"&gt;&lt;/script&gt;</pre>
+</section>
+
+<section>
+    <h2>🚀 Quick Start</h2>
+    <p>Here’s the smallest possible WinUI3‑Kit app:</p>
+
+    <pre>
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;body&gt;
+
+&lt;script src="https://alaricholt677.github.io/PKGS/winui3/winui3-kit.js"&gt;&lt;/script&gt;
+
+&lt;windows-options theme="light" mica="on" accent="blue"&gt;&lt;/windows-options&gt;
+
+&lt;win-window title="Hello" left="120px" top="80px"&gt;
+    &lt;h2&gt;Welcome to WinUI3 Kit&lt;/h2&gt;
+    &lt;p&gt;This window is powered by the public CDN.&lt;/p&gt;
+&lt;/win-window&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+    </pre>
+</section>
+
+<section>
+    <h2>🧪 Live Demo</h2>
+    <p>This demo runs directly from the CDN:</p>
+
+    <div class="demo-box">
+        <script src="https://alaricholt677.github.io/PKGS/winui3/winui3-kit.js"></script>
+
+        <windows-options theme="light" mica="on" accent="blue"></windows-options>
+
+        <win-window title="Demo Window" left="40px" top="40px">
+            <h2>WinUI3 Kit Demo</h2>
+            <p>This is running directly from the CDN.</p>
+            <win-button primary>Cool!</win-button>
+        </win-window>
+    </div>
+</section>
+
+<section>
+    <h2>📘 How to Code with WinUI3‑Kit</h2>
+
+    <h3>1. Theme Options</h3>
+    <pre>
+&lt;windows-options theme="light" mica="on" accent="blue"&gt;&lt;/windows-options&gt;
+    </pre>
+
+    <h3>2. Windows</h3>
+    <pre>
+&lt;win-window title="My App" left="100px" top="100px"&gt;
+    &lt;h2&gt;Window Content&lt;/h2&gt;
+    &lt;p&gt;Anything can go inside a window.&lt;/p&gt;
+&lt;/win-window&gt;
+    </pre>
+
+    <h3>3. Buttons</h3>
+    <pre>
+&lt;win-button&gt;Normal&lt;/win-button&gt;
+&lt;win-button primary&gt;Primary&lt;/win-button&gt;
+    </pre>
+
+    <h3>4. Textboxes</h3>
+    <pre>
+&lt;win-textbox placeholder="Enter text"&gt;&lt;/win-textbox&gt;
+    </pre>
+
+    <h3>5. Checkboxes</h3>
+    <pre>
+&lt;win-checkbox label="Enable feature"&gt;&lt;/win-checkbox&gt;
+    </pre>
+
+    <h3>6. Toggles</h3>
+    <pre>
+&lt;win-toggle label="Dark mode"&gt;&lt;/win-toggle&gt;
+    </pre>
+
+    <h3>7. Navigation</h3>
+    <pre>
+&lt;win-nav&gt;
+    &lt;win-nav-item label="Home"&gt;&lt;/win-nav-item&gt;
+    &lt;win-nav-item label="Settings"&gt;&lt;/win-nav-item&gt;
+&lt;/win-nav&gt;
+    </pre>
+
+    <h3>8. Icons</h3>
+    <pre>
+&lt;windows-icon type="settings"&gt;&lt;/windows-icon&gt;
+&lt;windows-icon type="folder"&gt;&lt;/windows-icon&gt;
+&lt;windows-icon type="wifi"&gt;&lt;/windows-icon&gt;
+    </pre>
+
+    <h3>9. Full Example</h3>
+    <pre>
+&lt;windows-options theme="light" mica="on" accent="blue"&gt;&lt;/windows-options&gt;
+
+&lt;win-window title="Example App" left="100px" top="100px"&gt;
+    &lt;h2&gt;&lt;windows-icon type="home"&gt;&lt;/windows-icon&gt; Welcome&lt;/h2&gt;
+
+    &lt;win-textbox placeholder="Your name"&gt;&lt;/win-textbox&gt;
+
+    &lt;br&gt;&lt;br&gt;
+
+    &lt;win-checkbox label="Enable notifications"&gt;&lt;/win-checkbox&gt;
+
+    &lt;br&gt;&lt;br&gt;
+
+    &lt;win-toggle label="Dark mode"&gt;&lt;/win-toggle&gt;
+
+    &lt;br&gt;&lt;br&gt;
+
+    &lt;win-button primary&gt;
+        &lt;windows-icon type="check"&gt;&lt;/windows-icon&gt;
+        Submit
+    &lt;/win-button&gt;
+&lt;/win-window&gt;
+    </pre>
+
+</section>
+
+<section>
+    <h2>📁 Files in This Package</h2>
+    <ul>
+        <li><a href="winui3-kit.js">winui3-kit.js</a> — main library</li>
+        <li>index.html — this documentation page</li>
+    </ul>
+</section>
+
+<footer>
+    Created by Sean — WinUI3 Kit is free for everyone to use.
+</footer>
+
+</body>
+</html>

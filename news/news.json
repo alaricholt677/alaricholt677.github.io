@@ -61,6 +61,46 @@
       "content": "FIRST HEAD TO ALARICHOLT677.GITHUB.IO/MOD/DOWNLOAD > SELECT SNAPSHOT OR RELEASE > CLICK DOWNLOAD > DOWNLOAD MODRINTH AT MODRINTH.COM > RUN INSTALLER EXE/WHATEVER > OPEN MODRINTH > ON SIDEBAR CLICK + > ENTER A NAME > SELECT NEOFORGE > ON GAME VERSION SELECT 1.21.8 > CLICK + Create > WAIT UNTIL IT FINISHED > ON YOUR SIDEBAR CLICK ON THE ONE NAMED WHAT YOU NAMED YOUR INSTANCE > CLICK THE HORIZONTAL ... NEXT TO THE SETTINGS GEAR AT THE TIP BELOW THE WINDOW HEADER > CLICK OPEN FOLDER > OPEN THE FOLDER LABELED MODS > ON THE EXPLORER WINDOW HEADER PRESS + > NAVIGATE TO YOUR DOWNLOADS FOLDER ON SIDEBAR, OR IN YOUR USER FOLDER > LOOK FOR THE FILE MY_FIRST_MOD-1.0.0-neoforge-1.21.8.jar > DRAG THE FILE YOU LOOKED FOR INTO THE FIRST TAB > IF YOUR IN YOUR MODS FOLDER GREAT IF YOUR NOT DRAG THE FILE INTO THE FOLDER LABELED MODS IT SHOULD PUT IT THERE > MINIMIZE OR CLOSE EXPLORER > IN MODRINTH CLICK PLAY BEHIND THE GEAR SYMBOL > WAIT FOR MINECRAFT TO LOAD > CONGRATES NOW YOU CAN PLAY MY MOD",
       "tags": ["ui", "theme", "design"],
       "date": "2026-03-08"
+    },
+    {
+  "id": "medlifultra-major-rewrite",
+  "name": "MedliFultra Receives Major UI and Engine Rewrite",
+  "imageURL": "https://alaricholt677.github.io/news/img/medlifultra-update.jpg",
+  "content": "The MedliFultra environment has launched a major rewrite focused on performance, modularity, and visual clarity. The new build introduces a reorganized window stack, improved panel transitions, and a cleaner navigation layout. Early testers report smoother animations and significantly reduced load times across all system layers.",
+  "tags": ["medlifultra", "system", "update", "ui"],
+  "date": "2026-03-11"
+    },
+    {
+  "id": "winui3-kit-expansion",
+  "name": "WinUI3 Kit Expands With New Components and API Hooks",
+  "imageURL": "https://alaricholt677.github.io/news/img/winui3-kit.jpg",
+  "content": "The WinUI3 Kit at /PKGS/winui3/winui3_kit.js has been updated with new component definitions, improved icon handling, and expanded API hooks for developers. The update also introduces a more stable window lifecycle, enhanced theme bindings, and better compatibility with multi-window simulators.",
+  "tags": ["winui3", "kit", "components", "update"],
+  "date": "2026-03-11"
+    },
+    {
+  "id": "win12-new-shell",
+  "name": "Win12_New Shell Introduces Next‑Gen Layout System",
+  "imageURL": "https://alaricholt677.github.io/news/img/win12-new.jpg",
+  "content": "The new Win12_New.html shell in the moreOS directory introduces a redesigned layout engine with adaptive spacing, improved taskbar logic, and a more responsive window grid. The shell also includes updated boot animations and a refined acrylic blur layer for a more modern aesthetic.",
+  "tags": ["win12", "shell", "layout", "system"],
+  "date": "2026-03-11"
+    },
+    {
+  "id": "medlifultra-plugin-support",
+  "name": "MedliFultra Adds Plugin Support for Third‑Party Modules",
+  "imageURL": "https://alaricholt677.github.io/news/img/plugins.jpg",
+  "content": "A new plugin architecture has been added to MedliFultra, allowing developers to inject custom panels, widgets, and system overlays. The plugin loader includes sandboxing, version checks, and compatibility warnings to ensure stable integration with the core environment.",
+  "tags": ["medlifultra", "plugins", "modules", "development"],
+  "date": "2026-03-10"
+    },
+    {
+  "id": "winui3-kit-performance",
+  "name": "WinUI3 Kit Achieves Performance Boost Through Render Optimization",
+  "imageURL": "https://alaricholt677.github.io/news/img/performance-boost.jpg",
+  "content": "A new optimization pass in winui3_kit.js reduces unnecessary DOM recalculations and improves render batching. Developers report up to a 25% improvement in UI responsiveness, especially in complex window arrangements. The update is now live for all builds using the WinUI3 Kit.",
+  "tags": ["winui3", "performance", "rendering", "update"],
+  "date": "2026-03-09"
     }
   ]
 }

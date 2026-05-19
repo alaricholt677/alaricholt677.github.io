@@ -6,157 +6,107 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <windows-options theme="dark" mica="on" accent="blue"></windows-options>
     <style>
-        /* -----------------------------------------------------
-   GLOBAL THEME — Fluent 2024 Dark + Blue Accent
------------------------------------------------------ */
+/* ============================================
+   NEXUS GLOBAL STYLE INJECTOR
+   Applies to ALL elements automatically
+   ============================================ */
+
 :root {
-    --accent: #3b82f6;
-    --accent-hover: #60a5fa;
-    --accent-soft: rgba(59,130,246,0.12);
+    --nx-g1: #ff4fd8;
+    --nx-g2: #b44bff;
+    --nx-g3: #6a7bff;
 
-    --fg: #e2e8f0;
-    --fg-muted: #94a3b8;
-    --bg: #0f172a;
-    --bg-alt: #1e293b;
+    --nx-speed: 4s;
+    --nx-speed-fast: 1.6s;
 
-    --card-bg: rgba(255,255,255,0.04);
-    --card-border: rgba(255,255,255,0.08);
-
-    --radius: 14px;
-    --shadow: 0 12px 40px rgba(0,0,0,0.45);
+    --nx-blur: 18px;
+    --nx-glow: rgba(180, 75, 255, 0.55);
+    --nx-glow-strong: rgba(255, 79, 216, 0.75);
 }
 
-/* -----------------------------------------------------
-   BODY
------------------------------------------------------ */
-body {
-    margin: 0;
-    font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
-    background: var(--bg);
-    color: var(--fg);
-    line-height: 1.7;
-    -webkit-font-smoothing: antialiased;
-}
+/* ============================================
+   UNIVERSAL ELEMENT TARGET
+   ============================================ */
 
-/* -----------------------------------------------------
-   HEADER — Gradient + Glass
------------------------------------------------------ */
-header {
-    padding: 90px 20px;
-    text-align: center;
-    background: linear-gradient(135deg, #1e3a8a, #1e40af, #2563eb);
-    color: white;
+* {
     position: relative;
-    overflow: hidden;
+    background: linear-gradient(135deg, var(--nx-g1), var(--nx-g2), var(--nx-g3));
+    background-size: 300% 300%;
+    animation: nxGradient var(--nx-speed) ease infinite;
+
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.18);
+
+    backdrop-filter: blur(var(--nx-blur));
+    -webkit-backdrop-filter: blur(var(--nx-blur));
+
+    padding: 6px;
+    margin: 4px;
+
+    transition: transform .25s cubic-bezier(.4,0,.2,1),
+                filter .25s cubic-bezier(.4,0,.2,1),
+                background .25s ease;
 }
 
-header::after {
+/* ============================================
+   UNIVERSAL HOVER EFFECT
+   ============================================ */
+
+*:hover {
+    transform: scale(1.06);
+    filter: drop-shadow(0 0 14px var(--nx-glow-strong));
+}
+
+/* ============================================
+   UNIVERSAL SHINE SWEEP
+   ============================================ */
+
+*::after {
     content: "";
     position: absolute;
-    inset: 0;
-    backdrop-filter: blur(18px) saturate(180%);
-    opacity: 0.15;
+    top: 0;
+    left: -120%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255,255,255,0.8),
+        transparent
+    );
+    animation: nxShine var(--nx-speed-fast) infinite;
+    pointer-events: none;
 }
 
-header h1 {
-    font-size: 54px;
-    margin-bottom: 12px;
-    font-weight: 700;
+/* ============================================
+   UNIVERSAL BREATHING MOTION
+   ============================================ */
+
+* {
+    animation: nxGradient var(--nx-speed) ease infinite,
+               nxBreathe 3s ease-in-out infinite;
 }
 
-header p {
-    font-size: 22px;
-    opacity: 0.95;
+/* ============================================
+   KEYFRAMES
+   ============================================ */
+
+@keyframes nxGradient {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
-/* -----------------------------------------------------
-   SECTIONS
------------------------------------------------------ */
-section {
-    max-width: 900px;
-    margin: 60px auto;
-    padding: 0 20px;
+@keyframes nxShine {
+    0%   { left: -120%; }
+    50%  { left: 120%; }
+    100% { left: 120%; }
 }
 
-h2 {
-    font-size: 32px;
-    margin-bottom: 12px;
-    color: var(--accent);
-    font-weight: 600;
-}
-
-h3 {
-    font-size: 22px;
-    margin-top: 35px;
-    color: var(--fg);
-    font-weight: 500;
-}
-
-/* -----------------------------------------------------
-   CODE BLOCKS — Fluent Terminal Style
------------------------------------------------------ */
-pre {
-    background: #0b1120;
-    color: #e2e8f0;
-    padding: 20px;
-    border-radius: var(--radius);
-    overflow-x: auto;
-    font-size: 15px;
-    border: 1px solid rgba(255,255,255,0.06);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
-}
-
-/* -----------------------------------------------------
-   DEMO BOX — Glass Card
------------------------------------------------------ */
-.demo-box {
-    margin-top: 25px;
-    padding: 25px;
-    background: var(--card-bg);
-    border-radius: var(--radius);
-    border: 1px solid var(--card-border);
-    min-height: 200px;
-    position: relative;
-    backdrop-filter: blur(14px) saturate(160%);
-    box-shadow: var(--shadow);
-    transition: 0.25s ease;
-}
-
-.demo-box:hover {
-    border-color: var(--accent-soft);
-    transform: translateY(-2px);
-}
-
-/* -----------------------------------------------------
-   LINKS
------------------------------------------------------ */
-a {
-    color: var(--accent);
-    text-decoration: none;
-    transition: 0.2s ease;
-}
-
-a:hover {
-    color: var(--accent-hover);
-    text-decoration: underline;
-}
-
-/* -----------------------------------------------------
-   LISTS
------------------------------------------------------ */
-ul {
-    margin-left: 22px;
-    color: var(--fg-muted);
-}
-
-/* -----------------------------------------------------
-   FOOTER
------------------------------------------------------ */
-footer {
-    text-align: center;
-    padding: 50px;
-    color: var(--fg-muted);
-    font-size: 15px;
+@keyframes nxBreathe {
+    0%   { transform: translateY(0); }
+    50%  { transform: translateY(-4px); }
+    100% { transform: translateY(0); }
 }
 
     </style>

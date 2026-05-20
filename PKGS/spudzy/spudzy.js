@@ -21,12 +21,64 @@ class Spudzy {
       slang: ["bruh","fr","nah","wild","cookin","based","cracked","lowkey","highkey","vibes"],
       positive: ["good","great","awesome","nice","cool","love","like","enjoy","fun","amazing"],
       negative: ["bad","terrible","hate","awful","annoying","boring","lame","trash","mid"],
-      roastPhrases: [
+roastPhrases: [
+        // --- Tech & Brain Overheating ---
         "you really typed that with confidence huh",
         "that message needs a software update",
         "your keyboard deserves an apology",
         "even Spudzy is buffering after reading that",
-        "that input was a whole bug report in disguise"
+        "that input was a whole bug report in disguise",
+        "i ran your text through an AI model and it gave up on humanity",
+        "are you using internet explorer? because your logic is 10 years behind",
+        "your brain is running on a 2G network in a tunnel",
+        "is your CPU getting thermal throttled, or do you always think this slowly?",
+        "this input is concrete proof that natural selection has paused",
+        "i've seen random text generators with more processing power than this thought process",
+        "delete this config file immediately, it's corrupting my database",
+        "your critical thinking skills are stored in a scratchpad that gets wiped every 2 seconds",
+        
+        // --- The Passive-Aggressive "Are you okay?" ---
+        "did you type this while falling down a flight of stairs? genuinely asking.",
+        "this is a safe space, you don't have to announce your lack of literacy out loud",
+        "i want to agree with you, but then we'd both be completely dynamic failures",
+        "who let you bypass the captcha to type this?",
+        "i’ve had more intellectually stimulating conversations with broken node_modules",
+        "did you mean to post this to your diary or are you just trying to embarrass yourself publicly?",
+        "the bar was on the floor and you managed to bring a shovel",
+        "please tell me an LLM wrote this because if a human brain conceived it, we are doomed",
+        "this sentence is a war crime committed entirely against grammar and basic reason",
+        "i’ve seen better takes from an unoptimized chatbot running on an Arduino",
+
+        // --- Tier 1 Ragebait & Slang Burn ---
+        "never cook again. fr.",
+        "this is pure NPC dialogue, try upgrading your script",
+        "blud really thought they did something with that sentence 💀",
+        "the cope is astronomical with this one",
+        "who let you out of the tutorial level?",
+        "bro is yapping to a brick wall and losing the argument",
+        "certified mid take. actually, calling it mid is a compliment.",
+        "go outside and apologize to the trees for wasting the oxygen they made for you",
+        "this message radiates pure zero-game energy",
+        "you're fighting an uphill battle with a double-digit IQ and losing",
+        "bro is yapping in lower-case logic",
+        "the absolute audacity to hit 'send' on this monstrosity",
+        "i know you spent 5 minutes typing this out just for it to look this bad",
+
+        // --- The Absolute Disrespect ---
+        "if ignorance is bliss, you must be in absolute euphoria 24/7",
+        "i would insult your intelligence but that implies you have some to begin with",
+        "it takes real talent to be this consistently wrong about everything",
+        "did your brain sell its processing power for cash?",
+        "i lack the time, patience, and crayons required to explain why this is wrong",
+        "you are the living embodiment of a participation trophy",
+        "every single word of that sentence just lowered the collective IQ of this server",
+        "please look up the definition of 'logic' because you're using it as an antonym",
+        "your thoughts are just dial-up static noises at this point",
+        "if you were any more simple-minded, someone would have to water you twice a week",
+        "i'm not angry, i'm just deeply concerned about whatever educational system let you slide by",
+        "you're the reason shampoo bottles have instructions, aren't you?",
+        "the light is on, but absolutely nobody is home",
+        "if I wanted to hear from an error code, I'd check my terminal console"
       ],
       teacherPhrases: [
         "let's break that down step by step",

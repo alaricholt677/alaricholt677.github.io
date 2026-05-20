@@ -803,4 +803,110 @@ strong::before, b::before, em::before, i::before, button::before {
     100% { transform: scale(2.2); opacity: 0; }
 }
 
+/* HOLOGRAPHIC GLASS SECTIONS */
+section {
+    position: relative;
+    max-width: 980px;
+    margin: 80px auto;
+    padding: 50px 40px;
+    border-radius: 28px;
+
+    background: rgba(15,23,42,0.55);
+    backdrop-filter: blur(28px) saturate(220%);
+    border: 1px solid rgba(255,255,255,0.12);
+
+    box-shadow:
+        0 20px 60px rgba(0,0,0,0.55),
+        inset 0 0 40px rgba(255,255,255,0.04);
+
+    transition: 0.45s ease;
+}
+
+/* HOLOGRAPHIC SHEEN */
+section::before {
+    content: "";
+    position: absolute;
+    inset: -40%;
+    background:
+        radial-gradient(circle at 20% 0%, rgba(34,211,238,0.18), transparent 60%),
+        radial-gradient(circle at 80% 0%, rgba(168,85,247,0.18), transparent 60%);
+    opacity: 0.35;
+    animation: holoShift 14s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes holoShift {
+    0%   { transform: translate(0,0) scale(1); }
+    50%  { transform: translate(8%, -6%) scale(1.15); }
+    100% { transform: translate(0,0) scale(1); }
+}
+
+/* LED EDGE LIGHTING */
+section:hover {
+    border-color: rgba(34,211,238,0.8);
+    box-shadow:
+        0 0 22px rgba(34,211,238,0.55),
+        0 0 44px rgba(168,85,247,0.45),
+        0 20px 60px rgba(0,0,0,0.65);
+    transform: translateY(-6px);
+}
+
+/* LIQUID CORNER GLOW */
+section::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle,
+        rgba(34,211,238,0.35),
+        transparent 70%
+    );
+    filter: blur(22px);
+    opacity: 0.4;
+    transition: 0.4s ease;
+    pointer-events: none;
+}
+
+section:hover::after {
+    opacity: 0.7;
+    filter: blur(28px);
+}
+
+/* HOLOGRAPHIC DIVIDER */
+section .divider {
+    height: 1px;
+    margin: 40px 0;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255,255,255,0.25),
+        transparent
+    );
+    filter: blur(0.5px);
+}
+
+/* SECTION TITLES — HOLOGRAPHIC */
+section h2 {
+    font-size: 32px;
+    margin-bottom: 20px;
+    background: linear-gradient(120deg, #22d3ee, #a855f7);
+    -webkit-background-clip: text;
+    color: transparent;
+    text-shadow:
+        0 0 12px rgba(34,211,238,0.55),
+        0 0 22px rgba(168,85,247,0.45);
+}
+
+section:hover {
+    animation: sectionPulse 0.8s ease-out;
+}
+
+@keyframes sectionPulse {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
 /* END — FLUENT 2099 HOLOGRAPHIC GLASS OS */

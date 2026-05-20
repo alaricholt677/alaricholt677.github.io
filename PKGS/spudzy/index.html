@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Spudzy Chef AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1f2937 0, #020617 45%, #000 100%);
+      color: #e5e7eb;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 1100px;
+      height: 100vh;
+      max-height: 720px;
+      border-radius: 32px;
+      background: rgba(15, 23, 42, 0.92);
+      box-shadow:
+        0 30px 80px rgba(0, 0, 0, 0.8),
+        0 0 0 1px rgba(148, 163, 184, 0.15);
+      overflow: hidden;
+      position: relative;
+      display: flex;
+    }
+
+    .app-shell::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.18), transparent 55%),
+        radial-gradient(circle at 100% 0%, rgba(129, 140, 248, 0.18), transparent 55%);
+      opacity: 0.9;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      border-right: 1px solid rgba(148, 163, 184, 0.25);
+      background: radial-gradient(circle at top, #020617 0, #020617 40%, #020617 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 14px 12px;
+      gap: 10px;
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .sidebar-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #e5e7eb;
+    }
+
+    .new-chat-btn {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.95);
+      color: #e5e7eb;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .conv-list {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .conv-item {
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      color: #e5e7eb;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .conv-item.active {
+      background: linear-gradient(135deg, rgba(79, 70, 229, 0.35), rgba(15, 23, 42, 0.9));
+      border: 1px solid rgba(129, 140, 248, 0.7);
+    }
+
+    .conv-title {
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .conv-meta {
+      font-size: 10px;
+      color: #9ca3af;
+    }
+
+    .sidebar-footer {
+      font-size: 10px;
+      color: #6b7280;
+      padding-top: 4px;
+      border-top: 1px solid rgba(31, 41, 55, 0.8);
+    }
+
+    /* Main area */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Splash */
+    .splash {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top, #020617 0, #020617 40%, #000 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      z-index: 10;
+      animation: splashFadeOut 1.4s ease-out 1.6s forwards;
+    }
+
+    @keyframes splashFadeOut {
+      to { opacity: 0; visibility: hidden; }
+    }
+
+    .splash-logo {
+      width: 120px;
+      height: 120px;
+      border-radius: 32px;
+      background: radial-gradient(circle at 30% 0%, #f97316, #b91c1c);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(248, 250, 252, 0.08);
+    }
+
+    .pan {
+      width: 70px;
+      height: 18px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #111827, #020617);
+      border: 2px solid #020617;
+      position: relative;
+      transform-origin: 10% 50%;
+      animation: panFlip 1.4s ease-in-out infinite;
+    }
+
+    .pan::after {
+      content: "";
+      position: absolute;
+      width: 26px;
+      height: 8px;
+      border-radius: 999px;
+      background: #111827;
+      right: -26px;
+      top: 4px;
+    }
+
+    .bun {
+      position: absolute;
+      width: 32px;
+      height: 22px;
+      border-radius: 999px 999px 14px 14px;
+      background: linear-gradient(135deg, #facc15, #f97316);
+      left: 18px;
+      bottom: 16px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+      animation: bunFlip 1.4s ease-in-out infinite;
+    }
+
+    @keyframes panFlip {
+      0% { transform: rotate(0deg); }
+      30% { transform: rotate(-18deg); }
+      60% { transform: rotate(12deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    @keyframes bunFlip {
+      0% { transform: translate(0, 0); opacity: 1; }
+      25% { transform: translate(10px, -40px); }
+      50% { transform: translate(0, -60px); }
+      75% { transform: translate(-10px, -40px); }
+      100% { transform: translate(0, 0); opacity: 1; }
+    }
+
+    .splash-title {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mask-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 0%, #f97316, #b91c1c);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .splash-sub {
+      font-size: 14px;
+      color: #9ca3af;
+    }
+
+    /* Header */
+    .header {
+      padding: 16px 20px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(16px);
+      background: linear-gradient(to bottom, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.6));
+      border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+      z-index: 1;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .app-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 0%, #f97316, #b91c1c);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 0 0 1px rgba(248, 250, 252, 0.15);
+    }
+
+    .app-title {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app-title span:first-child {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .app-title span:last-child {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.8);
+    }
+
+    /* Chat area */
+    .chat-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 10px 16px 0;
+      overflow: hidden;
+    }
+
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 4px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scroll-behavior: smooth;
+    }
+
+    .msg-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .msg-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: #020617;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .msg {
+      max-width: 80%;
+      padding: 12px 14px;
+      border-radius: 18px;
+      font-size: 14px;
+      line-height: 1.5;
+      opacity: 0;
+      animation: fadeIn 0.25s ease-out forwards;
+      white-space: pre-wrap;
+    }
+
+    .msg.user {
+      margin-left: auto;
+      background: linear-gradient(135deg, #1f2937, #020617);
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg.bot {
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom-left-radius: 4px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .typing {
+      font-size: 13px;
+      color: #9ca3af;
+      font-style: italic;
+      padding: 6px 4px 0;
+    }
+
+    /* Canvas panel */
+    .canvas-panel {
+      border-top: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(15, 23, 42, 0.95);
+      padding: 8px 16px 10px;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .canvas-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .canvas-tabs {
+      display: flex;
+      gap: 6px;
+    }
+
+    .canvas-tab {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.9);
+      font-size: 11px;
+      color: #e5e7eb;
+      cursor: pointer;
+    }
+
+    .canvas-tab.active {
+      border-color: rgba(129, 140, 248, 0.9);
+      background: linear-gradient(135deg, rgba(79, 70, 229, 0.7), rgba(15, 23, 42, 0.9));
+    }
+
+    .canvas-body {
+      display: flex;
+      gap: 8px;
+      height: 180px;
+    }
+
+    .canvas-preview,
+    .canvas-code {
+      flex: 1;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(31, 41, 55, 0.9);
+      background: #020617;
+    }
+
+    .canvas-code textarea {
+      width: 100%;
+      height: 100%;
+      border: none;
+      outline: none;
+      background: #020617;
+      color: #e5e7eb;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      padding: 8px;
+      resize: none;
+    }
+
+    .canvas-preview iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: white;
+    }
+
+    /* Input bar */
+    .input-bar {
+      padding: 10px 16px 16px;
+      border-top: 1px solid rgba(148, 163, 184, 0.25);
+      background: linear-gradient(to top, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.7));
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    #msgInput {
+      flex: 1;
+      padding: 12px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.95);
+      color: #f9fafb;
+      outline: none;
+      font-size: 14px;
+    }
+
+    #msgInput:focus {
+      border-color: #a855f7;
+      box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.6);
+    }
+
+    #sendBtn {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      border: none;
+      background: radial-gradient(circle at 30% 0%, #a855f7, #4f46e5);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(79, 70, 229, 0.6);
+      transition: transform 0.12s ease-out, box-shadow 0.12s ease-out;
+      flex-shrink: 0;
+    }
+
+    #sendBtn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 30px rgba(79, 70, 229, 0.8);
+    }
+
+    #sendBtn:active {
+      transform: translateY(1px) scale(0.97);
+      box-shadow: 0 6px 18px rgba(79, 70, 229, 0.6);
+    }
+
+    .mode-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    #modeSelect {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.95);
+      color: #e5e7eb;
+      font-size: 11px;
+    }
+
+    @media (max-width: 900px) {
+      .app-shell { max-height: none; height: 100vh; border-radius: 0; }
+      .sidebar { display: none; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">Conversations</div>
+        <button class="new-chat-btn" id="newChatBtn">+ New</button>
+      </div>
+      <div class="conv-list" id="convList"></div>
+      <div class="sidebar-footer">
+        Stored locally in your browser. Spudzy can spin up as many chats as you want.
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+      <!-- Splash -->
+      <div class="splash">
+        <div class="splash-logo">
+          <div class="pan">
+            <div class="bun"></div>
+          </div>
+        </div>
+        <div class="splash-title">
+          <div class="mask-icon">🎭</div>
+          <span>Spudzy Chef</span>
+        </div>
+        <div class="splash-sub">Comedy‑coded AI, cooked to order.</div>
+      </div>
+
+      <!-- Header -->
+      <div class="header">
+        <div class="header-left">
+          <div class="app-icon">🎭</div>
+          <div class="app-title">
+            <span>Spudzy Chef</span>
+            <span>Playful reasoning • Code & canvas</span>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="pill">Chef Mode</div>
+          <div class="pill">Local · Prototype</div>
+        </div>
+      </div>
+
+      <!-- Chat -->
+      <div class="chat-wrapper">
+        <div id="chat"></div>
+        <div id="typing" class="typing" style="display:none;">Spudzy is thinking…</div>
+      </div>
+
+      <!-- Canvas panel -->
+      <div class="canvas-panel" id="canvasPanel">
+        <div class="canvas-header">
+          <span>Canvas mode: HTML detected in last reply.</span>
+          <div class="canvas-tabs">
+            <button class="canvas-tab active" id="tabPreview">Preview</button>
+            <button class="canvas-tab" id="tabCode">View code</button>
+          </div>
+        </div>
+        <div class="canvas-body">
+          <div class="canvas-preview" id="canvasPreview">
+            <iframe id="canvasFrame"></iframe>
+          </div>
+          <div class="canvas-code" id="canvasCode" style="display:none;">
+            <textarea id="canvasCodeText" readonly></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="input-bar">
+        <div class="input-row">
+          <input id="msgInput" type="text" placeholder="Ask Spudzy to roast, code, teach, or draw a canvas…" />
+          <button id="sendBtn" aria-label="Send">➤</button>
+        </div>
+        <div class="mode-row">
+          <span>Tip: “make html”, “canvas demo”, “explain this”, “roast me”.</span>
+          <select id="modeSelect">
+            <option value="neutral">Neutral</option>
+            <option value="playful">Playful</option>
+            <option value="roast">Roast</option>
+            <option value="teacher">Teacher</option>
+            <option value="coder">Coder</option>
+            <option value="storyteller">Storyteller</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="spudzy.js"></script>
+  <script>
+    // ---- Conversation storage ----
+    const STORAGE_KEY = "spudzy_conversations_v1";
+
+    let conversations = [];
+    let currentConvId = null;
+
+    function loadConversations() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        return JSON.parse(raw);
+      } catch {
+        return [];
+      }
+    }
+
+    function saveConversations() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+    }
+
+    function createConversation() {
+      const id = "conv_" + Date.now();
+      const conv = {
+        id,
+        title: "New chat",
+        createdAt: new Date().toISOString(),
+        messages: []
+      };
+      conversations.unshift(conv);
+      currentConvId = id;
+      saveConversations();
+      renderConversationList();
+      renderConversation(conv);
+    }
+
+    function getCurrentConversation() {
+      return conversations.find(c => c.id === currentConvId) || null;
+    }
+
+    function updateConversationTitle(conv, firstUserMessage) {
+      if (!firstUserMessage) return;
+      const trimmed = firstUserMessage.trim();
+      if (!trimmed) return;
+      conv.title = trimmed.length > 40 ? trimmed.slice(0, 37) + "..." : trimmed;
+    }
+
+    function renderConversationList() {
+      const listEl = document.getElementById("convList");
+      listEl.innerHTML = "";
+      conversations.forEach(conv => {
+        const item = document.createElement("div");
+        item.className = "conv-item" + (conv.id === currentConvId ? " active" : "");
+        const title = document.createElement("div");
+        title.className = "conv-title";
+        title.textContent = conv.title || "Untitled chat";
+        const meta = document.createElement("div");
+        meta.className = "conv-meta";
+        const date = new Date(conv.createdAt);
+        meta.textContent = date.toLocaleString();
+        item.appendChild(title);
+        item.appendChild(meta);
+        item.onclick = () => {
+          currentConvId = conv.id;
+          renderConversationList();
+          renderConversation(conv);
+        };
+        listEl.appendChild(item);
+      });
+    }
+
+    function renderConversation(conv) {
+      const chatEl = document.getElementById("chat");
+      chatEl.innerHTML = "";
+      hideCanvasPanel();
+      conv.messages.forEach(msg => {
+        addMessage(msg.text, msg.role === "user" ? "user" : "bot", false);
+      });
+      chatEl.scrollTop = chatEl.scrollHeight;
+    }
+
+    // ---- UI + Spudzy ----
+    const chatEl = document.getElementById("chat");
+    const inputEl = document.getElementById("msgInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const modeEl = document.getElementById("modeSelect");
+    const typingEl = document.getElementById("typing");
+    const newChatBtn = document.getElementById("newChatBtn");
+
+    const canvasPanel = document.getElementById("canvasPanel");
+    const canvasFrame = document.getElementById("canvasFrame");
+    const canvasCodeText = document.getElementById("canvasCodeText");
+    const tabPreview = document.getElementById("tabPreview");
+    const tabCode = document.getElementById("tabCode");
+    const canvasPreview = document.getElementById("canvasPreview");
+    const canvasCode = document.getElementById("canvasCode");
+
+    const spudzy = new Spudzy({ defaultMode: "neutral", maxHistory: 64 });
+
+    function addMessage(text, from, pushToConv = true) {
+      const row = document.createElement("div");
+      row.className = "msg-row";
+
+      if (from === "bot") {
+        const avatar = document.createElement("div");
+        avatar.className = "msg-avatar";
+        avatar.textContent = "🎭";
+        row.appendChild(avatar);
+      } else {
+        const spacer = document.createElement("div");
+        spacer.style.width = "26px";
+        row.appendChild(spacer);
+      }
+
+      const bubble = document.createElement("div");
+      bubble.className = "msg " + from;
+      bubble.textContent = text;
+      row.appendChild(bubble);
+
+      chatEl.appendChild(row);
+      chatEl.scrollTop = chatEl.scrollHeight;
+
+      if (pushToConv) {
+        const conv = getCurrentConversation();
+        if (conv) {
+          conv.messages.push({ role: from, text });
+          if (conv.messages.length === 1 && from === "user") {
+            updateConversationTitle(conv, text);
+          }
+          saveConversations();
+          renderConversationList();
+        }
+      }
+    }
+
+    function showTyping(show) {
+      typingEl.style.display = show ? "block" : "none";
+      if (show) chatEl.scrollTop = chatEl.scrollHeight;
+    }
+
+    function isHtmlLike(text) {
+      const lower = text.toLowerCase();
+      return (
+        lower.includes("<!doctype") ||
+        lower.includes("<html") ||
+        lower.includes("<canvas") ||
+        lower.includes("<body")
+      );
+    }
+
+    function showCanvasPanelWith(html) {
+      canvasPanel.style.display = "flex";
+      canvasFrame.srcdoc = html;
+      canvasCodeText.value = html;
+      setCanvasTab("preview");
+    }
+
+    function hideCanvasPanel() {
+      canvasPanel.style.display = "none";
+    }
+
+    function setCanvasTab(which) {
+      if (which === "preview") {
+        tabPreview.classList.add("active");
+        tabCode.classList.remove("active");
+        canvasPreview.style.display = "block";
+        canvasCode.style.display = "none";
+      } else {
+        tabPreview.classList.remove("active");
+        tabCode.classList.add("active");
+        canvasPreview.style.display = "none";
+        canvasCode.style.display = "block";
+      }
+    }
+
+    tabPreview.onclick = () => setCanvasTab("preview");
+    tabCode.onclick = () => setCanvasTab("code");
+
+    function sendMessage() {
+      const text = inputEl.value.trim();
+      if (!text) return;
+
+      const mode = modeEl.value;
+
+      addMessage(text, "user");
+      inputEl.value = "";
+      showTyping(true);
+      hideCanvasPanel();
+
+      setTimeout(() => {
+        const reply = spudzy.respond(text, mode);
+        showTyping(false);
+        addMessage(reply, "bot");
+
+        if (isHtmlLike(reply)) {
+          showCanvasPanelWith(reply);
+        }
+      }, 320);
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendMessage();
+    });
+
+    newChatBtn.addEventListener("click", () => {
+      createConversation();
+    });
+
+    // Init
+    conversations = loadConversations();
+    if (conversations.length === 0) {
+      createConversation();
+    } else {
+      currentConvId = conversations[0].id;
+      renderConversationList();
+      renderConversation(conversations[0]);
+    }
+
+    addMessage("👋 Welcome to Spudzy Chef.\nAsk me to cook up code, canvas demos, jokes, math, or stories.", "bot");
+  </script>
+</body>
+</html>

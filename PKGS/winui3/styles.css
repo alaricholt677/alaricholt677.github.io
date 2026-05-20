@@ -919,4 +919,44 @@ section:hover {
     100% { transform: scale(1); }
 }
 
+/* SECTION DEPTH SHIFT */
+section {
+    transform-style: preserve-3d;
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+section.in-view {
+    transform: perspective(900px) translateZ(40px);
+    box-shadow:
+        0 0 30px rgba(34,211,238,0.4),
+        0 0 60px rgba(168,85,247,0.3);
+}
+
+/* HOLOGRAM LIGHT SWEEP */
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(
+        120deg,
+        transparent,
+        rgba(255,255,255,0.05),
+        transparent
+    );
+    pointer-events: none;
+    mix-blend-mode: overlay;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+body.sweep::after {
+    opacity: 1;
+}
+
+/* SCROLL GLOW */
+body.scrolling {
+    filter: drop-shadow(0 0 12px rgba(34,211,238,0.4));
+    transition: filter 0.3s ease-out;
+}
+
 /* END — FLUENT 2099 HOLOGRAPHIC GLASS OS */

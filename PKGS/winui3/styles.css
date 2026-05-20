@@ -719,4 +719,45 @@ pre:hover::after {
         0 0 28px rgba(168,85,247,0.6);
 }
 
+/* HOLOGRAPHIC TEXT BASE */
+h1, p, b, strong {
+    position: relative;
+    display: inline-block;
+    background: linear-gradient(120deg, var(--fg), var(--fg));
+    -webkit-background-clip: text;
+    color: transparent;
+    transition: 0.4s ease;
+}
+
+/* LIQUID GRADIENT INJECTION */
+h1:hover,
+p:hover,
+b:hover,
+strong:hover {
+    background: linear-gradient(
+        135deg,
+        #f472b6,
+        #ec4899,
+        #d946ef,
+        #a855f7
+    );
+    background-size: 300% 300%;
+    animation: liquidFill 1.8s ease forwards;
+}
+
+@keyframes liquidFill {
+    0% {
+        background-position: 0% 100%;
+        filter: brightness(0.6);
+    }
+    50% {
+        background-position: 100% 0%;
+        filter: brightness(1.4);
+    }
+    100% {
+        background-position: 50% 50%;
+        filter: brightness(1);
+    }
+}
+
 /* END — FLUENT 2099 HOLOGRAPHIC GLASS OS */

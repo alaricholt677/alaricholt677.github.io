@@ -232,16 +232,168 @@ genHTMLPage(title = "Spudzy Page", bodyText = "Hello from Spudzy 🥔") {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
   <style>
-    body { font-family: system-ui, sans-serif; background:#111; color:#eee; padding:20px; }
-    button { padding:8px 12px; border-radius:6px; border:none; background:#7c3aed; color:#fff; cursor:pointer; }
+    /* --- Modern Reset & CSS Variables --- */
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0f0c20 0%, #06040a 100%);
+      --accent: #7c3aed;
+      --accent-glow: rgba(124, 58, 237, 0.5);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --panel-bg: rgba(255, 255, 255, 0.03);
+      --panel-border: rgba(255, 255, 255, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      overflow-x: hidden;
+    }
+
+    /* --- Glowing Ambient Background Elements --- */
+    body::before, body::after {
+      content: '';
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: var(--accent);
+      filter: blur(120px);
+      opacity: 0.15;
+      z-index: 0;
+      pointer-events: none;
+    }
+    body::before { top: 15%; left: 20%; }
+    body::after { bottom: 15%; right: 20%; }
+
+    /* --- Glassmorphic Container --- */
+    .card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 480px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      padding: 40px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* --- Typography --- */
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      margin-bottom: 16px;
+      background: linear-gradient(to right, #fff, var(--text-muted));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p {
+      font-size: 1.05rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+
+    /* --- Premium Interactive Button --- */
+    .btn-spudzy {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 14px 28px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+      background: var(--accent);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    .btn-spudzy:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px var(--accent-glow);
+      background: #8b5cf6;
+    }
+
+    .btn-spudzy:active {
+      transform: translateY(1px);
+    }
+
+    /* --- Custom Modern Notification (Toast) --- */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+    }
+
+    .toast {
+      display: flex;
+      align-items: center;
+      background: rgba(20, 15, 35, 0.85);
+      border-left: 4px solid var(--accent);
+      border-top: 1px solid var(--panel-border);
+      border-right: 1px solid var(--panel-border);
+      border-bottom: 1px solid var(--panel-border);
+      backdrop-filter: blur(8px);
+      color: #fff;
+      padding: 16px 24px;
+      border-radius: 12px;
+      font-weight: 500;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* --- Keyframe Animations --- */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
-  <h1>${title}</h1>
-  <p>${bodyText}</p>
-  <button onclick="alert('Hi from Spudzy!')">Click me</button>
+
+  <div class="card">
+    <h1>${title}</h1>
+    <p>${bodyText}</p>
+    <button id="spudzyBtn" class="btn-spudzy" onclick="document.getElementById('toast").classList.add('show');>Click me</button>
+  </div>
+
+  <div class="toast-container">
+    <div class="toast" id="toast" onclick="document.getElementById('toast").classList.add('hide');">🥔 Hi from Spudzy!</div>
+  </div>
 </body>
 </html>`;
 }

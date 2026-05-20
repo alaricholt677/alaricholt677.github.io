@@ -17,3 +17,8 @@ liquidTargets.forEach(el => {
         el.classList.add('drain');
     });
 });
+
+window.addEventListener("scroll", () => {
+    const y = window.scrollY * 0.03;
+    document.body.style.backgroundPosition = `50% ${y}%`;
+});

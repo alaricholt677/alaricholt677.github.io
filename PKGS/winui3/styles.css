@@ -733,12 +733,11 @@ strong, b, em, i, button {
     cursor: pointer;
 }
 
-/* LIQUID FILL LAYER */
-.liquid-text::before,
+/* LIQUID LAYER */
 h1::before, h2::before, h3::before, h4::before, h5::before, h6::before,
 p::before, span::before, a::before, li::before, label::before,
 strong::before, b::before, em::before, i::before, button::before {
-    content: "";
+    content: attr(data-text);
     position: absolute;
     inset: 0;
     background: linear-gradient(
@@ -749,11 +748,17 @@ strong::before, b::before, em::before, i::before, button::before {
         #a855f7
     );
     background-size: 300% 300%;
-    -webkit-mask: text;
-    -webkit-mask-image: inherit;
-    mask-image: inherit;
+    
+    /* THE FIX — MASK THE TEXT */
+    -webkit-mask-image: text;
+    mask-image: text;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+
     opacity: 0;
-    transition: opacity 0.4s ease;
+    transition: opacity 0.3s ease;
     pointer-events: none;
 }
 

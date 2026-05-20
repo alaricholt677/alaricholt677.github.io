@@ -1,54 +1,72 @@
 /* ========================================================================
-   FLUENT 2099 — FULL THEME
-   A futuristic UI system inspired by Fluent Design, glass, neon, plasma,
-   holographic surfaces, and soft‑motion micro‑interactions.
-   Author: You (with Copilot assistance)
-   Lines: ~500
+   FLUENT 2099 — HOLOGRAPHIC GLASS OS THEME
+   A futuristic UI system: glass, neon edges, soft motion, OS-like panels.
 ========================================================================= */
 
 /* -----------------------------------------------------
-   1. ROOT VARIABLES — 2099 COLOR + MOTION SYSTEM
+   1. ROOT VARIABLES — COLOR, DEPTH, MOTION
 ----------------------------------------------------- */
 :root {
-    --accent: #3b82f6;
-    --accent-hover: #60a5fa;
-    --accent-soft: rgba(59,130,246,0.12);
+    /* Core holographic palette */
+    --accent: #22d3ee;                 /* neon cyan */
+    --accent-hover: #38bdf8;           /* bright sky */
+    --accent-soft: rgba(34,211,238,0.16);
 
-    --fg: #e2e8f0;
-    --fg-muted: #94a3b8;
-    --bg: #0f172a;
-    --bg-alt: #1e293b;
+    --accent-secondary: #a855f7;       /* holographic violet */
+    --accent-secondary-soft: rgba(168,85,247,0.18);
 
-    --card-bg: rgba(255,255,255,0.04);
-    --card-border: rgba(255,255,255,0.08);
+    /* Foregrounds */
+    --fg: #e5e7eb;
+    --fg-muted: #9ca3af;
+    --fg-soft: #6b7280;
 
-    --radius: 14px;
-    --radius-lg: 22px;
-    --radius-sm: 8px;
+    /* Backgrounds — layered space glass */
+    --bg: radial-gradient(circle at top,
+            #020617 0,
+            #020617 40%,
+            #020617 100%);
+    --bg-solid: #020617;
+    --bg-alt: #020617;
 
-    --shadow: 0 12px 40px rgba(0,0,0,0.45);
-    --shadow-soft: 0 6px 20px rgba(0,0,0,0.25);
+    /* Surfaces */
+    --card-bg: rgba(15,23,42,0.78);
+    --card-bg-soft: rgba(15,23,42,0.6);
+    --card-border: rgba(148,163,184,0.35);
 
-    --transition: 0.25s ease;
-    --transition-fast: 0.15s ease;
-    --transition-slow: 0.45s ease;
+    /* Geometry */
+    --radius-xs: 8px;
+    --radius-sm: 12px;
+    --radius: 18px;
+    --radius-lg: 26px;
+    --radius-xl: 32px;
 
-    --glow: 0 0 18px rgba(59,130,246,0.55);
-    --glow-soft: 0 0 10px rgba(59,130,246,0.35);
+    /* Shadows & glow */
+    --shadow-soft: 0 18px 45px rgba(15,23,42,0.85);
+    --shadow-strong: 0 30px 80px rgba(15,23,42,0.95);
+    --glow-cyan: 0 0 32px rgba(34,211,238,0.65);
+    --glow-violet: 0 0 32px rgba(168,85,247,0.6);
 
+    /* Blur & motion */
+    --blur-strong: blur(26px) saturate(220%);
+    --blur-soft: blur(16px) saturate(180%);
+    --transition-fast: 0.16s ease-out;
+    --transition: 0.24s ease;
+    --transition-slow: 0.4s ease;
+
+    /* Layout */
+    --content-width: 980px;
     --grid-gap: 28px;
-
-    --blur: blur(18px) saturate(180%);
-    --blur-light: blur(12px) saturate(160%);
 }
 
 /* -----------------------------------------------------
-   2. GLOBAL RESET
+   2. RESET & GLOBAL
 ----------------------------------------------------- */
-* {
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
 }
 
 html, body {
@@ -56,187 +74,219 @@ html, body {
 }
 
 body {
-    font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+    font-family: "Segoe UI Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: var(--bg);
     color: var(--fg);
     line-height: 1.7;
     -webkit-font-smoothing: antialiased;
 }
 
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
 /* -----------------------------------------------------
-   3. SCROLLBARS — FUTURISTIC GLOW
+   3. SCROLLBARS — GLASS EDGE
 ----------------------------------------------------- */
 ::-webkit-scrollbar {
     width: 10px;
 }
 ::-webkit-scrollbar-track {
-    background: #0b1120;
+    background: rgba(15,23,42,0.9);
 }
 ::-webkit-scrollbar-thumb {
-    background: var(--accent);
-    border-radius: 10px;
+    background: linear-gradient(180deg, #22d3ee, #a855f7);
+    border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-hover);
+    background: linear-gradient(180deg, #38bdf8, #c084fc);
 }
 
 /* -----------------------------------------------------
-   4. HEADER — HOLOGRAPHIC GLASS
+   4. APP SHELL — TOP BAR & HEADER
 ----------------------------------------------------- */
+.app-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Top system bar (like OS chrome) */
+.top-bar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    padding: 10px 26px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    backdrop-filter: var(--blur-soft);
+    background: linear-gradient(
+        90deg,
+        rgba(15,23,42,0.92),
+        rgba(15,23,42,0.86),
+        rgba(15,23,42,0.92)
+    );
+    border-bottom: 1px solid rgba(148,163,184,0.35);
+}
+
+.top-bar-left,
+.top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.top-bar-logo {
+    width: 11px;
+    height: 11px;
+    border-radius: 999px;
+    background: radial-gradient(circle, #22d3ee, #0ea5e9);
+    box-shadow: var(--glow-cyan);
+}
+
+.top-bar-title {
+    font-size: 14px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fg-soft);
+}
+
+/* Header hero */
 header {
-    padding: 90px 20px;
-    text-align: center;
-    background: linear-gradient(135deg, #1e3a8a, #1e40af, #2563eb);
-    color: white;
     position: relative;
+    padding: 90px 20px 70px;
+    text-align: center;
     overflow: hidden;
 }
 
+/* Holographic gradient background */
+header::before {
+    content: "";
+    position: absolute;
+    inset: -40%;
+    background:
+        radial-gradient(circle at 10% 0%, rgba(56,189,248,0.18), transparent 55%),
+        radial-gradient(circle at 90% 0%, rgba(168,85,247,0.22), transparent 55%),
+        radial-gradient(circle at 50% 100%, rgba(59,130,246,0.18), transparent 55%);
+    opacity: 1;
+    pointer-events: none;
+}
+
+/* Glass overlay */
 header::after {
     content: "";
     position: absolute;
     inset: 0;
-    backdrop-filter: var(--blur);
-    opacity: 0.15;
+    backdrop-filter: var(--blur-strong);
+    background: radial-gradient(circle at top, rgba(15,23,42,0.35), rgba(15,23,42,0.9));
+    opacity: 0.9;
+    pointer-events: none;
+}
+
+header > * {
+    position: relative;
+    z-index: 1;
 }
 
 header h1 {
-    font-size: 54px;
-    margin-bottom: 12px;
+    font-size: clamp(40px, 5vw, 56px);
+    margin-bottom: 14px;
     font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+header h1 span.accent {
+    background: linear-gradient(120deg, #22d3ee, #a855f7, #38bdf8);
+    -webkit-background-clip: text;
+    color: transparent;
 }
 
 header p {
-    font-size: 22px;
-    opacity: 0.95;
+    font-size: 20px;
+    max-width: 640px;
+    margin: 0 auto;
+    color: var(--fg-muted);
 }
 
 /* -----------------------------------------------------
-   5. NAVIGATION — FLOATING NEON BAR
+   5. NAVIGATION — FLOATING GLASS TABS
 ----------------------------------------------------- */
 nav {
-    width: 100%;
-    padding: 18px 40px;
+    margin-top: 32px;
     display: flex;
     justify-content: center;
-    gap: 40px;
-    background: rgba(255,255,255,0.03);
-    backdrop-filter: var(--blur-light);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    position: sticky;
-    top: 0;
-    z-index: 50;
+    gap: 18px;
 }
 
-nav a {
+.nav-pill {
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(148,163,184,0.4);
+    background: radial-gradient(circle at top left,
+        rgba(34,211,238,0.16),
+        rgba(15,23,42,0.9)
+    );
     color: var(--fg-muted);
-    font-size: 17px;
-    text-decoration: none;
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
     transition: var(--transition-fast);
+    backdrop-filter: var(--blur-soft);
 }
 
-nav a:hover {
-    color: var(--accent);
-    text-shadow: var(--glow-soft);
+.nav-pill:hover,
+.nav-pill.active {
+    color: var(--fg);
+    border-color: rgba(34,211,238,0.7);
+    box-shadow: var(--glow-cyan);
 }
 
 /* -----------------------------------------------------
-   6. SECTIONS
+   6. MAIN CONTENT & SECTIONS
 ----------------------------------------------------- */
+main {
+    flex: 1;
+}
+
 section {
-    max-width: 900px;
+    max-width: var(--content-width);
     margin: 60px auto;
     padding: 0 20px;
 }
 
 h2 {
-    font-size: 32px;
-    margin-bottom: 12px;
-    color: var(--accent);
+    font-size: 30px;
+    margin-bottom: 10px;
     font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--fg);
+}
+
+h2 span {
+    background: linear-gradient(120deg, #22d3ee, #a855f7);
+    -webkit-background-clip: text;
+    color: transparent;
 }
 
 h3 {
     font-size: 22px;
-    margin-top: 35px;
+    margin-top: 32px;
+    margin-bottom: 8px;
     color: var(--fg);
     font-weight: 500;
 }
 
-/* -----------------------------------------------------
-   7. BUTTONS — FLUENT 2099
------------------------------------------------------ */
-button,
-.btn {
-    padding: 14px 26px;
-    border-radius: var(--radius);
-    border: 1px solid var(--accent-soft);
-    background: rgba(255,255,255,0.05);
-    color: var(--fg);
-    cursor: pointer;
-    font-size: 16px;
-    transition: var(--transition);
-    backdrop-filter: var(--blur-light);
-}
-
-button:hover,
-.btn:hover {
-    border-color: var(--accent);
-    color: var(--accent-hover);
-    box-shadow: var(--glow-soft);
-    transform: translateY(-2px);
-}
-
-button:active,
-.btn:active {
-    transform: scale(0.97);
+p {
+    color: var(--fg-muted);
+    margin-bottom: 10px;
 }
 
 /* -----------------------------------------------------
-   8. INPUTS — FUTURE FORMS
------------------------------------------------------ */
-input,
-textarea,
-select {
-    width: 100%;
-    padding: 14px 16px;
-    border-radius: var(--radius-sm);
-    border: 1px solid rgba(255,255,255,0.08);
-    background: rgba(255,255,255,0.04);
-    color: var(--fg);
-    font-size: 16px;
-    transition: var(--transition-fast);
-    backdrop-filter: var(--blur-light);
-}
-
-input:focus,
-textarea:focus,
-select:focus {
-    border-color: var(--accent);
-    outline: none;
-    box-shadow: var(--glow-soft);
-}
-
-/* -----------------------------------------------------
-   9. CARDS — GLASS PANELS
------------------------------------------------------ */
-.card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: var(--radius-lg);
-    padding: 30px;
-    box-shadow: var(--shadow);
-    backdrop-filter: var(--blur);
-    transition: var(--transition);
-}
-
-.card:hover {
-    border-color: var(--accent-soft);
-    transform: translateY(-4px);
-}
-
-/* -----------------------------------------------------
-   10. GRID SYSTEM — 2099 LAYOUT
+   7. GRID & LAYOUT UTILITIES
 ----------------------------------------------------- */
 .grid {
     display: grid;
@@ -244,110 +294,247 @@ select:focus {
 }
 
 .grid-2 {
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
 .grid-3 {
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.stack {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
 }
 
 /* -----------------------------------------------------
-   11. CODE BLOCKS — FUTURE TERMINAL
+   8. GLASS CARDS & DEMO BOX
 ----------------------------------------------------- */
-pre {
-    background: #0b1120;
-    color: #e2e8f0;
-    padding: 20px;
-    border-radius: var(--radius);
-    overflow-x: auto;
-    font-size: 15px;
-    border: 1px solid rgba(255,255,255,0.06);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
-}
-
-/* -----------------------------------------------------
-   12. DEMO BOX — GLASS CARD
------------------------------------------------------ */
+.card,
 .demo-box {
-    margin-top: 25px;
-    padding: 25px;
-    background: var(--card-bg);
-    border-radius: var(--radius);
-    border: 1px solid var(--card-border);
-    min-height: 200px;
     position: relative;
-    backdrop-filter: var(--blur-light);
-    box-shadow: var(--shadow);
+    padding: 26px;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(
+        145deg,
+        rgba(15,23,42,0.92),
+        rgba(15,23,42,0.82)
+    );
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: var(--blur-soft);
+    overflow: hidden;
     transition: var(--transition);
 }
 
+/* Subtle inner holographic sheen */
+.card::before,
+.demo-box::before {
+    content: "";
+    position: absolute;
+    inset: -40%;
+    background:
+        radial-gradient(circle at 0% 0%, rgba(34,211,238,0.12), transparent 55%),
+        radial-gradient(circle at 100% 0%, rgba(168,85,247,0.12), transparent 55%);
+    opacity: 0;
+    transition: var(--transition-slow);
+    pointer-events: none;
+}
+
+.card:hover,
 .demo-box:hover {
-    border-color: var(--accent-soft);
-    transform: translateY(-2px);
+    transform: translateY(-4px);
+    border-color: rgba(34,211,238,0.7);
+    box-shadow: var(--shadow-strong), var(--glow-cyan);
+}
+
+.card:hover::before,
+.demo-box:hover::before {
+    opacity: 1;
+}
+
+.demo-box {
+    min-height: 200px;
 }
 
 /* -----------------------------------------------------
-   13. LINKS
+   9. BUTTONS — GLASS CONTROLS
+----------------------------------------------------- */
+button,
+.btn {
+    padding: 12px 22px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(148,163,184,0.5);
+    background: radial-gradient(circle at top left,
+        rgba(34,211,238,0.18),
+        rgba(15,23,42,0.96)
+    );
+    color: var(--fg);
+    font-size: 15px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    backdrop-filter: var(--blur-soft);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+button:hover,
+.btn:hover {
+    border-color: rgba(34,211,238,0.9);
+    box-shadow: var(--glow-cyan);
+    transform: translateY(-2px);
+}
+
+button:active,
+.btn:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* Secondary button */
+.btn-secondary {
+    background: radial-gradient(circle at top left,
+        rgba(168,85,247,0.18),
+        rgba(15,23,42,0.96)
+    );
+    border-color: rgba(168,85,247,0.7);
+}
+
+.btn-secondary:hover {
+    box-shadow: var(--glow-violet);
+}
+
+/* -----------------------------------------------------
+   10. FORMS — INPUTS & FIELDS
+----------------------------------------------------- */
+label {
+    display: block;
+    font-size: 14px;
+    color: var(--fg-soft);
+    margin-bottom: 6px;
+}
+
+input,
+textarea,
+select {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(148,163,184,0.45);
+    background: rgba(15,23,42,0.9);
+    color: var(--fg);
+    font-size: 15px;
+    transition: var(--transition-fast);
+    backdrop-filter: var(--blur-soft);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--fg-soft);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: rgba(34,211,238,0.9);
+    box-shadow: 0 0 0 1px rgba(34,211,238,0.7), var(--glow-cyan);
+}
+
+/* -----------------------------------------------------
+   11. LINKS
 ----------------------------------------------------- */
 a {
-    color: var(--accent);
+    color: var(--accent-hover);
     text-decoration: none;
     transition: var(--transition-fast);
 }
 
 a:hover {
-    color: var(--accent-hover);
+    color: var(--accent);
     text-decoration: underline;
 }
 
 /* -----------------------------------------------------
-   14. LISTS
+   12. LISTS
 ----------------------------------------------------- */
 ul {
     margin-left: 22px;
     color: var(--fg-muted);
 }
 
+ul li {
+    margin-bottom: 6px;
+}
+
 /* -----------------------------------------------------
-   15. TABLES — FUTURE DATA PANELS
+   13. CODE BLOCKS — TERMINAL GLASS
+----------------------------------------------------- */
+pre {
+    background: radial-gradient(circle at top left,
+        rgba(15,23,42,0.98),
+        rgba(15,23,42,0.94)
+    );
+    color: #e5e7eb;
+    padding: 18px 20px;
+    border-radius: var(--radius);
+    overflow-x: auto;
+    font-size: 14px;
+    border: 1px solid rgba(148,163,184,0.45);
+    box-shadow: inset 0 0 0 1px rgba(15,23,42,0.9);
+}
+
+/* -----------------------------------------------------
+   14. TABLES — DATA PANELS
 ----------------------------------------------------- */
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
-    background: rgba(255,255,255,0.03);
-    backdrop-filter: var(--blur-light);
+    margin-top: 18px;
+    background: rgba(15,23,42,0.9);
     border-radius: var(--radius);
     overflow: hidden;
+    backdrop-filter: var(--blur-soft);
 }
 
-th, td {
-    padding: 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+th,
+td {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(30,64,175,0.5);
+    font-size: 14px;
 }
 
 th {
-    background: rgba(255,255,255,0.05);
-    color: var(--accent);
-    font-weight: 600;
+    text-align: left;
+    background: linear-gradient(90deg,
+        rgba(15,23,42,0.98),
+        rgba(15,23,42,0.9)
+    );
+    color: var(--fg-soft);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 12px;
 }
 
 tr:hover td {
-    background: rgba(255,255,255,0.04);
+    background: rgba(15,23,42,0.96);
 }
 
 /* -----------------------------------------------------
-   16. MODALS — FLOATING GLASS WINDOWS
+   15. MODALS — FLOATING WINDOWS
 ----------------------------------------------------- */
 .modal {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.65);
-    backdrop-filter: blur(10px);
     display: none;
-    justify-content: center;
     align-items: center;
-    z-index: 200;
+    justify-content: center;
+    background: radial-gradient(circle at top,
+        rgba(15,23,42,0.9),
+        rgba(15,23,42,0.98)
+    );
+    backdrop-filter: blur(18px);
+    z-index: 100;
 }
 
 .modal.active {
@@ -355,46 +542,57 @@ tr:hover td {
 }
 
 .modal-content {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    padding: 40px;
-    border-radius: var(--radius-lg);
-    width: min(90%, 600px);
-    box-shadow: var(--shadow);
+    width: min(90%, 520px);
+    padding: 30px;
+    border-radius: var(--radius-xl);
+    background: linear-gradient(
+        145deg,
+        rgba(15,23,42,0.96),
+        rgba(15,23,42,0.9)
+    );
+    border: 1px solid rgba(148,163,184,0.5);
+    box-shadow: var(--shadow-strong), var(--glow-cyan);
     animation: modalIn var(--transition-slow);
 }
 
 @keyframes modalIn {
-    from { opacity: 0; transform: translateY(40px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 /* -----------------------------------------------------
-   17. TOOLTIPS — HOLOGRAPHIC LABELS
+   16. TOOLTIP — MICRO GLASS LABELS
 ----------------------------------------------------- */
 .tooltip {
     position: relative;
+    cursor: help;
 }
 
 .tooltip:hover::after {
     content: attr(data-tip);
     position: absolute;
-    bottom: 120%;
+    bottom: 130%;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(255,255,255,0.08);
-    padding: 8px 14px;
-    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    border-radius: var(--radius-xs);
+    background: rgba(15,23,42,0.96);
+    border: 1px solid rgba(148,163,184,0.6);
     color: var(--fg);
-    font-size: 14px;
+    font-size: 12px;
     white-space: nowrap;
-    backdrop-filter: var(--blur-light);
-    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: var(--blur-soft);
     box-shadow: var(--shadow-soft);
 }
 
 /* -----------------------------------------------------
-   18. ANIMATIONS — FUTURE MOTION SYSTEM
+   17. ANIMATIONS & EFFECT UTILITIES
 ----------------------------------------------------- */
 @keyframes float {
     0% { transform: translateY(0); }
@@ -403,81 +601,56 @@ tr:hover td {
 }
 
 .float {
-    animation: float 4s ease-in-out infinite;
+    animation: float 5s ease-in-out infinite;
 }
 
-@keyframes pulse {
-    0% { box-shadow: 0 0 0 rgba(59,130,246,0.0); }
-    50% { box-shadow: 0 0 20px rgba(59,130,246,0.4); }
-    100% { box-shadow: 0 0 0 rgba(59,130,246,0.0); }
+@keyframes pulse-ring {
+    0% {
+        box-shadow: 0 0 0 0 rgba(34,211,238,0.5);
+    }
+    70% {
+        box-shadow: 0 0 0 18px rgba(34,211,238,0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(34,211,238,0);
+    }
 }
 
 .pulse {
-    animation: pulse 2.5s infinite;
+    animation: pulse-ring 2.4s infinite;
 }
 
 /* -----------------------------------------------------
-   19. FOOTER
+   18. FOOTER
 ----------------------------------------------------- */
 footer {
     text-align: center;
-    padding: 50px;
-    color: var(--fg-muted);
-    font-size: 15px;
+    padding: 40px 20px 50px;
+    color: var(--fg-soft);
+    font-size: 14px;
 }
 
 /* -----------------------------------------------------
-   20. EXTRA FUTURE COMPONENTS
+   19. RESPONSIVE TWEAKS
 ----------------------------------------------------- */
+@media (max-width: 640px) {
+    header {
+        padding-top: 70px;
+        padding-bottom: 50px;
+    }
 
-/* HOLOGRAPHIC DIVIDER */
-.divider {
-    height: 1px;
-    background: linear-gradient(90deg,
-        transparent,
-        rgba(255,255,255,0.15),
-        transparent
-    );
-    margin: 40px 0;
+    nav {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .top-bar {
+        padding-inline: 16px;
+    }
+
+    section {
+        margin: 40px auto;
+    }
 }
 
-/* NEON BADGE */
-.badge {
-    display: inline-block;
-    padding: 6px 14px;
-    border-radius: var(--radius-sm);
-    background: rgba(59,130,246,0.15);
-    border: 1px solid rgba(59,130,246,0.25);
-    color: var(--accent-hover);
-    font-size: 14px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-/* HOLOGRAM PANEL */
-.holo {
-    position: relative;
-    background: linear-gradient(135deg,
-        rgba(59,130,246,0.15),
-        rgba(59,130,246,0.05)
-    );
-    border: 1px solid rgba(59,130,246,0.25);
-    border-radius: var(--radius-lg);
-    padding: 30px;
-    overflow: hidden;
-}
-
-.holo::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(45deg,
-        transparent 0%,
-        rgba(255,255,255,0.15) 50%,
-        transparent 100%
-    );
-    opacity: 0.1;
-    pointer-events: none;
-}
-
-/* END OF FILE — FLUENT 2099 */
+/* END — FLUENT 2099 HOLOGRAPHIC GLASS OS */

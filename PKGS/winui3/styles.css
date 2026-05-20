@@ -1,5 +1,13 @@
+/* ========================================================================
+   FLUENT 2099 — FULL THEME
+   A futuristic UI system inspired by Fluent Design, glass, neon, plasma,
+   holographic surfaces, and soft‑motion micro‑interactions.
+   Author: You (with Copilot assistance)
+   Lines: ~500
+========================================================================= */
+
 /* -----------------------------------------------------
-   GLOBAL THEME — Fluent 2024 Dark + Blue Accent
+   1. ROOT VARIABLES — 2099 COLOR + MOTION SYSTEM
 ----------------------------------------------------- */
 :root {
     --accent: #3b82f6;
@@ -15,14 +23,39 @@
     --card-border: rgba(255,255,255,0.08);
 
     --radius: 14px;
+    --radius-lg: 22px;
+    --radius-sm: 8px;
+
     --shadow: 0 12px 40px rgba(0,0,0,0.45);
+    --shadow-soft: 0 6px 20px rgba(0,0,0,0.25);
+
+    --transition: 0.25s ease;
+    --transition-fast: 0.15s ease;
+    --transition-slow: 0.45s ease;
+
+    --glow: 0 0 18px rgba(59,130,246,0.55);
+    --glow-soft: 0 0 10px rgba(59,130,246,0.35);
+
+    --grid-gap: 28px;
+
+    --blur: blur(18px) saturate(180%);
+    --blur-light: blur(12px) saturate(160%);
 }
 
 /* -----------------------------------------------------
-   BODY
+   2. GLOBAL RESET
 ----------------------------------------------------- */
-body {
+* {
     margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+}
+
+body {
     font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
     background: var(--bg);
     color: var(--fg);
@@ -31,7 +64,24 @@ body {
 }
 
 /* -----------------------------------------------------
-   HEADER — Gradient + Glass
+   3. SCROLLBARS — FUTURISTIC GLOW
+----------------------------------------------------- */
+::-webkit-scrollbar {
+    width: 10px;
+}
+::-webkit-scrollbar-track {
+    background: #0b1120;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-hover);
+}
+
+/* -----------------------------------------------------
+   4. HEADER — HOLOGRAPHIC GLASS
 ----------------------------------------------------- */
 header {
     padding: 90px 20px;
@@ -46,7 +96,7 @@ header::after {
     content: "";
     position: absolute;
     inset: 0;
-    backdrop-filter: blur(18px) saturate(180%);
+    backdrop-filter: var(--blur);
     opacity: 0.15;
 }
 
@@ -62,7 +112,36 @@ header p {
 }
 
 /* -----------------------------------------------------
-   SECTIONS
+   5. NAVIGATION — FLOATING NEON BAR
+----------------------------------------------------- */
+nav {
+    width: 100%;
+    padding: 18px 40px;
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: var(--blur-light);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+nav a {
+    color: var(--fg-muted);
+    font-size: 17px;
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+nav a:hover {
+    color: var(--accent);
+    text-shadow: var(--glow-soft);
+}
+
+/* -----------------------------------------------------
+   6. SECTIONS
 ----------------------------------------------------- */
 section {
     max-width: 900px;
@@ -85,7 +164,95 @@ h3 {
 }
 
 /* -----------------------------------------------------
-   CODE BLOCKS — Fluent Terminal Style
+   7. BUTTONS — FLUENT 2099
+----------------------------------------------------- */
+button,
+.btn {
+    padding: 14px 26px;
+    border-radius: var(--radius);
+    border: 1px solid var(--accent-soft);
+    background: rgba(255,255,255,0.05);
+    color: var(--fg);
+    cursor: pointer;
+    font-size: 16px;
+    transition: var(--transition);
+    backdrop-filter: var(--blur-light);
+}
+
+button:hover,
+.btn:hover {
+    border-color: var(--accent);
+    color: var(--accent-hover);
+    box-shadow: var(--glow-soft);
+    transform: translateY(-2px);
+}
+
+button:active,
+.btn:active {
+    transform: scale(0.97);
+}
+
+/* -----------------------------------------------------
+   8. INPUTS — FUTURE FORMS
+----------------------------------------------------- */
+input,
+textarea,
+select {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    color: var(--fg);
+    font-size: 16px;
+    transition: var(--transition-fast);
+    backdrop-filter: var(--blur-light);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: var(--glow-soft);
+}
+
+/* -----------------------------------------------------
+   9. CARDS — GLASS PANELS
+----------------------------------------------------- */
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
+    padding: 30px;
+    box-shadow: var(--shadow);
+    backdrop-filter: var(--blur);
+    transition: var(--transition);
+}
+
+.card:hover {
+    border-color: var(--accent-soft);
+    transform: translateY(-4px);
+}
+
+/* -----------------------------------------------------
+   10. GRID SYSTEM — 2099 LAYOUT
+----------------------------------------------------- */
+.grid {
+    display: grid;
+    gap: var(--grid-gap);
+}
+
+.grid-2 {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.grid-3 {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+/* -----------------------------------------------------
+   11. CODE BLOCKS — FUTURE TERMINAL
 ----------------------------------------------------- */
 pre {
     background: #0b1120;
@@ -99,7 +266,7 @@ pre {
 }
 
 /* -----------------------------------------------------
-   DEMO BOX — Glass Card
+   12. DEMO BOX — GLASS CARD
 ----------------------------------------------------- */
 .demo-box {
     margin-top: 25px;
@@ -109,9 +276,9 @@ pre {
     border: 1px solid var(--card-border);
     min-height: 200px;
     position: relative;
-    backdrop-filter: blur(14px) saturate(160%);
+    backdrop-filter: var(--blur-light);
     box-shadow: var(--shadow);
-    transition: 0.25s ease;
+    transition: var(--transition);
 }
 
 .demo-box:hover {
@@ -120,12 +287,12 @@ pre {
 }
 
 /* -----------------------------------------------------
-   LINKS
+   13. LINKS
 ----------------------------------------------------- */
 a {
     color: var(--accent);
     text-decoration: none;
-    transition: 0.2s ease;
+    transition: var(--transition-fast);
 }
 
 a:hover {
@@ -134,7 +301,7 @@ a:hover {
 }
 
 /* -----------------------------------------------------
-   LISTS
+   14. LISTS
 ----------------------------------------------------- */
 ul {
     margin-left: 22px;
@@ -142,7 +309,115 @@ ul {
 }
 
 /* -----------------------------------------------------
-   FOOTER
+   15. TABLES — FUTURE DATA PANELS
+----------------------------------------------------- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: var(--blur-light);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+th, td {
+    padding: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+th {
+    background: rgba(255,255,255,0.05);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+tr:hover td {
+    background: rgba(255,255,255,0.04);
+}
+
+/* -----------------------------------------------------
+   16. MODALS — FLOATING GLASS WINDOWS
+----------------------------------------------------- */
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(10px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    padding: 40px;
+    border-radius: var(--radius-lg);
+    width: min(90%, 600px);
+    box-shadow: var(--shadow);
+    animation: modalIn var(--transition-slow);
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* -----------------------------------------------------
+   17. TOOLTIPS — HOLOGRAPHIC LABELS
+----------------------------------------------------- */
+.tooltip {
+    position: relative;
+}
+
+.tooltip:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,0.08);
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    color: var(--fg);
+    font-size: 14px;
+    white-space: nowrap;
+    backdrop-filter: var(--blur-light);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: var(--shadow-soft);
+}
+
+/* -----------------------------------------------------
+   18. ANIMATIONS — FUTURE MOTION SYSTEM
+----------------------------------------------------- */
+@keyframes float {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+    100% { transform: translateY(0); }
+}
+
+.float {
+    animation: float 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 rgba(59,130,246,0.0); }
+    50% { box-shadow: 0 0 20px rgba(59,130,246,0.4); }
+    100% { box-shadow: 0 0 0 rgba(59,130,246,0.0); }
+}
+
+.pulse {
+    animation: pulse 2.5s infinite;
+}
+
+/* -----------------------------------------------------
+   19. FOOTER
 ----------------------------------------------------- */
 footer {
     text-align: center;
@@ -150,3 +425,59 @@ footer {
     color: var(--fg-muted);
     font-size: 15px;
 }
+
+/* -----------------------------------------------------
+   20. EXTRA FUTURE COMPONENTS
+----------------------------------------------------- */
+
+/* HOLOGRAPHIC DIVIDER */
+.divider {
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(255,255,255,0.15),
+        transparent
+    );
+    margin: 40px 0;
+}
+
+/* NEON BADGE */
+.badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    background: rgba(59,130,246,0.15);
+    border: 1px solid rgba(59,130,246,0.25);
+    color: var(--accent-hover);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* HOLOGRAM PANEL */
+.holo {
+    position: relative;
+    background: linear-gradient(135deg,
+        rgba(59,130,246,0.15),
+        rgba(59,130,246,0.05)
+    );
+    border: 1px solid rgba(59,130,246,0.25);
+    border-radius: var(--radius-lg);
+    padding: 30px;
+    overflow: hidden;
+}
+
+.holo::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(45deg,
+        transparent 0%,
+        rgba(255,255,255,0.15) 50%,
+        transparent 100%
+    );
+    opacity: 0.1;
+    pointer-events: none;
+}
+
+/* END OF FILE — FLUENT 2099 */

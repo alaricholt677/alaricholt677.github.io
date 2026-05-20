@@ -719,7 +719,7 @@ pre:hover::after {
         0 0 28px rgba(168,85,247,0.6);
 }
 
-/* APPLY LIQUID EFFECT TO ALL TEXT */
+/* UNIVERSAL LIQUID TEXT — NO WEBKIT MASK */
 .liquid-text,
 h1, h2, h3, h4, h5, h6,
 p, span, a, li, label,
@@ -729,11 +729,13 @@ strong, b, em, i, button {
     color: transparent;
     background: linear-gradient(120deg, #ffffff, #ffffff);
     -webkit-background-clip: text;
-    transition: 0.4s ease;
+    background-clip: text;
     cursor: pointer;
+    transition: 0.3s ease;
 }
 
-/* LIQUID LAYER */
+/* LIQUID LAYER — uses blend mode instead of mask */
+.liquid-text::before,
 h1::before, h2::before, h3::before, h4::before, h5::before, h6::before,
 p::before, span::before, a::before, li::before, label::before,
 strong::before, b::before, em::before, i::before, button::before {
@@ -748,42 +750,39 @@ strong::before, b::before, em::before, i::before, button::before {
         #a855f7
     );
     background-size: 300% 300%;
-    
-    /* THE FIX — MASK THE TEXT */
-    -webkit-mask-image: text;
-    mask-image: text;
-    -webkit-mask-size: 100% 100%;
-    mask-size: 100% 100%;
-    -webkit-mask-repeat: no-repeat;
-    mask-repeat: no-repeat;
-
+    mix-blend-mode: screen;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    filter: brightness(0.4);
+    transition: opacity 0.3s ease, filter 0.3s ease;
     pointer-events: none;
 }
 
 /* INJECT LIQUID */
 .inject::before {
     opacity: 1;
-    animation: liquidFlow 1.8s ease forwards;
+    animation: liquidFill 1.8s ease forwards;
+    filter: brightness(1.4);
 }
 
-@keyframes liquidFlow {
-    0%   { background-position: 0% 100%; filter: brightness(0.6); }
-    50%  { background-position: 100% 0%; filter: brightness(1.4); }
-    100% { background-position: 50% 50%; filter: brightness(1); }
+@keyframes liquidFill {
+    0%   { background-position: 0% 100%; }
+    50%  { background-position: 100% 0%; }
+    100% { background-position: 50% 50%; }
 }
+
 /* DRAIN LIQUID */
 .drain::before {
     opacity: 0;
     animation: liquidDrain 1.2s ease-out forwards;
+    filter: brightness(0.4);
 }
 
 @keyframes liquidDrain {
     0%   { background-position: 50% 50%; opacity: 1; }
     100% { background-position: 0% 100%; opacity: 0; }
 }
-/* SURFACE RIPPLE */
+
+/* RIPPLE EFFECT */
 .inject::after {
     content: "";
     position: absolute;
@@ -802,14 +801,6 @@ strong::before, b::before, em::before, i::before, button::before {
     0% { transform: scale(0.4); opacity: 0.8; }
     70% { transform: scale(1.6); opacity: 0.2; }
     100% { transform: scale(2.2); opacity: 0; }
-}
-
-/* LED GLOW */
-.inject {
-    text-shadow:
-        0 0 12px rgba(236,72,153,0.8),
-        0 0 22px rgba(217,70,239,0.6),
-        0 0 32px rgba(168,85,247,0.4);
 }
 
 /* END — FLUENT 2099 HOLOGRAPHIC GLASS OS */

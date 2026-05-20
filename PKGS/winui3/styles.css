@@ -719,21 +719,28 @@ pre:hover::after {
         0 0 28px rgba(168,85,247,0.6);
 }
 
-/* HOLOGRAPHIC TEXT BASE */
-h1, p, b, strong {
+/* APPLY LIQUID EFFECT TO ALL TEXT */
+.liquid-text,
+h1, h2, h3, h4, h5, h6,
+p, span, a, li, label,
+strong, b, em, i, button {
     position: relative;
     display: inline-block;
-    background: linear-gradient(120deg, var(--fg), var(--fg));
-    -webkit-background-clip: text;
     color: transparent;
+    background: linear-gradient(120deg, #ffffff, #ffffff);
+    -webkit-background-clip: text;
     transition: 0.4s ease;
+    cursor: pointer;
 }
 
-/* LIQUID GRADIENT INJECTION */
-h1:hover,
-p:hover,
-b:hover,
-strong:hover {
+/* LIQUID FILL LAYER */
+.liquid-text::before,
+h1::before, h2::before, h3::before, h4::before, h5::before, h6::before,
+p::before, span::before, a::before, li::before, label::before,
+strong::before, b::before, em::before, i::before, button::before {
+    content: "";
+    position: absolute;
+    inset: 0;
     background: linear-gradient(
         135deg,
         #f472b6,
@@ -742,22 +749,62 @@ strong:hover {
         #a855f7
     );
     background-size: 300% 300%;
-    animation: liquidFill 1.8s ease forwards;
+    -webkit-mask: text;
+    -webkit-mask-image: inherit;
+    mask-image: inherit;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
 }
 
-@keyframes liquidFill {
-    0% {
-        background-position: 0% 100%;
-        filter: brightness(0.6);
-    }
-    50% {
-        background-position: 100% 0%;
-        filter: brightness(1.4);
-    }
-    100% {
-        background-position: 50% 50%;
-        filter: brightness(1);
-    }
+/* INJECT LIQUID */
+.inject::before {
+    opacity: 1;
+    animation: liquidFlow 1.8s ease forwards;
+}
+
+@keyframes liquidFlow {
+    0%   { background-position: 0% 100%; filter: brightness(0.6); }
+    50%  { background-position: 100% 0%; filter: brightness(1.4); }
+    100% { background-position: 50% 50%; filter: brightness(1); }
+}
+/* DRAIN LIQUID */
+.drain::before {
+    opacity: 0;
+    animation: liquidDrain 1.2s ease-out forwards;
+}
+
+@keyframes liquidDrain {
+    0%   { background-position: 50% 50%; opacity: 1; }
+    100% { background-position: 0% 100%; opacity: 0; }
+}
+/* SURFACE RIPPLE */
+.inject::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+        circle at 50% 50%,
+        rgba(255,255,255,0.25),
+        transparent 70%
+    );
+    mix-blend-mode: overlay;
+    animation: ripple 0.9s ease-out forwards;
+    pointer-events: none;
+}
+
+@keyframes ripple {
+    0% { transform: scale(0.4); opacity: 0.8; }
+    70% { transform: scale(1.6); opacity: 0.2; }
+    100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* LED GLOW */
+.inject {
+    text-shadow:
+        0 0 12px rgba(236,72,153,0.8),
+        0 0 22px rgba(217,70,239,0.6),
+        0 0 32px rgba(168,85,247,0.4);
 }
 
 /* END — FLUENT 2099 HOLOGRAPHIC GLASS OS */

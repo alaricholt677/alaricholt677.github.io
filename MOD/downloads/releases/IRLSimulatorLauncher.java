@@ -932,51 +932,58 @@ public class Launcher extends JFrame {
         setStatus("Installation complete.");
     }
 
-    private void launchGame() throws IOException {
-        setStatus("Preparing profile and skin...");
+private void launchGame() throws IOException {
+    setStatus("Preparing profile and skin...");
 
-        File skinDir = new File("skins");
-        skinDir.mkdirs();
+    File skinDir = new File("skins");
+    skinDir.mkdirs();
 
-        File targetSkin = new File(skinDir, "default.png");
+    File targetSkin = new File(skinDir, "default.png");
 
-        if (activeSkin != null && activeSkin.path != null) {
-            Files.copy(Paths.get(activeSkin.path), targetSkin.toPath(), StandardCopyOption.REPLACE_EXISTING);
-        } else {
-            BufferedImage skin = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g = skin.createGraphics();
-            g.setColor(new Color(128, 0, 128));
-            g.fillRect(0, 0, 64, 64);
-            g.dispose();
-            ImageIO.write(skin, "png", targetSkin);
-        }
-
-        setStatus("Launching IRL Simulator...");
-
-        String javaExec = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
-
-        List<String> cmd = new ArrayList<>();
-        cmd.add(javaExec);
-        cmd.add("-cp");
-        cmd.add(activeInstallation.path);
-        cmd.add("main.Main");
-        cmd.add("--PathToClasses");
-        cmd.add(".");
-        cmd.add("--Name");
-        cmd.add(currentUsername);
-        cmd.add("--skinDir");
-        cmd.add("skins");
-
-        ProcessBuilder pb = new ProcessBuilder(cmd);
-        pb.directory(new File("."));
-        pb.inheritIO();
-        pb.start();
-
-        SwingUtilities.invokeLater(() -> {
-            progressBar.setVisible(false);
-            setStatus("Game launched. You can close the launcher.");
-        });
+    if (activeSkin != null && activeSkin.path != null) {
+        Files.copy(Paths.get(activeSkin.path), targetSkin.toPath(), StandardCopyOption.REPLACE_EXISTING);
+    } else {
+        BufferedImage skin = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = skin.createGraphics();
+        g.setColor(new Color(128, 0, 128));
+        g.fillRect(0, 0, 64, 64);
+        g.dispose();
+        ImageIO.write(skin, "png", targetSkin);
     }
+
+    setStatus("Launching IRL Simulator...");
+
+    String javaExec = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
+
+    List<String> cmd = new ArrayList<>();
+    cmd.add(javaExec);
+    cmd.add("-cp");
+    cmd.add(activeInstallation.path);
+    cmd.add("main.Main");
+
+    cmd.add("--PathToClasses");
+    cmd.add(".");
+
+    cmd.add("--Name");
+    cmd.add(currentUsername);
+
+    cmd.add("--skinDir");
+    cmd.add("skins");
+
+    // ⭐ NEW REQUIRED ARGUMENT
+    cmd.add("--version");
+    cmd.add(activeInstallation.version);
+
+    ProcessBuilder pb = new ProcessBuilder(cmd);
+    pb.directory(new File("."));
+    pb.inheritIO();
+    pb.start();
+
+    SwingUtilities.invokeLater(() -> {
+        progressBar.setVisible(false);
+        setStatus("Game launched. You can close the launcher.");
+    });
+}
 
     private void setStatus(String text) {
         SwingUtilities.invokeLater(() -> statusLabel.setText(text));

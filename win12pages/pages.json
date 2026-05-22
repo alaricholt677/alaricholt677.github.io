@@ -19,7 +19,7 @@
       "url": "../thanks/thanks.html"
     },
     "server.com": {
-      "url": "/SampleSpecialServer/world1.zip"
+      "url": "SampleSpecialServer/world1.zip"
     }
   }
 }

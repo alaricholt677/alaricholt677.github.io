@@ -1,0 +1,863 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Windows 12 Calendar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        m3: {
+                            sys: {
+                                light: {
+                                    primary: '#0B57D0',
+                                    onPrimary: '#FFFFFF',
+                                    primaryContainer: '#D3E3FD',
+                                    onPrimaryContainer: '#041E49',
+                                    secondaryContainer: '#C2E7FF',
+                                    onSecondaryContainer: '#001D35',
+                                    surface: '#F7F9FC',
+                                    onSurface: '#1F1F1F',
+                                    surfaceVariant: '#E1E2E8',
+                                    onSurfaceVariant: '#44474E',
+                                    outline: '#74777F',
+                                    error: '#B3261E',
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #e5e7eb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Phone frame for desktop viewing */
+        #app-container {
+            width: 100%;
+            height: 100%;
+            background-color: #F7F9FC;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (min-width: 640px) {
+            #app-container {
+                width: 412px;
+                height: 892px;
+                max-height: 95vh;
+                border-radius: 32px;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                border: 8px solid #1f2937;
+            }
+        }
+
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .icon-filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+
+        /* Screen Transitions */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #F7F9FC;
+            transition: transform 0.35s cubic-bezier(0.2, 0, 0, 1);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+        .screen.hidden-bottom { transform: translateY(100%); }
+
+        /* Calendar Grid */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            padding: 0 16px;
+        }
+        .day-header {
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #44474E;
+            padding-bottom: 8px;
+        }
+        .day-cell {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 8px;
+            font-size: 0.875rem;
+            color: #1F1F1F;
+            border-radius: 100px;
+            cursor: pointer;
+            position: relative;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .day-cell:active { background-color: #E1E2E8; }
+        .day-cell.muted { color: #C7C7C7; }
+        .day-cell.selected { background-color: #D3E3FD; color: #041E49; font-weight: 600; }
+        .day-cell.today { background-color: #0B57D0; color: #FFFFFF; font-weight: 600; }
+
+        /* Event Dots */
+        .event-dots { display: flex; gap: 2px; margin-top: 4px; }
+        .event-dot { width: 4px; height: 4px; border-radius: 50%; }
+
+        /* FAB */
+        .fab {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            background-color: #C2E7FF;
+            color: #001D35;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+            z-index: 5;
+            cursor: pointer;
+        }
+        .fab:hover { box-shadow: 0 6px 12px rgba(0,0,0,0.15); background-color: #A8D8FF; }
+        .fab:active { transform: scale(0.95); }
+
+        /* Forms */
+        .m3-input {
+            width: 100%;
+            background-color: #E1E2E8;
+            border-radius: 4px 4px 0 0;
+            border-bottom: 1px solid #44474E;
+            padding: 16px;
+            padding-top: 24px;
+            font-size: 1rem;
+            color: #1F1F1F;
+            outline: none;
+            transition: border-bottom-color 0.2s, background-color 0.2s;
+        }
+        .m3-input:focus { border-bottom: 2px solid #0B57D0; background-color: #D3E3FD; }
+        .m3-input-label { position: absolute; left: 16px; top: 8px; font-size: 0.75rem; color: #0B57D0; font-weight: 500; }
+
+        /* Schedule Cards */
+        .event-card {
+            background-color: #FFFFFF;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 8px;
+            display: flex;
+            gap: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        .event-color-bar { width: 4px; border-radius: 4px; flex-shrink: 0; }
+        
+        .action-btns {
+            position: absolute;
+            top: 12px;
+            right: 8px;
+            display: flex;
+            gap: 2px;
+        }
+        .icon-btn {
+            color: #74777F;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .icon-btn:hover, .icon-btn:active { background-color: #F0F2F5; color: #0B57D0; }
+        .icon-btn.delete:hover, .icon-btn.delete:active { background-color: #FCE8E8; color: #B3261E; }
+
+        /* Toast */
+        #toast-container {
+            position: absolute;
+            bottom: 96px; 
+            left: 50%;
+            transform: translateX(-50%) translateY(200%);
+            background-color: #313033;
+            color: #F4EFF4;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            z-index: 100;
+            transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
+            white-space: nowrap;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        #toast-container.show { transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        
+        <!-- Navigation Drawer Backdrop -->
+        <div id="drawer-backdrop" class="absolute inset-0 bg-black/40 z-40 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+        <!-- Navigation Drawer (Sidebar) -->
+        <div id="nav-drawer" class="absolute top-0 left-0 h-full w-[280px] bg-m3-sys-light-surface z-50 transform -translate-x-full transition-transform duration-300 rounded-r-2xl shadow-xl flex flex-col">
+            <div class="p-6">
+                <h2 class="text-xl font-bold text-m3-sys-light-onSurface">My Apps</h2>
+            </div>
+            <nav class="flex-1 px-3 space-y-2 overflow-y-auto pb-4">
+                
+                <!-- Active App Item -->
+                <a href="#" id="close-drawer-btn" class="flex items-center gap-4 px-4 py-3.5 rounded-full bg-m3-sys-light-primaryContainer text-m3-sys-light-onPrimaryContainer transition-colors">
+                    <span class="material-symbols-outlined icon-filled text-m3-sys-light-primary">calendar_today</span>
+                    <span class="font-semibold text-m3-sys-light-primary">Calendar</span>
+                </a>
+
+                <hr class="my-3 border-m3-sys-light-surfaceVariant mx-2">
+                <p class="px-4 text-xs font-semibold tracking-wider text-m3-sys-light-outline mb-2 mt-2 uppercase">Other Apps</p>
+
+                <a href="https://alaricholt677.github.io/win12WeatherApp" class="flex items-center gap-4 px-4 py-3.5 rounded-full hover:bg-m3-sys-light-surfaceVariant text-m3-sys-light-onSurfaceVariant transition-colors">
+                    <span class="material-symbols-outlined">partly_cloudy_day</span>
+                    <span class="font-medium">Win12 Weather</span>
+                </a>
+                
+                <a href="https://alaricholt677.github.io/medlifultra" class="flex items-center gap-4 px-4 py-3.5 rounded-full hover:bg-m3-sys-light-surfaceVariant text-m3-sys-light-onSurfaceVariant transition-colors">
+                    <span class="material-symbols-outlined">health_and_safety</span>
+                    <span class="font-medium">Medliultra</span>
+                </a>
+                
+                <a href="https://alaricholt677.github.io/moreOS/android.html" class="flex items-center gap-4 px-4 py-3.5 rounded-full hover:bg-m3-sys-light-surfaceVariant text-m3-sys-light-onSurfaceVariant transition-colors">
+                    <span class="material-symbols-outlined">smartphone</span>
+                    <span class="font-medium">Android Phone</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- Toast Notification -->
+        <div id="toast-container">Notification</div>
+
+        <!-- MAIN CALENDAR SCREEN -->
+        <div id="main-screen" class="screen">
+            <!-- App Bar -->
+            <div class="px-4 py-3 flex items-center justify-between bg-m3-sys-light-surface">
+                <div class="flex items-center gap-1">
+                    <button id="btn-menu" class="p-2 -ml-2 rounded-full hover:bg-m3-sys-light-surfaceVariant text-m3-sys-light-onSurface">
+                        <span class="material-symbols-outlined">menu</span>
+                    </button>
+                    <!-- Up / Down navigation buttons -->
+                    <div class="flex items-center ml-1 bg-m3-sys-light-surfaceVariant rounded-full">
+                        <button id="btn-prev-month" class="p-1.5 rounded-full hover:bg-gray-300 text-m3-sys-light-onSurfaceVariant transition-colors" aria-label="Previous Month">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">keyboard_arrow_up</span>
+                        </button>
+                        <button id="btn-next-month" class="p-1.5 rounded-full hover:bg-gray-300 text-m3-sys-light-onSurfaceVariant transition-colors" aria-label="Next Month">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">keyboard_arrow_down</span>
+                        </button>
+                    </div>
+                    <h1 class="text-xl font-medium text-m3-sys-light-onSurface ml-3" id="current-month-year">May 2026</h1>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button class="p-2 rounded-full hover:bg-m3-sys-light-surfaceVariant text-m3-sys-light-onSurfaceVariant" id="today-jump-btn" title="Jump to Today">
+                        <span class="material-symbols-outlined">today</span>
+                    </button>
+                    <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-medium text-sm">
+                        M
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar Grid -->
+            <div class="bg-m3-sys-light-surface pb-4 border-b border-m3-sys-light-surfaceVariant">
+                <div class="calendar-grid mb-2">
+                    <div class="day-header">S</div>
+                    <div class="day-header">M</div>
+                    <div class="day-header">T</div>
+                    <div class="day-header">W</div>
+                    <div class="day-header">T</div>
+                    <div class="day-header">F</div>
+                    <div class="day-header">S</div>
+                </div>
+                <div id="calendar-days" class="calendar-grid">
+                    <!-- Days injected here by JS -->
+                </div>
+            </div>
+
+            <!-- Schedule List -->
+            <div class="flex-1 overflow-y-auto p-4 bg-m3-sys-light-surface" id="schedule-container">
+                <h2 class="text-sm font-medium text-m3-sys-light-onSurfaceVariant mb-4" id="schedule-date-header">Today</h2>
+                <div id="schedule-list">
+                    <!-- Events injected here by JS -->
+                </div>
+            </div>
+
+            <!-- FAB (Add Event) -->
+            <button id="fab" class="fab" aria-label="Add Event">
+                <span class="material-symbols-outlined text-3xl">add</span>
+            </button>
+        </div>
+
+        <!-- ADD/EDIT EVENT SCREEN -->
+        <div id="event-form-screen" class="screen hidden-bottom">
+            <!-- App Bar -->
+            <div class="px-4 py-3 flex items-center justify-between bg-m3-sys-light-surface border-b border-m3-sys-light-surfaceVariant">
+                <div class="flex items-center gap-4">
+                    <button id="btn-close-form" class="p-2 -ml-2 rounded-full hover:bg-m3-sys-light-surfaceVariant text-m3-sys-light-onSurface">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                    <h1 class="text-xl font-medium text-m3-sys-light-onSurface" id="form-header-title">Add event</h1>
+                </div>
+                <button id="btn-save-event" class="px-5 py-2 bg-m3-sys-light-primary text-m3-sys-light-onPrimary rounded-full font-medium text-sm hover:opacity-90 transition-opacity">
+                    Save
+                </button>
+            </div>
+
+            <!-- Form -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-6">
+                <!-- Title -->
+                <div class="relative">
+                    <input type="text" id="event-title" placeholder="Add title" class="w-full text-2xl font-medium bg-transparent border-b-2 border-m3-sys-light-surfaceVariant py-2 focus:border-m3-sys-light-primary outline-none placeholder:text-m3-sys-light-outline">
+                </div>
+
+                <!-- Date & Time -->
+                <div class="flex items-start gap-4 mt-6">
+                    <span class="material-symbols-outlined text-m3-sys-light-onSurfaceVariant mt-3">schedule</span>
+                    <div class="flex-1 space-y-4">
+                        <div class="flex items-center justify-between py-2 border-b border-m3-sys-light-surfaceVariant">
+                            <span class="text-m3-sys-light-onSurface font-medium" id="form-date-display">Thu, May 20, 2026</span>
+                            <input type="date" id="event-date" class="bg-transparent text-m3-sys-light-onSurfaceVariant outline-none" required>
+                        </div>
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="flex-1 relative">
+                                <span class="m3-input-label">Start time</span>
+                                <input type="time" id="event-start-time" class="m3-input" value="10:00">
+                            </div>
+                            <div class="flex-1 relative">
+                                <span class="m3-input-label">End time</span>
+                                <input type="time" id="event-end-time" class="m3-input" value="11:00">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Color -->
+                <div class="flex items-center gap-4">
+                    <span class="material-symbols-outlined text-m3-sys-light-onSurfaceVariant">palette</span>
+                    <select id="event-color" class="w-full py-3 bg-transparent border-b border-m3-sys-light-surfaceVariant text-m3-sys-light-onSurface outline-none cursor-pointer font-medium">
+                        <option value="#0B57D0">Default (Blue)</option>
+                        <option value="#1EA362">Green</option>
+                        <option value="#D93025">Red</option>
+                        <option value="#F29900">Yellow</option>
+                        <option value="#8E24AA">Purple</option>
+                    </select>
+                </div>
+
+                <!-- Description -->
+                <div class="flex items-start gap-4">
+                    <span class="material-symbols-outlined text-m3-sys-light-onSurfaceVariant mt-2">notes</span>
+                    <textarea id="event-desc" rows="4" placeholder="Add description" class="w-full bg-transparent border-b border-m3-sys-light-surfaceVariant py-2 focus:border-m3-sys-light-primary outline-none resize-none"></textarea>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- Storage Key & State Management ---
+        const STORAGE_KEY = 'android16_calendar_data_v4';
+        const today = new Date();
+        let displayMonthDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        let selectedDateStr = formatDate(today);
+        let events = []; // Custom user events
+        let editingEventId = null; 
+
+        // --- Navigation Drawer Logic ---
+        const btnMenu = document.getElementById('btn-menu');
+        const navDrawer = document.getElementById('nav-drawer');
+        const drawerBackdrop = document.getElementById('drawer-backdrop');
+        const closeDrawerBtn = document.getElementById('close-drawer-btn');
+
+        function openDrawer() {
+            navDrawer.classList.remove('-translate-x-full');
+            drawerBackdrop.classList.remove('opacity-0', 'pointer-events-none');
+            drawerBackdrop.classList.add('opacity-100', 'pointer-events-auto');
+        }
+
+        function closeDrawer() {
+            navDrawer.classList.add('-translate-x-full');
+            drawerBackdrop.classList.remove('opacity-100', 'pointer-events-auto');
+            drawerBackdrop.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        btnMenu.addEventListener('click', openDrawer);
+        drawerBackdrop.addEventListener('click', closeDrawer);
+        closeDrawerBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            closeDrawer();
+        });
+
+        // --- Helper: Toast Notification ---
+        let toastTimeout;
+        function showToast(message) {
+            const toast = document.getElementById('toast-container');
+            toast.textContent = message;
+            toast.classList.add('show');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // --- Utility Functions ---
+        function formatDate(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function getMonthName(monthIndex) {
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            return months[monthIndex];
+        }
+
+        function formatDisplayDate(dateStr) {
+            const [y, m, d] = dateStr.split('-');
+            const dateObj = new Date(y, m - 1, d);
+            
+            if (dateStr === formatDate(today)) return 'Today';
+            
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+            if (dateStr === formatDate(tomorrow)) return 'Tomorrow';
+            
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            if (dateStr === formatDate(yesterday)) return 'Yesterday';
+
+            return dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        }
+
+        function convertTo12Hour(timeStr) {
+            if (!timeStr) return '';
+            let [h, m] = timeStr.split(':');
+            h = parseInt(h);
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12;
+            return `${h}:${m} ${ampm}`;
+        }
+
+        // --- Dynamic Holiday Calculation Engine ---
+        function getNthDayOfMonth(year, monthIndex, dayOfWeek, n) {
+            let d = new Date(year, monthIndex, 1);
+            let count = 0;
+            while (d.getMonth() === monthIndex) {
+                if (d.getDay() === dayOfWeek) {
+                    count++;
+                    if (count === n) return formatDate(d);
+                }
+                d.setDate(d.getDate() + 1);
+            }
+            return null;
+        }
+
+        function getLastDayOfMonth(year, monthIndex, dayOfWeek) {
+            let d = new Date(year, monthIndex + 1, 0); 
+            while (d.getMonth() === monthIndex) {
+                if (d.getDay() === dayOfWeek) return formatDate(d);
+                d.setDate(d.getDate() - 1);
+            }
+            return null;
+        }
+
+        function getHolidaysForYear(year) {
+            return [
+                // Fixed Dates
+                { id: `h-ny-${year}`, title: "New Year's Day", date: `${year}-01-01`, color: '#1EA362', desc: 'Public Holiday', isHoliday: true },
+                { id: `h-val-${year}`, title: "Valentine's Day", date: `${year}-02-14`, color: '#D93025', desc: 'Observance', isHoliday: true },
+                { id: `h-jun-${year}`, title: "Juneteenth", date: `${year}-06-19`, color: '#8E24AA', desc: 'Public Holiday', isHoliday: true },
+                { id: `h-ind-${year}`, title: "Independence Day", date: `${year}-07-04`, color: '#D93025', desc: 'Public Holiday', isHoliday: true },
+                { id: `h-hal-${year}`, title: "Halloween", date: `${year}-10-31`, color: '#F29900', desc: 'Observance', isHoliday: true },
+                { id: `h-vet-${year}`, title: "Veterans Day", date: `${year}-11-11`, color: '#1EA362', desc: 'Public Holiday', isHoliday: true },
+                { id: `h-chr-${year}`, title: "Christmas Day", date: `${year}-12-25`, color: '#1EA362', desc: 'Public Holiday', isHoliday: true },
+                
+                // Dynamic Dates
+                { id: `h-mlk-${year}`, title: "Martin Luther King Jr. Day", date: getNthDayOfMonth(year, 0, 1, 3), color: '#1EA362', desc: 'Public Holiday', isHoliday: true },
+                { id: `h-pre-${year}`, title: "Presidents' Day", date: getNthDayOfMonth(year, 1, 1, 3), color: '#1EA362', desc: 'Public Holiday', isHoliday: true },
+                { id: `h-mot-${year}`, title: "Mother's Day", date: getNthDayOfMonth(year, 4, 0, 2), color: '#8E24AA', desc: 'Observance', isHoliday: true },
+                { id: `h-mem-${year}`, title: "Memorial Day", date: getLastDayOfMonth(year, 4, 1), color: '#0B57D0', desc: 'Public Holiday', isHoliday: true },
+                { id: `h-fat-${year}`, title: "Father's Day", date: getNthDayOfMonth(year, 5, 0, 3), color: '#0B57D0', desc: 'Observance', isHoliday: true },
+                { id: `h-lab-${year}`, title: "Labor Day", date: getNthDayOfMonth(year, 8, 1, 1), color: '#1EA362', desc: 'Public Holiday', isHoliday: true },
+                { id: `h-thg-${year}`, title: "Thanksgiving Day", date: getNthDayOfMonth(year, 10, 4, 4), color: '#F29900', desc: 'Public Holiday', isHoliday: true },
+            ];
+        }
+
+        // --- Data Loading & Aggregation ---
+        function getAllEvents() {
+            const year = displayMonthDate.getFullYear();
+            const holidays = [
+                ...getHolidaysForYear(year - 1),
+                ...getHolidaysForYear(year),
+                ...getHolidaysForYear(year + 1)
+            ];
+            return [...events, ...holidays];
+        }
+
+        const generateDefaultEvents = () => {
+            const evts = [];
+            const d = new Date();
+            const relDate = (offsetDays) => {
+                const nd = new Date(d);
+                nd.setDate(d.getDate() + offsetDays);
+                return formatDate(nd);
+            };
+
+            evts.push({ id: Date.now() + 1, title: 'Design Sync', date: relDate(0), startTime: '10:00', endTime: '11:00', color: '#0B57D0', desc: 'Review M3 components and styling guidelines.' });
+            evts.push({ id: Date.now() + 2, title: 'Lunch with Sarah', date: relDate(0), startTime: '12:30', endTime: '13:30', color: '#1EA362', desc: 'At the downtown cafe' });
+            evts.push({ id: Date.now() + 3, title: 'Dentist Appointment', date: relDate(1), startTime: '09:00', endTime: '10:00', color: '#8E24AA', desc: 'Routine cleaning' });
+            evts.push({ id: Date.now() + 4, title: 'Team Sync', date: relDate(-2), startTime: '14:00', endTime: '15:00', color: '#0B57D0', desc: 'Weekly progress check' });
+            evts.push({ id: Date.now() + 5, title: 'Flight to NYC', date: relDate(4), startTime: '06:00', endTime: '11:00', color: '#D93025', desc: 'JFK Terminal 4. Bring passport.' });
+            evts.push({ id: Date.now() + 6, title: 'Gym', date: relDate(0), startTime: '18:00', endTime: '19:30', color: '#F29900', desc: 'Leg day' });
+            
+            return evts;
+        };
+
+        function loadEvents() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    events = JSON.parse(stored);
+                } else {
+                    events = generateDefaultEvents();
+                    saveEvents();
+                }
+            } catch (e) {
+                console.warn("localStorage blocked (likely iframe). Running in-memory mode.");
+                events = generateDefaultEvents();
+            }
+        }
+
+        function saveEvents() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
+            } catch (e) {}
+        }
+
+        function deleteEvent(id) {
+            events = events.filter(e => e.id !== id);
+            saveEvents();
+            renderCalendar();
+            renderSchedule();
+            showToast("Event deleted");
+        }
+
+        // --- DOM Elements ---
+        const calendarDaysEl = document.getElementById('calendar-days');
+        const monthYearText = document.getElementById('current-month-year');
+        const scheduleContainer = document.getElementById('schedule-list');
+        const scheduleDateHeader = document.getElementById('schedule-date-header');
+        
+        const mainScreen = document.getElementById('main-screen');
+        const eventFormScreen = document.getElementById('event-form-screen');
+        const formHeaderTitle = document.getElementById('form-header-title');
+        
+        const fab = document.getElementById('fab');
+        const btnCloseForm = document.getElementById('btn-close-form');
+        const btnSaveEvent = document.getElementById('btn-save-event');
+        const btnToday = document.getElementById('today-jump-btn');
+        const btnPrevMonth = document.getElementById('btn-prev-month');
+        const btnNextMonth = document.getElementById('btn-next-month');
+        
+        const inTitle = document.getElementById('event-title');
+        const inDate = document.getElementById('event-date');
+        const inDateDisplay = document.getElementById('form-date-display');
+        const inStart = document.getElementById('event-start-time');
+        const inEnd = document.getElementById('event-end-time');
+        const inColor = document.getElementById('event-color');
+        const inDesc = document.getElementById('event-desc');
+
+        // --- Render Functions ---
+        function renderCalendar() {
+            calendarDaysEl.innerHTML = '';
+            
+            const year = displayMonthDate.getFullYear();
+            const month = displayMonthDate.getMonth();
+            
+            monthYearText.textContent = `${getMonthName(month)} ${year}`;
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const daysInPrevMonth = new Date(year, month, 0).getDate();
+            const allActiveEvents = getAllEvents();
+
+            // Previous month padding
+            for (let i = 0; i < firstDay; i++) {
+                const prevDate = daysInPrevMonth - firstDay + i + 1;
+                const prevMonthNum = month === 0 ? 12 : month;
+                const prevYear = month === 0 ? year - 1 : year;
+                const dStr = `${prevYear}-${String(prevMonthNum).padStart(2, '0')}-${String(prevDate).padStart(2, '0')}`;
+                createDayCell(prevDate, dStr, true, allActiveEvents);
+            }
+
+            // Current month days
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                createDayCell(i, dStr, false, allActiveEvents);
+            }
+
+            // Next month padding
+            const totalCells = firstDay + daysInMonth;
+            const remaining = 42 - totalCells; 
+            for (let i = 1; i <= remaining; i++) {
+                const nextMonthNum = month === 11 ? 1 : month + 2;
+                const nextYear = month === 11 ? year + 1 : year;
+                const dStr = `${nextYear}-${String(nextMonthNum).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                createDayCell(i, dStr, true, allActiveEvents);
+            }
+        }
+
+        function createDayCell(dayNum, dateStr, isMuted, allActiveEvents) {
+            const cell = document.createElement('div');
+            cell.className = 'day-cell';
+            if (isMuted) cell.classList.add('muted');
+            
+            if (dateStr === formatDate(today)) {
+                cell.classList.add('today');
+            } else if (dateStr === selectedDateStr) {
+                cell.classList.add('selected');
+            }
+
+            const numSpan = document.createElement('span');
+            numSpan.textContent = dayNum;
+            cell.appendChild(numSpan);
+
+            // Add Event Dots
+            const dayEvents = allActiveEvents.filter(e => e.date === dateStr);
+            if (dayEvents.length > 0) {
+                const dotsContainer = document.createElement('div');
+                dotsContainer.className = 'event-dots';
+                dayEvents.slice(0, 3).forEach(evt => {
+                    const dot = document.createElement('div');
+                    dot.className = 'event-dot';
+                    dot.style.backgroundColor = cell.classList.contains('today') ? '#FFFFFF' : evt.color;
+                    dotsContainer.appendChild(dot);
+                });
+                cell.appendChild(dotsContainer);
+            }
+
+            cell.addEventListener('click', () => {
+                selectedDateStr = dateStr;
+                renderCalendar(); 
+                renderSchedule();
+            });
+
+            calendarDaysEl.appendChild(cell);
+        }
+
+        function renderSchedule() {
+            scheduleDateHeader.textContent = formatDisplayDate(selectedDateStr);
+            scheduleContainer.innerHTML = '';
+
+            const dayEvents = getAllEvents()
+                .filter(e => e.date === selectedDateStr)
+                .sort((a, b) => {
+                    if (a.isHoliday && !b.isHoliday) return -1;
+                    if (!a.isHoliday && b.isHoliday) return 1;
+                    return (a.startTime || '00:00').localeCompare(b.startTime || '00:00');
+                });
+
+            if (dayEvents.length === 0) {
+                scheduleContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-12 text-center">
+                        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23C7C7C7'><path d='M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 5h5v5h-5z'/></svg>" class="w-16 h-16 mb-4 opacity-50">
+                        <p class="text-m3-sys-light-onSurfaceVariant font-medium">No events</p>
+                        <p class="text-sm text-m3-sys-light-outline mt-1">Tap + to add an event</p>
+                    </div>
+                `;
+                return;
+            }
+
+            dayEvents.forEach(evt => {
+                const card = document.createElement('div');
+                card.className = 'event-card';
+                
+                const timeStr = evt.isHoliday ? 'All Day' : `${convertTo12Hour(evt.startTime)} - ${convertTo12Hour(evt.endTime)}`;
+                const paddingRight = evt.isHoliday ? 'pr-4' : 'pr-14'; 
+
+                const actionBtnsHTML = evt.isHoliday ? '' : `
+                    <div class="action-btns">
+                        <button class="icon-btn edit-btn" aria-label="Edit Event">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">edit</span>
+                        </button>
+                        <button class="icon-btn delete delete-btn" aria-label="Delete Event">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">delete</span>
+                        </button>
+                    </div>
+                `;
+
+                card.innerHTML = `
+                    <div class="event-color-bar" style="background-color: ${evt.color}"></div>
+                    <div class="flex-1 ${paddingRight}">
+                        <h3 class="font-medium text-m3-sys-light-onSurface text-base leading-tight">${evt.title}</h3>
+                        <p class="text-sm text-m3-sys-light-onSurfaceVariant mt-1 font-medium">${timeStr}</p>
+                        ${evt.desc ? `<p class="text-sm text-m3-sys-light-outline mt-2 whitespace-pre-wrap">${evt.desc}</p>` : ''}
+                    </div>
+                    ${actionBtnsHTML}
+                `;
+
+                if (!evt.isHoliday) {
+                    card.querySelector('.edit-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openEventForm(evt);
+                    });
+
+                    card.querySelector('.delete-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deleteEvent(evt.id);
+                    });
+                }
+
+                scheduleContainer.appendChild(card);
+            });
+        }
+
+        // --- Interactions & Listeners ---
+
+        function openEventForm(eventToEdit = null) {
+            inTitle.style.borderBottomColor = ''; 
+
+            if (eventToEdit) {
+                editingEventId = eventToEdit.id;
+                formHeaderTitle.textContent = "Edit event";
+                
+                inTitle.value = eventToEdit.title;
+                inDate.value = eventToEdit.date;
+                inDateDisplay.textContent = formatDisplayDate(eventToEdit.date);
+                inStart.value = eventToEdit.startTime;
+                inEnd.value = eventToEdit.endTime;
+                inColor.value = eventToEdit.color;
+                inDesc.value = eventToEdit.desc || '';
+            } else {
+                editingEventId = null;
+                formHeaderTitle.textContent = "Add event";
+                
+                inDate.value = selectedDateStr;
+                inDateDisplay.textContent = formatDisplayDate(selectedDateStr);
+                inTitle.value = '';
+                inDesc.value = '';
+                inStart.value = '10:00';
+                inEnd.value = '11:00';
+                inColor.value = '#0B57D0';
+            }
+
+            eventFormScreen.classList.remove('hidden-bottom');
+            setTimeout(() => inTitle.focus(), 300);
+        }
+
+        fab.addEventListener('click', () => {
+            openEventForm(null); 
+        });
+
+        btnCloseForm.addEventListener('click', () => {
+            eventFormScreen.classList.add('hidden-bottom');
+        });
+
+        inDate.addEventListener('change', (e) => {
+            inDateDisplay.textContent = formatDisplayDate(e.target.value);
+        });
+
+        btnSaveEvent.addEventListener('click', () => {
+            const title = inTitle.value.trim();
+            if (!title) {
+                inTitle.style.borderBottomColor = '#B3261E'; 
+                showToast('Event title is required');
+                return;
+            }
+
+            const eventData = {
+                id: editingEventId || Date.now(),
+                title: title,
+                date: inDate.value,
+                startTime: inStart.value,
+                endTime: inEnd.value,
+                color: inColor.value,
+                desc: inDesc.value.trim()
+            };
+
+            if (editingEventId) {
+                const index = events.findIndex(e => e.id === editingEventId);
+                if (index !== -1) events[index] = eventData;
+                showToast("Event updated");
+            } else {
+                events.push(eventData);
+                showToast("Event saved");
+            }
+
+            saveEvents(); 
+            
+            selectedDateStr = eventData.date;
+            const [y, m, d] = eventData.date.split('-');
+            displayMonthDate = new Date(y, m - 1, 1);
+            
+            renderCalendar();
+            renderSchedule();
+
+            eventFormScreen.classList.add('hidden-bottom');
+        });
+
+        // Navigation
+        btnPrevMonth.addEventListener('click', () => {
+            displayMonthDate.setMonth(displayMonthDate.getMonth() - 1);
+            renderCalendar();
+        });
+
+        btnNextMonth.addEventListener('click', () => {
+            displayMonthDate.setMonth(displayMonthDate.getMonth() + 1);
+            renderCalendar();
+        });
+
+        btnToday.addEventListener('click', () => {
+            displayMonthDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            selectedDateStr = formatDate(today);
+            renderCalendar();
+            renderSchedule();
+        });
+
+        // Initialize App
+        loadEvents();
+        renderCalendar();
+        renderSchedule();
+
+    </script>
+</body>
+</html>
+
+

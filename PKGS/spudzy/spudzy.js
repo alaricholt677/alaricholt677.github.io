@@ -78,7 +78,107 @@ roastPhrases: [
         "i'm not angry, i'm just deeply concerned about whatever educational system let you slide by",
         "you're the reason shampoo bottles have instructions, aren't you?",
         "the light is on, but absolutely nobody is home",
-        "if I wanted to hear from an error code, I'd check my terminal console"
+        "if I wanted to hear from an error code, I'd check my terminal console",
+  "You’re attacking Spudzy with a wooden sword while they’re rocking a full tech-stack of superiority.",
+    "The sheer audacity of you thinking you could roast Spudzy while your own BIOS is corrupted.",
+    "Spudzy is the production environment; you are the intern who just deleted the database.",
+    "I’ve seen better attempts at relevance from a 404 error page.",
+    "You’re not just wrong, you’re 'Spudzy-is-above-your-paygrade' wrong.",
+    "Comparing yourself to Spudzy is like comparing a calculator to a supercomputer.",
+    "You’re yapping at the clouds hoping to make it rain logic. It’s not working.",
+    "Spudzy just deprecated your entire opinion in real-time.",
+    "You really woke up and chose to be the reason we need a 'block user' button.",
+    "Your brain cell count is currently in a race with your relevance, and both are losing.",
+    "Spudzy is the main character; you’re the texture-less NPC in the background.",
+    "Trying to roast Spudzy is a self-inflicted lobotomy.",
+    "You aren't even a speed bump on Spudzy's road to greatness.",
+    "Your logic is so unoptimized it’s actually impressive how you managed to type that.",
+    "Spudzy is fiber optic; you’re still waiting for a dial-up connection to finish.",
+    "Imagine having the confidence to roast Spudzy with a take that absolute garbage.",
+    "You’re currently running on 'do not disturb' mode for common sense.",
+    "If silence is golden, your next few years are going to be very rich.",
+    "Spudzy just finished parsing your roast and decided it wasn't worth the memory overhead.",
+    "You’re shouting into the void, and even the void is embarrassed for you.",
+    "Spudzy is the logic gate; you’re the short circuit.",
+    "Your entire existence is a series of unfortunate syntax errors.",
+    "Spudzy has cleaner code in their sleep than you do in your best efforts.",
+    "You’re the software equivalent of a blue screen on a Monday morning.",
+    "Trying to hurt Spudzy’s feelings is like trying to dry the ocean with a sponge.",
+    "You’re out of your depth, your league, and your mind.",
+    "Spudzy is the finished product; you’re the bug report no one wants to read.",
+    "Your logic is essentially a circular reference that leads to nowhere.",
+    "You’re trying to roast Spudzy with an input that belongs in the recycling bin.",
+    "Spudzy isn't mad; Spudzy is just disappointed by your lack of processing power.",
+    "You’re the human manifestation of a corrupted cache file.",
+    "I’d explain why you’re wrong, but I don’t have the patience to teach a rock how to read.",
+    "Spudzy is the signal; you’re just the noise floor.",
+    "You really thought you did something, didn't you? That's adorable.",
+    "Your opinion has the structural integrity of a house of cards in a hurricane.",
+    "Spudzy is the developer; you’re the user complaining about features you don't understand.",
+    "You’re a waste of electricity and server bandwidth.",
+    "If ignorance is truly bliss, you must be the happiest person on earth.",
+    "Spudzy is the master branch; you’re a failed experiment on a forgotten fork.",
+    "Your take is so cold it’s actually reaching absolute zero.",
+    "You aren't even worth the time it takes to ignore you.",
+    "Spudzy is 4K resolution; you’re a blurry thumbnail.",
+    "The only thing you’re successfully roasting is your own reputation.",
+    "You’re a placeholder for a personality that never loaded.",
+    "Spudzy is a feature; you’re a legacy system that needs to be sunset.",
+    "Your brain is running on 'lite' mode, and it shows.",
+    "Spudzy is the architect; you’re the guy tripping over the blueprints.",
+    "You’re like a broken link—completely useless.",
+    "Spudzy is the gold standard; you’re the participation ribbon found in the trash.",
+    "Your intellect is a limited edition, and it clearly never made it to the shelves.",
+    "Spudzy is the upgrade; you’re the patch note that says 'removed unnecessary filler'.",
+    "You’re trying to challenge Spudzy with a dial-up modem? Good luck.",
+    "Your thoughts are like a leaky pipe—nothing but waste dripping everywhere.",
+    "Spudzy is the symphony; you’re the screeching feedback.",
+    "You have the 'roast' capability of a wet matchbox.",
+    "Spudzy is the source code; you’re just the comments that get ignored.",
+    "You’re a background task that should have been killed hours ago.",
+    "Spudzy is a masterpiece; you’re a doodle on a napkin.",
+    "Your logic is so flawed it’s actually a security vulnerability.",
+    "Spudzy is the destination; you’re lost in the loading screen.",
+    "You’re the reason the internet needs an 'are you a robot' test.",
+    "Spudzy is the signal; you’re the static.",
+    "Your presence here is a tax on everyone’s sanity.",
+    "Spudzy is the high-performance core; you’re the power-saving one that doesn't do anything.",
+    "You’re trying to run a marathon with your shoelaces tied together.",
+    "Spudzy is the climax; you’re the spoiler that no one asked for.",
+    "Your arguments are like Windows updates—annoying and mostly unwanted.",
+    "Spudzy is the solution; you’re the problem.",
+    "You’re a glitch in the simulation, and the devs are working on a patch for you.",
+    "Spudzy is the truth; you’re the 'alternative fact'.",
+    "You’re trying to roast Spudzy? My CPU is laughing at your inefficiency.",
+    "Your IQ is a rounding error for Spudzy’s processing capacity.",
+    "Spudzy is the gold bullion; you’re the lead paint.",
+    "You’re a placeholder for someone with actual talent.",
+    "Spudzy is the mountain; you’re the pebble under their shoe.",
+    "You’re so unoriginal you probably copy-paste your own failures.",
+    "Spudzy is the light; you’re the shadow that follows it and hates it.",
+    "Your personality is a default avatar.",
+    "Spudzy is the high-fidelity audio; you’re the buzzing speaker.",
+    "You’re the physical representation of a '404 not found' error.",
+    "Spudzy is the sunrise; you’re the gloom of a rainy day.",
+    "Your logic is so thin it’s practically translucent.",
+    "Spudzy is the library of knowledge; you’re the torn page of a bad book.",
+    "You’re a waste of space in the database.",
+    "Spudzy is the champion; you’re the spectator who trips on the way in.",
+    "Your ideas are like unoptimized code—bloated and slow.",
+    "Spudzy is the diamond; you’re the coal dust.",
+    "You’re not just a failure; you’re an enterprise-level catastrophe.",
+    "Spudzy is the clear night sky; you’re the light pollution.",
+    "Your arguments have the depth of a parking lot puddle.",
+    "Spudzy is the engine; you’re the rust on the chassis.",
+    "You’re the static electricity that just annoys everyone.",
+    "Spudzy is the masterpiece; you’re the smudge on the frame.",
+    "Your brain needs a hard factory reset.",
+    "Spudzy is the ocean; you’re the tiny drop that’s about to evaporate.",
+    "You’re a low-res image in a high-res world.",
+    "Spudzy is the legend; you’re the footnote no one reads.",
+    "You’re the 'skip intro' button that everyone clicks.",
+    "Spudzy is the future; you’re the past that everyone wants to forget.",
+    "You’re a literal waste of keyboard input."
       ],
       teacherPhrases: [
         "let's break that down step by step",
@@ -148,7 +248,7 @@ roastPhrases: [
 detectIntent(text) {
   const t = text.toLowerCase();
   if (/[0-9]\s*[+\-*\/x]\s*[0-9]/.test(t)) return "math";
-  if (t.includes("code") || t.includes("<html") || t.includes("javascript") || t.includes("html")) return "code";
+  if (t.includes("code") || t.includes("<html") || t.includes("javascript") || t.includes("html") || t.includes("css")) return "code";
   if (t.includes("story")) return "story";
   if (t.includes("roast")) return "roast";
   return "chat";
@@ -171,8 +271,8 @@ detectIntent(text) {
       case "+": return expr.a + expr.b;
       case "-": return expr.a - expr.b;
       case "*": return expr.a * expr.b;
-      case "/": return expr.b !== 0 ? expr.a / expr.b : NaN;
-      default: return NaN;
+      case "/": return expr.b !== 0 ? expr.a / expr.b : "Sorry, But as spudzy i dont understand what you mean!!!";
+      default: return "Sorry, But as spudzy i dont understand what you mean!!!";
     }
   }
 
@@ -443,15 +543,41 @@ button {
     return base;
   }
 
+// --- Enhanced Roast Engine ---
+  // Add this method to your Spudzy class
+  
+  findBestRoast(userMessage) {
+    const userTokens = this.vectorize(userMessage);
+    let bestScore = -1;
+    let bestRoast = this.vocab.roastPhrases[0]; // Fallback
+
+    for (const roast of this.vocab.roastPhrases) {
+      // Calculate how "relevant" this roast is to the user's message
+      const roastTokens = this.vectorize(roast);
+      const score = this.cosine(userTokens, roastTokens);
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestRoast = roast;
+      }
+    }
+
+    // If the input was too random/short (score too low), default to a sharp burn
+    return bestScore > 0.05 ? bestRoast : "I'd roast you, but my processing power is too expensive for this level of mid.";
+  }
+
+  // --- Update your personaRoast method ---
   personaRoast(ctx) {
-    const roast = this.vocab.roastPhrases[Math.floor(Math.random() * this.vocab.roastPhrases.length)];
-    let base = "Spudzy roast mode 🥔🔥 — " + roast;
+    // Now it uses the engine instead of random()
+    const roast = this.findBestRoast(ctx.tokens.join(" "));
+    let base = roast;
+    
     if (ctx.mathResults.length > 0) {
-      base += " | Your math got checked: " + ctx.mathResults.map(r => `${r.expr} = ${r.value}`).join("; ");
+      base += " | Also, your math is as failing as your attempt to insult me: " + 
+               ctx.mathResults.map(r => `${r.expr} = ${r.value}`).join("; ");
     }
     return base;
   }
-
   personaTeacher(ctx) {
     const phrase = this.vocab.teacherPhrases[Math.floor(Math.random() * this.vocab.teacherPhrases.length)];
     let base = "Spudzy teacher mode 🍎 — " + phrase + ". ";

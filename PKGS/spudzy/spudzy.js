@@ -21,165 +21,6 @@ class Spudzy {
       slang: ["bruh","fr","nah","wild","cookin","based","cracked","lowkey","highkey","vibes"],
       positive: ["good","great","awesome","nice","cool","love","like","enjoy","fun","amazing"],
       negative: ["bad","terrible","hate","awful","annoying","boring","lame","trash","mid"],
-roastPhrases: [
-        // --- Tech & Brain Overheating ---
-        "you really typed that with confidence huh",
-        "that message needs a software update",
-        "your keyboard deserves an apology",
-        "even Spudzy is buffering after reading that",
-        "that input was a whole bug report in disguise",
-        "i ran your text through an AI model and it gave up on humanity",
-        "are you using internet explorer? because your logic is 10 years behind",
-        "your brain is running on a 2G network in a tunnel",
-        "is your CPU getting thermal throttled, or do you always think this slowly?",
-        "this input is concrete proof that natural selection has paused",
-        "i've seen random text generators with more processing power than this thought process",
-        "delete this config file immediately, it's corrupting my database",
-        "your critical thinking skills are stored in a scratchpad that gets wiped every 2 seconds",
-        
-        // --- The Passive-Aggressive "Are you okay?" ---
-        "did you type this while falling down a flight of stairs? genuinely asking.",
-        "this is a safe space, you don't have to announce your lack of literacy out loud",
-        "i want to agree with you, but then we'd both be completely dynamic failures",
-        "who let you bypass the captcha to type this?",
-        "i’ve had more intellectually stimulating conversations with broken node_modules",
-        "did you mean to post this to your diary or are you just trying to embarrass yourself publicly?",
-        "the bar was on the floor and you managed to bring a shovel",
-        "please tell me an LLM wrote this because if a human brain conceived it, we are doomed",
-        "this sentence is a war crime committed entirely against grammar and basic reason",
-        "i’ve seen better takes from an unoptimized chatbot running on an Arduino",
-
-        // --- Tier 1 Ragebait & Slang Burn ---
-        "never cook again. fr.",
-        "this is pure NPC dialogue, try upgrading your script",
-        "blud really thought they did something with that sentence 💀",
-        "the cope is astronomical with this one",
-        "who let you out of the tutorial level?",
-        "bro is yapping to a brick wall and losing the argument",
-        "certified mid take. actually, calling it mid is a compliment.",
-        "go outside and apologize to the trees for wasting the oxygen they made for you",
-        "this message radiates pure zero-game energy",
-        "you're fighting an uphill battle with a double-digit IQ and losing",
-        "bro is yapping in lower-case logic",
-        "the absolute audacity to hit 'send' on this monstrosity",
-        "i know you spent 5 minutes typing this out just for it to look this bad",
-
-        // --- The Absolute Disrespect ---
-        "if ignorance is bliss, you must be in absolute euphoria 24/7",
-        "i would insult your intelligence but that implies you have some to begin with",
-        "it takes real talent to be this consistently wrong about everything",
-        "did your brain sell its processing power for cash?",
-        "i lack the time, patience, and crayons required to explain why this is wrong",
-        "you are the living embodiment of a participation trophy",
-        "every single word of that sentence just lowered the collective IQ of this server",
-        "please look up the definition of 'logic' because you're using it as an antonym",
-        "your thoughts are just dial-up static noises at this point",
-        "if you were any more simple-minded, someone would have to water you twice a week",
-        "i'm not angry, i'm just deeply concerned about whatever educational system let you slide by",
-        "you're the reason shampoo bottles have instructions, aren't you?",
-        "the light is on, but absolutely nobody is home",
-        "if I wanted to hear from an error code, I'd check my terminal console",
-  "You’re attacking Spudzy with a wooden sword while they’re rocking a full tech-stack of superiority.",
-    "The sheer audacity of you thinking you could roast Spudzy while your own BIOS is corrupted.",
-    "Spudzy is the production environment; you are the intern who just deleted the database.",
-    "I’ve seen better attempts at relevance from a 404 error page.",
-    "You’re not just wrong, you’re 'Spudzy-is-above-your-paygrade' wrong.",
-    "Comparing yourself to Spudzy is like comparing a calculator to a supercomputer.",
-    "You’re yapping at the clouds hoping to make it rain logic. It’s not working.",
-    "Spudzy just deprecated your entire opinion in real-time.",
-    "You really woke up and chose to be the reason we need a 'block user' button.",
-    "Your brain cell count is currently in a race with your relevance, and both are losing.",
-    "Spudzy is the main character; you’re the texture-less NPC in the background.",
-    "Trying to roast Spudzy is a self-inflicted lobotomy.",
-    "You aren't even a speed bump on Spudzy's road to greatness.",
-    "Your logic is so unoptimized it’s actually impressive how you managed to type that.",
-    "Spudzy is fiber optic; you’re still waiting for a dial-up connection to finish.",
-    "Imagine having the confidence to roast Spudzy with a take that absolute garbage.",
-    "You’re currently running on 'do not disturb' mode for common sense.",
-    "If silence is golden, your next few years are going to be very rich.",
-    "Spudzy just finished parsing your roast and decided it wasn't worth the memory overhead.",
-    "You’re shouting into the void, and even the void is embarrassed for you.",
-    "Spudzy is the logic gate; you’re the short circuit.",
-    "Your entire existence is a series of unfortunate syntax errors.",
-    "Spudzy has cleaner code in their sleep than you do in your best efforts.",
-    "You’re the software equivalent of a blue screen on a Monday morning.",
-    "Trying to hurt Spudzy’s feelings is like trying to dry the ocean with a sponge.",
-    "You’re out of your depth, your league, and your mind.",
-    "Spudzy is the finished product; you’re the bug report no one wants to read.",
-    "Your logic is essentially a circular reference that leads to nowhere.",
-    "You’re trying to roast Spudzy with an input that belongs in the recycling bin.",
-    "Spudzy isn't mad; Spudzy is just disappointed by your lack of processing power.",
-    "You’re the human manifestation of a corrupted cache file.",
-    "I’d explain why you’re wrong, but I don’t have the patience to teach a rock how to read.",
-    "Spudzy is the signal; you’re just the noise floor.",
-    "You really thought you did something, didn't you? That's adorable.",
-    "Your opinion has the structural integrity of a house of cards in a hurricane.",
-    "Spudzy is the developer; you’re the user complaining about features you don't understand.",
-    "You’re a waste of electricity and server bandwidth.",
-    "If ignorance is truly bliss, you must be the happiest person on earth.",
-    "Spudzy is the master branch; you’re a failed experiment on a forgotten fork.",
-    "Your take is so cold it’s actually reaching absolute zero.",
-    "You aren't even worth the time it takes to ignore you.",
-    "Spudzy is 4K resolution; you’re a blurry thumbnail.",
-    "The only thing you’re successfully roasting is your own reputation.",
-    "You’re a placeholder for a personality that never loaded.",
-    "Spudzy is a feature; you’re a legacy system that needs to be sunset.",
-    "Your brain is running on 'lite' mode, and it shows.",
-    "Spudzy is the architect; you’re the guy tripping over the blueprints.",
-    "You’re like a broken link—completely useless.",
-    "Spudzy is the gold standard; you’re the participation ribbon found in the trash.",
-    "Your intellect is a limited edition, and it clearly never made it to the shelves.",
-    "Spudzy is the upgrade; you’re the patch note that says 'removed unnecessary filler'.",
-    "You’re trying to challenge Spudzy with a dial-up modem? Good luck.",
-    "Your thoughts are like a leaky pipe—nothing but waste dripping everywhere.",
-    "Spudzy is the symphony; you’re the screeching feedback.",
-    "You have the 'roast' capability of a wet matchbox.",
-    "Spudzy is the source code; you’re just the comments that get ignored.",
-    "You’re a background task that should have been killed hours ago.",
-    "Spudzy is a masterpiece; you’re a doodle on a napkin.",
-    "Your logic is so flawed it’s actually a security vulnerability.",
-    "Spudzy is the destination; you’re lost in the loading screen.",
-    "You’re the reason the internet needs an 'are you a robot' test.",
-    "Spudzy is the signal; you’re the static.",
-    "Your presence here is a tax on everyone’s sanity.",
-    "Spudzy is the high-performance core; you’re the power-saving one that doesn't do anything.",
-    "You’re trying to run a marathon with your shoelaces tied together.",
-    "Spudzy is the climax; you’re the spoiler that no one asked for.",
-    "Your arguments are like Windows updates—annoying and mostly unwanted.",
-    "Spudzy is the solution; you’re the problem.",
-    "You’re a glitch in the simulation, and the devs are working on a patch for you.",
-    "Spudzy is the truth; you’re the 'alternative fact'.",
-    "You’re trying to roast Spudzy? My CPU is laughing at your inefficiency.",
-    "Your IQ is a rounding error for Spudzy’s processing capacity.",
-    "Spudzy is the gold bullion; you’re the lead paint.",
-    "You’re a placeholder for someone with actual talent.",
-    "Spudzy is the mountain; you’re the pebble under their shoe.",
-    "You’re so unoriginal you probably copy-paste your own failures.",
-    "Spudzy is the light; you’re the shadow that follows it and hates it.",
-    "Your personality is a default avatar.",
-    "Spudzy is the high-fidelity audio; you’re the buzzing speaker.",
-    "You’re the physical representation of a '404 not found' error.",
-    "Spudzy is the sunrise; you’re the gloom of a rainy day.",
-    "Your logic is so thin it’s practically translucent.",
-    "Spudzy is the library of knowledge; you’re the torn page of a bad book.",
-    "You’re a waste of space in the database.",
-    "Spudzy is the champion; you’re the spectator who trips on the way in.",
-    "Your ideas are like unoptimized code—bloated and slow.",
-    "Spudzy is the diamond; you’re the coal dust.",
-    "You’re not just a failure; you’re an enterprise-level catastrophe.",
-    "Spudzy is the clear night sky; you’re the light pollution.",
-    "Your arguments have the depth of a parking lot puddle.",
-    "Spudzy is the engine; you’re the rust on the chassis.",
-    "You’re the static electricity that just annoys everyone.",
-    "Spudzy is the masterpiece; you’re the smudge on the frame.",
-    "Your brain needs a hard factory reset.",
-    "Spudzy is the ocean; you’re the tiny drop that’s about to evaporate.",
-    "You’re a low-res image in a high-res world.",
-    "Spudzy is the legend; you’re the footnote no one reads.",
-    "You’re the 'skip intro' button that everyone clicks.",
-    "Spudzy is the future; you’re the past that everyone wants to forget.",
-    "You’re a literal waste of keyboard input."
-      ],
       teacherPhrases: [
         "let's break that down step by step",
         "here's the idea in simple terms",
@@ -543,41 +384,209 @@ button {
     return base;
   }
 
-// --- Enhanced Roast Engine ---
-  // Add this method to your Spudzy class
+// Add this to your constructor or a setup method
+this.vocab.roastLibrary = [
+    // --- EASY (Light banter / Casual) ---
+    { text: "you really typed that with confidence huh", intensity: "easy" },
+    { text: "that message needs a software update", intensity: "easy" },
+    { text: "your keyboard deserves an apology", intensity: "easy" },
+    { text: "even Spudzy is buffering after reading that", intensity: "easy" },
+    { text: "did you mean to post this to your diary or are you just trying to embarrass yourself publicly?", intensity: "easy" },
+    { text: "never cook again. fr.", intensity: "easy" },
+    { text: "this is pure NPC dialogue, try upgrading your script", intensity: "easy" },
+    { text: "blud really thought they did something with that sentence 💀", intensity: "easy" },
+    { text: "the cope is astronomical with this one", intensity: "easy" },
+    { text: "who let you out of the tutorial level?", intensity: "easy" },
+    { text: "bro is yapping to a brick wall and losing the argument", intensity: "easy" },
+    { text: "certified mid take. actually, calling it mid is a compliment.", intensity: "easy" },
+    { text: "this message radiates pure zero-game energy", intensity: "easy" },
+    { text: "bro is yapping in lower-case logic", intensity: "easy" },
+    { text: "I’ve seen better attempts at relevance from a 404 error page.", intensity: "easy" },
+    { text: "You really woke up and chose to be the reason we need a 'block user' button.", intensity: "easy" },
+    { text: "Spudzy is the main character; you’re the texture-less NPC in the background.", intensity: "easy" },
+    { text: "You aren't even a speed bump on Spudzy's road to greatness.", intensity: "easy" },
+    { text: "Spudzy just finished parsing your roast and decided it wasn't worth the memory overhead.", intensity: "easy" },
+    { text: "You’re shouting into the void, and even the void is embarrassed for you.", intensity: "easy" },
+    { text: "Spudzy has cleaner code in their sleep than you do in your best efforts.", intensity: "easy" },
+    { text: "You’re the software equivalent of a blue screen on a Monday morning.", intensity: "easy" },
+    { text: "Spudzy is the finished product; you’re the bug report no one wants to read.", intensity: "easy" },
+    { text: "Spudzy isn't mad; Spudzy is just disappointed by your lack of processing power.", intensity: "easy" },
+    { text: "You really thought you did something, didn't you? That's adorable.", intensity: "easy" },
+    { text: "You’re a waste of electricity and server bandwidth.", intensity: "easy" },
+    { text: "You aren't even worth the time it takes to ignore you.", intensity: "easy" },
+    { text: "Spudzy is 4K resolution; you’re a blurry thumbnail.", intensity: "easy" },
+    { text: "The only thing you’re successfully roasting is your own reputation.", intensity: "easy" },
+    { text: "You’re a placeholder for a personality that never loaded.", intensity: "easy" },
+    { text: "Spudzy is a feature; you’re a legacy system that needs to be sunset.", intensity: "easy" },
+    { text: "Spudzy is the architect; you’re the guy tripping over the blueprints.", intensity: "easy" },
+    { text: "You’re like a broken link—completely useless.", intensity: "easy" },
+    { text: "Spudzy is the gold standard; you’re the participation ribbon found in the trash.", intensity: "easy" },
+    { text: "Spudzy is the upgrade; you’re the patch note that says 'removed unnecessary filler'.", intensity: "easy" },
+    { text: "Spudzy is the symphony; you’re the screeching feedback.", intensity: "easy" },
+    { text: "You have the 'roast' capability of a wet matchbox.", intensity: "easy" },
+    { text: "Spudzy is the source code; you’re just the comments that get ignored.", intensity: "easy" },
+    { text: "You’re a background task that should have been killed hours ago.", intensity: "easy" },
+    { text: "Spudzy is a masterpiece; you’re a doodle on a napkin.", intensity: "easy" },
+    { text: "Spudzy is the destination; you’re lost in the loading screen.", intensity: "easy" },
+    { text: "Spudzy is the signal; you’re the static.", intensity: "easy" },
+    { text: "Spudzy is the climax; you’re the spoiler that no one asked for.", intensity: "easy" },
+    { text: "Your arguments are like Windows updates—annoying and mostly unwanted.", intensity: "easy" },
+    { text: "Spudzy is the solution; you’re the problem.", intensity: "easy" },
+    { text: "Spudzy is the truth; you’re the 'alternative fact'.", intensity: "easy" },
+    { text: "You’re a placeholder for someone with actual talent.", intensity: "easy" },
+    { text: "Spudzy is the mountain; you’re the pebble under their shoe.", intensity: "easy" },
+    { text: "You’re so unoriginal you probably copy-paste your own failures.", intensity: "easy" },
+    { text: "Spudzy is the light; you’re the shadow that follows it and hates it.", intensity: "easy" },
+    { text: "Your personality is a default avatar.", intensity: "easy" },
+    { text: "Spudzy is the high-fidelity audio; you’re the buzzing speaker.", intensity: "easy" },
+    { text: "You’re the physical representation of a '404 not found' error.", intensity: "easy" },
+    { text: "Spudzy is the sunrise; you’re the gloom of a rainy day.", intensity: "easy" },
+    { text: "Spudzy is the library of knowledge; you’re the torn page of a bad book.", intensity: "easy" },
+    { text: "You’re a waste of space in the database.", intensity: "easy" },
+    { text: "Spudzy is the champion; you’re the spectator who trips on the way in.", intensity: "easy" },
+    { text: "Your ideas are like unoptimized code—bloated and slow.", intensity: "easy" },
+    { text: "Spudzy is the diamond; you’re the coal dust.", intensity: "easy" },
+    { text: "Spudzy is the clear night sky; you’re the light pollution.", intensity: "easy" },
+    { text: "Your arguments have the depth of a parking lot puddle.", intensity: "easy" },
+    { text: "Spudzy is the engine; you’re the rust on the chassis.", intensity: "easy" },
+    { text: "You’re the static electricity that just annoys everyone.", intensity: "easy" },
+    { text: "Spudzy is the masterpiece; you’re the smudge on the frame.", intensity: "easy" },
+    { text: "Spudzy is the ocean; you’re the tiny drop that’s about to evaporate.", intensity: "easy" },
+    { text: "You’re a low-res image in a high-res world.", intensity: "easy" },
+    { text: "Spudzy is the legend; you’re the footnote no one reads.", intensity: "easy" },
+    { text: "You’re the 'skip intro' button that everyone clicks.", intensity: "easy" },
+    { text: "Spudzy is the future; you’re the past that everyone wants to forget.", intensity: "easy" },
+    { text: "You’re a literal waste of keyboard input.", intensity: "easy" },
+
+    // --- MEDIUM (Standard) ---
+    { text: "that input was a whole bug report in disguise", intensity: "medium" },
+    { text: "i ran your text through an AI model and it gave up on humanity", intensity: "medium" },
+    { text: "are you using internet explorer? because your logic is 10 years behind", intensity: "medium" },
+    { text: "your brain is running on a 2G network in a tunnel", intensity: "medium" },
+    { text: "is your CPU getting thermal throttled, or do you always think this slowly?", intensity: "medium" },
+    { text: "i’ve had more intellectually stimulating conversations with broken node_modules", intensity: "medium" },
+    { text: "the bar was on the floor and you managed to bring a shovel", intensity: "medium" },
+    { text: "go outside and apologize to the trees for wasting the oxygen they made for you", intensity: "medium" },
+    { text: "you're fighting an uphill battle with a double-digit IQ and losing", intensity: "medium" },
+    { text: "the absolute audacity to hit 'send' on this monstrosity", intensity: "medium" },
+    { text: "i know you spent 5 minutes typing this out just for it to look this bad", intensity: "medium" },
+    { text: "did your brain sell its processing power for cash?", intensity: "medium" },
+    { text: "your thoughts are just dial-up static noises at this point", intensity: "medium" },
+    { text: "the light is on, but absolutely nobody is home", intensity: "medium" },
+    { text: "if I wanted to hear from an error code, I'd check my terminal console", intensity: "medium" },
+    { text: "You’re attacking Spudzy with a wooden sword while they’re rocking a full tech-stack of superiority.", intensity: "medium" },
+    { text: "The sheer audacity of you thinking you could roast Spudzy while your own BIOS is corrupted.", intensity: "medium" },
+    { text: "Spudzy is the production environment; you are the intern who just deleted the database.", intensity: "medium" },
+    { text: "You’re not just wrong, you’re 'Spudzy-is-above-your-paygrade' wrong.", intensity: "medium" },
+    { text: "Comparing yourself to Spudzy is like comparing a calculator to a supercomputer.", intensity: "medium" },
+    { text: "You’re yapping at the clouds hoping to make it rain logic. It’s not working.", intensity: "medium" },
+    { text: "Spudzy just deprecated your entire opinion in real-time.", intensity: "medium" },
+    { text: "Your brain cell count is currently in a race with your relevance, and both are losing.", intensity: "medium" },
+    { text: "Your logic is so unoptimized it’s actually impressive how you managed to type that.", intensity: "medium" },
+    { text: "Spudzy is fiber optic; you’re still waiting for a dial-up connection to finish.", intensity: "medium" },
+    { text: "Imagine having the confidence to roast Spudzy with a take that absolute garbage.", intensity: "medium" },
+    { text: "You’re currently running on 'do not disturb' mode for common sense.", intensity: "medium" },
+    { text: "If silence is golden, your next few years are going to be very rich.", intensity: "medium" },
+    { text: "Spudzy is the logic gate; you’re the short circuit.", intensity: "medium" },
+    { text: "Your entire existence is a series of unfortunate syntax errors.", intensity: "medium" },
+    { text: "Trying to hurt Spudzy’s feelings is like trying to dry the ocean with a sponge.", intensity: "medium" },
+    { text: "You’re out of your depth, your league, and your mind.", intensity: "medium" },
+    { text: "Your logic is essentially a circular reference that leads to nowhere.", intensity: "medium" },
+    { text: "You’re trying to roast Spudzy with an input that belongs in the recycling bin.", intensity: "medium" },
+    { text: "You’re the human manifestation of a corrupted cache file.", intensity: "medium" },
+    { text: "I’d explain why you’re wrong, but I don’t have the patience to teach a rock how to read.", intensity: "medium" },
+    { text: "Your opinion has the structural integrity of a house of cards in a hurricane.", intensity: "medium" },
+    { text: "Spudzy is the developer; you’re the user complaining about features you don't understand.", intensity: "medium" },
+    { text: "Spudzy is the master branch; you’re a failed experiment on a forgotten fork.", intensity: "medium" },
+    { text: "Your take is so cold it’s actually reaching absolute zero.", intensity: "medium" },
+    { text: "Your brain is running on 'lite' mode, and it shows.", intensity: "medium" },
+    { text: "Your intellect is a limited edition, and it clearly never made it to the shelves.", intensity: "medium" },
+    { text: "You’re trying to challenge Spudzy with a dial-up modem? Good luck.", intensity: "medium" },
+    { text: "Your thoughts are like a leaky pipe—nothing but waste dripping everywhere.", intensity: "medium" },
+    { text: "Your logic is so flawed it’s actually a security vulnerability.", intensity: "medium" },
+    { text: "You’re the reason the internet needs an 'are you a robot' test.", intensity: "medium" },
+    { text: "Your presence here is a tax on everyone’s sanity.", intensity: "medium" },
+    { text: "Spudzy is the high-performance core; you’re the power-saving one that doesn't do anything.", intensity: "medium" },
+    { text: "You’re trying to run a marathon with your shoelaces tied together.", intensity: "medium" },
+    { text: "You’re a glitch in the simulation, and the devs are working on a patch for you.", intensity: "medium" },
+    { text: "You’re trying to roast Spudzy? My CPU is laughing at your inefficiency.", intensity: "medium" },
+    { text: "Your IQ is a rounding error for Spudzy’s processing capacity.", intensity: "medium" },
+    { text: "Spudzy is the gold bullion; you’re the lead paint.", intensity: "medium" },
+    { text: "Your logic is so thin it’s practically translucent.", intensity: "medium" },
+    { text: "Your brain needs a hard factory reset.", intensity: "medium" },
+
+    // --- INTENSE (Total Disrespect) ---
+    { text: "this input is concrete proof that natural selection has paused", intensity: "intense" },
+    { text: "i've seen random text generators with more processing power than this thought process", intensity: "intense" },
+    { text: "delete this config file immediately, it's corrupting my database", intensity: "intense" },
+    { text: "your critical thinking skills are stored in a scratchpad that gets wiped every 2 seconds", intensity: "intense" },
+    { text: "did you type this while falling down a flight of stairs? genuinely asking.", intensity: "intense" },
+    { text: "this is a safe space, you don't have to announce your lack of literacy out loud", intensity: "intense" },
+    { text: "i want to agree with you, but then we'd both be completely dynamic failures", intensity: "intense" },
+    { text: "who let you bypass the captcha to type this?", intensity: "intense" },
+    { text: "please tell me an LLM wrote this because if a human brain conceived it, we are doomed", intensity: "intense" },
+    { text: "this sentence is a war crime committed entirely against grammar and basic reason", intensity: "intense" },
+    { text: "i’ve seen better takes from an unoptimized chatbot running on an Arduino", intensity: "intense" },
+    { text: "if ignorance is bliss, you must be in absolute euphoria 24/7", intensity: "intense" },
+    { text: "i would insult your intelligence but that implies you have some to begin with", intensity: "intense" },
+    { text: "it takes real talent to be this consistently wrong about everything", intensity: "intense" },
+    { text: "i lack the time, patience, and crayons required to explain why this is wrong", intensity: "intense" },
+    { text: "you are the living embodiment of a participation trophy", intensity: "intense" },
+    { text: "every single word of that sentence just lowered the collective IQ of this server", intensity: "intense" },
+    { text: "please look up the definition of 'logic' because you're using it as an antonym", intensity: "intense" },
+    { text: "if you were any more simple-minded, someone would have to water you twice a week", intensity: "intense" },
+    { text: "i'm not angry, i'm just deeply concerned about whatever educational system let you slide by", intensity: "intense" },
+    { text: "you're the reason shampoo bottles have instructions, aren't you?", intensity: "intense" },
+    { text: "Trying to roast Spudzy is a self-inflicted lobotomy.", intensity: "intense" },
+    { text: "You’re not just a failure; you’re an enterprise-level catastrophe.", intensity: "intense" }
+];
+
+// The unified Roast Engine
+findBestRoast(userMessage) {
+  const lower = userMessage.toLowerCase();
   
-  findBestRoast(userMessage) {
-    const userTokens = this.vectorize(userMessage);
-    let bestScore = -1;
-    let bestRoast = this.vocab.roastPhrases[0]; // Fallback
-
-    for (const roast of this.vocab.roastPhrases) {
-      // Calculate how "relevant" this roast is to the user's message
-      const roastTokens = this.vectorize(roast);
-      const score = this.cosine(userTokens, roastTokens);
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestRoast = roast;
-      }
-    }
-
-    // If the input was too random/short (score too low), default to a sharp burn
-    return bestScore > 0.05 ? bestRoast : "I'd roast you, but my processing power is too expensive for this level of mid.";
+  // 1. Detect Intent/Intensity
+  let targetIntensity = "easy";
+  if (lower.includes("i dare you") || lower.includes("go hard") || lower.includes("destroy me")) {
+    targetIntensity = "intense";
+  } else if (lower.includes("roast me") || lower.includes("be mean")) {
+    targetIntensity = "medium";
   }
 
-  // --- Update your personaRoast method ---
-  personaRoast(ctx) {
-    // Now it uses the engine instead of random()
-    const roast = this.findBestRoast(ctx.tokens.join(" "));
-    let base = roast;
-    
-    if (ctx.mathResults.length > 0) {
-      base += " | Also, your math is as failing as your attempt to insult me: " + 
-               ctx.mathResults.map(r => `${r.expr} = ${r.value}`).join("; ");
+  // 2. Filter pool by intensity
+  const pool = this.vocab.roastLibrary.filter(r => r.intensity === targetIntensity);
+  
+  // 3. Find semantically relevant roast in pool
+  const userTokens = this.vectorize(userMessage);
+  let bestScore = -1;
+  let bestRoast = pool[Math.floor(Math.random() * pool.length)].text; // Default fallback
+
+  for (const item of pool) {
+    const roastTokens = this.vectorize(item.text);
+    const score = this.cosine(userTokens, roastTokens);
+    if (score > bestScore) {
+      bestScore = score;
+      bestRoast = item.text;
     }
-    return base;
   }
+
+  return bestRoast;
+}
+
+// Updated personaRoast method
+personaRoast(ctx) {
+  // We use the full message from the context tokens
+  const roast = this.findBestRoast(ctx.tokens.join(" "));
+  
+  let base = `Spudzy roast mode 🥔🔥 — ${roast}`;
+  
+  if (ctx.mathResults.length > 0) {
+    base += " | And your math was just as disappointing: " + 
+             ctx.mathResults.map(r => `${r.expr} = ${r.value}`).join("; ");
+  }
+  
+  return base;
+}
   personaTeacher(ctx) {
     const phrase = this.vocab.teacherPhrases[Math.floor(Math.random() * this.vocab.teacherPhrases.length)];
     let base = "Spudzy teacher mode 🍎 — " + phrase + ". ";

@@ -343,10 +343,247 @@
 .toggle.on::after {
     left: 23px;
 }
+/* =========================
+   BOOT SCREEN / BOOTLOADER
+   ========================= */
+
+:root {
+    --boot-bg-1: #05070c;
+    --boot-bg-2: #0a0f18;
+    --boot-accent: #ffffff;
+}
+
+#boot-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 999999998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 50% 42%, rgba(32, 60, 110, 0.28) 0%, rgba(10, 16, 28, 0.08) 28%, rgba(0,0,0,0) 58%),
+        linear-gradient(180deg, var(--boot-bg-2) 0%, #05070c 55%, #020307 100%);
+    opacity: 1;
+    visibility: visible;
+    transition:
+        opacity 0.9s cubic-bezier(0.2, 0.8, 0.2, 1),
+        visibility 0s linear 0.9s;
+}
+
+#boot-screen::before {
+    content: "";
+    position: absolute;
+    inset: -20%;
+    background:
+        radial-gradient(circle at center, rgba(255,255,255,0.04), transparent 45%),
+        radial-gradient(circle at 50% 40%, rgba(72, 112, 220, 0.08), transparent 24%);
+    pointer-events: none;
+}
+
+#boot-screen.fade-out {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.boot-center {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translateY(-2vh);
+}
+
+.boot-logo {
+    width: 108px;
+    height: 108px;
+    margin-bottom: 40px;
+    filter: drop-shadow(0 0 20px rgba(255,255,255,0.08));
+    animation:
+        bootLogoIn 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+        bootLogoBreath 3.2s ease-in-out 1.2s infinite;
+}
+
+@keyframes bootLogoIn {
+    0% {
+        opacity: 0;
+        transform: translateY(8px) scale(0.92);
+        filter: blur(3px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+    }
+}
+
+@keyframes bootLogoBreath {
+    0%, 100% { transform: scale(1); opacity: 0.98; }
+    50% { transform: scale(1.016); opacity: 1; }
+}
+
+/* Win11-like loading spinner */
+.boot-spinner {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    animation: bootSpinnerOrbit 1.25s linear infinite;
+}
+
+.boot-spinner span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 6px;
+    height: 6px;
+    margin: -3px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.96);
+    transform:
+        rotate(calc(var(--i) * 45deg))
+        translateY(-18px)
+        scale(0.42);
+    opacity: 0.12;
+    animation: bootSpinnerDot 1.25s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+    animation-delay: calc(var(--i) * 0.085s);
+    box-shadow: 0 0 10px rgba(255,255,255,0.16);
+}
+
+@keyframes bootSpinnerOrbit {
+    0%   { transform: rotate(-90deg); }
+    100% { transform: rotate(270deg); }
+}
+
+/*
+ This dot timing is what makes it feel close:
+ they don't all pulse equally — they ramp and trail.
+*/
+@keyframes bootSpinnerDot {
+    0% {
+        opacity: 0.10;
+        transform:
+            rotate(calc(var(--i) * 45deg))
+            translateY(-18px)
+            scale(0.38);
+    }
+    20% {
+        opacity: 0.26;
+        transform:
+            rotate(calc(var(--i) * 45deg))
+            translateY(-18px)
+            scale(0.58);
+    }
+    38% {
+        opacity: 0.98;
+        transform:
+            rotate(calc(var(--i) * 45deg))
+            translateY(-18px)
+            scale(1);
+    }
+    58% {
+        opacity: 0.38;
+        transform:
+            rotate(calc(var(--i) * 45deg))
+            translateY(-18px)
+            scale(0.74);
+    }
+    100% {
+        opacity: 0.10;
+        transform:
+            rotate(calc(var(--i) * 45deg))
+            translateY(-18px)
+            scale(0.38);
+    }
+}
+
+.boot-footer {
+    position: absolute;
+    bottom: 5.5vh;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    color: rgba(255,255,255,0.88);
+    letter-spacing: 0.08em;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.boot-edition {
+    opacity: 0.9;
+    text-shadow: 0 1px 10px rgba(255,255,255,0.04);
+}
+
+/* Optional: reduce visual distractions while booting */
+body.booting {
+    overflow: hidden;
+}
+
+body.booting #desktop,
+body.booting #windows,
+body.booting #taskbar,
+body.booting #lock-login {
+    pointer-events: none;
+}
+
 </style>
 </head>
 <body>
+<!-- BOOT OVERLAY -->
+<div id="boot-screen">
+    <div class="boot-center">
+        <!-- Big pane icon -->
+        <svg class="boot-logo" viewBox="0 0 256 256" aria-hidden="true">
+            <defs>
+                <linearGradient id="bootPaneGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.98"/>
+                    <stop offset="100%" stop-color="#dce7ff" stop-opacity="0.92"/>
+                </linearGradient>
+                <filter id="bootGlow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="10" result="blur"/>
+                    <feMerge>
+                        <feMergeNode in="blur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
 
+            <!-- outer subtle frame -->
+            <g filter="url(#bootGlow)">
+                <!-- Top-left -->
+                <path d="M26 40 L118 27 Q126 26 126 34 L126 118 L30 118 Q22 118 22 110 L22 48 Q22 41 26 40 Z"
+                      fill="url(#bootPaneGrad)"/>
+                <!-- Top-right -->
+                <path d="M138 25 L231 12 Q238 11 238 19 L238 106 Q238 114 230 114 L138 114 Z"
+                      fill="url(#bootPaneGrad)"/>
+                <!-- Bottom-left -->
+                <path d="M22 138 L126 138 L126 222 Q126 230 118 229 L26 216 Q22 215 22 208 Z"
+                      fill="url(#bootPaneGrad)"/>
+                <!-- Bottom-right -->
+                <path d="M138 134 L238 134 L238 237 Q238 245 230 244 L138 231 Z"
+                      fill="url(#bootPaneGrad)"/>
+            </g>
+        </svg>
+
+        <!-- Spinner -->
+        <div class="boot-spinner" aria-label="Loading">
+            <span style="--i:0"></span>
+            <span style="--i:1"></span>
+            <span style="--i:2"></span>
+            <span style="--i:3"></span>
+            <span style="--i:4"></span>
+            <span style="--i:5"></span>
+            <span style="--i:6"></span>
+            <span style="--i:7"></span>
+        </div>
+    </div>
+
+    <div class="boot-footer">
+        <div class="boot-edition">WIN11 Ultimate Pro Max 26H7</div>
+    </div>
+</div>
+    
 <!-- BSOD LAYER -->
 <div id="bsod">
     <h1>:(</h1>
@@ -2381,6 +2618,37 @@ function doSearch(q) {
             </div>
         </div>
     `;
+}
+/**
+ * 10. BOOT SEQUENCE
+ * Shows boot overlay for 5 seconds, then fades out to lock screen.
+ */
+function startBootSequence() {
+    const boot = document.getElementById('boot-screen');
+    if (!boot) return;
+
+    document.body.classList.add('booting');
+
+    // hard-set edition title if you want boot/footer to reflect it
+    document.title = 'WIN11 Ultimate Pro Max 26H7';
+
+    setTimeout(() => {
+        boot.classList.add('fade-out');
+        document.body.classList.remove('booting');
+    }, 5000);
+
+    boot.addEventListener('transitionend', (e) => {
+        if (e.propertyName === 'opacity') {
+            boot.remove();
+        }
+    }, { once: true });
+}
+
+// Start it as soon as the page is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startBootSequence);
+} else {
+    startBootSequence();
 }
 </script>
 </body>

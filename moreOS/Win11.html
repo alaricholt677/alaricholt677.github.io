@@ -500,7 +500,7 @@ const DEF_REG = {
     'exe':'exehost' 
 };
 const DEF_FS = { "Desktop": {}, "Documents": {}, "Pictures": {} };
-const APP_ICONS = { explorer:'📁', browser:'🌐', msstore:'🛍️', notepad:'📝', paint:'🎨', regedit:'⚙️', settings:'⚙️', exehost:'💻' };
+const APP_ICONS = { explorer:'📁', browser:'🌐', msstore:'🛍️', notepad:'📝', paint:'🎨', regedit:'⚙️', settings:'⚙️', camera:'📷', exehost:'💻' };
 
 let OS = { users:{}, fs:{}, reg:{...DEF_REG}, pins:{}, settings:{}, curr:null, clip:{path:null}, pids:1, wins:{}, z:100 };
 
@@ -789,11 +789,11 @@ function getAllAppsList() {
         { id: 'msstore', name: 'Microsoft Store', icon: '🛍️', type: 'app' },
         { id: 'notepad', name: 'Notepad', icon: '📝', type: 'app' },
         { id: 'paint', name: 'Paint', icon: '🎨', type: 'app' },
+        { id: 'camera', name: 'Camera', icon: '📷', type: 'app' },
         { id: 'settings', name: 'Settings', icon: '⚙️', type: 'app' },
-        { id: 'regedit', name: 'Registry Editor', icon: '⚙️', type: 'app' }
+        { id: 'regedit', name: 'Registry Editor', icon: '🧬', type: 'app' }
     ];
 }
-
 function getRecentFiles(limit = 8) {
     if (!OS.curr || !OS.fs[OS.curr]) return [];
 
@@ -1360,6 +1360,7 @@ function openApp(id, args={}) {
         case 'explorer': appExplorer(args); break;
         case 'msstore': appStore(); break;
         case 'settings': appSettings(); break;
+        case 'camera': appCamera(args); break;
         case 'regedit': appRegedit(); break;
         case 'exehost': appExe(args); break;
     }
@@ -1556,7 +1557,225 @@ function appStore() {
         alert('Downloaded to Desktop! Run it using the EXE Host.');
     };
 }
+let camData = {};
 
+function appCamera(args = {}) {
+    const w = spawnWin('camera', 'Camera', '📷', 900, 640);
+
+    camData[w.pid] = {
+        stream: null,
+        devices: [],
+        activeDeviceId: null,
+        facingMode: 'user'
+    };
+
+    w.cnt.innerHTML = `
+        <div style="display:flex; flex-direction:column; height:100%; background:#111; color:white;">
+            <div class="toolbar" style="background:rgba(255,255,255,0.05); border-bottom:1px solid rgba(255,255,255,0.1); color:white;">
+                <button class="btn" style="color:white;border-color:rgba(255,255,255,0.2);" onclick="camStart('${w.pid}')">Start camera</button>
+                <button class="btn" style="color:white;border-color:rgba(255,255,255,0.2);" onclick="camCapture('${w.pid}')">Capture photo</button>
+                <button class="btn" style="color:white;border-color:rgba(255,255,255,0.2);" onclick="camSwitch('${w.pid}')">Switch camera</button>
+                <button class="btn" style="color:white;border-color:rgba(255,255,255,0.2);" onclick="camStop('${w.pid}')">Stop</button>
+                <span id="cam-status-${w.pid}" style="margin-left:8px; opacity:.8;">Idle</span>
+            </div>
+
+            <div style="flex:1; display:flex; align-items:center; justify-content:center; position:relative; background:black;">
+                <video
+                    id="cam-video-${w.pid}"
+                    autoplay
+                    playsinline
+                    muted
+                    style="max-width:100%; max-height:100%; background:black;"
+                ></video>
+
+                <canvas id="cam-canvas-${w.pid}" class="hidden"></canvas>
+
+                <div id="cam-overlay-${w.pid}" style="
+                    position:absolute;
+                    inset:0;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    flex-direction:column;
+                    color:white;
+                    background:rgba(0,0,0,0.35);
+                    pointer-events:none;
+                ">
+                    <div style="font-size:64px; margin-bottom:10px;">📷</div>
+                    <div style="font-size:20px; font-weight:600;">Camera ready</div>
+                    <div style="opacity:.8; margin-top:8px;">Click “Start camera” to begin</div>
+                </div>
+            </div>
+
+            <div style="padding:14px; background:#0d0d0d; border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:center; gap:14px;">
+                <button onclick="camCapture('${w.pid}')" style="
+                    width:74px; height:74px; border-radius:50%;
+                    border:5px solid white; background:transparent; cursor:pointer;
+                    box-shadow:0 0 0 4px rgba(255,255,255,0.2) inset;
+                "></button>
+            </div>
+        </div>
+    `;
+
+    window.camSetStatus = (pid, msg) => {
+        const s = document.getElementById(`cam-status-${pid}`);
+        if (s) s.innerText = msg;
+    };
+
+    window.camStart = async (pid) => {
+        const data = camData[pid];
+        if (!data) return;
+
+        const video = document.getElementById(`cam-video-${pid}`);
+        const overlay = document.getElementById(`cam-overlay-${pid}`);
+        if (!video) return;
+
+        try {
+            if (data.stream) {
+                data.stream.getTracks().forEach(t => t.stop());
+                data.stream = null;
+            }
+
+            const constraints = data.activeDeviceId
+                ? { video: { deviceId: { exact: data.activeDeviceId } }, audio: false }
+                : { video: { facingMode: data.facingMode }, audio: false };
+
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            data.stream = stream;
+            video.srcObject = stream;
+
+            if (overlay) overlay.style.display = 'none';
+            camSetStatus(pid, 'Live');
+            await camLoadDevices(pid);
+        } catch (err) {
+            camSetStatus(pid, 'Camera access denied or unavailable');
+            if (overlay) {
+                overlay.style.display = 'flex';
+                overlay.innerHTML = `
+                    <div style="font-size:64px; margin-bottom:10px;">🚫</div>
+                    <div style="font-size:20px; font-weight:600;">Cannot access camera</div>
+                    <div style="opacity:.8; margin-top:8px; max-width:420px; text-align:center;">
+                        Please allow camera permissions in your browser and make sure a camera is connected.
+                    </div>
+                `;
+            }
+            console.error(err);
+        }
+    };
+
+    window.camLoadDevices = async (pid) => {
+        const data = camData[pid];
+        if (!data || !navigator.mediaDevices?.enumerateDevices) return;
+
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            data.devices = devices.filter(d => d.kind === 'videoinput');
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    window.camSwitch = async (pid) => {
+        const data = camData[pid];
+        if (!data) return;
+
+        await camLoadDevices(pid);
+
+        if (data.devices.length > 1) {
+            const idx = data.devices.findIndex(d => d.deviceId === data.activeDeviceId);
+            const next = data.devices[(idx + 1) % data.devices.length];
+            data.activeDeviceId = next.deviceId;
+        } else {
+            data.facingMode = data.facingMode === 'user' ? 'environment' : 'user';
+            data.activeDeviceId = null;
+        }
+
+        camStart(pid);
+    };
+
+    window.camCapture = (pid) => {
+        const data = camData[pid];
+        const video = document.getElementById(`cam-video-${pid}`);
+        const canvas = document.getElementById(`cam-canvas-${pid}`);
+
+        if (!data || !video || !canvas || !data.stream) {
+            camSetStatus(pid, 'Start the camera first');
+            return;
+        }
+
+        const vw = video.videoWidth || 1280;
+        const vh = video.videoHeight || 720;
+
+        canvas.width = vw;
+        canvas.height = vh;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, vw, vh);
+
+        const img = canvas.toDataURL('image/png');
+
+        const pictures = getNode('Pictures', true);
+        let nameBase = 'Photo';
+        let stamp = new Date();
+        let pad = n => String(n).padStart(2, '0');
+        let fileName = `${nameBase}_${stamp.getFullYear()}-${pad(stamp.getMonth()+1)}-${pad(stamp.getDate())}_${pad(stamp.getHours())}-${pad(stamp.getMinutes())}-${pad(stamp.getSeconds())}.png`;
+
+        let i = 1;
+        while (pictures[fileName]) {
+            fileName = `${nameBase}_${stamp.getFullYear()}-${pad(stamp.getMonth()+1)}-${pad(stamp.getDate())}_${pad(stamp.getHours())}-${pad(stamp.getMinutes())}-${pad(stamp.getSeconds())}_${i}.png`;
+            i++;
+        }
+
+        writeF(`Pictures/${fileName}`, img);
+        camFlash(pid);
+        camSetStatus(pid, `Saved to Pictures/${fileName}`);
+    };
+
+    window.camFlash = (pid) => {
+        const wrap = document.getElementById(`cam-video-${pid}`)?.parentElement;
+        if (!wrap) return;
+
+        const flash = document.createElement('div');
+        flash.style.position = 'absolute';
+        flash.style.inset = '0';
+        flash.style.background = 'white';
+        flash.style.opacity = '0.92';
+        flash.style.pointerEvents = 'none';
+        flash.style.transition = 'opacity 0.22s ease';
+        wrap.appendChild(flash);
+
+        requestAnimationFrame(() => {
+            flash.style.opacity = '0';
+            setTimeout(() => flash.remove(), 220);
+        });
+    };
+
+    window.camStop = (pid) => {
+        const data = camData[pid];
+        const video = document.getElementById(`cam-video-${pid}`);
+        const overlay = document.getElementById(`cam-overlay-${pid}`);
+
+        if (data?.stream) {
+            data.stream.getTracks().forEach(t => t.stop());
+            data.stream = null;
+        }
+
+        if (video) video.srcObject = null;
+        if (overlay) {
+            overlay.style.display = 'flex';
+            overlay.innerHTML = `
+                <div style="font-size:64px; margin-bottom:10px;">📷</div>
+                <div style="font-size:20px; font-weight:600;">Camera stopped</div>
+                <div style="opacity:.8; margin-top:8px;">Click “Start camera” to turn it back on</div>
+            `;
+        }
+
+        camSetStatus(pid, 'Stopped');
+    };
+
+    // Auto-start for nicer UX
+    setTimeout(() => camStart(w.pid), 50);
+}
 let settingsData = {};
 
 function appSettings() {

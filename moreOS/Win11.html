@@ -1679,7 +1679,325 @@ function appSettings() {
 
     render();
 }
-    
+
+function settingsPageHTML(pid, page, s) {
+    const toggle = (key) => `<div class="toggle ${s[key] ? 'on' : ''}" onclick="settingsToggle('${key}')"></div>`;
+
+    const tile = (title, desc, go) => `
+        <div class="settings-tile" onclick="settingsGo('${pid}','${go}')">
+            <div style="font-weight:700; margin-bottom:4px;">${title}</div>
+            <div style="opacity:.72; font-size:12px;">${desc}</div>
+        </div>
+    `;
+
+    if (page === 'system') {
+        return `
+            <div class="settings-page-title">System</div>
+
+            <div class="settings-grid" style="margin-bottom:16px;">
+                ${tile('Display', `Desktop view: ${s.view || 'medium'}`, 'personalization')}
+                ${tile('Sound', 'Output, input, alerts (UI only)', 'system')}
+                ${tile('Notifications', 'Banners and sounds (UI only)', 'system')}
+                ${tile('Power', 'Sleep and startup', 'update')}
+            </div>
+
+            <div class="settings-card">
+                <h3>Display</h3>
+                <p>Customize how your WebOS desktop looks and feels.</p>
+
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">Desktop icon size</div>
+                        <div style="opacity:.72; font-size:12px;">Changes icon size across the desktop and Explorer.</div>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="settings-pill-btn ${s.view==='small'?'active':''}" onclick="settingsSet('view','small')">Small</button>
+                        <button class="settings-pill-btn ${s.view==='medium'?'active':''}" onclick="settingsSet('view','medium')">Medium</button>
+                        <button class="settings-pill-btn ${s.view==='large'?'active':''}" onclick="settingsSet('view','large')">Large</button>
+                    </div>
+                </div>
+
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">Transparency effects</div>
+                        <div style="opacity:.72; font-size:12px;">Turns blurred translucent surfaces on or off.</div>
+                    </div>
+                    ${toggle('transparency')}
+                </div>
+
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">Animations</div>
+                        <div style="opacity:.72; font-size:12px;">Controls UI motion effects.</div>
+                    </div>
+                    ${toggle('animations')}
+                </div>
+            </div>
+        `;
+    }
+
+    if (page === 'devices') {
+        return `
+            <div class="settings-page-title">Bluetooth & devices</div>
+            <div class="settings-card">
+                <h3>Device controls</h3>
+                <p>This is a visual recreation panel for your WebOS.</p>
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">Mouse pointer speed</div>
+                        <div style="opacity:.72; font-size:12px;">UI only demo slider.</div>
+                    </div>
+                    <input type="range" min="1" max="20" value="10">
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">Touch input enhancements</div>
+                        <div style="opacity:.72; font-size:12px;">For mobile-style interaction effects.</div>
+                    </div>
+                    ${toggle('touchEnhance')}
+                </div>
+            </div>
+        `;
+    }
+
+    if (page === 'network') {
+        return `
+            <div class="settings-page-title">Network & internet</div>
+            <div class="settings-card">
+                <h3>Status</h3>
+                <p>Web-connected through your browser session.</p>
+
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">Browser network mode</div>
+                        <div style="opacity:.72; font-size:12px;">Your WebOS apps rely on the page host browser.</div>
+                    </div>
+                    <span style="padding:6px 10px;border-radius:999px;background:rgba(0,128,0,.12);color:#1c7c2e;">Connected</span>
+                </div>
+            </div>
+        `;
+    }
+
+    if (page === 'personalization') {
+        return `
+            <div class="settings-page-title">Personalization</div>
+
+            <div class="settings-card">
+                <h3>Theme</h3>
+                <p>Choose the default app and shell color mode.</p>
+
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">Mode</div>
+                        <div style="opacity:.72; font-size:12px;">Switch between light and dark appearance.</div>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="settings-pill-btn ${s.theme==='light'?'active':''}" onclick="settingsSet('theme','light')">Light</button>
+                        <button class="settings-pill-btn ${s.theme==='dark'?'active':''}" onclick="settingsSet('theme','dark')">Dark</button>
+                    </div>
+                </div>
+
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">Accent color</div>
+                        <div style="opacity:.72; font-size:12px;">Used for highlights, buttons, and active states.</div>
+                    </div>
+                    <input type="color" value="${s.accent || '#0067c0'}" onchange="settingsSet('accent', this.value)">
+                </div>
+            </div>
+
+            <div class="settings-card">
+                <h3>Background</h3>
+                <p>Pick a wallpaper for the desktop.</p>
+
+                <div class="settings-grid">
+                    ${Object.entries(WALLPAPERS).map(([key, val]) => `
+                        <div class="wallpaper-option ${s.wallpaper===key?'active':''}" onclick="settingsSet('wallpaper','${key}')">
+                            <div class="wallpaper-preview" style="background-image:${val};"></div>
+                            <div style="padding:10px 12px; font-weight:600; text-transform:capitalize;">${key}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    if (page === 'apps') {
+        return `
+            <div class="settings-page-title">Apps</div>
+            <div class="settings-card">
+                <h3>Installed apps</h3>
+                <p>Built-in WebOS applications available for launch.</p>
+                <div class="settings-grid">
+                    ${getAllAppsList().map(app => `
+                        <div class="settings-tile" onclick="openApp('${app.id}')">
+                            <div style="font-size:28px; margin-bottom:8px;">${app.icon}</div>
+                            <div style="font-weight:700;">${app.name}</div>
+                            <div style="opacity:.72; font-size:12px;">Open app</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    if (page === 'accounts') {
+        return `
+            <div class="settings-page-title">Accounts</div>
+            <div class="settings-card">
+                <h3>Your info</h3>
+                <p>Manage your local WebOS account.</p>
+
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">Username</div>
+                        <div style="opacity:.72; font-size:12px;">Current signed-in account</div>
+                    </div>
+                    <div>${OS.curr}</div>
+                </div>
+
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">PIN</div>
+                        <div style="opacity:.72; font-size:12px;">Used on the WebOS login screen.</div>
+                    </div>
+                    <button class="btn btn-primary" onclick="settingsChangePin()">Change PIN</button>
+                </div>
+            </div>
+        `;
+    }
+
+    if (page === 'time') {
+        return `
+            <div class="settings-page-title">Time & language</div>
+            <div class="settings-card">
+                <h3>Date & time</h3>
+                <p>Your WebOS clock uses the browser’s local time.</p>
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">Current date & time</div>
+                        <div style="opacity:.72; font-size:12px;">Live system display</div>
+                    </div>
+                    <div>${new Date().toLocaleString()}</div>
+                </div>
+            </div>
+        `;
+    }
+
+    if (page === 'gaming') {
+        return `
+            <div class="settings-page-title">Gaming</div>
+            <div class="settings-card">
+                <h3>Game mode</h3>
+                <p>Visual recreation option for your WebOS shell.</p>
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">Game mode</div>
+                        <div style="opacity:.72; font-size:12px;">Reduce visual overhead while gaming.</div>
+                    </div>
+                    ${toggle('gameMode')}
+                </div>
+            </div>
+        `;
+    }
+
+    if (page === 'accessibility') {
+        return `
+            <div class="settings-page-title">Accessibility</div>
+            <div class="settings-card">
+                <h3>Text size</h3>
+                <p>Scale text across your WebOS interface.</p>
+
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">Text scaling</div>
+                        <div style="opacity:.72; font-size:12px;">Range: 80% to 150%</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <input type="range" min="80" max="150" value="${s.textScale || 100}" oninput="settingsSet('textScale', parseInt(this.value))">
+                        <span>${s.textScale || 100}%</span>
+                    </div>
+                </div>
+
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">Show file extensions</div>
+                        <div style="opacity:.72; font-size:12px;">Improves clarity when browsing files.</div>
+                    </div>
+                    ${toggle('exts')}
+                </div>
+
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">Show icon labels</div>
+                        <div style="opacity:.72; font-size:12px;">Toggle desktop and Explorer names.</div>
+                    </div>
+                    ${toggle('names')}
+                </div>
+            </div>
+        `;
+    }
+
+    if (page === 'privacy') {
+        return `
+            <div class="settings-page-title">Privacy & security</div>
+            <div class="settings-card">
+                <h3>Security preferences</h3>
+                <p>Local WebOS privacy controls.</p>
+
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">Telemetry</div>
+                        <div style="opacity:.72; font-size:12px;">Demo toggle stored locally in WebOS settings.</div>
+                    </div>
+                    ${toggle('telemetry')}
+                </div>
+            </div>
+        `;
+    }
+
+    if (page === 'update') {
+        return `
+            <div class="settings-page-title">Windows Update</div>
+            <div class="settings-card">
+                <h3>Update status</h3>
+                <p>WebOS 11 Ultimate simulated update center.</p>
+
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">Last checked</div>
+                        <div style="opacity:.72; font-size:12px;">Stored locally for the current user.</div>
+                    </div>
+                    <div>${s.lastUpdateCheck ? new Date(s.lastUpdateCheck).toLocaleString() : 'Never'}</div>
+                </div>
+
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">System version</div>
+                        <div style="opacity:.72; font-size:12px;">Shell build label</div>
+                    </div>
+                    <div>WebOS 11 Ultimate</div>
+                </div>
+
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:600;">Check for updates</div>
+                        <div style="opacity:.72; font-size:12px;">Simulates an update scan.</div>
+                    </div>
+                    <button class="btn btn-primary" onclick="settingsCheckUpdates()">Check now</button>
+                </div>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="settings-page-title">Settings</div>
+        <div class="settings-card">
+            <h3>Select a category</h3>
+            <p>Choose something from the left navigation.</p>
+        </div>
+    `;
+}
 // Regedit
 function appRegedit() {
     const w = spawnWin('regedit', 'Registry Editor', '⚙️');

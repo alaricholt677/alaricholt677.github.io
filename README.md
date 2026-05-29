@@ -337,6 +337,7 @@ A modern, draggable, theme‑aware dock for Windows that replaces the pinned‑a
 - Start + Quick Settings buttons
 - Theme, size, opacity, and spacing controls
 - Dynamic expansion based on icon count
+- And More...
 
 ### 🔗 Download / Source
 **Windhawk Mod:**  

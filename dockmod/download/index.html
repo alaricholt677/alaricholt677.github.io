@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+</head>
+<body>
+  <script>
+    function downloadFile(path) {
+      const a = document.createElement("a");
+      a.href = path;
+      a.download = path.split("/").pop();
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+    downloadFile("./mod.txt");
+  </script>
+</body>
+</html>

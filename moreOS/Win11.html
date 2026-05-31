@@ -1197,7 +1197,6 @@ function previewFile(file) {
     preview.innerHTML = body;
 }
 
-
 function getDesktopCtx(path) {
     const s = OS.settings[OS.curr];
     return [
@@ -1220,7 +1219,9 @@ function getDesktopCtx(path) {
             { l: 'Folder', act: `makeNew('${path}', 'New folder', 'folder')` },
             { l: 'Shortcut', act: `makeNew('${path}', 'New shortcut', 'file', 'html')` },
             { l: 'Text Document', act: `makeNew('${path}', 'New Text Document', 'file', 'txt')` }
-        ]}
+        ]},
+        'sep',
+        { l: 'Import from DVD', act: `dvdImport('${path}')` }
     ];
 }
 
@@ -1252,6 +1253,136 @@ function showFileCtx(x, y, path) {
     showCtx(x, y, m);
 }
 
+function dvdImport(dest = "Desktop") {
+    closeMenus();
+
+    // ✅ Step 1: Ask permission
+    modal('DVD Drive Access', `
+        <div style="display:flex; gap:12px; margin-bottom:16px;">
+            <div style="font-size:36px;">💿</div>
+            <div>
+                <b>Allow access to DVD Drive (D:)?</b>
+                <div style="opacity:.75; margin-top:4px;">
+                    This will read files and open a temporary DVD session.
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+            <button class="btn" onclick="closeModals()">Deny</button>
+            <button class="btn btn-primary" onclick="__dvdAllow('${dest}')">Allow</button>
+        </div>
+    `);
+
+    // ✅ Step 2: Handle allow
+    window.__dvdAllow = (destPath) => {
+        closeModals();
+
+        const input = document.getElementById('dvd-input');
+        if (!input) return;
+
+        input.value = '';
+
+        input.onchange = async () => {
+            const files = Array.from(input.files || []);
+            if (!files.length) return;
+
+            // ✅ Step 3: Create TEMP window (NOT real app)
+            const w = spawnWin('tempdvd', 'DVD Session (Temporary)', '💿', 900, 600);
+
+            const folderName = `DVD ${Date.now()}`;
+            const basePath = `${destPath}/${folderName}`;
+            getNode(basePath, true);
+
+            let imported = [];
+
+            for (let f of files) {
+                const reader = new FileReader();
+
+                const fileData = await new Promise(res => {
+                    reader.onload = () => res(reader.result);
+
+                    if (f.type.startsWith('image/') || f.type.startsWith('video/') || f.type.startsWith('audio/')) {
+                        reader.readAsDataURL(f);
+                    } else {
+                        reader.readAsText(f);
+                    }
+                });
+
+                const path = `${basePath}/${f.name}`;
+
+                writeF(path, fileData);
+
+                imported.push({
+                    name: f.name,
+                    path,
+                    url: f.type.startsWith('video/') || f.type.startsWith('audio/') || f.type.startsWith('image/')
+                        ? URL.createObjectURL(f)
+                        : null,
+                    type: f.type
+                });
+            }
+
+            // ✅ Step 4: Simple temp UI
+            let tab = 'player';
+            let active = 0;
+
+            const render = () => {
+                const file = imported[active];
+
+                w.cnt.innerHTML = `
+                    <div class="tab-bar">
+                        <div class="tab ${tab==='player'?'active':''}" onclick="__dvdTab('player')">Player</div>
+                        <div class="tab ${tab==='files'?'active':''}" onclick="__dvdTab('files')">Received files</div>
+                    </div>
+
+                    <div style="flex:1; padding:15px; overflow:auto;">
+
+                        ${
+                            tab === 'player'
+                                ? file
+                                    ? renderDVDPreview(file)
+                                    : '<i>No media selected</i>'
+                                : imported.map((f,i)=>`
+                                    <div style="display:flex; justify-content:space-between; padding:10px; border:1px solid var(--sys-border); border-radius:8px; margin-bottom:8px;">
+                                        <span>${f.name}</span>
+                                        <button class="btn" onclick="__dvdSelect(${i})">Open</button>
+                                    </div>
+                                `).join('')
+                        }
+
+                    </div>
+                `;
+            };
+
+            // ✅ controls
+            window.__dvdTab = (t) => { tab = t; render(); };
+            window.__dvdSelect = (i) => { active = i; tab='player'; render(); };
+
+            const renderDVDPreview = (file) => {
+                if (!file.url) {
+                    return `<pre>${String(readF(file.path)).slice(0,2000)}</pre>`;
+                }
+
+                if (file.type.startsWith('video')) {
+                    return `${file.url}</video>`;
+                }
+                if (file.type.startsWith('audio')) {
+                    return `${file.url}</audio>`;
+                }
+                if (file.type.startsWith('image')) {
+                    return `${file.url}`;
+                }
+
+                return `<i>Cannot preview this file</i>`;
+            };
+
+            render();
+        };
+
+        input.click();
+    };
+}
 document.getElementById('desktop').oncontextmenu = e => { if(e.target===document.getElementById('desktop')){ e.preventDefault(); showCtx(e.clientX, e.clientY, getDesktopCtx('Desktop')); } };
 
 function refreshDesk() { renderDir('Desktop', document.getElementById('desktop')); }

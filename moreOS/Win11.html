@@ -712,6 +712,8 @@ body.booting #lock-login {
     </div>
 </div>
 
+    <input id="dvd-folder-input" type="file" webkitdirectory multiple class="hidden">
+
 <script>
 /**
  * 1. BSOD ERROR HANDLING (Critical Fix)
@@ -1253,136 +1255,522 @@ function showFileCtx(x, y, path) {
     showCtx(x, y, m);
 }
 
+let dvdTempSessions = {};
+
+/**
+ * Optional external DVD libs:
+ * If you want dynamic script loading, define for example:
+ * window.WIN11_DVD_LIBS = [
+ *   '/libs/webos-dvd-parser.js'
+ * ];
+ *
+ * This code will load them into the page as <script> tags.
+ * If a parser exposes window.WebOSDVDParser, the temp window will try to use it.
+ */
+async function ensureDVDExtLibs() {
+    const urls = Array.isArray(window.WIN11_DVD_LIBS) ? window.WIN11_DVD_LIBS : [];
+    if (!urls.length) return;
+
+    await Promise.all(urls.map(src => new Promise((resolve, reject) => {
+        const existing = document.querySelector(`script[data-dvd-lib="${src}"]`);
+        if (existing) return resolve();
+
+        const s = document.createElement('script');
+        s.src = src;
+        s.async = true;
+        s.dataset.dvdLib = src;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error(`Failed to load DVD lib: ${src}`));
+        document.head.appendChild(s);
+    })));
+}
+
 function dvdImport(dest = "Desktop") {
     closeMenus();
 
-    // ✅ Step 1: Ask permission
-    modal('DVD Drive Access', `
+    modal('DVD Folder Access', `
         <div style="display:flex; gap:12px; margin-bottom:16px;">
             <div style="font-size:36px;">💿</div>
             <div>
-                <b>Allow access to DVD Drive (D:)?</b>
+                <b>Select the full DVD folder</b>
                 <div style="opacity:.75; margin-top:4px;">
-                    This will read files and open a temporary DVD session.
+                    This will read the selected DVD folder, create a temporary DVD session,
+                    and copy the folder contents into your desktop.
                 </div>
             </div>
         </div>
 
         <div style="display:flex; justify-content:flex-end; gap:10px;">
-            <button class="btn" onclick="closeModals()">Deny</button>
-            <button class="btn btn-primary" onclick="__dvdAllow('${dest}')">Allow</button>
+            <button class="btn" onclick="closeModals()">Cancel</button>
+            <button class="btn btn-primary" onclick="__dvdPickFolder('${dest}')">Continue</button>
         </div>
     `);
 
-    // ✅ Step 2: Handle allow
-    window.__dvdAllow = (destPath) => {
+    window.__dvdPickFolder = async (destPath) => {
         closeModals();
 
-        const input = document.getElementById('dvd-input');
-        if (!input) return;
+        let picked = null;
+
+        try {
+            await ensureDVDExtLibs();
+        } catch (e) {
+            console.warn(e);
+        }
+
+        try {
+            if ('showDirectoryPicker' in window && window.self === window.top) {
+                // Requires secure context + user activation in supporting browsers
+                const dirHandle = await window.showDirectoryPicker({ mode: 'read', id: 'dvd-import' });
+                picked = await readDirectoryHandleRecursively(dirHandle);
+            } else {
+                picked = await pickFolderViaInput();
+            }
+        } catch (err) {
+            if (err && err.name !== 'AbortError') console.error(err);
+            return;
+        }
+
+        if (!picked || !picked.files || !picked.files.length) return;
+
+        await createTempDVDWindowFromFolder(destPath, picked);
+    };
+}
+
+async function pickFolderViaInput() {
+    return new Promise((resolve) => {
+        const input = document.getElementById('dvd-folder-input');
+        if (!input) return resolve(null);
 
         input.value = '';
-
         input.onchange = async () => {
             const files = Array.from(input.files || []);
-            if (!files.length) return;
+            if (!files.length) return resolve(null);
 
-            // ✅ Step 3: Create TEMP window (NOT real app)
-            const w = spawnWin('tempdvd', 'DVD Session (Temporary)', '💿', 900, 600);
+            // Normalize paths from webkitRelativePath
+            const normalized = files.map(file => ({
+                file,
+                path: (file.webkitRelativePath || file.name).replace(/^\/+/, '')
+            }));
 
-            const folderName = `DVD ${Date.now()}`;
-            const basePath = `${destPath}/${folderName}`;
-            getNode(basePath, true);
-
-            let imported = [];
-
-            for (let f of files) {
-                const reader = new FileReader();
-
-                const fileData = await new Promise(res => {
-                    reader.onload = () => res(reader.result);
-
-                    if (f.type.startsWith('image/') || f.type.startsWith('video/') || f.type.startsWith('audio/')) {
-                        reader.readAsDataURL(f);
-                    } else {
-                        reader.readAsText(f);
-                    }
-                });
-
-                const path = `${basePath}/${f.name}`;
-
-                writeF(path, fileData);
-
-                imported.push({
-                    name: f.name,
-                    path,
-                    url: f.type.startsWith('video/') || f.type.startsWith('audio/') || f.type.startsWith('image/')
-                        ? URL.createObjectURL(f)
-                        : null,
-                    type: f.type
-                });
-            }
-
-            // ✅ Step 4: Simple temp UI
-            let tab = 'player';
-            let active = 0;
-
-            const render = () => {
-                const file = imported[active];
-
-                w.cnt.innerHTML = `
-                    <div class="tab-bar">
-                        <div class="tab ${tab==='player'?'active':''}" onclick="__dvdTab('player')">Player</div>
-                        <div class="tab ${tab==='files'?'active':''}" onclick="__dvdTab('files')">Received files</div>
-                    </div>
-
-                    <div style="flex:1; padding:15px; overflow:auto;">
-
-                        ${
-                            tab === 'player'
-                                ? file
-                                    ? renderDVDPreview(file)
-                                    : '<i>No media selected</i>'
-                                : imported.map((f,i)=>`
-                                    <div style="display:flex; justify-content:space-between; padding:10px; border:1px solid var(--sys-border); border-radius:8px; margin-bottom:8px;">
-                                        <span>${f.name}</span>
-                                        <button class="btn" onclick="__dvdSelect(${i})">Open</button>
-                                    </div>
-                                `).join('')
-                        }
-
-                    </div>
-                `;
-            };
-
-            // ✅ controls
-            window.__dvdTab = (t) => { tab = t; render(); };
-            window.__dvdSelect = (i) => { active = i; tab='player'; render(); };
-
-            const renderDVDPreview = (file) => {
-                if (!file.url) {
-                    return `<pre>${String(readF(file.path)).slice(0,2000)}</pre>`;
-                }
-
-                if (file.type.startsWith('video')) {
-                    return `${file.url}</video>`;
-                }
-                if (file.type.startsWith('audio')) {
-                    return `${file.url}</audio>`;
-                }
-                if (file.type.startsWith('image')) {
-                    return `${file.url}`;
-                }
-
-                return `<i>Cannot preview this file</i>`;
-            };
-
-            render();
+            // infer root folder name from first file
+            const rootName = normalized[0].path.includes('/') ? normalized[0].path.split('/')[0] : 'DVD';
+            resolve({
+                rootName,
+                files: normalized.map(x => ({
+                    file: x.file,
+                    relativePath: x.path
+                }))
+            });
         };
 
         input.click();
-    };
+    });
 }
+
+async function readDirectoryHandleRecursively(dirHandle) {
+    const files = [];
+    const rootName = dirHandle.name || 'DVD';
+
+    async function walk(handle, prefix = '') {
+        for await (const entry of handle.values()) {
+            const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+            if (entry.kind === 'file') {
+                const file = await entry.getFile();
+                files.push({
+                    file,
+                    relativePath: `${rootName}/${rel}`
+                });
+            } else if (entry.kind === 'directory') {
+                await walk(entry, rel);
+            }
+        }
+    }
+
+    await walk(dirHandle);
+    return { rootName, files };
+}
+
+async function createTempDVDWindowFromFolder(destPath, picked) {
+    const w = spawnWin('tempdvd', 'DVD Session (Temporary)', '💿', 980, 690);
+
+    const importFolderName = `DVD Import ${new Date().getTime()}`;
+    const targetBase = `${destPath}/${importFolderName}`;
+    getNode(targetBase, true);
+
+    dvdTempSessions[w.pid] = {
+        picked,
+        tab: 'menu',
+        files: [],
+        vobFiles: [],
+        ifoFiles: [],
+        bupFiles: [],
+        activeIndex: 0,
+        activeChapter: 0,
+        targetBase,
+        previewUrls: [],
+        parserReady: !!window.WebOSDVDParser,
+        parsedDVD: null
+    };
+
+    const session = dvdTempSessions[w.pid];
+
+    // Copy all files into VFS preserving folder structure under the new Desktop import folder
+    for (const item of picked.files) {
+        const rel = stripRootFolder(item.relativePath, picked.rootName);
+        const vfsPath = `${targetBase}/${rel}`;
+        const content = await readFileForVFS(item.file);
+        writeF(vfsPath, content);
+
+        const entry = {
+            name: item.file.name,
+            relativePath: rel,
+            vfsPath,
+            type: item.file.type || '',
+            ext: fExt(item.file.name),
+            file: item.file
+        };
+
+        session.files.push(entry);
+
+        if (entry.ext === 'vob') session.vobFiles.push(entry);
+        if (entry.ext === 'ifo') session.ifoFiles.push(entry);
+        if (entry.ext === 'bup') session.bupFiles.push(entry);
+    }
+
+    // Sort VOBs in disc-like order
+    session.vobFiles.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+
+    // Create preview URLs for VOB/media playback
+    session.vobFiles.forEach(v => {
+        try {
+            v.previewUrl = URL.createObjectURL(v.file);
+            session.previewUrls.push(v.previewUrl);
+        } catch {}
+    });
+
+    // Optional parser hook
+    if (window.WebOSDVDParser && typeof window.WebOSDVDParser.parse === 'function') {
+        try {
+            session.parsedDVD = await window.WebOSDVDParser.parse({
+                rootName: picked.rootName,
+                files: session.files
+            });
+            session.parserReady = true;
+        } catch (e) {
+            console.warn('External DVD parser failed, using fallback session UI.', e);
+            session.parserReady = false;
+        }
+    }
+
+    if (session.vobFiles.length) {
+        session.activeIndex = pickMainVobIndex(session.vobFiles);
+    }
+
+    renderTempDVDWindow(w.pid);
+}
+
+function stripRootFolder(path, rootName) {
+    if (!path) return '';
+    const normalized = path.replace(/\\/g, '/');
+    if (normalized.startsWith(rootName + '/')) {
+        return normalized.slice(rootName.length + 1);
+    }
+    return normalized;
+}
+
+function pickMainVobIndex(vobs) {
+    // Prefer VTS_xx_1.VOB style "main title" files before menus like VIDEO_TS.VOB
+    const direct = vobs.findIndex(v => /^VTS_\d{2}_1\.VOB$/i.test(v.name));
+    if (direct >= 0) return direct;
+
+    const firstNonMenu = vobs.findIndex(v => !/^VIDEO_TS\.VOB$/i.test(v.name));
+    return firstNonMenu >= 0 ? firstNonMenu : 0;
+}
+
+async function readFileForVFS(file) {
+    const ext = fExt(file.name);
+
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = reject;
+        reader.onload = () => resolve(reader.result);
+
+        if (
+            file.type.startsWith('image/') ||
+            file.type.startsWith('video/') ||
+            file.type.startsWith('audio/') ||
+            ['vob','mpg','mpeg','mp4','avi','mkv','wmv','mov','webm'].includes(ext)
+        ) {
+            reader.readAsDataURL(file);
+        } else {
+            reader.readAsText(file);
+        }
+    });
+}
+
+function renderTempDVDWindow(pid) {
+    const s = dvdTempSessions[pid];
+    const cnt = document.getElementById(`c${pid}`);
+    if (!s || !cnt) return;
+
+    const active = s.vobFiles[s.activeIndex] || null;
+    const titleCount = s.vobFiles.length;
+
+    cnt.innerHTML = `
+        <div class="tab-bar">
+            <div class="tab ${s.tab === 'menu' ? 'active' : ''}" onclick="dvdTempGoTab('${pid}','menu')">Disc menu</div>
+            <div class="tab ${s.tab === 'player' ? 'active' : ''}" onclick="dvdTempGoTab('${pid}','player')">Player</div>
+            <div class="tab ${s.tab === 'files' ? 'active' : ''}" onclick="dvdTempGoTab('${pid}','files')">Received files</div>
+        </div>
+
+        <div class="toolbar">
+            <button class="btn" onclick="dvdTempPlayMain('${pid}')">▶ Play main title</button>
+            <button class="btn" onclick="dvdTempPrevTitle('${pid}')">⏮ Previous title</button>
+            <button class="btn" onclick="dvdTempNextTitle('${pid}')">⏭ Next title</button>
+            <button class="btn" onclick="dvdTempPrevChapter('${pid}')">⏪ Chapter -</button>
+            <button class="btn" onclick="dvdTempNextChapter('${pid}')">⏩ Chapter +</button>
+            <button class="btn" onclick="openApp('explorer',{p:'${s.targetBase}'})">Open copied folder</button>
+            <button class="btn" onclick="closeW('${pid}', { stopPropagation:()=>{} })">End session</button>
+
+            <div style="margin-left:auto; opacity:.72;">
+                Temporary DVD session • ${titleCount} VOB file${titleCount === 1 ? '' : 's'}
+                ${s.parserReady ? ' • parser ready' : ' • fallback mode'}
+            </div>
+        </div>
+
+        <div style="flex:1; overflow:auto; background:var(--win-bg); color:var(--win-text);">
+            ${s.tab === 'menu'
+                ? renderDVDMenuTab(pid, s)
+                : s.tab === 'player'
+                    ? renderDVDPlayerTab(pid, s, active)
+                    : renderDVDFilesTab(pid, s)
+            }
+        </div>
+    `;
+}
+
+function renderDVDMenuTab(pid, s) {
+    const titles = s.vobFiles.map((v, i) => `
+        <button class="btn ${i === s.activeIndex ? 'btn-primary' : ''}" style="min-width:220px; text-align:left;" onclick="dvdTempSelectTitle('${pid}', ${i})">
+            ${i + 1}. ${v.name}
+        </button>
+    `).join('');
+
+    const parserBlock = s.parserReady && s.parsedDVD
+        ? `
+            <div style="margin-top:14px; padding:14px; border:1px solid var(--sys-border); border-radius:12px; background:rgba(127,127,127,0.05);">
+                <div style="font-weight:700; margin-bottom:6px;">External parser detected</div>
+                <div style="opacity:.76;">
+                    The temporary session found <code>window.WebOSDVDParser</code> and attached parsed DVD metadata.
+                </div>
+            </div>
+        `
+        : `
+            <div style="margin-top:14px; padding:14px; border:1px solid var(--sys-border); border-radius:12px; background:rgba(127,127,127,0.05);">
+                <div style="font-weight:700; margin-bottom:6px;">Fallback interaction mode</div>
+                <div style="opacity:.76;">
+                    This session found the DVD folder and VOB/IFO/BUP files and built a playable UI.
+                    It is using menu-like controls and title/chapter navigation inside the temp window.
+                </div>
+            </div>
+        `;
+
+    return `
+        <div style="padding:22px; display:grid; gap:18px;">
+            <div>
+                <div style="font-size:28px; font-weight:700;">DVD Session Menu</div>
+                <div style="opacity:.72;">Imported folder: <b>${escapeHTML(s.picked.rootName)}</b></div>
+            </div>
+
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn btn-primary" onclick="dvdTempPlayMain('${pid}')">Play movie</button>
+                <button class="btn" onclick="dvdTempGoTab('${pid}','files')">Browse disc files</button>
+                <button class="btn" onclick="dvdTempOpenVideoTs('${pid}')">Open VIDEO_TS folder</button>
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
+                ${titles || `<div style="opacity:.72;">No VOB titles found.</div>`}
+            </div>
+
+            ${parserBlock}
+        </div>
+    `;
+}
+
+function renderDVDPlayerTab(pid, s, active) {
+    if (!active) {
+        return `
+            <div style="height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column; opacity:.78;">
+                <div style="font-size:56px; margin-bottom:12px;">💿</div>
+                <div style="font-size:22px; font-weight:700; margin-bottom:8px;">No playable VOB found</div>
+                <div>Select another disc folder or browse the received files tab.</div>
+            </div>
+        `;
+    }
+
+    const chapterLabel = `Chapter ${s.activeChapter + 1}`;
+    return `
+        <div style="padding:22px; height:100%; display:flex; flex-direction:column; gap:18px;">
+            <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                <div>
+                    <div style="font-size:28px; font-weight:700;">${escapeHTML(active.name)}</div>
+                    <div style="opacity:.72;">${chapterLabel} • ${escapeHTML(active.relativePath)}</div>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button class="btn" onclick="dvdTempGoTab('${pid}','menu')">Back to menu</button>
+                    <button class="btn" onclick="openPath('${active.vfsPath}')">Open imported file</button>
+                </div>
+            </div>
+
+            <div style="flex:1; display:flex; align-items:center; justify-content:center; background:black; border:1px solid var(--sys-border); border-radius:18px; padding:20px;">
+                <video id="dvd-player-${pid}" controls autoplay style="max-width:100%; max-height:60vh; background:black; border-radius:12px;">
+                    <source src="${active.previewUrl || ''}">
+                </video>
+            </div>
+
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn" onclick="dvdTempPrevTitle('${pid}')">⏮ Previous title</button>
+                <button class="btn" onclick="dvdTempNextTitle('${pid}')">⏭ Next title</button>
+                <button class="btn" onclick="dvdTempPrevChapter('${pid}')">⏪ Chapter -</button>
+                <button class="btn" onclick="dvdTempNextChapter('${pid}')">⏩ Chapter +</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderDVDFilesTab(pid, s) {
+    const rows = s.files.map((f, i) => `
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 16px; border:1px solid var(--sys-border); border-radius:14px; background:rgba(127,127,127,0.04);">
+            <div style="display:flex; align-items:center; gap:14px; min-width:0;">
+                <div style="font-size:28px;">${getIcon(f.name, 'file')}</div>
+                <div style="min-width:0;">
+                    <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHTML(f.name)}</div>
+                    <div style="opacity:.7; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHTML(f.relativePath)}</div>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                ${f.ext === 'vob' ? `<button class="btn" onclick="dvdTempSelectTitle('${pid}', ${findVobIndexByPath(s.vobFiles, f.relativePath)})">Preview</button>` : ''}
+                <button class="btn" onclick="openPath('${f.vfsPath}')">Open</button>
+            </div>
+        </div>
+    `).join('');
+
+    return `
+        <div style="padding:20px; display:grid; gap:10px;">
+            <div style="opacity:.78;">
+                Copied to <b>${escapeHTML(s.targetBase)}</b>
+            </div>
+            ${rows || `<div style="opacity:.72;">No files imported.</div>`}
+        </div>
+    `;
+}
+
+function findVobIndexByPath(vobs, relativePath) {
+    return Math.max(0, vobs.findIndex(v => v.relativePath === relativePath));
+}
+
+window.dvdTempGoTab = function(pid, tab) {
+    if (!dvdTempSessions[pid]) return;
+    dvdTempSessions[pid].tab = tab;
+    renderTempDVDWindow(pid);
+};
+
+window.dvdTempSelectTitle = function(pid, idx) {
+    const s = dvdTempSessions[pid];
+    if (!s || idx < 0 || idx >= s.vobFiles.length) return;
+    s.activeIndex = idx;
+    s.activeChapter = 0;
+    s.tab = 'player';
+    renderTempDVDWindow(pid);
+};
+
+window.dvdTempPlayMain = function(pid) {
+    const s = dvdTempSessions[pid];
+    if (!s || !s.vobFiles.length) return;
+    s.activeIndex = pickMainVobIndex(s.vobFiles);
+    s.activeChapter = 0;
+    s.tab = 'player';
+    renderTempDVDWindow(pid);
+};
+
+window.dvdTempPrevTitle = function(pid) {
+    const s = dvdTempSessions[pid];
+    if (!s || !s.vobFiles.length) return;
+    s.activeIndex = (s.activeIndex - 1 + s.vobFiles.length) % s.vobFiles.length;
+    s.activeChapter = 0;
+    s.tab = 'player';
+    renderTempDVDWindow(pid);
+};
+
+window.dvdTempNextTitle = function(pid) {
+    const s = dvdTempSessions[pid];
+    if (!s || !s.vobFiles.length) return;
+    s.activeIndex = (s.activeIndex + 1) % s.vobFiles.length;
+    s.activeChapter = 0;
+    s.tab = 'player';
+    renderTempDVDWindow(pid);
+};
+
+window.dvdTempPrevChapter = function(pid) {
+    const s = dvdTempSessions[pid];
+    if (!s) return;
+    s.activeChapter = Math.max(0, s.activeChapter - 1);
+
+    const player = document.getElementById(`dvd-player-${pid}`);
+    if (player) {
+        const jump = Math.max(0, player.currentTime - 300);
+        try { player.currentTime = jump; } catch {}
+    }
+
+    renderTempDVDWindow(pid);
+};
+
+window.dvdTempNextChapter = function(pid) {
+    const s = dvdTempSessions[pid];
+    if (!s) return;
+    s.activeChapter += 1;
+
+    const player = document.getElementById(`dvd-player-${pid}`);
+    if (player) {
+        const jump = (player.currentTime || 0) + 300;
+        try { player.currentTime = jump; } catch {}
+    }
+
+    renderTempDVDWindow(pid);
+};
+
+window.dvdTempOpenVideoTs = function(pid) {
+    const s = dvdTempSessions[pid];
+    if (!s) return;
+
+    const videoTsFolder = `${s.targetBase}/VIDEO_TS`;
+    const node = getNode(videoTsFolder);
+    if (node) {
+        openApp('explorer', { p: videoTsFolder });
+    } else {
+        openApp('explorer', { p: s.targetBase });
+    }
+};
+
+function cleanupTempDVDSession(pid) {
+    const s = dvdTempSessions[pid];
+    if (!s) return;
+    (s.previewUrls || []).forEach(url => {
+        try { URL.revokeObjectURL(url); } catch {}
+    });
+    delete dvdTempSessions[pid];
+}
+
+function escapeHTML(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+    
 document.getElementById('desktop').oncontextmenu = e => { if(e.target===document.getElementById('desktop')){ e.preventDefault(); showCtx(e.clientX, e.clientY, getDesktopCtx('Desktop')); } };
 
 function refreshDesk() { renderDir('Desktop', document.getElementById('desktop')); }

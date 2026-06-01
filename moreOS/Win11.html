@@ -1158,6 +1158,140 @@ function initVirtualDesktopSystem() {
     buildTaskbar();
 }
 
+function showStoreDevGuide() {
+    // remove existing guide if open
+    const old = document.getElementById('store-dev-guide');
+    if (old) old.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'store-dev-guide';
+    overlay.style = `
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,0.6);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        z-index:999999;
+        backdrop-filter:blur(8px);
+    `;
+
+    const box = document.createElement('div');
+    box.style = `
+        width:min(780px,92vw);
+        max-height:85vh;
+        overflow:auto;
+        background:var(--win-bg,#1f1f1f);
+        color:white;
+        border-radius:18px;
+        padding:22px;
+        box-shadow:0 25px 70px rgba(0,0,0,.6);
+        border:1px solid rgba(255,255,255,0.1);
+        font-family:Segoe UI, sans-serif;
+    `;
+
+    box.innerHTML = `
+        <h1 style="margin-bottom:10px;">🚀 Create Your Own Store Apps</h1>
+        <p style="opacity:.7;margin-bottom:20px;">
+            Follow this full guide to fork the store repo, add apps, and submit a pull request.
+        </p>
+
+
+        <h2>🍴 Step 1 — Fork the Repository</h2>
+        <ol>
+            <li>Open the main repo:</li>
+            <li>
+                <a href="https://github.com/alaricholt677/msstorewin11" target="_blank">
+                    https://github.com/alaricholt677/msstorewin11
+                </a>
+            </li>
+            <li>Click <b>Fork</b> (top-right)</li>
+            <li>Select your GitHub account</li>
+        </ol>
+
+
+        <h2 style="margin-top:20px;">📂 Step 2 — Open index.json</h2>
+        <ol>
+            <li>Go to your fork:</li>
+            <li><code>https://github.com/YOUR_USERNAME/msstorewin11</code></li>
+            <li>Click into <b>index.json</b></li>
+        </ol>
+
+
+        <h2 style="margin-top:20px;">✏️ Step 3 — Add Your App</h2>
+
+        <p>Add a new app inside the "apps" array:</p>
+
+        <pre style="background:#111;padding:12px;border-radius:10px;overflow:auto;">
+{
+  "id": "my-game",
+  "name": "My Game",
+  "description": "Cool game I made",
+  "icon": "🎮",
+  "category": "Games",
+  "exe": "BASE64_ENCODED_HTML"
+}
+        </pre>
+
+        <ul>
+            <li><b>id</b> → unique name</li>
+            <li><b>exe</b> → encoded HTML app</li>
+        </ul>
+
+
+        <h2 style="margin-top:20px;">💾 Step 4 — Save</h2>
+        <ol>
+            <li>Click <b>Edit (✏️)</b></li>
+            <li>Paste your app</li>
+            <li>Click <b>Commit changes</b></li>
+        </ol>
+
+
+        <h2 style="margin-top:20px;">🔀 Step 5 — Create Pull Request</h2>
+        <ol>
+            <li>Click <b>Pull Requests</b></li>
+            <li>Click <b>New Pull Request</b></li>
+            <li>Select:
+                <br>✔ base repo: <code>alaricholt677/msstorewin11</code>
+                <br>✔ compare: your fork
+            </li>
+            <li>Click <b>Create Pull Request</b></li>
+        </ol>
+
+
+        <h2 style="margin-top:20px;">✅ Step 6 — Done</h2>
+        <p>
+            Once approved:
+            <br>✔ your app appears in the store
+            <br>✔ users can install it instantly 🎉
+        </p>
+
+
+        <div style="margin-top:25px;display:flex;gap:10px;justify-content:flex-end;">
+            <button onclick="window.open('https://github.com/alaricholt677/msstorewin11','_blank')" 
+                style="padding:10px 14px;border-radius:10px;background:#0078d7;color:white;border:none;">
+                🔗 Open Repo
+            </button>
+
+            <button onclick="closeStoreDevGuide()" 
+                style="padding:10px 14px;border-radius:10px;background:#555;color:white;border:none;">
+                ✖ Close
+            </button>
+        </div>
+    `;
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    overlay.onclick = (e)=>{
+        if(e.target === overlay) overlay.remove();
+    };
+}
+
+function closeStoreDevGuide(){
+    const el = document.getElementById('store-dev-guide');
+    if (el) el.remove();
+}
 /**
  * 4. GLOBAL MODALS (Z-INDEX 9999999 Fix)
  */
@@ -3277,140 +3411,7 @@ async function appStore() {
             </div>
         `;
     }
-function showStoreDevGuide() {
-    // remove existing guide if open
-    const old = document.getElementById('store-dev-guide');
-    if (old) old.remove();
 
-    const overlay = document.createElement('div');
-    overlay.id = 'store-dev-guide';
-    overlay.style = `
-        position:fixed;
-        inset:0;
-        background:rgba(0,0,0,0.6);
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        z-index:999999;
-        backdrop-filter:blur(8px);
-    `;
-
-    const box = document.createElement('div');
-    box.style = `
-        width:min(780px,92vw);
-        max-height:85vh;
-        overflow:auto;
-        background:var(--win-bg,#1f1f1f);
-        color:white;
-        border-radius:18px;
-        padding:22px;
-        box-shadow:0 25px 70px rgba(0,0,0,.6);
-        border:1px solid rgba(255,255,255,0.1);
-        font-family:Segoe UI, sans-serif;
-    `;
-
-    box.innerHTML = `
-        <h1 style="margin-bottom:10px;">🚀 Create Your Own Store Apps</h1>
-        <p style="opacity:.7;margin-bottom:20px;">
-            Follow this full guide to fork the store repo, add apps, and submit a pull request.
-        </p>
-
-
-        <h2>🍴 Step 1 — Fork the Repository</h2>
-        <ol>
-            <li>Open the main repo:</li>
-            <li>
-                <a href="https://github.com/alaricholt677/msstorewin11" target="_blank">
-                    https://github.com/alaricholt677/msstorewin11
-                </a>
-            </li>
-            <li>Click <b>Fork</b> (top-right)</li>
-            <li>Select your GitHub account</li>
-        </ol>
-
-
-        <h2 style="margin-top:20px;">📂 Step 2 — Open index.json</h2>
-        <ol>
-            <li>Go to your fork:</li>
-            <li><code>https://github.com/YOUR_USERNAME/msstorewin11</code></li>
-            <li>Click into <b>index.json</b></li>
-        </ol>
-
-
-        <h2 style="margin-top:20px;">✏️ Step 3 — Add Your App</h2>
-
-        <p>Add a new app inside the "apps" array:</p>
-
-        <pre style="background:#111;padding:12px;border-radius:10px;overflow:auto;">
-{
-  "id": "my-game",
-  "name": "My Game",
-  "description": "Cool game I made",
-  "icon": "🎮",
-  "category": "Games",
-  "exe": "BASE64_ENCODED_HTML"
-}
-        </pre>
-
-        <ul>
-            <li><b>id</b> → unique name</li>
-            <li><b>exe</b> → encoded HTML app</li>
-        </ul>
-
-
-        <h2 style="margin-top:20px;">💾 Step 4 — Save</h2>
-        <ol>
-            <li>Click <b>Edit (✏️)</b></li>
-            <li>Paste your app</li>
-            <li>Click <b>Commit changes</b></li>
-        </ol>
-
-
-        <h2 style="margin-top:20px;">🔀 Step 5 — Create Pull Request</h2>
-        <ol>
-            <li>Click <b>Pull Requests</b></li>
-            <li>Click <b>New Pull Request</b></li>
-            <li>Select:
-                <br>✔ base repo: <code>alaricholt677/msstorewin11</code>
-                <br>✔ compare: your fork
-            </li>
-            <li>Click <b>Create Pull Request</b></li>
-        </ol>
-
-
-        <h2 style="margin-top:20px;">✅ Step 6 — Done</h2>
-        <p>
-            Once approved:
-            <br>✔ your app appears in the store
-            <br>✔ users can install it instantly 🎉
-        </p>
-
-
-        <div style="margin-top:25px;display:flex;gap:10px;justify-content:flex-end;">
-            <button onclick="window.open('https://github.com/alaricholt677/msstorewin11','_blank')" 
-                style="padding:10px 14px;border-radius:10px;background:#0078d7;color:white;border:none;">
-                🔗 Open Repo
-            </button>
-
-            <button onclick="closeStoreDevGuide()" 
-                style="padding:10px 14px;border-radius:10px;background:#555;color:white;border:none;">
-                ✖ Close
-            </button>
-        </div>
-    `;
-
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
-
-    overlay.onclick = (e)=>{
-        if(e.target === overlay) overlay.remove();
-    };
-}
-
-function closeStoreDevGuide(){
-    const el = document.getElementById('store-dev-guide');
-    if (el) el.remove();
-}
 
     function renderHome() {
         const featured = storeData.featured || [];

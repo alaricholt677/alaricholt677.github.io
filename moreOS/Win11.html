@@ -1509,7 +1509,8 @@ function osPower(act) {
 function getAllAppsList() {
     return [
         
-        { id: 'zipviewer', name: 'ZIP Viewer', icon: '🗜️', type: 'app' },{ id: 'explorer', name: 'File Explorer', icon: '📁', type: 'app' },
+        { id: 'zipviewer', name: 'ZIP Viewer', icon: '🗜️', type: 'app' },
+        { id: 'explorer', name: 'File Explorer', icon: '📁', type: 'app' },
         { id: 'browser', name: 'Microsoft Edge', icon: '🌐', type: 'app' },
         { id: 'msstore', name: 'Microsoft Store', icon: '🛍️', type: 'app' },
         { id: 'notepad', name: 'Notepad', icon: '📝', type: 'app' },
@@ -1721,7 +1722,7 @@ function showFileCtx(x, y, path) {
             { l: 'Browser', act: `openApp('browser',{p:'${path}'})` },
             { l: 'Paint', act: `openApp('paint',{p:'${path}'})` },
             { l: 'Media player', act: `openApp('browser',{p:'${path}'})` }, // browser does mp4
-            { l: 'Look in msstore', act: `openApp('msstore')` }
+            { l: 'Look in msstore', act: `openApp('msstore',{q:'${fName(path).replace(/\.exe$/,'')}'})` }
         ]});
         m.push({ l: 'Open in notepad', act: `openApp('notepad',{p:'${path}'})` });
     }

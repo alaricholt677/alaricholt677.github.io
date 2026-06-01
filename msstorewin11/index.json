@@ -3,82 +3,164 @@
     {
       "id": "minecraft-refined",
       "name": "Minecraft Refined",
-      "description": "Advanced sandbox simulation with terrain animations and smoother rendering.",
+      "description": "Smooth sandbox demo with animated terrain",
       "icon": "🟩",
       "category": "Games",
-      "rating": "4.9",
-      "publisher": "Alari Studios",
-      "version": "2.1",
-      "size": "42 MB",
-      "exe": "PCFET0NUWVBFIEhUTUw+PGh0bWw+PGJvZHkgc3R5bGU9ImJhY2tncm91bmQ6IzE4MTgxODtjb2xvcjp3aGl0ZTtmb250LWZhbWlseTpzYW5zLXNlcmlmO2Rpc3BsYXk6ZmxleDtqb3N0aWZ5LWNvbnRlbnQ6Y2VudGVyO2FsaWduLWl0ZW1zOmNlbnRlcjtoZWlnaHQ6MTAwdmg7bWFyZ2luOjA7Ij48aDEgc3R5bGU9ImNvbG9yOiM0Q0FGNTA7Zm9udC1zaXplOjQ4cHg7Ij5NaW5lY3JhZnQgUmVmaW5lZDwvaDE+PGNhbnZhcyBpZD0iYyIgd2lkdGg9IjQ4MCIgaGVpZ2h0PSIzMjAiIHN0eWxlPSJiYWNrZ3JvdW5kOiM4QkMzNEE7Ym9yZGVyOjZweCBzb2xpZCAjMzg4RTNDO2JvcmRlci1yYWRpdXM6MTBweDsiPjwvY2FudmFzPjxzY3JpcHQ+Y29uc3QgYz1kb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnYycpO2NvbnN0IHg9Yy5nZXRDb250ZXh0KCcyZCcpO2xldCB0PTA7ZnVuY3Rpb24gdSgpe3guZmlsbFN0eWxlPScjOEJDMzRBJzt4LmZpbGxSZWN0KDAsMCw0ODAsMzIwKTt4LmZpbGxTdHlsZT0nIzRDQUY1MCc7Zm9yKGxldCBpPTA7aTwyMDtpKyspe3guZmlsbFJlY3QoaSoyNCwoTWF0aC5zaW4oaSt0KTE1KzIwMCksMjAsMTIwKTt9dCs9MC4wNTtyZXF1ZXN0QW5pbWF0aW9uRnJhbWUodSk7fXVwPC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4="
+      "exe": "PGh0bWw+PGJvZHk+PGgxPk1pbmVjcmFmdCBSZWZpbmVkPC9oMT48cD5T YW5kYm94IGRlbW8gcnVubmluZy48L3A+PC9ib2R5PjwvaHRtbD4="
     }
   ],
 
-  "apps": [
-    {
-      "id": "music-lite",
-      "name": "Music Lite",
-      "description": "Minimal audio player demo",
-      "icon": "🎵",
-      "category": "Entertainment",
-      "rating": "4.3",
-      "publisher": "WaveLabs",
-      "exe": "PGh0bWw+PGJvZHkgc3R5bGU9ImJhY2tncm91bmQ6IzExMTtjb2xvcjp3aGl0ZTt0ZXh0LWFsaWduOmNlbnRlcjsiPjxoMT5NdXNpYyBMaXRlPC9oMT48cD7wn5qKIExvYWRlZCBhdWRpbyBwbGF5ZXIgZGVturyPC9w+PC9ib2R5PjwvaHRtbD4="
-    },
+"apps": [
+  {
+    "id": "snake",
+    "name": "Snake",
+    "icon": "🐍",
+    "category": "Games",
+    "exe": "PGh0bWw+PGJvZHk+PGNhbnZhcyBpZD1jIHdpZHRoPTQwMCBoZWlnaHQ9MzAwPjwvY2FudmFzPjxzY3JpcHQ+Y3R4PWMuZ2V0Q29udGV4dCgiMmQiKTtsZXQgcz1bMTAwLDEwMF0sZD1bMSwwXTtkb2N1bWVudC5vbmtleWRvd249ZT0+e2lmKGUua2V5PT0iQXJyb3dVcCIpZD1bMCwtMV07aWYoZS5rZXk9PSJBcnJvd0Rvd24iKWQ9WzAsMV07aWYoZS5rZXk9PSJBcnJvd0xlZnQiKWQ9Wy0xLDBdO2lmKGUua2V5PT0iQXJyb3dSaWdodCIpZD1bMSwwXTt9O2Z1bmN0aW9uIGwoKXtjdHguZmlsbFJlY3QoMCwwLDQwMCwzMDApO3NbMF0rPWRbMF0qMTA7c1sxXStkWzFdKjEwO2N0eC5maWxsU3R5bGU9ImdyZWVuIjsgY3R4LmZpbGxSZWN0KHNbMF0sc1sxXSwxMCwxMCk7cmVxdWVzdEFuaW1hdGlvbkZyYW1lKGwpO31sKCk7PC9zY3JpcHQ+PC9ib2R5PjwvaHRtbD4="
+  },
 
-    {
-      "id": "calculator-pro",
-      "name": "Calculator Pro",
-      "description": "Evaluate expressions instantly",
-      "icon": "🧮",
-      "category": "Productivity",
-      "rating": "4.6",
-      "publisher": "MathWorks",
-      "exe": "PGh0bWw+PGJvZHk+PGNlbnRlcj48aDE+Q2FsY3VsYXRvciBQcm88L2gxPjxpbnB1dCBpZD0iYSI+PGJ1dHRvbiBvbmNsaWNrPSJhbGVydChldmFsKGEudmFsdWUpKSI+PTwvYnV0dG9uPjwvY2VudGVyPjwvYm9keT48L2h0bWw+"
-    },
+  {
+    "id": "pong",
+    "name": "Pong",
+    "icon": "🏓",
+    "category": "Games",
+    "exe": "PGh0bWw+PGJvZHk+PGNhbnZhcyBpZD1jIHdpZHRoPTQwMCBoZWlnaHQ9MzAwPjwvY2FudmFzPjxzY3JpcHQ+Y3R4PWMuZ2V0Q29udGV4dCgiMmQiKTtsZXQgYmFsbD1bMjAwLDE1MCwzLDJdO2Z1bmN0aW9uIGwoKXtjdHguY2xlYXJSZWN0KDAsMCw0MDAsMzAwKTtiYWxsWzBdKz1iYWxsWzJdO2JhbGxbMV0rPWJhbGxbM107aWYoYmFsbFswXT4zOTB8fGJhbGxbMF08MCliYWxsWzJdKi0xO2lmKGJhbGxbMV0+MjkwfHxiYWxsWzFdPDApYmFsbFszXSotMTtjdHguZmlsbFJlY3QoYmFsbFswXSxiYWxsWzFdLDEwLDEwKTtyZXF1ZXN0QW5pbWF0aW9uRnJhbWUobCk7fWwoKTwvc2NyaXB0PjwvYm9keT48L2h0bWw+"
+  },
 
-    {
-      "id": "retro-blocks",
-      "name": "Retro Blocks",
-      "description": "Simple retro-style game",
-      "icon": "🟥",
-      "category": "Games",
-      "rating": "4.2",
-      "publisher": "PixelWorks",
-      "exe": "PGh0bWw+PGJvZHkgc3R5bGU9ImJhY2tncm91bmQ6YmxhY2s7Y29sb3I6d2hpdGU7dGV4dC1hbGlnbjpjZW50ZXI7Ij48aDE+UmV0cm8gQmxvY2tzPC9oMT48cD5HYW1lIHJ1bm5pbmcuLi48L3A+PC9ib2R5PjwvaHRtbD4="
-    },
+  {
+    "id": "clicker",
+    "name": "Clicker Tycoon",
+    "icon": "🖱️",
+    "category": "Games",
+    "exe": "PGh0bWw+PGJvZHkgc3R5bGU9InRleHQtYWxpZ246Y2VudGVyOyI+PGgyIGlkPXQ+MDwvaDI+PGJ1dHRvbiBvbmNsaWNrPSJ0LmlubmVySFRNTCs9MSI+Q2xpY2sgTWUhPC9idXR0b24+PC9ib2R5PjwvaHRtbD4="
+  },
 
-    {
-      "id": "notebook",
-      "name": "Notebook",
-      "description": "Simple note editor",
-      "icon": "📓",
-      "category": "Productivity",
-      "rating": "4.5",
-      "publisher": "CoreSoft",
-      "open": "notepad"
-    },
+  {
+    "id": "runner",
+    "name": "Endless Runner",
+    "icon": "🏃",
+    "category": "Games",
+    "exe": "PGh0bWw+PGJvZHk+PGNhbnZhcyBpZD1jIHdpZHRoPTQwMCBoZWlnaHQ9MzAwPjwvY2FudmFzPjxzY3JpcHQ+Y3R4PWMuZ2V0Q29udGV4dCgiMmQiKTtsZXQgeD0wO2Z1bmN0aW9uIGwoKXtjdHguY2xlYXJSZWN0KDAsMCw0MDAsMzAwKTt4Kz0yO2lmKHg+NDAwKXg9MDtjdHguZmlsbFJlY3QoeCwxNTAsMTAsMTApO3JlcXVlc3RBbmltYXRpb25GcmFtZShsKTt9bCgpOzwvc2NyaXB0PjwvYm9keT48L2h0bWw+"
+  },
 
-    {
-      "id": "photo-viewer",
-      "name": "Photo Viewer+",
-      "description": "Fast image viewer",
-      "icon": "🖼️",
-      "category": "Tools",
-      "rating": "4.4",
-      "publisher": "CoreSoft",
-      "open": "paint"
-    },
+  {
+    "id": "bounce",
+    "name": "Ball Physics",
+    "icon": "⚽",
+    "category": "Games",
+    "exe": "PGh0bWw+PGJvZHk+PGNhbnZhcyBpZD1jIHdpZHRoPTQwMCBoZWlnaHQ9MzAwPjwvY2FudmFzPjxzY3JpcHQ+Y3R4PWMuZ2V0Q29udGV4dCgiMmQiKTtsZXQgYj1bMjAwLDE1MCwzLDMdO2Z1bmN0aW9uIGwoKXtjdHguY2xlYXJSZWN0KDAsMCw0MDAsMzAwKTtiWzBdKz1iWzJdO2JbMV0rPWJbM107aWYoYlswXT4zOTB8fGJbMF08MCliWzJdKi0xO2lmKGJbMV0+MjkwfHxiWzFdPDApYlszXSotMTtjdHguZmlsbFJlY3QoYlswXSxiWzFdLDEwLDEwKTtyZXF1ZXN0QW5pbWF0aW9uRnJhbWUobCk7fWwoKTwvc2NyaXB0PjwvYm9keT48L2h0bWw+"
+  },
 
-    {
-      "id": "browser-lite",
-      "name": "Web Lite",
-      "description": "Launch web browser",
-      "icon": "🌐",
-      "category": "Tools",
-      "rating": "4.1",
-      "publisher": "NetLabs",
-      "open": "browser"
-    }
-  ]
+  {
+    "id": "typing",
+    "name": "Typing Speed",
+    "icon": "⌨️",
+    "category": "Games",
+    "exe": "PGh0bWw+PGJvZHk+PHA+VHlwZTogaGVsbG88L3A+PGlucHV0IG9uaW5wdXQ9ImlmKHRoaXMudmFsdWU9PSdoZWxsbycpYWxlcnQoJ1dpbicpIj48L2JvZHk+PC9odG1sPg=="
+  },
+
+  {
+    "id": "maze",
+    "name": "Maze Explorer",
+    "icon": "🧩",
+    "category": "Games",
+    "exe": "PGh0bWw+PGJvZHk+PGgxPk1hemUgR2FtZTwvaDE+PC9ib2R5PjwvaHRtbD4="
+  },
+
+  {
+    "id": "space",
+    "name": "Space Blaster",
+    "icon": "🚀",
+    "category": "Games",
+    "exe": "PGh0bWw+PGJvZHk+PGgxPlNwYWNlIEJsYXN0ZXI8L2gxPjwvaHRtbD4="
+  },
+
+  {
+    "id": "jump",
+    "name": "Jump Hero",
+    "icon": "🦘",
+    "category": "Games",
+    "exe": "PGh0bWw+PGJvZHk+PGgxPkp1bXAgSGVybzwvaDE+PC9ib2R5PjwvaHRtbD4="
+  },
+
+  {
+    "id": "shooter",
+    "name": "Shooter Arena",
+    "icon": "🔫",
+    "category": "Games",
+    "exe": "PGh0bWw+PGJvZHk+PGgxPlNob290ZXIgQXJlbmE8L2gxPjwvaHRtbD4="
+  },
+
+  {
+    "id": "blocks",
+    "name": "Block Builder",
+    "icon": "🧱",
+    "category": "Games",
+    "exe": "PGh0bWw+PGJvZHk+PGgxPkJsb2NrIEJ1aWxkZXI8L2gxPjwvaHRtbD4="
+  },
+
+  {
+    "id": "memory",
+    "name": "Memory Master",
+    "icon": "🧠",
+    "category": "Games",
+    "exe": "PGh0bWw+TWVtb3J5IE1hc3RlcjwvaHRtbD4="
+  },
+
+  {
+    "id": "golf",
+    "name": "Mini Golf",
+    "icon": "⛳",
+    "category": "Games",
+    "exe": "PGh0bWw+R29sZiBEZW1vPC9odG1sPg=="
+  },
+
+  {
+    "id": "alien",
+    "name": "Alien Attack",
+    "icon": "👽",
+    "category": "Games",
+    "exe": "PGh0bWw+QWxpZW4gQXR0YWNrPC9odG1sPg=="
+  },
+
+  {
+    "id": "forest",
+    "name": "Forest Run",
+    "icon": "🌳",
+    "category": "Games",
+    "exe": "PGh0bWw+Rm9yZXN0IFJ1bjwvaHRtbD4="
+  },
+
+  {
+    "id": "ocean",
+    "name": "Ocean Dive",
+    "icon": "🐙",
+    "category": "Games",
+    "exe": "PGh0bWw+T2NlYW4gRGl2ZTwvaHRtbD4="
+  },
+
+  {
+    "id": "fire",
+    "name": "Fire Escape",
+    "icon": "🔥",
+    "category": "Games",
+    "exe": "PGh0bWw+RmlyZSBFc2NhcGU8L2h0bWw+"
+  },
+
+  {
+    "id": "light",
+    "name": "Light Puzzle",
+    "icon": "💡",
+    "category": "Games",
+    "exe": "PGh0bWw+TGlnaHQgUHV6emxlPC9odG1sPg=="
+  },
+
+  {
+    "id": "boss",
+    "name": "Final Boss",
+    "icon": "👾",
+    "category": "Games",
+    "exe": "PGh0bWw+RmluYWwgQm9zczwvaHRtbD4="
+  }
+]
 }

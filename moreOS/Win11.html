@@ -2921,34 +2921,40 @@ function appBrowser(args) {
     window.brNav(w.pid, u);
 }
 
-// Microsoft Store (remote JSON powered)
+// Microsoft Store (remote JSON powered, refixed with full open-app support)
 
 async function appStore() {
     const w = spawnWin('msstore', 'Microsoft Store', '🛍️', 1020, 720);
 
     const STORE_URL = 'https://alaricholt677.github.io/msstorewin11/index.json';
-    const STORE_INSTALLS_KEY = 'MSSTORE_INSTALLED';
+    const STORE_INSTALLS_KEY = 'MSSTORE_INSTALLED_V2';
 
     let view = 'home';
     let query = '';
     let selectedApp = null;
     let selectedCategory = 'All';
     let storeData = null;
-    let installed = JSON.parse(localStorage.getItem(STORE_INSTALLS_KEY) || '[]');
+
+    // install registry:
+    // {
+    //   [appId]: {
+    //      id, name,
+    //      mode: 'builtin' | 'exe' | 'path' | 'url',
+    //      open?: 'notepad',
+    //      exePath?: 'Desktop/App.exe',
+    //      path?: 'Desktop/App.exe',
+    //      url?: 'https://...',
+    //      installedAt: 1234567890
+    //   }
+    // }
+    let installedMap = JSON.parse(localStorage.getItem(STORE_INSTALLS_KEY) || '{}');
 
     function saveInstalled() {
-        localStorage.setItem(STORE_INSTALLS_KEY, JSON.stringify(installed));
+        localStorage.setItem(STORE_INSTALLS_KEY, JSON.stringify(installedMap));
     }
 
     function isInstalled(appId) {
-        return installed.includes(appId);
-    }
-
-    function markInstalled(appId) {
-        if (!installed.includes(appId)) {
-            installed.push(appId);
-            saveInstalled();
-        }
+        return !!installedMap[appId];
     }
 
     function uid(str) {
@@ -2973,10 +2979,19 @@ async function appStore() {
         const size = raw.size || raw.downloadSize || '';
         const appId = raw.id || raw.slug || uid(name);
 
-        // install sources
+        // sources / launch options
         const exe = raw.exe || raw.file || raw.download || raw.install || raw.payload || '';
         const open = raw.open || raw.launch || '';
-        const type = raw.type || raw.appType || (String(exe).endsWith('.exe') ? 'exe' : 'webos');
+        const path = raw.path || raw.filePath || '';
+        const url = raw.url || raw.href || raw.website || '';
+
+        const type = raw.type || raw.appType || (
+            open ? 'builtin' :
+            path ? 'path' :
+            url ? 'url' :
+            exe ? 'exe' :
+            'webos'
+        );
 
         return {
             id: appId,
@@ -2991,6 +3006,8 @@ async function appStore() {
             size,
             exe,
             open,
+            path,
+            url,
             type,
             raw
         };
@@ -3055,40 +3072,77 @@ async function appStore() {
             `;
         }
     }
-function runStoreApp(app) {
-    if (!app) return;
 
-    // ✅ CASE 1: built-in app
-    if (app.open) {
-        openApp(app.open, {});
-        return;
-    }
+    function runStoreApp(appOrId) {
+        const app = typeof appOrId === 'string'
+            ? storeData?.apps?.find(a => a.id === appOrId) || null
+            : appOrId;
 
-    // ✅ CASE 2: EXE install (file installed to Desktop)
-    if (app.id) {
-        // find matching file on Desktop
-        const d = getNode('Desktop');
-        if (!d) return;
-
-        const fileName = Object.keys(d).find(k =>
-            k.toLowerCase().includes(app.name.toLowerCase())
-        );
-
-        if (fileName) {
-            openPath(`Desktop/${fileName}`);
+        if (!app) {
+            alert('App not found.');
             return;
         }
-    }
 
-    // ✅ CASE 3: direct file path
-    if (app.path) {
-        openPath(app.path);
-        return;
-    }
+        const installed = installedMap[app.id];
 
-    // ✅ fallback
-    alert('This app cannot be opened.');
-}
+        // Prefer installed metadata, then fallback to raw app definition
+        const mode = installed?.mode
+            || (app.open ? 'builtin'
+                : app.path ? 'path'
+                : app.url ? 'url'
+                : app.exe ? 'exe'
+                : '');
+
+        if (mode === 'builtin') {
+            const target = installed?.open || app.open;
+            if (target) {
+                openApp(target, {});
+                return;
+            }
+        }
+
+        if (mode === 'exe') {
+            const exePath = installed?.exePath || app.path || installed?.path;
+            if (exePath) {
+                openPath(exePath);
+                return;
+            }
+        }
+
+        if (mode === 'path') {
+            const p = installed?.path || app.path;
+            if (p) {
+                openPath(p);
+                return;
+            }
+        }
+
+        if (mode === 'url') {
+            const targetUrl = installed?.url || app.url;
+            if (targetUrl) {
+                openApp('browser', { u: targetUrl });
+                return;
+            }
+        }
+
+        // Fallbacks if app is not installed but directly runnable
+        if (app.open) {
+            openApp(app.open, {});
+            return;
+        }
+
+        if (app.path) {
+            openPath(app.path);
+            return;
+        }
+
+        if (app.url) {
+            openApp('browser', { u: app.url });
+            return;
+        }
+
+        alert('This app cannot be opened.');
+    }
 
     function filteredApps() {
         if (!storeData) return [];
@@ -3321,7 +3375,7 @@ function runStoreApp(app) {
                         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;">
                             ${
                                 isInstalled(app.id)
-                                    ? `<button class="btn" onclick="runStoreApp(selectedApp)">Installed - Click Here To Open</button>`
+                                    ? `<button class="btn btn-primary" onclick="runStoreApp('${app.id}')">Open</button>`
                                     : `<button class="btn btn-primary" onclick="storeInstall('${app.id}')">Get</button>`
                             }
                         </div>
@@ -3396,7 +3450,7 @@ function runStoreApp(app) {
                                             <div style="opacity:.68;font-size:12px;">Up to date</div>
                                         </div>
                                     </div>
-                                    <button class="btn" onclick="runStoreApp(selectedApp)">Open</button>
+                                    <button class="btn" onclick="runStoreApp('${app.id}')">Open</button>
                                 </div>
                             `).join('')}
                            </div>`
@@ -3409,19 +3463,51 @@ function runStoreApp(app) {
     async function installApp(app) {
         if (!app) return;
 
-        // Already installed
-        markInstalled(app.id);
-
-        // 1) open built-in app if explicitly provided
+        // 1) built-in app
         if (app.open) {
-            openApp(app.open, {});
+            installedMap[app.id] = {
+                id: app.id,
+                name: app.name,
+                mode: 'builtin',
+                open: app.open,
+                installedAt: Date.now()
+            };
+            saveInstalled();
             render();
             return;
         }
 
-        // 2) install executable link/path content into Desktop
+        // 2) direct path app
+        if (app.path) {
+            installedMap[app.id] = {
+                id: app.id,
+                name: app.name,
+                mode: 'path',
+                path: app.path,
+                installedAt: Date.now()
+            };
+            saveInstalled();
+            render();
+            return;
+        }
+
+        // 3) url app
+        if (app.url) {
+            installedMap[app.id] = {
+                id: app.id,
+                name: app.name,
+                mode: 'url',
+                url: app.url,
+                installedAt: Date.now()
+            };
+            saveInstalled();
+            render();
+            return;
+        }
+
+        // 4) executable payload
         if (app.exe) {
-            let desktop = getNode('Desktop', true);
+            const desktop = getNode('Desktop', true);
 
             let name = `${app.name}.exe`.replace(/[\\/:*?"<>|]/g, '');
             let i = 1;
@@ -3430,21 +3516,37 @@ function runStoreApp(app) {
                 i++;
             }
 
-            // If exe is already a payload string, store as-is.
-            // If it's a URL to an HTML payload or data source, you can extend this later.
+            const fullPath = `Desktop/${name}`;
+
             desktop[name] = {
                 type: 'file',
-                cnt: app.exe,
+                cnt: app.exe, // store payload exactly as provided
                 ts: Date.now()
             };
 
+            installedMap[app.id] = {
+                id: app.id,
+                name: app.name,
+                mode: 'exe',
+                exePath: fullPath,
+                installedAt: Date.now()
+            };
+
+            saveInstalled();
             saveOS();
             refreshDesk();
             render();
             return;
         }
 
-        // 3) fallback to simple installed state only
+        // fallback: mark installed only
+        installedMap[app.id] = {
+            id: app.id,
+            name: app.name,
+            mode: 'unknown',
+            installedAt: Date.now()
+        };
+        saveInstalled();
         render();
     }
 

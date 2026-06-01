@@ -736,10 +736,9 @@ const DEF_REG = {
     'txt':'notepad', 'log':'notepad', 
     'png':'paint', 'jpg':'paint', 
     'htm':'browser', 'html':'browser', 'svg':'browser', 'mp4':'browser', 
-    'exe':'exehost' 
-};
+    'exe':'exehost', zip:'zipviewer' };
 const DEF_FS = { "Desktop": {}, "Documents": {}, "Pictures": {} };
-const APP_ICONS = { explorer:'📁', browser:'🌐', msstore:'🛍️', notepad:'📝', paint:'🎨', regedit:'⚙️', settings:'⚙️', camera:'📷', exehost:'💻' };
+const APP_ICONS = { explorer:'📁', browser:'🌐', msstore:'🛍️', notepad:'📝', paint:'🎨', regedit:'⚙️', settings:'⚙️', camera:'📷', exehost:'💻', zipviewer:'🗜️' };
 
 let OS = { users:{}, fs:{}, reg:{...DEF_REG}, pins:{}, settings:{}, curr:null, clip:{path:null}, pids:1, wins:{}, z:100 };
 
@@ -761,7 +760,7 @@ function readF(path) { const n=getNode(path); return (n && n.type==='file') ? n.
 function delF(path) { const p=getNode(pPath(path)); if(p && p[fName(path)]){ delete p[fName(path)]; saveOS(); refreshDesk(); if(OS.lastExp && OS.wins[OS.lastExp] && typeof expNav==='function') expNav(OS.lastExp,pPath(path)); } }
 function getIcon(name, type) { 
     if(type==='folder')return'📁'; const e=fExt(name); 
-    if(['png','jpg'].includes(e))return'🖼️'; if(['htm','html','svg'].includes(e))return'🌐'; 
+    if(['png','jpg'].includes(e))return'🖼️'; if(e==='zip')return'🗜️'; if(['htm','html','svg'].includes(e))return'🌐'; 
     if(e==='mp4')return'🎬'; if(e==='exe')return'💻'; return'📄'; 
 }
 
@@ -1025,7 +1024,8 @@ function osPower(act) {
 
 function getAllAppsList() {
     return [
-        { id: 'explorer', name: 'File Explorer', icon: '📁', type: 'app' },
+        
+        { id: 'zipviewer', name: 'ZIP Viewer', icon: '🗜️', type: 'app' },{ id: 'explorer', name: 'File Explorer', icon: '📁', type: 'app' },
         { id: 'browser', name: 'Microsoft Edge', icon: '🌐', type: 'app' },
         { id: 'msstore', name: 'Microsoft Store', icon: '🛍️', type: 'app' },
         { id: 'notepad', name: 'Notepad', icon: '📝', type: 'app' },
@@ -1220,7 +1220,8 @@ function getDesktopCtx(path) {
         { l: 'Create new', sub: [
             { l: 'Folder', act: `makeNew('${path}', 'New folder', 'folder')` },
             { l: 'Shortcut', act: `makeNew('${path}', 'New shortcut', 'file', 'html')` },
-            { l: 'Text Document', act: `makeNew('${path}', 'New Text Document', 'file', 'txt')` }
+            { l: 'Text Document', act: `makeNew('${path}', 'New Text Document', 'file', 'txt')` },
+            { l: 'ZIP Archive', act: `createEmptyZipArchive('${path}')` }
         ]},
         'sep',
         { l: 'Import from DVD', act: `dvdImport('${path}')` }
@@ -1246,6 +1247,7 @@ function showFileCtx(x, y, path) {
     m.push({ l: 'Paste', act: `doPaste('${pPath(path)}')` });
     m.push({ l: 'Rename', act: `beginRename('${path}')` });
     m.push({ l: 'Delete', act: `delF('${path}')` });
+    m.push({ l: 'Compress to ZIP', act: `zipCreate('${path}')` });
     
     if(!isDir && (fExt(path)==='exe' || APP_ICONS[fExt(path)])) {
         m.push('sep', { l: OS.pins[OS.curr].includes(path)?'Unpin from taskbar':'Pin to taskbar', act:`togglePin('${path}')`});
@@ -2119,6 +2121,7 @@ function openApp(id, args={}) {
         case 'msstore': appStore(); break;
         case 'settings': appSettings(); break;
         case 'camera': appCamera(args); break;
+        case 'zipviewer': appZipViewer(args); break;
         case 'regedit': appRegedit(); break;
         case 'exehost': appExe(args); break;
     }
@@ -3171,6 +3174,366 @@ if (document.readyState === 'loading') {
 } else {
     startBootSequence();
 }
+
+
+
+/* ===== ZIP VIEWER SUPPORT ===== */
+
+(function(){
+    // Ensure old saved registries also know about ZIP at runtime
+    if(typeof OS !== 'undefined'){
+        OS.reg = OS.reg || {};
+        if(!OS.reg.zip) OS.reg.zip = 'zipviewer';
+    }
+})();
+
+function ensureZipLib(){
+    if(window.JSZip) return Promise.resolve();
+    return new Promise((res,rej)=>{
+        const s=document.createElement('script');
+        s.src='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+        s.onload=res;
+        s.onerror=rej;
+        document.head.appendChild(s);
+    });
+}
+
+async function createEmptyZipArchive(destPath){
+    await ensureZipLib();
+
+    const parent = getNode(destPath, true);
+    let name = 'New Archive.zip';
+    let i = 1;
+    while(parent[name]){
+        name = `New Archive (${i}).zip`;
+        i++;
+    }
+
+    const zip = new JSZip();
+    const data = await zip.generateAsync({ type:'uint8array' });
+
+    let bin = '';
+    const chunkSize = 8192;
+    for (let j = 0; j < data.length; j += chunkSize) {
+        const chunk = data.subarray(j, j + chunkSize);
+        bin += String.fromCharCode.apply(null, chunk);
+    }
+
+    const out = (destPath ? destPath + '/' : '') + name;
+    writeF(out, bin);
+    setTimeout(()=>beginRename(out), 80);
+}
+
+async function zipCreate(srcPath){
+    await ensureZipLib();
+
+    const node = getNode(srcPath);
+    if(!node) return alert('Source not found.');
+
+    const zip = new JSZip();
+
+    function addNodeToZip(node, relBase){
+        if(node && node.type === 'file'){
+            const ext = fExt(relBase);
+            const cnt = node.cnt || '';
+
+            // data URLs (images/media)
+            if(typeof cnt === 'string' && cnt.startsWith('data:')){
+                const base64 = cnt.split(',')[1] || '';
+                zip.file(relBase, base64, { base64: true });
+            }
+            // binary-ish files already stored as base64 in your VFS
+            else if(['exe','png','jpg','jpeg','gif','bmp','webp','svg','mp4','mp3','wav','vob','avi','mkv','webm','wmv','mov'].includes(ext)){
+                zip.file(relBase, cnt, { base64: true });
+            }
+            // everything else as text
+            else {
+                zip.file(relBase, String(cnt));
+            }
+            return;
+        }
+
+        Object.keys(node || {}).forEach(name=>{
+            const child = node[name];
+            const next = relBase ? `${relBase}/${name}` : name;
+            addNodeToZip(child, next);
+        });
+    }
+
+    if(node.type === 'file') addNodeToZip(node, fName(srcPath));
+    else addNodeToZip(node, fName(srcPath));
+
+    const data = await zip.generateAsync({ type:'uint8array' });
+
+    let bin = '';
+    const chunkSize = 8192;
+    for (let j = 0; j < data.length; j += chunkSize) {
+        const chunk = data.subarray(j, j + chunkSize);
+        bin += String.fromCharCode.apply(null, chunk);
+    }
+
+    const baseParent = pPath(srcPath);
+    const baseName = (getNode(srcPath) && getNode(srcPath).type === 'file')
+        ? fName(srcPath).replace(/\.[^.]+$/, '')
+        : fName(srcPath);
+
+    let out = (baseParent ? baseParent + '/' : '') + baseName + '.zip';
+    let i = 1;
+    while(getNode(out)){
+        out = (baseParent ? baseParent + '/' : '') + `${baseName} (${i}).zip`;
+        i++;
+    }
+
+    writeF(out, bin);
+    alert('ZIP created: ' + fName(out));
+}
+
+function zipListFolder(entries, folder=''){
+    const prefix = folder ? folder.replace(/\/+$/, '') + '/' : '';
+    const direct = [];
+    const seenFolders = new Set();
+
+    entries.forEach(e=>{
+        const name = e.name || '';
+        if(!name.startsWith(prefix) || name === prefix) return;
+
+        const rest = name.slice(prefix.length);
+        const parts = rest.split('/').filter(Boolean);
+        if(!parts.length) return;
+
+        if(parts.length === 1 && !e.dir){
+            direct.push({
+                type:'file',
+                name:parts[0],
+                full:name
+            });
+        } else {
+            const folderName = parts[0];
+            if(!seenFolders.has(folderName)){
+                seenFolders.add(folderName);
+                direct.push({
+                    type:'folder',
+                    name:folderName,
+                    full: prefix + folderName + '/'
+                });
+            }
+        }
+    });
+
+    direct.sort((a,b)=>{
+        if(a.type !== b.type) return a.type === 'folder' ? -1 : 1;
+        return a.name.localeCompare(b.name);
+    });
+
+    return direct;
+}
+
+async function appZipViewer(args={}){
+    await ensureZipLib();
+
+    const zipPath = args.p;
+    if(!zipPath) return alert('No ZIP file specified.');
+
+    const raw = readF(zipPath);
+    if(raw == null) return alert('ZIP not found.');
+
+    let zip;
+    try {
+        // raw ZIP is stored as a binary string in the VFS
+        const arr = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) {
+            arr[i] = raw.charCodeAt(i) & 0xff;
+        }
+        zip = await JSZip.loadAsync(arr);
+    } catch(err){
+        console.error(err);
+        return alert('Invalid ZIP format.');
+    }
+
+    const entries = Object.values(zip.files);
+    const w = spawnWin('zipviewer', fName(zipPath) + ' - ZIP Viewer', '🗜️', 920, 620);
+
+    const state = {
+        folder: '',
+        extracted: false,
+        extractTarget: pPath(zipPath) || 'Desktop'
+    };
+
+    function buildZipTree(entries){
+        const folderSet = new Set();
+
+        entries.forEach(e=>{
+            const name = e.name || '';
+            const parts = name.split('/').filter(Boolean);
+            let current = '';
+
+            for(let i=0;i<parts.length-1;i++){
+                current += parts[i] + '/';
+                folderSet.add(current);
+            }
+
+            if(e.dir && name) {
+                folderSet.add(name.endsWith('/') ? name : name + '/');
+            }
+        });
+
+        const folders = Array.from(folderSet).sort((a,b)=>a.localeCompare(b));
+        return folders.map(f=>{
+            const depth = f.split('/').filter(Boolean).length;
+            const label = f.split('/').filter(Boolean).pop();
+            return `<div class="tree-node" style="padding-left:${depth*14}px" onclick="zipViewerGo_${w.pid}('${f.replace(/'/g, "\\\\'")}')">📁 ${label}</div>`;
+        });
+    }
+
+    async function doExtractAll(){
+        const targetRoot = state.extractTarget || (pPath(zipPath) || 'Desktop');
+        const rootFolderName = fName(zipPath).replace(/\.zip$/i,'') || 'Extracted ZIP';
+
+        let baseOut = targetRoot ? `${targetRoot}/${rootFolderName}` : rootFolderName;
+        let i = 1;
+        while (getNode(baseOut)) {
+            baseOut = `${targetRoot}/${rootFolderName} (${i})`;
+            i++;
+        }
+
+        getNode(baseOut, true);
+
+        const textExts = ['txt','log','csv','json','html','htm','xml','md','js','css'];
+        const binaryExts = ['exe','png','jpg','jpeg','gif','bmp','webp','svg','mp4','mp3','wav','vob','avi','mkv','webm','wmv','mov','zip'];
+
+        for(const e of entries){
+            if(e.dir) continue;
+
+            const data = await e.async('uint8array');
+            const cleanName = e.name.replace(/^\/+/, '');
+            const outPath = `${baseOut}/${cleanName}`;
+            const ext = fExt(cleanName);
+
+            getNode(pPath(outPath), true);
+
+            if(textExts.includes(ext)){
+                try{
+                    const decoded = new TextDecoder().decode(data);
+                    writeF(outPath, decoded);
+                } catch {
+                    let bin = '';
+                    const chunkSize = 8192;
+                    for (let j = 0; j < data.length; j += chunkSize) {
+                        const chunk = data.subarray(j, j + chunkSize);
+                        bin += String.fromCharCode.apply(null, chunk);
+                    }
+                    writeF(outPath, bin);
+                }
+            } else if(binaryExts.includes(ext)){
+                let bin = '';
+                const chunkSize = 8192;
+                for (let j = 0; j < data.length; j += chunkSize) {
+                    const chunk = data.subarray(j, j + chunkSize);
+                    bin += String.fromCharCode.apply(null, chunk);
+                }
+                writeF(outPath, bin);
+            } else {
+                let bin = '';
+                const chunkSize = 8192;
+                for (let j = 0; j < data.length; j += chunkSize) {
+                    const chunk = data.subarray(j, j + chunkSize);
+                    bin += String.fromCharCode.apply(null, chunk);
+                }
+                writeF(outPath, bin);
+            }
+        }
+
+        state.extracted = true;
+        state.extractTarget = baseOut;
+        alert('ZIP extracted to ' + baseOut);
+
+        if (OS.lastExp && OS.wins[OS.lastExp] && typeof expNav === 'function') {
+            expNav(OS.lastExp, baseOut);
+        }
+
+        render();
+    }
+
+    function render(){
+        const items = zipListFolder(entries, state.folder);
+        const pathParts = state.folder.split('/').filter(Boolean);
+        const breadcrumb = ['Archive root', ...pathParts];
+
+        w.cnt.innerHTML = `
+            <div class="toolbar" style="gap:8px;">
+                <button class="btn ${state.folder ? '' : 'hidden'}" onclick="zipViewerUp_${w.pid}()">⬆️ Up</button>
+                <button class="btn btn-primary" onclick="zipViewerExtractAll_${w.pid}()">Extract All</button>
+                <button class="btn" onclick="zipViewerChooseExtract_${w.pid}()">Extract To…</button>
+                <button class="btn ${state.extracted ? '' : 'hidden'}" onclick="openApp('explorer',{p:'${state.extractTarget}'})">Open Extracted Folder</button>
+                <div style="margin-left:auto;opacity:.75;">ZIP archive • ${entries.length} item${entries.length===1?'':'s'}</div>
+            </div>
+
+            <div style="padding:10px 14px;border-bottom:1px solid var(--sys-border);background:rgba(127,127,127,0.05);font-size:12px;opacity:.8;">
+                ${breadcrumb.map(x=>`<span>${x}</span>`).join(' <span style="opacity:.5;">›</span> ')}
+            </div>
+
+            <div style="display:flex;flex:1;overflow:hidden;">
+                <div class="sidebar" style="width:220px;">
+                    <div class="tree-node" onclick="zipViewerGo_${w.pid}('')">🗜️ Archive root</div>
+                    ${buildZipTree(entries).join('')}
+                </div>
+
+                <div style="flex:1;overflow:auto;padding:12px;background:var(--win-bg);">
+                    <div style="padding:10px 12px;border:1px solid var(--sys-border);border-radius:12px;background:rgba(127,127,127,0.04);margin-bottom:12px;">
+                        <div style="font-weight:700;margin-bottom:4px;">Explorer ZIP Viewer</div>
+                        <div style="opacity:.75;font-size:12px;">Files inside the archive are locked for direct opening. Extract them first to use them.</div>
+                    </div>
+
+                    <div style="display:grid;gap:8px;">
+                        ${items.length ? items.map(it => `
+                            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--sys-border);border-radius:12px;background:rgba(127,127,127,0.03);">
+                                <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                                    <div style="font-size:22px;">${it.type==='folder'?'📁':'📄'}</div>
+                                    <div style="min-width:0;">
+                                        <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.name}</div>
+                                        <div style="opacity:.65;font-size:12px;">${it.type==='folder'?'Folder in archive':'File in archive'}</div>
+                                    </div>
+                                </div>
+                                <div style="display:flex;gap:8px;">
+                                    ${it.type==='folder'
+                                        ? `<button class="btn" onclick="zipViewerGo_${w.pid}('${it.full.replace(/'/g, "\\\\'")}')">Open</button>`
+                                        : `<button class="btn" disabled title="Extract first">Locked</button>`}
+                                </div>
+                            </div>
+                        `).join('') : `<div style="opacity:.7;padding:18px;">This folder is empty.</div>`}
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    window[`zipViewerGo_${w.pid}`] = function(folder){
+        state.folder = folder || '';
+        render();
+    };
+
+    window[`zipViewerUp_${w.pid}`] = function(){
+        const parts = state.folder.split('/').filter(Boolean);
+        parts.pop();
+        state.folder = parts.length ? parts.join('/') + '/' : '';
+        render();
+    };
+
+    window[`zipViewerExtractAll_${w.pid}`] = async function(){
+        await doExtractAll();
+    };
+
+    window[`zipViewerChooseExtract_${w.pid}`] = function(){
+        openFileDialog('save', null, path=>{
+            state.extractTarget = pPath(path || zipPath) || 'Desktop';
+            window[`zipViewerExtractAll_${w.pid}`]();
+        });
+    };
+
+    render();
+}
+
+/* ===== END ZIP VIEWER SUPPORT ===== */
+
 </script>
 </body>
 </html>

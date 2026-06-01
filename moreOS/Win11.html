@@ -2182,35 +2182,262 @@ function appPaint(args) {
 
 // Explorer
 let expData = {};
-function appExplorer(args) {
-    const w = spawnWin('explorer', 'File Explorer', '📁');
-    expData[w.pid] = { act: args.p||'Desktop', tabs: [args.p||'Desktop'] };
-    
-    const r = ()=>{
-        OS.lastExp = w.pid; OS.lastExpPath = expData[w.pid].act;
-        const cp = expData[w.pid].act;
-        let tHtml = expData[w.pid].tabs.map((p,i)=>`<div class="tab ${cp===p?'active':''}" onclick="exTab('${w.pid}',${i})">${fName(p)||'Root'} <span class="tab-close" onclick="event.stopPropagation();exCTab('${w.pid}',${i})">x</span></div>`).join('');
-        let tree = `<div class="tree-node" onclick="expNav('${w.pid}','')">🏠 Root</div>`;
-        const b = (obj, p, d=1) => {
-            Object.keys(obj).forEach(k => {
-                if(obj[k].type==='folder') { const full = p ? `${p}/${k}` : k; tree += `<div class="tree-node" style="padding-left:${d*15}px" onclick="expNav('${w.pid}','${full}')">📁 ${k}</div>`; b(obj[k], full, d+1); }
-            });
-        }; b(OS.fs[OS.curr], '');
 
-        w.cnt.innerHTML = `
-            <div class="tab-bar"><button class="btn" style="padding:2px 8px;margin-right:5px;" onclick="exNewTab('${w.pid}')">+</button>${tHtml}</div>
-            <div class="toolbar"><button class="btn" onclick="expNav('${w.pid}','${pPath(cp)}')">⬆️</button><input type="text" id="ep-${w.pid}" value="${cp}" style="flex:1;padding:6px;background:var(--win-bg);color:var(--win-text);border:1px solid var(--win-border);border-radius:4px;" onkeydown="if(event.key==='Enter')expNav('${w.pid}',this.value)"></div>
-            <div style="display:flex;flex:1;overflow:hidden;">
-                <div class="sidebar">${tree}</div>
-                <div id="em-${w.pid}" style="flex:1;padding:15px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill, var(--icon-size));grid-auto-rows:max-content;gap:10px;align-content:start;"></div>
+function appExplorer(args = {}) {
+    const V_THISPC = '__thispc__';
+    const V_CDRIVE = '__cdrive__';
+
+    const QUICK_ROOTS = [
+        { id: 'Desktop', label: 'Desktop', icon: '🖥️' },
+        { id: 'Documents', label: 'Documents', icon: '📄' },
+        { id: 'Pictures', label: 'Pictures', icon: '🖼️' }
+    ];
+
+    const startPath = args.p || V_THISPC;
+
+    const w = spawnWin('explorer', 'File Explorer', '📁', 900, 640);
+
+    expData[w.pid] = {
+        act: startPath,
+        tabs: [startPath],
+        expanded: {
+            [V_THISPC]: true,
+            [V_CDRIVE]: false,
+            Desktop: false,
+            Documents: false,
+            Pictures: false
+        }
+    };
+
+    const isFolder = (node) => node && typeof node === 'object' && node.type !== 'file';
+
+    const actualPathFromView = (viewPath) => {
+        if (viewPath === V_THISPC) return null;
+        if (viewPath === V_CDRIVE) return '';
+        return viewPath;
+    };
+
+    const titleFromPath = (p) => {
+        if (p === V_THISPC) return 'This PC';
+        if (p === V_CDRIVE) return 'C:';
+        return fName(p) || 'Root';
+    };
+
+    const ensureExpandKey = (key) => {
+        if (!(key in expData[w.pid].expanded)) expData[w.pid].expanded[key] = false;
+    };
+
+    const folderHasSubfolders = (path) => {
+        const actual = actualPathFromView(path);
+        if (actual === null) return true;
+        const node = getNode(actual);
+        if (!isFolder(node)) return false;
+        return Object.keys(node).some(k => isFolder(node[k]));
+    };
+
+    const buildTreeBranch = (path, label, icon, depth = 0, virtual = false) => {
+        const state = expData[w.pid];
+        ensureExpandKey(path);
+        const expanded = !!state.expanded[path];
+        const actual = actualPathFromView(path);
+
+        const hasKids = virtual
+            ? true
+            : folderHasSubfolders(path);
+
+        let html = `
+            <div class="tree-node" style="padding-left:${depth * 14}px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1; cursor:pointer;" onclick="expNav('${w.pid}','${path}')">
+                    <span>${icon}</span>
+                    <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${label}</span>
+                </div>
+                ${hasKids ? `
+                    <span style="cursor:pointer; opacity:.75;" onclick="event.stopPropagation(); expToggle('${w.pid}','${path}')">
+                        ${expanded ? '▾' : '▸'}
+                    </span>
+                ` : `<span style="width:12px;"></span>`}
             </div>
         `;
-        w.setTitle(fName(cp)||'Root');
-        renderDir(cp, document.getElementById(`em-${w.pid}`));
-        
-        document.getElementById(`em-${w.pid}`).oncontextmenu = e=>{ if(e.target===document.getElementById(`em-${w.pid}`)) { e.preventDefault(); showCtx(e.clientX, e.clientY, getDesktopCtx(cp)); } };
+
+        if (!expanded) return html;
+
+        if (virtual && path === V_THISPC) {
+            html += buildTreeBranch(V_CDRIVE, 'C:', '💽', depth + 1, false);
+            QUICK_ROOTS.forEach(item => {
+                html += buildTreeBranch(item.id, item.label, item.icon, depth + 1, false);
+            });
+            return html;
+        }
+
+        const node = getNode(actual);
+        if (!isFolder(node)) return html;
+
+        let keys = Object.keys(node).filter(k => isFolder(node[k]));
+        keys.sort((a, b) => a.localeCompare(b));
+
+        keys.forEach(k => {
+            const full = actual ? `${actual}/${k}` : k;
+            html += buildTreeBranch(full, k, '📁', depth + 1, false);
+        });
+
+        return html;
     };
-    window.expNav = (id, p)=>{
+
+    const buildSidebarTree = () => {
+        return buildTreeBranch(V_THISPC, 'This PC', '🖥️', 0, true);
+    };
+
+    const renderThisPC = (mount) => {
+        mount.innerHTML = `
+            <div style="padding:6px 4px 14px 4px;">
+                <div style="font-size:22px; font-weight:700; margin-bottom:14px;">This PC</div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:14px;">
+                    <div class="app-item" onclick="expNav('${w.pid}','${V_CDRIVE}')" style="align-items:flex-start; border:1px solid var(--sys-border); border-radius:14px; padding:16px; background:rgba(127,127,127,0.04);">
+                        <div style="font-size:34px; margin-bottom:8px;">💽</div>
+                        <div style="font-weight:700;">C:</div>
+                        <div style="opacity:.68; font-size:12px;">Open virtual root drive</div>
+                    </div>
+
+                    ${QUICK_ROOTS.map(item => `
+                        <div class="app-item" onclick="expNav('${w.pid}','${item.id}')" style="align-items:flex-start; border:1px solid var(--sys-border); border-radius:14px; padding:16px; background:rgba(127,127,127,0.04);">
+                            <div style="font-size:34px; margin-bottom:8px;">${item.icon}</div>
+                            <div style="font-weight:700;">${item.label}</div>
+                            <div style="opacity:.68; font-size:12px;">Quick folder</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        mount.oncontextmenu = (e) => e.preventDefault();
+    };
+
+    const renderActualDir = (actualPath, mount) => {
+        mount.innerHTML = '';
+        const s = OS.settings[OS.curr];
+        const node = getNode(actualPath);
+
+        if (!node || node.type === 'file') {
+            mount.innerHTML = `<div style="padding:20px; opacity:.7;">Folder not found.</div>`;
+            return;
+        }
+
+        let keys = Object.keys(node);
+        keys.sort((a, b) => s.sort === 'az' ? a.localeCompare(b) : b.localeCompare(a));
+
+        mount.style.display = 'grid';
+        mount.style.gridTemplateColumns = 'repeat(auto-fill, var(--icon-size))';
+        mount.style.gridAutoRows = 'max-content';
+        mount.style.gap = '10px';
+        mount.style.alignContent = 'start';
+
+        keys.forEach(k => {
+            const childPath = actualPath ? `${actualPath}/${k}` : k;
+            const child = getNode(childPath);
+            const folderish = isFolder(child);
+
+            const el = document.createElement('div');
+            el.className = 'icon-node';
+
+            let dispName = k;
+            if (!s.exts && !folderish && k.includes('.')) {
+                dispName = k.substring(0, k.lastIndexOf('.'));
+            }
+
+            el.innerHTML = `
+                <div class="icon-img">${folderish ? '📁' : getIcon(k, 'file')}</div>
+                ${s.names ? `<div class="icon-lbl" data-full="${k}">${dispName}</div>` : ''}
+            `;
+
+            el.onclick = (e) => {
+                e.stopPropagation();
+                mount.querySelectorAll('.icon-node').forEach(i => i.classList.remove('selected'));
+                el.classList.add('selected');
+            };
+
+            el.ondblclick = (e) => {
+                e.stopPropagation();
+                if (folderish) expNav(w.pid, childPath);
+                else openPath(childPath);
+            };
+
+            el.oncontextmenu = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                el.click();
+                showFileCtx(e.clientX, e.clientY, childPath);
+            };
+
+            mount.appendChild(el);
+        });
+
+        mount.oncontextmenu = (e) => {
+            if (e.target === mount) {
+                e.preventDefault();
+                showCtx(e.clientX, e.clientY, getDesktopCtx(actualPath || ''));
+            }
+        };
+    };
+
+    const render = () => {
+        OS.lastExp = w.pid;
+        OS.lastExpPath = expData[w.pid].act;
+
+        const cp = expData[w.pid].act;
+
+        const tHtml = expData[w.pid].tabs.map((p, i) => `
+            <div class="tab ${cp === p ? 'active' : ''}" onclick="exTab('${w.pid}',${i})">
+                ${titleFromPath(p)}
+                <span class="tab-close" onclick="event.stopPropagation();exCTab('${w.pid}',${i})">x</span>
+            </div>
+        `).join('');
+
+        w.cnt.innerHTML = `
+            <div class="tab-bar">
+                <button class="btn" style="padding:2px 8px; margin-right:5px;" onclick="exNewTab('${w.pid}')">+</button>
+                ${tHtml}
+            </div>
+
+            <div class="toolbar" style="gap:8px;">
+                <button class="btn" onclick="expUp('${w.pid}')">⬆️</button>
+
+                <select id="quick-${w.pid}" class="btn" style="padding:6px 10px;" onchange="expNav('${w.pid}', this.value)">
+                    <option value="${V_THISPC}" ${cp === V_THISPC ? 'selected' : ''}>This PC</option>
+                    <option value="${V_CDRIVE}" ${cp === V_CDRIVE ? 'selected' : ''}>C:</option>
+                    ${QUICK_ROOTS.map(item => `
+                        <option value="${item.id}" ${cp === item.id ? 'selected' : ''}>${item.label}</option>
+                    `).join('')}
+                </select>
+
+                <input
+                    type="text"
+                    id="ep-${w.pid}"
+                    value="${cp === V_THISPC ? 'This PC' : cp === V_CDRIVE ? 'C:' : cp}"
+                    style="flex:1; padding:6px; background:var(--win-bg); color:var(--win-text); border:1px solid var(--win-border); border-radius:4px;"
+                    onkeydown="if(event.key==='Enter')expAddrGo('${w.pid}', this.value)"
+                >
+            </div>
+
+            <div style="display:flex; flex:1; overflow:hidden;">
+                <div class="sidebar" id="sidebar-${w.pid}">${buildSidebarTree()}</div>
+                <div id="em-${w.pid}" style="flex:1; padding:15px; overflow-y:auto;"></div>
+            </div>
+        `;
+
+        w.setTitle(titleFromPath(cp));
+
+        const main = document.getElementById(`em-${w.pid}`);
+        if (cp === V_THISPC) renderThisPC(main);
+        else renderActualDir(actualPathFromView(cp), main);
+    };
+
+    window.expToggle = (id, p) => {
+        if (!expData[id] || !OS.wins[id]) return;
+        expData[id].expanded[p] = !expData[id].expanded[p];
+        render();
+    };
+
+    window.expNav = (id, p) => {
         if (!expData[id] || !OS.wins[id]) return;
 
         const prev = expData[id].act;
@@ -2223,12 +2450,62 @@ function appExplorer(args) {
             expData[id].tabs.push(p);
         }
 
-        r();
+        render();
     };
-    window.exTab = (id, i)=>{ expData[id].act = expData[id].tabs[i]; r(); };
-    window.exCTab = (id, i)=>{ expData[id].tabs.splice(i,1); if(expData[id].tabs.length){ expData[id].act=expData[id].tabs[0]; r(); } else closeW(id,{stopPropagation:()=>{}}); };
-    window.exNewTab = (id)=>{ expData[id].tabs.push('Desktop'); expData[id].act='Desktop'; r(); };
-    r();
+
+    window.expUp = (id) => {
+        if (!expData[id] || !OS.wins[id]) return;
+
+        const cp = expData[id].act;
+        if (cp === V_THISPC) return;
+
+        if (cp === V_CDRIVE) {
+            expNav(id, V_THISPC);
+            return;
+        }
+
+        const parent = pPath(cp);
+        if (!parent) {
+            expNav(id, V_CDRIVE);
+        } else {
+            expNav(id, parent);
+        }
+    };
+
+    window.expAddrGo = (id, value) => {
+        const v = String(value || '').trim();
+        if (!v) return;
+
+        if (v.toLowerCase() === 'this pc') return expNav(id, V_THISPC);
+        if (v.toLowerCase() === 'c:' || v.toLowerCase() === 'c') return expNav(id, V_CDRIVE);
+
+        if (QUICK_ROOTS.some(x => x.id === v)) return expNav(id, v);
+
+        expNav(id, v);
+    };
+
+    window.exTab = (id, i) => {
+        expData[id].act = expData[id].tabs[i];
+        render();
+    };
+
+    window.exCTab = (id, i) => {
+        expData[id].tabs.splice(i, 1);
+        if (expData[id].tabs.length) {
+            expData[id].act = expData[id].tabs[0];
+            render();
+        } else {
+            closeW(id, { stopPropagation: () => {} });
+        }
+    };
+
+    window.exNewTab = (id) => {
+        expData[id].tabs.push(V_THISPC);
+        expData[id].act = V_THISPC;
+        render();
+    };
+
+    render();
 }
 
 // Browser (Handles all filetypes in VFS)

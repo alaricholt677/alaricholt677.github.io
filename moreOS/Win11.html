@@ -804,8 +804,358 @@ function tryLogin() {
         OS.curr=selU; document.getElementById('start-user').innerText=selU; document.getElementById('start-avatar').innerText=selU[0].toUpperCase();
         document.getElementById('lock-login').style.transform='translateY(-100%)'; setTimeout(()=>document.getElementById('lock-login').style.display='none',600);
         if(!OS.settings[OS.curr]) OS.settings[OS.curr]={ view:'medium', exts:true, names:true, align:true, sort:'az' };
-        applySet(); refreshDesk(); buildTaskbar(); buildStartApps(); refreshRecommended();
+        applySet(); refreshDesk(); buildTaskbar(); buildStartApps(); refreshRecommended(); initVirtualDesktopSystem();
     } else document.getElementById('login-err').classList.remove('hidden');
+}
+function initVirtualDesktopSystem() {
+    if (!OS.curr) return;
+
+    const LS_KEY = `WebOS11_Desktops_${OS.curr}`;
+    const clone = (obj) => JSON.parse(JSON.stringify(obj ?? {}));
+
+    const TASK_VIEW_SVG = `
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <rect x="3" y="5" width="9" height="11" rx="1.8" fill="currentColor" opacity="0.92"></rect>
+            <rect x="12.5" y="8" width="8.5" height="9" rx="1.8" fill="currentColor" opacity="0.75"></rect>
+        </svg>
+    `;
+
+    const defaultVD = {
+        current: 'Desktop 1',
+        order: ['Desktop 1'],
+        desktops: {
+            'Desktop 1': { windows: [] }
+        }
+    };
+
+    function loadVD() {
+        try {
+            const raw = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+            if (raw && raw.current && raw.order && raw.desktops) return raw;
+        } catch {}
+        return clone(defaultVD);
+    }
+
+    function saveVD() {
+        localStorage.setItem(LS_KEY, JSON.stringify(OS.vd));
+    }
+
+    function serializeWindow(pid, meta) {
+        const el = document.getElementById(pid);
+        if (!el || !meta) return null;
+
+        return {
+            appId: meta.appId,
+            title: meta.title,
+            args: clone(meta.args || {}),
+            left: el.style.left || '50px',
+            top: el.style.top || '50px',
+            width: el.style.width || '750px',
+            height: el.style.height || '550px',
+            hidden: el.classList.contains('hidden'),
+            max: el.classList.contains('max')
+        };
+    }
+
+    function snapshotCurrentDesktop() {
+        const name = OS.vd.current;
+        if (!OS.vd.desktops[name]) OS.vd.desktops[name] = { windows: [] };
+
+        const windows = Object.entries(OS.wins)
+            .filter(([_, meta]) => (meta.desktop || OS.vd.current) === OS.vd.current)
+            .map(([pid, meta]) => serializeWindow(pid, meta))
+            .filter(Boolean);
+
+        OS.vd.desktops[name].windows = windows;
+        saveVD();
+    }
+
+    function clearDesktopWindows() {
+        Object.keys(OS.wins).forEach(pid => {
+            const el = document.getElementById(pid);
+            if (el) el.remove();
+            delete OS.wins[pid];
+
+            if (typeof expData !== 'undefined' && expData[pid]) delete expData[pid];
+            if (typeof npData !== 'undefined' && npData[pid]) delete npData[pid];
+            if (typeof camData !== 'undefined' && camData[pid]) {
+                try {
+                    camData[pid].stream?.getTracks()?.forEach(t => t.stop());
+                } catch {}
+                delete camData[pid];
+            }
+        });
+
+        OS.lastExp = null;
+        OS.lastExpPath = null;
+        buildTaskbar();
+    }
+
+    function restoreDesktop(name) {
+        const desk = OS.vd.desktops[name];
+        if (!desk) return;
+
+        clearDesktopWindows();
+        OS.vd.current = name;
+
+        (desk.windows || []).forEach(wm => {
+            OS.__vdPendingArgs = clone(wm.args || {});
+            openApp(wm.appId, wm.args || {});
+
+            const lastPid = Object.keys(OS.wins).slice(-1)[0];
+            const el = document.getElementById(lastPid);
+            if (!el) return;
+
+            el.style.left = wm.left;
+            el.style.top = wm.top;
+            el.style.width = wm.width;
+            el.style.height = wm.height;
+
+            if (wm.max) el.classList.add('max');
+            if (wm.hidden) el.classList.add('hidden');
+
+            if (OS.wins[lastPid]) {
+                OS.wins[lastPid].desktop = name;
+                OS.wins[lastPid].args = clone(wm.args || {});
+            }
+        });
+
+        saveVD();
+        buildTaskbar();
+        renderTaskViewIfOpen();
+    }
+
+    function switchDesktop(name) {
+        if (!OS.vd.desktops[name]) return;
+        snapshotCurrentDesktop();
+        restoreDesktop(name);
+    }
+
+    function createDesktop() {
+        let i = 1;
+        let name = `Desktop ${i}`;
+        while (OS.vd.desktops[name]) {
+            i++;
+            name = `Desktop ${i}`;
+        }
+
+        OS.vd.desktops[name] = { windows: [] };
+        OS.vd.order.push(name);
+        saveVD();
+        switchDesktop(name);
+    }
+
+    function removeDesktop(name) {
+        if (name === 'Desktop 1') return;
+        if (!OS.vd.desktops[name]) return;
+        if (OS.vd.order.length <= 1) return;
+
+        delete OS.vd.desktops[name];
+        OS.vd.order = OS.vd.order.filter(d => d !== name);
+
+        const fallback = OS.vd.order[0] || 'Desktop 1';
+        saveVD();
+
+        if (OS.vd.current === name) {
+            switchDesktop(fallback);
+        } else {
+            renderTaskViewIfOpen();
+        }
+    }
+
+    function desktopWindowCount(name) {
+        return (OS.vd.desktops[name]?.windows || []).length;
+    }
+
+    function desktopPreviewHTML(name) {
+        const wins = OS.vd.desktops[name]?.windows || [];
+        if (!wins.length) {
+            return `<div style="opacity:.45; font-size:12px;">No open windows</div>`;
+        }
+
+        return `
+            <div style="display:grid; gap:4px;">
+                ${wins.slice(0, 4).map(w => `
+                    <div style="padding:6px 8px; border:1px solid var(--sys-border); border-radius:8px; background:rgba(127,127,127,0.04); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        ${APP_ICONS[w.appId] || '🪟'} ${w.title || w.appId}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    function taskViewHTML() {
+        return `
+            <div id="vd-task-view-inner" style="padding:20px; height:100%; overflow:auto; background:var(--win-bg); color:var(--win-text);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; gap:12px; flex-wrap:wrap;">
+                    <div>
+                        <div style="font-size:26px; font-weight:700;">Desktops</div>
+                        <div style="opacity:.72;">Switch or create virtual desktops</div>
+                    </div>
+                    <button class="btn btn-primary" onclick="OS.vdApi.createDesktop()">＋ New desktop</button>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:16px;">
+                    ${OS.vd.order.map(name => `
+                        <div style="border:1px solid var(--sys-border); border-radius:16px; padding:16px; background:${OS.vd.current === name ? 'rgba(0,103,192,0.12)' : 'rgba(127,127,127,0.04)'};">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px;">
+                                <div>
+                                    <div style="font-weight:700;">${name}</div>
+                                    <div style="font-size:12px; opacity:.7;">${desktopWindowCount(name)} window${desktopWindowCount(name) === 1 ? '' : 's'}</div>
+                                </div>
+                                <div style="display:flex; gap:8px;">
+                                    ${OS.vd.current !== name ? `<button class="btn" onclick="OS.vdApi.switchDesktop('${name.replace(/'/g, "\\'")}')">Open</button>` : `<button class="btn btn-primary" disabled>Current</button>`}
+                                    ${name !== 'Desktop 1' ? `<button class="btn" onclick="OS.vdApi.removeDesktop('${name.replace(/'/g, "\\'")}')">✕</button>` : ''}
+                                </div>
+                            </div>
+
+                            <div style="border:1px solid var(--sys-border); border-radius:12px; padding:12px; min-height:84px; background:rgba(127,127,127,0.03);">
+                                ${desktopPreviewHTML(name)}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function openTaskView() {
+        const existing = document.getElementById('vd-task-view');
+        if (existing) {
+            existing.remove();
+            return;
+        }
+
+        const overlay = document.createElement('div');
+        overlay.id = 'vd-task-view';
+        overlay.style.position = 'fixed';
+        overlay.style.inset = '0';
+        overlay.style.zIndex = '95000';
+        overlay.style.background = 'rgba(0,0,0,0.35)';
+        overlay.style.backdropFilter = 'blur(10px)';
+        overlay.style.webkitBackdropFilter = 'blur(10px)';
+        overlay.onclick = (e) => {
+            if (e.target === overlay) overlay.remove();
+        };
+
+        const panel = document.createElement('div');
+        panel.style.position = 'absolute';
+        panel.style.left = '50%';
+        panel.style.top = '50%';
+        panel.style.transform = 'translate(-50%, -50%)';
+        panel.style.width = 'min(1100px, 92vw)';
+        panel.style.height = 'min(680px, 86vh)';
+        panel.style.borderRadius = '20px';
+        panel.style.overflow = 'hidden';
+        panel.style.border = '1px solid var(--sys-border)';
+        panel.style.boxShadow = '0 20px 60px rgba(0,0,0,0.35)';
+        panel.innerHTML = taskViewHTML();
+
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
+    }
+
+    function renderTaskViewIfOpen() {
+        const inner = document.getElementById('vd-task-view-inner');
+        if (inner) inner.outerHTML = taskViewHTML();
+    }
+
+    function ensureTaskbarButton() {
+        const tc = document.getElementById('tb-icons');
+        if (!tc) return;
+
+        let btn = document.getElementById('vd-taskbar-btn');
+        if (btn) {
+            btn.title = `Task View • ${OS.vd.current}`;
+            return;
+        }
+
+        btn = document.createElement('div');
+        btn.id = 'vd-taskbar-btn';
+        btn.className = 'tb-icon';
+        btn.title = `Task View • ${OS.vd.current}`;
+        btn.innerHTML = TASK_VIEW_SVG;
+        btn.style.color = 'var(--sys-text)';
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            openTaskView();
+        };
+
+        const startBtn = tc.firstElementChild;
+        if (startBtn && startBtn.nextSibling) tc.insertBefore(btn, startBtn.nextSibling);
+        else tc.appendChild(btn);
+    }
+
+    // Load / initialize desktop model
+    OS.vd = loadVD();
+
+    // ----- Patch openApp so we capture launch args -----
+    if (!window.__vdOpenAppPatched) {
+        window.__vdOpenAppPatched = true;
+        const _openApp = window.openApp;
+        window.openApp = function(id, args = {}) {
+            OS.__vdPendingArgs = clone(args || {});
+            return _openApp(id, args);
+        };
+    }
+
+    // ----- Patch spawnWin so every window belongs to a desktop and remembers args -----
+    if (!window.__vdSpawnWinPatched) {
+        window.__vdSpawnWinPatched = true;
+        const _spawnWin = window.spawnWin;
+        window.spawnWin = function(appId, title, icon, ww = 750, hh = 550) {
+            const out = _spawnWin(appId, title, icon, ww, hh);
+
+            if (OS.wins[out.pid]) {
+                OS.wins[out.pid].desktop = OS.vd.current;
+                OS.wins[out.pid].args = clone(OS.__vdPendingArgs || {});
+            }
+
+            OS.__vdPendingArgs = null;
+            return out;
+        };
+    }
+
+    // ----- Patch buildTaskbar so task-view button always appears -----
+    if (!window.__vdBuildTaskbarPatched) {
+        window.__vdBuildTaskbarPatched = true;
+        const _buildTaskbar = window.buildTaskbar;
+        window.buildTaskbar = function() {
+            const v = _buildTaskbar.apply(this, arguments);
+            ensureTaskbarButton();
+            return v;
+        };
+    }
+
+    // ----- Patch closeW so desktop state is saved -----
+    if (!window.__vdCloseWPatched) {
+        window.__vdCloseWPatched = true;
+        const _closeW = window.closeW;
+        window.closeW = function(pid, e) {
+            const result = _closeW(pid, e);
+            snapshotCurrentDesktop();
+            renderTaskViewIfOpen();
+            return result;
+        };
+    }
+
+    // Public API kept on one object so everything feels like one system
+    OS.vdApi = {
+        openTaskView,
+        createDesktop,
+        switchDesktop,
+        removeDesktop,
+        snapshotCurrentDesktop,
+        restoreDesktop,
+        renderTaskViewIfOpen
+    };
+
+    // Save desktop state when leaving
+    window.addEventListener('beforeunload', snapshotCurrentDesktop);
+
+    // Restore the current desktop on init
+    restoreDesktop(OS.vd.current);
+    buildTaskbar();
 }
 
 /**

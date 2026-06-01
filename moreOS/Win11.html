@@ -3287,7 +3287,7 @@ async function appStore() {
                         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;">
                             ${
                                 isInstalled(app.id)
-                                    ? `<button class="btn">Installed</button>`
+                                    ? `<button class="btn" onclick="runStoreApp(selectedApp)">Installed - Click Here To Open</button>`
                                     : `<button class="btn btn-primary" onclick="storeInstall('${app.id}')">Get</button>`
                             }
                         </div>
@@ -3362,7 +3362,7 @@ async function appStore() {
                                             <div style="opacity:.68;font-size:12px;">Up to date</div>
                                         </div>
                                     </div>
-                                    <button class="btn">Open</button>
+                                    <button class="btn" onclick="runStoreApp(selectedApp)">Open</button>
                                 </div>
                             `).join('')}
                            </div>`
@@ -3371,6 +3371,40 @@ async function appStore() {
             </div>
         `;
     }
+function runStoreApp(app) {
+    if (!app) return;
+
+    // ✅ CASE 1: built-in app
+    if (app.open) {
+        openApp(app.open, {});
+        return;
+    }
+
+    // ✅ CASE 2: EXE install (file installed to Desktop)
+    if (app.id) {
+        // find matching file on Desktop
+        const d = getNode('Desktop');
+        if (!d) return;
+
+        const fileName = Object.keys(d).find(k =>
+            k.toLowerCase().includes(app.name.toLowerCase())
+        );
+
+        if (fileName) {
+            openPath(`Desktop/${fileName}`);
+            return;
+        }
+    }
+
+    // ✅ CASE 3: direct file path
+    if (app.path) {
+        openPath(app.path);
+        return;
+    }
+
+    // ✅ fallback
+    alert('This app cannot be opened.');
+}
 
     async function installApp(app) {
         if (!app) return;

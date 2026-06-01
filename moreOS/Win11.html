@@ -2921,29 +2921,568 @@ function appBrowser(args) {
     window.brNav(w.pid, u);
 }
 
-// MS Store
-function appStore() {
-    const w = spawnWin('msstore', 'Microsoft Store', '🛍️');
-    w.cnt.innerHTML = `
-        <div style="padding:30px;overflow-y:auto;background:var(--win-bg);">
-            <div style="height:220px;background:linear-gradient(135deg, #0078D7, #00C6FF);border-radius:12px;display:flex;align-items:center;padding:40px;color:white;font-size:36px;font-weight:600;margin-bottom:30px;box-shadow:0 10px 20px rgba(0,0,0,0.1);">Discover Top Games</div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:20px;">
-                <div style="background:var(--hover-bg);padding:20px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--sys-border);">
-                    <div style="display:flex;gap:15px;align-items:center;">
-                        <div style="font-size:40px;width:72px;height:72px;background:#4CAF50;border-radius:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(0,0,0,0.2);">🟩</div>
-                        <div><h3 style="font-weight:600;font-size:16px;margin-bottom:4px;">Minecraft Simulation</h3><p style="font-size:12px;opacity:0.7;">Standalone base64 binary executable.</p></div>
+// Microsoft Store (remote JSON powered)
+
+async function appStore() {
+    const w = spawnWin('msstore', 'Microsoft Store', '🛍️', 1020, 720);
+
+    const STORE_URL = 'https://alaricholt677.github.io/msstorewin11/index.json';
+    const STORE_INSTALLS_KEY = 'MSSTORE_INSTALLED';
+
+    let view = 'home';
+    let query = '';
+    let selectedApp = null;
+    let selectedCategory = 'All';
+    let storeData = null;
+    let installed = JSON.parse(localStorage.getItem(STORE_INSTALLS_KEY) || '[]');
+
+    function saveInstalled() {
+        localStorage.setItem(STORE_INSTALLS_KEY, JSON.stringify(installed));
+    }
+
+    function isInstalled(appId) {
+        return installed.includes(appId);
+    }
+
+    function markInstalled(appId) {
+        if (!installed.includes(appId)) {
+            installed.push(appId);
+            saveInstalled();
+        }
+    }
+
+    function uid(str) {
+        return String(str || '')
+            .toLowerCase()
+            .replace(/[^\w]+/g, '-')
+            .replace(/^-+|-+$/g, '') || ('app-' + Math.random().toString(36).slice(2, 8));
+    }
+
+    function normalizeApp(raw, index = 0) {
+        const name = raw.name || raw.title || raw.appName || `App ${index + 1}`;
+        const desc = raw.desc || raw.description || raw.summary || 'No description available.';
+        const icon = raw.icon || raw.emoji || raw.logo || '📦';
+        const banner = raw.banner || raw.hero || raw.image || raw.screenshot || '';
+        const category = Array.isArray(raw.category)
+            ? (raw.category[0] || 'Uncategorized')
+            : (raw.category || raw.categories?.[0] || raw.genre || 'Uncategorized');
+
+        const rating = raw.rating ?? raw.stars ?? raw.score ?? '';
+        const author = raw.author || raw.publisher || raw.dev || raw.developer || '';
+        const version = raw.version || raw.ver || '';
+        const size = raw.size || raw.downloadSize || '';
+        const appId = raw.id || raw.slug || uid(name);
+
+        // install sources
+        const exe = raw.exe || raw.file || raw.download || raw.install || raw.payload || '';
+        const open = raw.open || raw.launch || '';
+        const type = raw.type || raw.appType || (String(exe).endsWith('.exe') ? 'exe' : 'webos');
+
+        return {
+            id: appId,
+            name,
+            desc,
+            icon,
+            banner,
+            category,
+            rating,
+            author,
+            version,
+            size,
+            exe,
+            open,
+            type,
+            raw
+        };
+    }
+
+    function normalizeStorePayload(payload) {
+        let apps = [];
+        let featured = [];
+
+        if (Array.isArray(payload)) {
+            apps = payload;
+        } else if (payload && typeof payload === 'object') {
+            if (Array.isArray(payload.apps)) apps = payload.apps;
+            else if (Array.isArray(payload.items)) apps = payload.items;
+            else if (Array.isArray(payload.products)) apps = payload.products;
+            else if (Array.isArray(payload.catalog)) apps = payload.catalog;
+
+            if (Array.isArray(payload.featured)) featured = payload.featured;
+            else if (Array.isArray(payload.hero)) featured = payload.hero;
+        }
+
+        const normApps = apps.map(normalizeApp);
+        let normFeatured = featured.map(normalizeApp);
+
+        if (!normFeatured.length) {
+            normFeatured = normApps.slice(0, 6);
+        }
+
+        const categories = ['All', ...Array.from(new Set(normApps.map(a => a.category).filter(Boolean)))];
+
+        return {
+            apps: normApps,
+            featured: normFeatured,
+            categories
+        };
+    }
+
+    async function fetchStore() {
+        w.cnt.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:18px;opacity:.8;">
+                Loading Store…
+            </div>
+        `;
+
+        try {
+            const res = await fetch(STORE_URL, { cache: 'no-store' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const json = await res.json();
+            storeData = normalizeStorePayload(json);
+            render();
+        } catch (err) {
+            console.error(err);
+            w.cnt.innerHTML = `
+                <div style="padding:30px;">
+                    <h2 style="margin-bottom:10px;">Store unavailable</h2>
+                    <p style="opacity:.75;margin-bottom:16px;">
+                        Could not load remote catalog from:<br>
+                        <code>${STORE_URL}</code>
+                    </p>
+                    <button class="btn btn-primary" onclick="appStore()">Retry</button>
+                </div>
+            `;
+        }
+    }
+
+    function filteredApps() {
+        if (!storeData) return [];
+
+        return storeData.apps.filter(app => {
+            const q = query.trim().toLowerCase();
+            const matchesQuery = !q ||
+                app.name.toLowerCase().includes(q) ||
+                app.desc.toLowerCase().includes(q) ||
+                app.category.toLowerCase().includes(q) ||
+                String(app.author || '').toLowerCase().includes(q);
+
+            const matchesCat = selectedCategory === 'All' || app.category === selectedCategory;
+            return matchesQuery && matchesCat;
+        });
+    }
+
+    function appCard(app) {
+        return `
+            <div
+                onclick="storeOpen('${app.id}')"
+                style="
+                    background:var(--hover-bg);
+                    border:1px solid var(--sys-border);
+                    border-radius:16px;
+                    padding:16px;
+                    cursor:pointer;
+                    display:flex;
+                    flex-direction:column;
+                    gap:12px;
+                    transition:.15s;
+                "
+            >
+                <div style="display:flex;gap:12px;align-items:center;">
+                    <div style="
+                        font-size:34px;
+                        width:58px;height:58px;
+                        border-radius:14px;
+                        display:flex;align-items:center;justify-content:center;
+                        background:rgba(127,127,127,0.08);
+                    ">${app.icon}</div>
+
+                    <div style="min-width:0;">
+                        <div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                            ${app.name}
+                        </div>
+                        <div style="font-size:12px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                            ${app.author || app.category}
+                        </div>
                     </div>
-                    <button class="btn btn-primary" style="border-radius:20px;padding:8px 20px;" onclick="dlMC()">Download</button>
+                </div>
+
+                <div style="font-size:12px;opacity:.8;min-height:32px;">
+                    ${app.desc}
+                </div>
+
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
+                    <div style="opacity:.75;">${app.category}</div>
+                    <div>${app.rating ? `⭐ ${app.rating}` : ''}</div>
                 </div>
             </div>
-        </div>
-    `;
-    window.dlMC = ()=>{
-        const b64 = btoa('<!DOCTYPE html><html><body style="background:#222;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;font-family:sans-serif;"><h1 style="color:#4CAF50;font-size:48px;margin-bottom:10px;">Minecraft Simulation</h1><p>Running natively via Exe Host.</p><canvas width="400" height="300" style="background:#8BC34A;margin-top:20px;border:8px solid #388E3C;border-radius:8px;"></canvas></body></html>');
-        let d = getNode('Desktop'); let n = 'Minecraft.exe', i=1; while(d[n]){n=`Minecraft (${i}).exe`; i++;}
-        d[n] = {type:'file', cnt:b64, ts:Date.now()}; saveOS(); refreshDesk();
-        alert('Downloaded to Desktop! Run it using the EXE Host.');
+        `;
+    }
+
+    function heroCard(app, large = false) {
+        return `
+            <div
+                onclick="storeOpen('${app.id}')"
+                style="
+                    min-height:${large ? '220px' : '160px'};
+                    border-radius:20px;
+                    padding:24px;
+                    color:white;
+                    cursor:pointer;
+                    background:
+                        linear-gradient(135deg, rgba(0,120,215,0.92), rgba(0,198,255,0.88)),
+                        ${app.banner ? `url('${app.banner}') center/cover no-repeat` : 'linear-gradient(135deg,#0078d7,#00c6ff)'};
+                    display:flex;
+                    flex-direction:column;
+                    justify-content:end;
+                    box-shadow:0 14px 26px rgba(0,0,0,0.18);
+                "
+            >
+                <div style="font-size:${large ? '34px' : '26px'};font-weight:800;line-height:1.06;">
+                    ${app.name}
+                </div>
+                <div style="opacity:.92;margin-top:8px;max-width:760px;">
+                    ${app.desc}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderSidebar() {
+        return `
+            <div style="width:220px;border-right:1px solid var(--sys-border);padding:12px;display:flex;flex-direction:column;gap:6px;">
+                <div class="btn" onclick="storeNav('home')">🏠 Home</div>
+                <div class="btn" onclick="storeNav('apps')">📦 Apps</div>
+                <div class="btn" onclick="storeNav('games')">🎮 Games</div>
+                <div class="btn" onclick="storeNav('library')">📚 Library</div>
+                <div class="btn" onclick="storeNav('updates')">⬇️ Downloads & updates</div>
+
+                <div style="margin-top:14px;font-size:12px;opacity:.65;padding:6px 8px;">Categories</div>
+                ${storeData.categories.map(cat => `
+                    <div class="btn" onclick="storeSetCategory('${cat.replace(/'/g, "\\'")}')" style="justify-content:flex-start;">
+                        ${cat}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    function renderTopBar() {
+        return `
+            <div style="padding:12px;border-bottom:1px solid var(--sys-border);display:flex;gap:10px;align-items:center;">
+                <input
+                    type="text"
+                    placeholder="Search apps, games, movies, and more"
+                    value="${query}"
+                    oninput="storeSearch(this.value)"
+                    style="
+                        flex:1;
+                        padding:10px 12px;
+                        border-radius:12px;
+                        border:1px solid var(--sys-border);
+                        background:var(--win-bg);
+                        color:var(--win-text);
+                    "
+                >
+                <button class="btn" onclick="storeRefresh()">⟳</button>
+            </div>
+        `;
+    }
+
+    function renderHome() {
+        const featured = storeData.featured || [];
+        const topApps = storeData.apps.slice(0, 12);
+        const topGames = storeData.apps.filter(a => a.category === 'Games').slice(0, 8);
+        const catChips = storeData.categories.filter(c => c !== 'All').slice(0, 8);
+
+        return `
+            <div style="padding:20px;overflow:auto;display:grid;gap:24px;">
+                ${featured[0] ? heroCard(featured[0], true) : ''}
+
+                ${featured.length > 1 ? `
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
+                        ${featured.slice(1, 4).map(a => heroCard(a, false)).join('')}
+                    </div>
+                ` : ''}
+
+                <div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                        <h2 style="margin:0;">Top free apps</h2>
+                        <button class="btn" onclick="storeNav('apps')">See all</button>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;">
+                        ${topApps.map(appCard).join('')}
+                    </div>
+                </div>
+
+                <div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                        <h2 style="margin:0;">Popular categories</h2>
+                    </div>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        ${catChips.map(c => `
+                            <button class="btn" onclick="storeSetCategory('${c.replace(/'/g, "\\'")}'); storeNav('apps')">${c}</button>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                        <h2 style="margin:0;">Games</h2>
+                        <button class="btn" onclick="storeNav('games')">See all</button>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;">
+                        ${topGames.map(appCard).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderCatalog(list, title = 'Apps') {
+        return `
+            <div style="padding:20px;overflow:auto;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px;flex-wrap:wrap;">
+                    <div>
+                        <div style="font-size:24px;font-weight:800;">${title}</div>
+                        <div style="opacity:.72;font-size:12px;">${list.length} result${list.length === 1 ? '' : 's'}</div>
+                    </div>
+                    <div style="font-size:12px;opacity:.75;">Category: ${selectedCategory}</div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;">
+                    ${list.map(appCard).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderAppPage(app) {
+        if (!app) return `<div style="padding:20px;">App not found.</div>`;
+
+        return `
+            <div style="padding:20px;overflow:auto;">
+                <button class="btn" onclick="storeBack()">← Back</button>
+
+                <div style="display:flex;gap:22px;flex-wrap:wrap;margin-top:20px;">
+                    <div style="
+                        font-size:72px;
+                        width:96px;height:96px;
+                        border-radius:24px;
+                        display:flex;align-items:center;justify-content:center;
+                        background:rgba(127,127,127,0.08);
+                    ">${app.icon}</div>
+
+                    <div style="flex:1;min-width:280px;">
+                        <div style="font-size:34px;font-weight:800;line-height:1.05;">${app.name}</div>
+                        <div style="margin-top:4px;opacity:.72;">${app.author || 'Unknown publisher'}</div>
+
+                        <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;opacity:.78;margin-top:12px;">
+                            ${app.rating ? `<div>⭐ ${app.rating}</div>` : ''}
+                            ${app.version ? `<div>Version ${app.version}</div>` : ''}
+                            ${app.size ? `<div>${app.size}</div>` : ''}
+                            <div>${app.category}</div>
+                        </div>
+
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;">
+                            ${
+                                isInstalled(app.id)
+                                    ? `<button class="btn">Installed</button>`
+                                    : `<button class="btn btn-primary" onclick="storeInstall('${app.id}')">Get</button>`
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                ${app.banner ? `
+                    <div style="margin-top:26px;">
+                        <img src="${app.banner}" alt="" style="width:100%;max-height:320px;object-fit:cover;border-radius:18px;border:1px solid var(--sys-border);">
+                    </div>
+                ` : ''}
+
+                <div style="margin-top:24px;display:grid;gap:16px;">
+                    <div style="border:1px solid var(--sys-border);border-radius:16px;padding:16px;background:rgba(127,127,127,0.03);">
+                        <div style="font-weight:800;margin-bottom:8px;">About this app</div>
+                        <div style="opacity:.84;line-height:1.55;">${app.desc}</div>
+                    </div>
+
+                    <div style="border:1px solid var(--sys-border);border-radius:16px;padding:16px;background:rgba(127,127,127,0.03);">
+                        <div style="font-weight:800;margin-bottom:8px;">Details</div>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 14px;font-size:13px;">
+                            <div><b>Publisher:</b> ${app.author || 'Unknown'}</div>
+                            <div><b>Category:</b> ${app.category}</div>
+                            <div><b>Version:</b> ${app.version || '—'}</div>
+                            <div><b>Size:</b> ${app.size || '—'}</div>
+                            <div><b>Type:</b> ${app.type || 'webos'}</div>
+                            <div><b>App ID:</b> ${app.id}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderLibrary() {
+        const apps = storeData.apps.filter(a => isInstalled(a.id));
+        return `
+            <div style="padding:20px;overflow:auto;">
+                <div style="font-size:24px;font-weight:800;margin-bottom:12px;">Library</div>
+                ${
+                    apps.length
+                        ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;">
+                            ${apps.map(appCard).join('')}
+                           </div>`
+                        : `<div style="opacity:.72;">No apps installed yet.</div>`
+                }
+            </div>
+        `;
+    }
+
+    function renderUpdates() {
+        const apps = storeData.apps.filter(a => isInstalled(a.id));
+        return `
+            <div style="padding:20px;overflow:auto;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;">
+                    <div>
+                        <div style="font-size:24px;font-weight:800;">Downloads and updates</div>
+                        <div style="opacity:.72;font-size:12px;">Installed apps: ${apps.length}</div>
+                    </div>
+                    <button class="btn" onclick="storeRefresh()">Get updates</button>
+                </div>
+
+                ${
+                    apps.length
+                        ? `<div style="display:grid;gap:10px;">
+                            ${apps.map(app => `
+                                <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;border:1px solid var(--sys-border);border-radius:14px;padding:14px;background:rgba(127,127,127,0.03);">
+                                    <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+                                        <div style="font-size:28px;">${app.icon}</div>
+                                        <div>
+                                            <div style="font-weight:700;">${app.name}</div>
+                                            <div style="opacity:.68;font-size:12px;">Up to date</div>
+                                        </div>
+                                    </div>
+                                    <button class="btn">Open</button>
+                                </div>
+                            `).join('')}
+                           </div>`
+                        : `<div style="opacity:.72;">Nothing to update.</div>`
+                }
+            </div>
+        `;
+    }
+
+    async function installApp(app) {
+        if (!app) return;
+
+        // Already installed
+        markInstalled(app.id);
+
+        // 1) open built-in app if explicitly provided
+        if (app.open) {
+            openApp(app.open, {});
+            render();
+            return;
+        }
+
+        // 2) install executable link/path content into Desktop
+        if (app.exe) {
+            let desktop = getNode('Desktop', true);
+
+            let name = `${app.name}.exe`.replace(/[\\/:*?"<>|]/g, '');
+            let i = 1;
+            while (desktop[name]) {
+                name = `${app.name} (${i}).exe`.replace(/[\\/:*?"<>|]/g, '');
+                i++;
+            }
+
+            // If exe is already a payload string, store as-is.
+            // If it's a URL to an HTML payload or data source, you can extend this later.
+            desktop[name] = {
+                type: 'file',
+                cnt: app.exe,
+                ts: Date.now()
+            };
+
+            saveOS();
+            refreshDesk();
+            render();
+            return;
+        }
+
+        // 3) fallback to simple installed state only
+        render();
+    }
+
+    window.storeNav = (v) => {
+        view = v;
+        render();
     };
+
+    window.storeBack = () => {
+        view = 'home';
+        render();
+    };
+
+    window.storeOpen = (id) => {
+        selectedApp = storeData.apps.find(a => a.id === id);
+        view = 'app';
+        render();
+    };
+
+    window.storeInstall = async (id) => {
+        const app = storeData.apps.find(a => a.id === id);
+        await installApp(app);
+    };
+
+    window.storeSearch = (q) => {
+        query = q || '';
+        if (view === 'home') view = 'apps';
+        render();
+    };
+
+    window.storeSetCategory = (cat) => {
+        selectedCategory = cat || 'All';
+        if (view === 'home') view = 'apps';
+        render();
+    };
+
+    window.storeRefresh = async () => {
+        await fetchStore();
+    };
+
+    function render() {
+        if (!storeData) return;
+
+        let content = '';
+
+        if (view === 'home') {
+            content = renderHome();
+        } else if (view === 'apps') {
+            content = renderCatalog(filteredApps(), 'Apps');
+        } else if (view === 'games') {
+            const games = filteredApps().filter(a => a.category === 'Games');
+            content = renderCatalog(games, 'Games');
+        } else if (view === 'library') {
+            content = renderLibrary();
+        } else if (view === 'updates') {
+            content = renderUpdates();
+        } else if (view === 'app') {
+            content = renderAppPage(selectedApp);
+        }
+
+        w.cnt.innerHTML = `
+            <div style="display:flex;height:100%;">
+                ${renderSidebar()}
+                <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+                    ${renderTopBar()}
+                    ${content}
+                </div>
+            </div>
+        `;
+    }
+
+    await fetchStore();
 }
 let camData = {};
 

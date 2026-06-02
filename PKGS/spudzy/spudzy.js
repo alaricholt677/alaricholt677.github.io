@@ -1,29 +1,38 @@
 // spudzy.js
-// Spudzy AI Engine v4
-// Browser-safe GitHub Pages AI-style assistant.
-// Built for coding, HTML generation, canvas demos, search, code explain/fix, and chat.
+// Spudzy AI Engine v9
+// Browser-safe GitHub Pages assistant focused on:
+// - Strong typo handling
+// - Strong "make html ..." prompt handling
+// - Prompt-to-page planning
+// - Special app generation
+// - Async respond()
+// - Browser-safe search
+// - Math + memory
 //
-// Important:
-// This is not a neural network. A true LLM requires a backend/API.
-// This file is a powerful browser-side AI-like coding engine.
-// It is designed to work with your Spudzy Chef HTML UI.
+// Usage:
+// const spudzy = new Spudzy();
+// const reply = await spudzy.respond("make html for a neon portfolio with cards and contact form");
 
 class Spudzy {
   constructor(config = {}) {
-    this.version = "4.0.0";
+    this.version = "9.0.0";
 
     this.cfg = {
       name: "Spudzy",
       defaultMode: "neutral",
       defaultPersona: "neutral",
-      maxHistory: 80,
-      maxMemory: 80,
+      maxHistory: 120,
+      maxMemory: 120,
       enableSearch: true,
       enableCode: true,
       enableMath: true,
       enableMemory: true,
       searchLimit: 6,
       customSearchEndpoint: null,
+      typoCorrection: true,
+      typoMaxDistance: 2,
+      typoConfidenceThreshold: 0.72,
+      debug: false,
       ...config
     };
 
@@ -33,101 +42,34 @@ class Spudzy {
     this.kb = [
       {
         q: "what is spudzy",
-        a: "Spudzy is a browser-safe JavaScript AI-style coding assistant that can generate HTML, CSS, JavaScript, canvas demos, explain code, fix common code issues, do math, remember local notes, and search supported public sources."
+        a: "Spudzy is a browser-safe JavaScript assistant engine that can generate HTML pages, explain code, fix common code issues, search browser-safe sources, do math, and remember local notes."
       },
       {
         q: "can spudzy search the internet",
-        a: "Spudzy can search browser-friendly public APIs such as Wikipedia, GitHub repositories, and Hacker News. Full Google/Bing scraping needs a backend because browsers cannot safely scrape search engines directly."
+        a: "Yes, Spudzy can search browser-safe public APIs like Wikipedia, GitHub repositories, and Hacker News. Full search engine scraping still needs a backend."
       },
       {
         q: "how do i make spudzy a real ai",
-        a: "To connect Spudzy to a real AI model, use a backend server that calls an LLM API. Never put private API keys directly in frontend JavaScript."
+        a: "To connect Spudzy to a real AI model, use a backend service that calls an LLM API. Keep private API keys on the backend, not in frontend JavaScript."
       }
     ];
 
-    this.designWords = {
-      colors: {
-        red: "#ef4444",
-        orange: "#f97316",
-        yellow: "#eab308",
-        green: "#22c55e",
-        blue: "#3b82f6",
-        purple: "#8b5cf6",
-        pink: "#ec4899",
-        cyan: "#06b6d4",
-        black: "#020617",
-        white: "#f8fafc",
-        gray: "#64748b",
-        grey: "#64748b",
-        gold: "#f59e0b",
-        neon: "#22d3ee",
-        lava: "#f97316",
-        ocean: "#06b6d4",
-        forest: "#22c55e",
-        royal: "#7c3aed"
-      },
-
-      moods: {
-        dark: "dark",
-        light: "light",
-        futuristic: "futuristic",
-        modern: "modern",
-        glass: "glass",
-        glassy: "glass",
-        neon: "neon",
-        clean: "clean",
-        minimal: "minimal",
-        luxury: "luxury",
-        cyberpunk: "cyberpunk",
-        playful: "playful",
-        cartoon: "playful",
-        professional: "professional"
-      },
-
-      layouts: {
-        landing: "landing",
-        homepage: "landing",
-        portfolio: "portfolio",
-        dashboard: "dashboard",
-        cards: "cards",
-        grid: "grid",
-        blog: "blog",
-        shop: "shop",
-        store: "shop",
-        game: "game",
-        calculator: "calculator",
-        todo: "todo",
-        chatbot: "chatbot",
-        canvas: "canvas",
-        animation: "canvas",
-        navbar: "navbar",
-        hero: "hero",
-        gallery: "gallery",
-        pricing: "pricing",
-        form: "form"
-      },
-
-      effects: {
-        glow: "glow",
-        shadow: "shadow",
-        animated: "animated",
-        animation: "animated",
-        bounce: "bounce",
-        floating: "floating",
-        gradient: "gradient",
-        rounded: "rounded",
-        blur: "blur",
-        glassmorphism: "glass",
-        responsive: "responsive"
-      }
-    };
+    this.lexicon = this.buildLexicon();
+    this.typoOverrides = this.buildTypoOverrides();
+    this.synonyms = this.buildSynonyms();
   }
+
+  // ===========================================================================
+  // PUBLIC API
+  // ===========================================================================
 
   async respond(message, options = {}) {
     const input = String(message ?? "").trim();
 
     if (!input) {
-      return this.saveAndReturn(input, "Spudzy 🥔 — Say something first.", { intent: "empty" });
+      return this.saveAndReturn(input, "Spudzy 🥔 — Say something first.", {
+        intent: "empty"
+      });
     }
 
     const ctx = this.analyze(input, options);
@@ -138,43 +80,33 @@ class Spudzy {
         case "search":
           reply = await this.handleSearch(ctx);
           break;
-
         case "code":
           reply = this.handleCode(ctx);
           break;
-
         case "explainCode":
           reply = this.handleExplainCode(ctx);
           break;
-
         case "fixCode":
           reply = this.handleFixCode(ctx);
           break;
-
         case "math":
           reply = this.handleMath(ctx);
           break;
-
         case "memory":
           reply = this.handleMemory(ctx);
           break;
-
-        case "story":
-          reply = this.handleStory(ctx);
-          break;
-
-        case "roast":
-          reply = this.handleRoast(ctx);
-          break;
-
         case "summarize":
           reply = this.handleSummarize(ctx);
           break;
-
+        case "story":
+          reply = this.handleStory(ctx);
+          break;
+        case "roast":
+          reply = this.handleRoast(ctx);
+          break;
         case "question":
           reply = this.handleQuestion(ctx);
           break;
-
         default:
           reply = this.handleChat(ctx);
           break;
@@ -201,123 +133,632 @@ class Spudzy {
     return bot;
   }
 
-  analyze(input, options = {}) {
-    const lower = input.toLowerCase();
-    const tokens = this.tokenize(input);
-
+  exportState() {
     return {
-      raw: input,
-      lower,
-      tokens,
-      options,
-      mode: options.mode || options.persona || this.cfg.defaultMode,
-      intent: this.detectIntent(lower, tokens),
-      topic: this.extractTopic(input),
-      design: this.parseDesignPrompt(input)
+      version: this.version,
+      history: this.history,
+      memory: this.memory,
+      kb: this.kb
     };
   }
 
+  importState(state = {}) {
+    if (Array.isArray(state.history)) this.history = state.history;
+    if (Array.isArray(state.memory)) this.memory = state.memory;
+    if (Array.isArray(state.kb)) this.kb = state.kb;
+  }
+
+  addKnowledge(question, answer) {
+    this.kb.push({
+      q: String(question || ""),
+      a: String(answer || "")
+    });
+  }
+
+  clearHistory() {
+    this.history = [];
+  }
+
+  clearMemory() {
+    this.memory = [];
+  }
+
+  // ===========================================================================
+  // ANALYSIS
+  // ===========================================================================
+
+  analyze(input, options = {}) {
+    const raw = String(input ?? "");
+    const normalized = this.normalizeText(raw);
+
+    const typoReport = this.cfg.typoCorrection
+      ? this.correctTextWithReport(normalized)
+      : { output: normalized, changes: [] };
+
+    const corrected = typoReport.output;
+    const canonical = this.applySynonyms(corrected);
+    const tokens = this.tokenize(canonical);
+
+    const ctx = {
+      raw,
+      normalized,
+      corrected,
+      canonical,
+      tokens,
+      options,
+      mode: options.mode || options.persona || this.cfg.defaultMode,
+      intent: this.detectIntent(canonical, tokens),
+      topic: this.extractTopic(canonical),
+      typoChanges: typoReport.changes,
+      pagePlan: null
+    };
+
+    if (ctx.intent === "code") {
+      ctx.pagePlan = this.planHtmlPage(ctx);
+    }
+
+    return ctx;
+  }
+
+  normalizeText(text) {
+    return String(text ?? "")
+      .toLowerCase()
+      .replace(/[“”]/g, "\"")
+      .replace(/[‘’]/g, "'")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
   tokenize(text) {
-    return String(text)
+    return String(text ?? "")
       .toLowerCase()
       .replace(/[^a-z0-9_+\-*/=(){}[\].,!?'"<>:;/#\s]/g, " ")
       .split(/\s+/)
       .filter(Boolean);
   }
 
-  detectIntent(lower, tokens) {
+  // ===========================================================================
+  // LEXICON / TYPO DATA
+  // ===========================================================================
+
+  buildLexicon() {
+    return {
+      intents: new Set([
+        "make", "create", "generate", "write", "build", "design", "craft",
+        "html", "css", "javascript", "js", "website", "page", "web", "app",
+        "search", "internet", "look", "google", "summarize", "summary",
+        "explain", "fix", "debug", "repair", "calculate", "math", "solve",
+        "remember", "forget", "story", "roast"
+      ]),
+
+      pageTypes: {
+        landing: "landing",
+        homepage: "landing",
+        home: "landing",
+        portfolio: "portfolio",
+        dashboard: "dashboard",
+        admin: "dashboard",
+        blog: "blog",
+        shop: "shop",
+        store: "shop",
+        ecommerce: "shop",
+        restaurant: "restaurant",
+        cafe: "restaurant",
+        food: "restaurant",
+        business: "business",
+        startup: "business",
+        company: "business",
+        agency: "business",
+        calculator: "calculator",
+        todo: "todo",
+        chatbot: "chatbot",
+        weather: "weather",
+        music: "music",
+        movie: "movie",
+        fitness: "fitness",
+        school: "school",
+        game: "game",
+        voxel: "voxel",
+        minecraft: "voxel",
+        sandbox: "voxel",
+        profile: "profile",
+        social: "social",
+        notes: "notes"
+      },
+
+      components: {
+        navbar: "navbar",
+        nav: "navbar",
+        hero: "hero",
+        header: "hero",
+        cards: "cards",
+        card: "cards",
+        features: "cards",
+        grid: "cards",
+        gallery: "gallery",
+        pricing: "pricing",
+        price: "pricing",
+        form: "form",
+        contact: "form",
+        login: "login",
+        signup: "signup",
+        footer: "footer",
+        testimonials: "testimonials",
+        faq: "faq",
+        sidebar: "sidebar",
+        search: "searchBox",
+        searchbox: "searchBox",
+        chart: "chart",
+        charts: "chart",
+        stats: "stats",
+        table: "table",
+        menu: "menu",
+        canvas: "canvas",
+        animation: "animation",
+        animated: "animation",
+        particles: "particles",
+        snake: "snake",
+        blocks: "blocks",
+        block: "blocks",
+        clock: "clock",
+        timer: "timer"
+      },
+
+      colors: {
+        red: "#ef4444",
+        orange: "#f97316",
+        yellow: "#eab308",
+        green: "#22c55e",
+        blue: "#3b82f6",
+        purple: "#8b5cf6",
+        pink: "#ec4899",
+        cyan: "#06b6d4",
+        teal: "#14b8a6",
+        lime: "#84cc16",
+        emerald: "#10b981",
+        indigo: "#6366f1",
+        violet: "#7c3aed",
+        brown: "#92400e",
+        gold: "#f59e0b",
+        black: "#020617",
+        white: "#f8fafc",
+        gray: "#64748b",
+        grey: "#64748b"
+      },
+
+      moods: {
+        dark: "dark",
+        light: "light",
+        modern: "modern",
+        minimal: "minimal",
+        clean: "clean",
+        luxury: "luxury",
+        futuristic: "futuristic",
+        professional: "professional",
+        playful: "playful",
+        cute: "playful",
+        pixel: "pixel",
+        blocky: "voxel",
+        voxel: "voxel",
+        retro: "retro",
+        neon: "neon",
+        cyberpunk: "cyberpunk",
+        glass: "glass",
+        glassmorphism: "glass"
+      },
+
+      effects: {
+        responsive: "responsive",
+        mobile: "responsive",
+        rounded: "rounded",
+        glow: "glow",
+        shadow: "shadow",
+        gradient: "gradient",
+        hover: "hover",
+        animated: "animated",
+        animation: "animated",
+        floating: "floating",
+        bounce: "bounce",
+        blur: "blur",
+        interactive: "interactive"
+      },
+
+      subjects: new Set([
+        "minecraft", "voxel", "sandbox", "forest", "cave", "lava", "snow",
+        "desert", "biome", "adventure", "survival", "crafting", "mining",
+        "building", "portfolio", "business", "restaurant", "fitness", "music",
+        "movie", "school", "shop", "store", "agency", "startup", "space",
+        "ocean", "gaming", "dashboard", "notes", "profile", "crypto", "ai",
+        "weather", "menu", "chef", "food", "analytics", "admin"
+      ])
+    };
+  }
+
+  buildTypoOverrides() {
+    return {
+      "mkae": "make",
+      "mak": "make",
+      "maek": "make",
+      "creat": "create",
+      "genrate": "generate",
+      "wrtie": "write",
+      "buid": "build",
+      "hmtl": "html",
+      "htlm": "html",
+      "htnl": "html",
+      "htmll": "html",
+      "javascritp": "javascript",
+      "javscript": "javascript",
+      "javasript": "javascript",
+      "jscript": "javascript",
+      "ccs": "css",
+      "webiste": "website",
+      "websiite": "website",
+      "serahc": "search",
+      "searhc": "search",
+      "sreach": "search",
+      "internt": "internet",
+      "fopr": "for",
+      "fo": "for",
+      "wit": "with",
+      "wih": "with",
+      "wth": "with",
+      "jus": "just",
+      "evbery": "every",
+      "evry": "every",
+      "anamation": "animation",
+      "animtion": "animation",
+      "responive": "responsive",
+      "respnsive": "responsive",
+      "modren": "modern",
+      "mordern": "modern",
+      "futurstic": "futuristic",
+      "glasmorphism": "glassmorphism",
+      "glassmorphsim": "glassmorphism",
+      "porfolio": "portfolio",
+      "portflio": "portfolio",
+      "portfoilio": "portfolio",
+      "dashbord": "dashboard",
+      "dashbaord": "dashboard",
+      "restraunt": "restaurant",
+      "resturant": "restaurant",
+      "galery": "gallery",
+      "gallary": "gallery",
+      "prcing": "pricing",
+      "pricng": "pricing",
+      "contct": "contact",
+      "conact": "contact",
+      "frm": "form",
+      "foem": "form",
+      "signpu": "signup",
+      "logn": "login",
+      "buton": "button",
+      "btn": "button",
+      "navbr": "navbar",
+      "nabar": "navbar",
+      "sidebr": "sidebar",
+      "minecrfat": "minecraft",
+      "mincraft": "minecraft",
+      "minecarft": "minecraft",
+      "voxle": "voxel",
+      "voxl": "voxel",
+      "pixle": "pixel",
+      "pixal": "pixel",
+      "blokcy": "blocky",
+      "bloky": "blocky",
+      "blcoky": "blocky",
+      "surivval": "survival",
+      "buidling": "building",
+      "crafitng": "crafting",
+      "minning": "mining",
+      "calcualtor": "calculator",
+      "calculater": "calculator",
+      "calulator": "calculator",
+      "weathr": "weather",
+      "charbot": "chatbot",
+      "to-do": "todo",
+      "chat bot": "chatbot",
+      "log in": "login",
+      "sign up": "signup"
+    };
+  }
+
+  buildSynonyms() {
+    return {
+      "site": "website",
+      "webpage": "website",
+      "homepage": "landing",
+      "landingpage": "landing",
+      "home page": "landing",
+      "card grid": "cards",
+      "feature cards": "cards",
+      "cta": "buttons",
+      "call to action": "buttons",
+      "biomes": "gallery",
+      "realm": "pricing",
+      "realms": "pricing",
+      "join form": "form",
+      "contact form": "form",
+      "reservation": "form",
+      "booking": "form",
+      "pixel art": "pixel",
+      "block style": "blocky",
+      "voxel style": "voxel",
+      "minecraft like": "minecraft voxel blocky sandbox",
+      "minecraft-inspired": "minecraft voxel blocky sandbox",
+      "glassy": "glass",
+      "fancy": "luxury",
+      "sleek": "modern",
+      "enterprise": "professional",
+      "dashboard ui": "dashboard",
+      "admin panel": "dashboard",
+      "storefront": "shop",
+      "online store": "shop",
+      "portfolio site": "portfolio"
+    };
+  }
+
+  // ===========================================================================
+  // TYPO HANDLING
+  // ===========================================================================
+
+  correctTextWithReport(text) {
+    let working = " " + String(text ?? "") + " ";
+    const changes = [];
+
+    const phraseOverrides = Object.entries(this.typoOverrides)
+      .filter(([k]) => k.includes(" "))
+      .sort((a, b) => b[0].length - a[0].length);
+
+    for (const [bad, good] of phraseOverrides) {
+      const regex = new RegExp(this.escapeRegExp(bad), "g");
+      if (regex.test(working)) {
+        working = working.replace(regex, good);
+        changes.push({ from: bad, to: good, method: "phraseOverride" });
+      }
+    }
+
+    const synonymPhrases = Object.entries(this.synonyms)
+      .filter(([k]) => k.includes(" "))
+      .sort((a, b) => b[0].length - a[0].length);
+
+    for (const [bad, good] of synonymPhrases) {
+      const regex = new RegExp(this.escapeRegExp(bad), "g");
+      if (regex.test(working)) {
+        working = working.replace(regex, good);
+        changes.push({ from: bad, to: good, method: "phraseSynonym" });
+      }
+    }
+
+    let tokens = this.tokenize(working);
+
+    tokens = tokens.map(token => {
+      if (this.typoOverrides[token]) {
+        changes.push({
+          from: token,
+          to: this.typoOverrides[token],
+          method: "directOverride"
+        });
+        return this.typoOverrides[token];
+      }
+
+      if (this.isKnownWord(token)) {
+        return token;
+      }
+
+      if (token.length <= 2) {
+        return token;
+      }
+
+      const suggestion = this.findClosestKnownWord(token);
+
+      if (
+        suggestion &&
+        suggestion.distance <= this.cfg.typoMaxDistance &&
+        suggestion.confidence >= this.cfg.typoConfidenceThreshold
+      ) {
+        changes.push({
+          from: token,
+          to: suggestion.word,
+          method: "editDistance",
+          distance: suggestion.distance,
+          confidence: suggestion.confidence
+        });
+        return suggestion.word;
+      }
+
+      return token;
+    });
+
+    return {
+      output: tokens.join(" ").replace(/\s+/g, " ").trim(),
+      changes
+    };
+  }
+
+  applySynonyms(text) {
+    let working = " " + String(text ?? "") + " ";
+
+    const singleWordSynonyms = Object.entries(this.synonyms)
+      .filter(([k]) => !k.includes(" "));
+
+    for (const [bad, good] of singleWordSynonyms) {
+      const regex = new RegExp("\\b" + this.escapeRegExp(bad) + "\\b", "g");
+      working = working.replace(regex, good);
+    }
+
+    return working.replace(/\s+/g, " ").trim();
+  }
+
+  isKnownWord(word) {
+    if (!word) return false;
+    if (/^\d+$/.test(word)) return true;
+
+    if (this.lexicon.intents.has(word)) return true;
+    if (this.lexicon.subjects.has(word)) return true;
+    if (this.lexicon.pageTypes[word]) return true;
+    if (this.lexicon.components[word]) return true;
+    if (this.lexicon.colors[word]) return true;
+    if (this.lexicon.moods[word]) return true;
+    if (this.lexicon.effects[word]) return true;
+
+    return false;
+  }
+
+  allKnownWords() {
+    return [
+      ...this.lexicon.intents,
+      ...this.lexicon.subjects,
+      ...Object.keys(this.lexicon.pageTypes),
+      ...Object.keys(this.lexicon.components),
+      ...Object.keys(this.lexicon.colors),
+      ...Object.keys(this.lexicon.moods),
+      ...Object.keys(this.lexicon.effects),
+      ...Object.keys(this.typoOverrides),
+      ...Object.keys(this.synonyms)
+    ];
+  }
+
+  findClosestKnownWord(token) {
+    const candidates = this.allKnownWords();
+    let bestWord = null;
+    let bestDistance = Infinity;
+
+    for (const candidate of candidates) {
+      if (Math.abs(candidate.length - token.length) > this.cfg.typoMaxDistance) continue;
+
+      const distance = this.levenshtein(token, candidate);
+
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestWord = candidate;
+      }
+    }
+
+    if (!bestWord) return null;
+
+    const confidence = 1 - bestDistance / Math.max(token.length, bestWord.length);
+
+    return {
+      word: bestWord,
+      distance: bestDistance,
+      confidence
+    };
+  }
+
+  levenshtein(a, b) {
+    a = String(a ?? "");
+    b = String(b ?? "");
+
+    const rows = a.length + 1;
+    const cols = b.length + 1;
+    const dp = Array.from({ length: rows }, () => Array(cols).fill(0));
+
+    for (let i = 0; i < rows; i++) dp[i][0] = i;
+    for (let j = 0; j < cols; j++) dp[0][j] = j;
+
+    for (let i = 1; i < rows; i++) {
+      for (let j = 1; j < cols; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+
+        dp[i][j] = Math.min(
+          dp[i - 1][j] + 1,
+          dp[i][j - 1] + 1,
+          dp[i - 1][j - 1] + cost
+        );
+      }
+    }
+
+    return dp[a.length][b.length];
+  }
+
+  escapeRegExp(text) {
+    return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  // ===========================================================================
+  // INTENT DETECTION
+  // ===========================================================================
+
+  detectIntent(text, tokens) {
     if (
-      lower.includes("search the internet") ||
-      lower.includes("search internet") ||
-      lower.includes("look up") ||
-      lower.includes("web search") ||
-      lower.startsWith("search ") ||
-      lower.includes("google ")
+      text.includes("search the internet") ||
+      text.includes("search internet") ||
+      text.includes("web search") ||
+      text.includes("look up") ||
+      text.startsWith("search ") ||
+      text.includes("google ")
     ) {
       return "search";
     }
 
     if (
-      lower.includes("explain this code") ||
-      lower.includes("explain code") ||
-      lower.includes("what does this code do") ||
-      lower.includes("describe this code")
+      text.includes("explain this code") ||
+      text.includes("explain code") ||
+      text.includes("what does this code do") ||
+      text.includes("describe this code")
     ) {
       return "explainCode";
     }
 
     if (
-      lower.includes("fix this code") ||
-      lower.includes("debug this") ||
-      lower.includes("repair this code") ||
-      lower.includes("why is this code broken")
+      text.includes("fix this code") ||
+      text.includes("debug this") ||
+      text.includes("repair this code") ||
+      text.includes("why is this code broken")
     ) {
       return "fixCode";
     }
 
-    if (
-      lower.includes("make html") ||
-      lower.includes("generate html") ||
-      lower.includes("write html") ||
-      lower.includes("create html") ||
-      lower.includes("canvas") ||
-      lower.includes("website") ||
-      lower.includes("web app") ||
-      lower.includes("landing page") ||
-      lower.includes("portfolio") ||
-      lower.includes("dashboard") ||
-      lower.includes("todo app") ||
-      lower.includes("calculator") ||
-      lower.includes("chatbot") ||
-      lower.includes("generate code") ||
-      lower.includes("write code") ||
-      lower.includes("make code") ||
-      lower.includes("javascript") ||
-      lower.includes("css") ||
-      lower.includes("js script") ||
-      lower.includes("code me")
-    ) {
+    const codeTriggers = [
+      "make html", "create html", "generate html", "write html", "build html",
+      "make website", "make a website", "create website", "web app", "landing",
+      "portfolio", "dashboard", "shop", "restaurant", "calculator", "todo",
+      "chatbot", "canvas", "html", "css", "javascript", "page"
+    ];
+
+    if (codeTriggers.some(word => text.includes(word))) {
       return "code";
     }
 
     if (
-      /\d+\s*[+\-*/x]\s*\d+/.test(lower) ||
-      lower.includes("calculate") ||
-      lower.includes("math") ||
-      lower.includes("solve")
+      /\d+\s*[+\-*/x]\s*\d+/.test(text) ||
+      text.includes("calculate") ||
+      text.includes("math") ||
+      text.includes("solve")
     ) {
       return "math";
     }
 
-    if (lower.includes("remember") || lower.includes("forget")) {
+    if (text.includes("remember") || text.includes("forget")) {
       return "memory";
     }
 
     if (
-      lower.includes("summarize") ||
-      lower.includes("summary") ||
-      lower.includes("tldr") ||
-      lower.includes("recap")
+      text.includes("summarize") ||
+      text.includes("summary") ||
+      text.includes("tldr") ||
+      text.includes("recap")
     ) {
       return "summarize";
     }
 
-    if (lower.includes("story") || lower.includes("once upon")) {
+    if (text.includes("story")) {
       return "story";
     }
 
-    if (lower.includes("roast")) {
+    if (text.includes("roast")) {
       return "roast";
     }
 
     if (
-      lower.includes("?") ||
-      lower.startsWith("what ") ||
-      lower.startsWith("why ") ||
-      lower.startsWith("how ") ||
-      lower.startsWith("who ") ||
-      lower.startsWith("where ") ||
-      lower.startsWith("when ")
+      text.includes("?") ||
+      text.startsWith("what ") ||
+      text.startsWith("why ") ||
+      text.startsWith("how ") ||
+      text.startsWith("when ") ||
+      text.startsWith("where ") ||
+      text.startsWith("who ")
     ) {
       return "question";
     }
@@ -325,8 +766,8 @@ class Spudzy {
     return "chat";
   }
 
-  extractTopic(input) {
-    let topic = String(input);
+  extractTopic(text) {
+    let topic = String(text ?? "");
 
     const removals = [
       "search the internet for",
@@ -335,13 +776,21 @@ class Spudzy {
       "search for",
       "look up",
       "google",
+      "make html for",
       "make html",
-      "generate html",
-      "write html",
+      "create html for",
       "create html",
-      "make code for",
+      "generate html for",
+      "generate html",
+      "write html for",
+      "write html",
+      "build html for",
+      "build html",
+      "make website for",
+      "create website for",
       "generate code for",
       "write code for",
+      "make code for",
       "explain this code",
       "explain code",
       "fix this code",
@@ -353,212 +802,368 @@ class Spudzy {
     ];
 
     for (const phrase of removals) {
-      topic = topic.replace(new RegExp(phrase, "ig"), "");
+      topic = topic.replace(new RegExp(this.escapeRegExp(phrase), "ig"), "");
     }
 
-    return topic.trim();
+    return topic.replace(/\s+/g, " ").trim();
   }
 
-  parseDesignPrompt(input) {
-    const lower = input.toLowerCase();
-    const tokens = this.tokenize(input);
+  // ===========================================================================
+  // PAGE PLANNING
+  // ===========================================================================
 
-    const found = {
-      raw: input,
-      tokens,
-      colors: [],
-      moods: [],
-      layouts: [],
-      effects: [],
-      subject: "",
-      title: "",
-      primaryColor: "#8b5cf6",
-      secondaryColor: "#06b6d4",
-      background: "dark",
-      components: new Set()
+  planHtmlPage(ctx) {
+    const text = ctx.canonical;
+    const tokens = ctx.tokens;
+
+    const plan = {
+      prompt: ctx.raw,
+      correctedPrompt: ctx.corrected,
+      canonicalPrompt: ctx.canonical,
+      title: "Spudzy App",
+      subtitle: "A polished page generated from your exact prompt words.",
+      pageType: "landing",
+      theme: "dark",
+      mood: "modern",
+      primary: "#8b5cf6",
+      secondary: "#06b6d4",
+      accent: "#22c55e",
+      components: new Set(["navbar", "hero", "cards", "footer"]),
+      effects: new Set(["gradient", "shadow", "hover", "responsive"]),
+      subjectWords: [],
+      special: {
+        voxelLike: false,
+        canvasType: null
+      }
     };
 
+    const foundColors = [];
+    const foundSubjects = [];
+
     for (const token of tokens) {
-      if (this.designWords.colors[token]) {
-        found.colors.push(this.designWords.colors[token]);
+      if (this.lexicon.pageTypes[token]) {
+        plan.pageType = this.lexicon.pageTypes[token];
       }
 
-      if (this.designWords.moods[token]) {
-        found.moods.push(this.designWords.moods[token]);
+      if (this.lexicon.components[token]) {
+        plan.components.add(this.lexicon.components[token]);
       }
 
-      if (this.designWords.layouts[token]) {
-        found.layouts.push(this.designWords.layouts[token]);
-        found.components.add(this.designWords.layouts[token]);
+      if (this.lexicon.colors[token]) {
+        foundColors.push(this.lexicon.colors[token]);
       }
 
-      if (this.designWords.effects[token]) {
-        found.effects.push(this.designWords.effects[token]);
+      if (this.lexicon.moods[token]) {
+        const moodValue = this.lexicon.moods[token];
+        plan.mood = moodValue;
+        if (moodValue === "dark") plan.theme = "dark";
+        if (moodValue === "light") plan.theme = "light";
+      }
+
+      if (this.lexicon.effects[token]) {
+        plan.effects.add(this.lexicon.effects[token]);
+      }
+
+      if (this.lexicon.subjects.has(token)) {
+        foundSubjects.push(token);
       }
     }
 
-    if (found.colors.length > 0) {
-      found.primaryColor = found.colors[0];
+    if (foundColors[0]) plan.primary = foundColors[0];
+    if (foundColors[1]) plan.secondary = foundColors[1];
+    if (foundColors[2]) plan.accent = foundColors[2];
+
+    plan.subjectWords = foundSubjects;
+
+    if (text.includes("dark")) plan.theme = "dark";
+    if (text.includes("light")) plan.theme = "light";
+
+    if (text.includes("neon")) {
+      plan.effects.add("glow");
+      if (!foundColors.length) {
+        plan.primary = "#ec4899";
+        plan.secondary = "#22d3ee";
+      }
     }
 
-    if (found.colors.length > 1) {
-      found.secondaryColor = found.colors[1];
+    if (text.includes("glass")) {
+      plan.mood = "glass";
+      plan.effects.add("blur");
     }
 
-    if (found.moods.includes("light")) {
-      found.background = "light";
+    if (
+      text.includes("minecraft") ||
+      text.includes("voxel") ||
+      text.includes("blocky") ||
+      text.includes("sandbox")
+    ) {
+      plan.pageType = "voxel";
+      plan.mood = "voxel";
+      plan.theme = "dark";
+      plan.primary = "#22c55e";
+      plan.secondary = "#92400e";
+      plan.accent = "#f59e0b";
+      plan.components.add("gallery");
+      plan.components.add("pricing");
+      plan.components.add("form");
+      plan.components.add("canvas");
+      plan.components.add("animation");
+      plan.special.voxelLike = true;
+      plan.special.canvasType = "fallingBlocks";
+      plan.title = "BlockWorld Adventure";
+      plan.subtitle = "Mine, craft, build, and survive in your own voxel universe.";
     }
 
-    if (found.moods.includes("dark")) {
-      found.background = "dark";
+    if (text.includes("portfolio")) {
+      plan.pageType = "portfolio";
+      plan.components.add("gallery");
+      plan.components.add("form");
+      plan.components.add("testimonials");
+      plan.title = this.smartTitle(ctx.topic || "Creative Portfolio");
     }
 
-    if (found.moods.includes("cyberpunk")) {
-      found.primaryColor = "#ec4899";
-      found.secondaryColor = "#22d3ee";
-      found.background = "dark";
+    if (text.includes("dashboard")) {
+      plan.pageType = "dashboard";
+      plan.components.add("sidebar");
+      plan.components.add("stats");
+      plan.components.add("chart");
+      plan.components.add("table");
+      plan.title = this.smartTitle(ctx.topic || "Analytics Dashboard");
     }
 
-    if (found.moods.includes("luxury")) {
-      found.primaryColor = "#f59e0b";
-      found.secondaryColor = "#f8fafc";
-      found.background = "dark";
+    if (text.includes("shop") || text.includes("store")) {
+      plan.pageType = "shop";
+      plan.components.add("gallery");
+      plan.components.add("pricing");
+      plan.components.add("form");
+      plan.title = this.smartTitle(ctx.topic || "Online Store");
     }
 
-    if (lower.includes("bouncing ball") || lower.includes("bounce ball")) {
-      found.components.add("bouncingBall");
-      found.components.add("canvas");
+    if (text.includes("restaurant") || text.includes("menu") || text.includes("cafe")) {
+      plan.pageType = "restaurant";
+      plan.components.add("menu");
+      plan.components.add("gallery");
+      plan.components.add("pricing");
+      plan.components.add("form");
+      plan.title = this.smartTitle(ctx.topic || "Restaurant");
     }
 
-    if (lower.includes("snake game")) {
-      found.components.add("snake");
-      found.components.add("canvas");
+    if (text.includes("business") || text.includes("startup") || text.includes("company") || text.includes("agency")) {
+      plan.pageType = "business";
+      plan.components.add("pricing");
+      plan.components.add("testimonials");
+      plan.components.add("faq");
+      plan.components.add("form");
+      plan.title = this.smartTitle(ctx.topic || "Business Site");
     }
 
-    if (lower.includes("particle") || lower.includes("particles")) {
-      found.components.add("particles");
-      found.components.add("canvas");
+    if (text.includes("blog")) {
+      plan.pageType = "blog";
+      plan.components.add("searchBox");
+      plan.components.add("cards");
+      plan.title = this.smartTitle(ctx.topic || "Blog");
     }
 
-    if (lower.includes("clock")) {
-      found.components.add("clock");
+    if (text.includes("weather")) {
+      plan.pageType = "weather";
+      plan.components.add("searchBox");
+      plan.components.add("cards");
+      plan.title = this.smartTitle(ctx.topic || "Weather App");
     }
 
-    if (lower.includes("weather")) {
-      found.components.add("weather");
+    if (text.includes("chatbot")) {
+      plan.pageType = "chatbot";
+      plan.components.add("chatbot");
+      plan.title = this.smartTitle(ctx.topic || "Mini Chatbot");
     }
 
-    if (lower.includes("login")) {
-      found.components.add("login");
-      found.components.add("form");
+    if (text.includes("calculator")) {
+      plan.pageType = "calculator";
+      plan.components.add("calculator");
+      plan.title = this.smartTitle(ctx.topic || "Calculator");
     }
 
-    if (lower.includes("signup") || lower.includes("sign up")) {
-      found.components.add("signup");
-      found.components.add("form");
+    if (text.includes("todo")) {
+      plan.pageType = "todo";
+      plan.components.add("todo");
+      plan.title = this.smartTitle(ctx.topic || "Todo App");
     }
 
-    if (lower.includes("button")) {
-      found.components.add("button");
+    if (text.includes("canvas")) {
+      plan.components.add("canvas");
     }
 
-    if (lower.includes("card")) {
-      found.components.add("cards");
+    if (text.includes("particles")) {
+      plan.components.add("canvas");
+      plan.special.canvasType = "particles";
     }
 
-    if (lower.includes("pricing")) {
-      found.components.add("pricing");
+    if (text.includes("snake")) {
+      plan.components.add("canvas");
+      plan.special.canvasType = "snake";
     }
 
-    found.subject = this.extractSubject(input);
-    found.title = this.titleFromPrompt(input);
+    if (text.includes("bouncing ball")) {
+      plan.components.add("canvas");
+      plan.special.canvasType = "bouncingBall";
+    }
 
-    return found;
+    if (text.includes("falling block") || text.includes("falling blocks")) {
+      plan.components.add("canvas");
+      plan.special.canvasType = "fallingBlocks";
+    }
+
+    if (!plan.special.voxelLike) {
+      if (!ctx.topic) {
+        plan.title = this.smartTitle(plan.pageType + " page");
+      } else {
+        plan.title = this.smartTitle(ctx.topic);
+      }
+      plan.subtitle = this.subtitleFromPlan(plan);
+    }
+
+    return plan;
   }
 
-  extractSubject(input) {
-    const cleaned = String(input)
-      .replace(/make|create|generate|write|html|website|web app|page|with|using|for|a|an|the/gi, " ")
+  smartTitle(subject) {
+    const cleaned = String(subject || "Spudzy App")
+      .replace(/\b(make|create|generate|write|build|html|website|page|web|app|for|with|a|an|the)\b/gi, " ")
       .replace(/\s+/g, " ")
       .trim();
 
-    return cleaned || "Spudzy App";
-  }
+    const text = cleaned || "Spudzy App";
 
-  titleFromPrompt(input) {
-    const subject = this.extractSubject(input);
-    const words = subject.split(/\s+/).filter(Boolean).slice(0, 5);
-
-    if (!words.length) return "Spudzy App";
-
-    return words
-      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    return text
+      .split(/\s+/)
+      .slice(0, 6)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
   }
 
-  handleCode(ctx) {
-    if (!this.cfg.enableCode) {
-      return "Spudzy code mode is disabled.";
-    }
+  subtitleFromPlan(plan) {
+    const map = {
+      landing: "A modern landing page generated from your exact design words.",
+      portfolio: "A polished portfolio page for projects, skills, and contact.",
+      dashboard: "A clean dashboard interface with stats, cards, charts, and tables.",
+      shop: "A stylish store page with products, pricing, and calls to action.",
+      restaurant: "A polished restaurant page with menu sections and booking form.",
+      business: "A professional business page with sections for trust and conversion.",
+      blog: "A readable blog-style layout with featured content sections.",
+      weather: "A weather-style interface generated in one HTML file.",
+      voxel: "Mine, craft, build, and survive in your own voxel universe.",
+      calculator: "A fully interactive calculator made in one HTML file.",
+      todo: "A local todo app with browser storage.",
+      chatbot: "A mini local chatbot interface with simple responses."
+    };
 
-    const lower = ctx.lower;
-    const design = ctx.design;
-
-    if (design.components.has("canvas") || lower.includes("canvas")) {
-      return this.generateCanvasHTML(design);
-    }
-
-    if (design.components.has("todo") || lower.includes("todo")) {
-      return this.generateTodoHTML(design);
-    }
-
-    if (design.components.has("calculator") || lower.includes("calculator")) {
-      return this.generateCalculatorHTML(design);
-    }
-
-    if (design.components.has("chatbot") || lower.includes("chatbot")) {
-      return this.generateChatbotHTML(design);
-    }
-
-    if (lower.includes("css only") || lower.includes("just css")) {
-      return this.generateCSSTheme(design);
-    }
-
-    if (lower.includes("button") && !lower.includes("html")) {
-      return this.generateButtonJS(design);
-    }
-
-    return this.generateSmartHTML(design);
+    return map[plan.pageType] || "A polished page generated from your prompt.";
   }
 
-  generateSmartHTML(design) {
-    const hasNavbar = design.components.has("navbar") || design.layouts.includes("landing") || design.layouts.includes("portfolio");
-    const hasHero = design.components.has("hero") || design.layouts.includes("landing") || design.layouts.length === 0;
-    const hasCards = design.components.has("cards") || design.components.has("grid") || design.layouts.includes("dashboard");
-    const hasGallery = design.components.has("gallery");
-    const hasPricing = design.components.has("pricing");
-    const hasForm = design.components.has("form") || design.components.has("login") || design.components.has("signup");
-    const hasButton = design.components.has("button") || hasHero;
-    const theme = this.themeFromDesign(design);
+  // ===========================================================================
+  // CODE MODE ROUTING
+  // ===========================================================================
+
+  handleCode(ctx) {
+    const plan = ctx.pagePlan;
+
+    if (!plan) {
+      return "Spudzy code mode could not build a page plan.";
+    }
+
+    if (plan.pageType === "calculator") {
+      return this.generateCalculatorHTML(plan);
+    }
+
+    if (plan.pageType === "todo") {
+      return this.generateTodoHTML(plan);
+    }
+
+    if (plan.pageType === "chatbot") {
+      return this.generateChatbotHTML(plan);
+    }
+
+    return this.generateUniversalHTML(plan);
+  }
+
+  // ===========================================================================
+  // THEMES / HTML GENERATION
+  // ===========================================================================
+
+  getTheme(plan) {
+    if (plan.theme === "light") {
+      return {
+        bg: "#f8fafc",
+        bg2: "#e2e8f0",
+        panel: "rgba(255,255,255,0.82)",
+        panel2: "rgba(255,255,255,0.60)",
+        text: "#020617",
+        muted: "#475569",
+        border: "rgba(15,23,42,0.14)",
+        shadow: "0 24px 80px rgba(15,23,42,0.14)"
+      };
+    }
+
+    return {
+      bg: "#020617",
+      bg2: "#0f172a",
+      panel: "rgba(15,23,42,0.78)",
+      panel2: "rgba(2,6,23,0.62)",
+      text: "#f8fafc",
+      muted: "#94a3b8",
+      border: "rgba(148,163,184,0.18)",
+      shadow: "0 24px 80px rgba(0,0,0,0.38)"
+    };
+  }
+
+  pageFontCSS(plan) {
+    if (plan.mood === "voxel" || plan.mood === "pixel" || plan.mood === "retro") {
+      return `font-family: Impact, Haettenschweiler, "Arial Black", system-ui, sans-serif; letter-spacing: 0.02em;`;
+    }
+
+    return `font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;`;
+  }
+
+  generateUniversalHTML(plan) {
+    const theme = this.getTheme(plan);
+
+    const hasNavbar = plan.components.has("navbar");
+    const hasHero = plan.components.has("hero");
+    const hasCards = plan.components.has("cards");
+    const hasGallery = plan.components.has("gallery");
+    const hasPricing = plan.components.has("pricing");
+    const hasForm = plan.components.has("form") || plan.components.has("login") || plan.components.has("signup");
+    const hasTestimonials = plan.components.has("testimonials");
+    const hasFAQ = plan.components.has("faq");
+    const hasStats = plan.components.has("stats");
+    const hasSearchBox = plan.components.has("searchBox");
+    const hasMenu = plan.components.has("menu");
+    const hasCanvas = plan.components.has("canvas");
+
+    const isVoxel = plan.special.voxelLike;
+    const cards = this.cardContent(plan);
+    const gallery = this.galleryContent(plan);
+    const menuItems = this.menuContent(plan);
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${this.escapeHTML(design.title)}</title>
+  <title>${this.escapeHTML(plan.title)}</title>
   <style>
     :root {
       --bg: ${theme.bg};
+      --bg2: ${theme.bg2};
       --panel: ${theme.panel};
       --panel2: ${theme.panel2};
       --text: ${theme.text};
       --muted: ${theme.muted};
       --border: ${theme.border};
-      --primary: ${design.primaryColor};
-      --secondary: ${design.secondaryColor};
+      --primary: ${plan.primary};
+      --secondary: ${plan.secondary};
+      --accent: ${plan.accent};
       --shadow: ${theme.shadow};
-      --radius: ${design.effects.includes("rounded") ? "30px" : "22px"};
+      --radius: ${isVoxel ? "8px" : plan.effects.has("rounded") ? "30px" : "22px"};
     }
 
     * {
@@ -573,22 +1178,29 @@ class Spudzy {
 
     body {
       min-height: 100vh;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background:
-        radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 35%, transparent), transparent 30%),
-        radial-gradient(circle at bottom right, color-mix(in srgb, var(--secondary) 30%, transparent), transparent 30%),
-        var(--bg);
+      ${this.pageFontCSS(plan)}
       color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.04), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(255,255,255,0.03), transparent 30%),
+        linear-gradient(135deg, var(--bg), var(--bg2));
       overflow-x: hidden;
     }
+
+    ${isVoxel ? this.voxelCss() : ""}
 
     .page {
       width: min(1180px, calc(100% - 32px));
       margin: 0 auto;
-      padding: 24px 0 56px;
+      padding: 24px 0 60px;
+      position: relative;
+      z-index: 1;
     }
 
     .nav {
+      position: sticky;
+      top: 16px;
+      z-index: 20;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -597,33 +1209,32 @@ class Spudzy {
       border: 1px solid var(--border);
       background: var(--panel);
       backdrop-filter: blur(18px);
-      border-radius: 999px;
+      border-radius: ${isVoxel ? "10px" : "999px"};
       box-shadow: var(--shadow);
-      position: sticky;
-      top: 16px;
-      z-index: 10;
     }
 
     .brand {
       display: flex;
       align-items: center;
       gap: 10px;
-      font-weight: 900;
+      font-weight: 950;
       letter-spacing: -0.04em;
     }
 
     .logo {
-      width: 34px;
-      height: 34px;
-      border-radius: 14px;
+      width: 36px;
+      height: 36px;
       display: grid;
       place-items: center;
+      border-radius: ${isVoxel ? "6px" : "14px"};
+      color: white;
       background: linear-gradient(135deg, var(--primary), var(--secondary));
-      box-shadow: 0 0 30px color-mix(in srgb, var(--primary) 45%, transparent);
+      box-shadow: 0 0 30px rgba(255,255,255,0.06);
     }
 
     .nav-links {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: 12px;
       color: var(--muted);
@@ -635,13 +1246,17 @@ class Spudzy {
       text-decoration: none;
     }
 
+    .nav-links a:hover {
+      color: var(--text);
+    }
+
     .hero {
       min-height: 520px;
       display: grid;
       grid-template-columns: 1.05fr 0.95fr;
       align-items: center;
       gap: 32px;
-      padding: 56px 0 34px;
+      padding: 58px 0 34px;
     }
 
     .eyebrow {
@@ -649,7 +1264,7 @@ class Spudzy {
       align-items: center;
       gap: 8px;
       padding: 7px 12px;
-      border-radius: 999px;
+      border-radius: ${isVoxel ? "6px" : "999px"};
       border: 1px solid var(--border);
       background: var(--panel);
       color: var(--muted);
@@ -660,19 +1275,20 @@ class Spudzy {
     h1 {
       font-size: clamp(3rem, 9vw, 6.8rem);
       line-height: 0.92;
-      letter-spacing: -0.09em;
-      max-width: 760px;
+      letter-spacing: ${isVoxel ? "0.01em" : "-0.09em"};
+      text-transform: ${isVoxel ? "uppercase" : "none"};
+      text-shadow: ${isVoxel ? "0 5px 0 rgba(0,0,0,0.35)" : "none"};
     }
 
     .gradient-text {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
     }
 
     .hero p {
-      max-width: 620px;
+      max-width: 650px;
       margin-top: 20px;
       color: var(--muted);
       font-size: clamp(1rem, 2vw, 1.2rem);
@@ -688,19 +1304,21 @@ class Spudzy {
 
     .btn {
       border: 0;
-      border-radius: 999px;
+      border-radius: ${isVoxel ? "8px" : "999px"};
       padding: 14px 20px;
       color: white;
-      font-weight: 850;
+      font-weight: 900;
       cursor: pointer;
       background: linear-gradient(135deg, var(--primary), var(--secondary));
-      box-shadow: 0 18px 45px color-mix(in srgb, var(--primary) 38%, transparent);
-      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      box-shadow: 0 18px 45px rgba(0,0,0,0.25);
+      transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+      text-transform: ${isVoxel ? "uppercase" : "none"};
     }
 
     .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 24px 60px color-mix(in srgb, var(--primary) 50%, transparent);
+      transform: translateY(-3px);
+      filter: brightness(1.1);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.32);
     }
 
     .btn.secondary {
@@ -711,12 +1329,10 @@ class Spudzy {
     }
 
     .visual {
-      min-height: 420px;
+      min-height: 430px;
       border-radius: var(--radius);
       border: 1px solid var(--border);
-      background:
-        linear-gradient(135deg, color-mix(in srgb, var(--primary) 22%, transparent), transparent),
-        var(--panel);
+      background: linear-gradient(135deg, rgba(255,255,255,0.03), transparent), var(--panel);
       box-shadow: var(--shadow);
       position: relative;
       overflow: hidden;
@@ -727,9 +1343,11 @@ class Spudzy {
     .orb {
       width: 210px;
       height: 210px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 30% 25%, white, var(--secondary) 18%, var(--primary) 68%, transparent 70%);
-      filter: drop-shadow(0 0 50px color-mix(in srgb, var(--primary) 50%, transparent));
+      border-radius: ${isVoxel ? "18px" : "999px"};
+      background: ${isVoxel
+        ? "linear-gradient(135deg, #22c55e 0 33%, #92400e 33% 66%, #14532d 66%)"
+        : "radial-gradient(circle at 30% 25%, white, var(--secondary) 18%, var(--primary) 68%, transparent 70%)"};
+      filter: drop-shadow(0 0 50px rgba(255,255,255,0.06));
       animation: float 4s ease-in-out infinite;
     }
 
@@ -737,31 +1355,20 @@ class Spudzy {
       position: absolute;
       width: 340px;
       height: 340px;
-      border-radius: 999px;
-      border: 1px solid color-mix(in srgb, var(--secondary) 40%, transparent);
+      border-radius: ${isVoxel ? "24px" : "999px"};
+      border: 1px solid rgba(255,255,255,0.12);
       animation: spin 14s linear infinite;
     }
 
-    .ring::before {
-      content: "";
-      position: absolute;
-      width: 18px;
-      height: 18px;
-      border-radius: 999px;
-      background: var(--secondary);
-      top: 50px;
-      right: 52px;
-      box-shadow: 0 0 28px var(--secondary);
-    }
-
     .section {
-      padding: 34px 0;
+      padding: 38px 0;
     }
 
     .section-title {
       font-size: clamp(2rem, 5vw, 3.4rem);
-      letter-spacing: -0.06em;
+      letter-spacing: ${isVoxel ? "0" : "-0.06em"};
       margin-bottom: 16px;
+      text-transform: ${isVoxel ? "uppercase" : "none"};
     }
 
     .section-lead {
@@ -784,6 +1391,27 @@ class Spudzy {
       border: 1px solid var(--border);
       box-shadow: var(--shadow);
       min-height: 180px;
+      transition: transform 0.2s ease, border-color 0.2s ease, filter 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(255,255,255,0.18);
+      filter: brightness(1.06);
+    }
+
+    .card-icon {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: ${isVoxel ? "6px" : "14px"};
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      margin-bottom: 14px;
+      color: white;
+      font-size: 1.25rem;
     }
 
     .card h3 {
@@ -796,6 +1424,26 @@ class Spudzy {
       line-height: 1.65;
     }
 
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .stat {
+      padding: 20px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 2rem;
+      letter-spacing: -0.06em;
+    }
+
     .gallery {
       display: grid;
       grid-template-columns: 1.2fr 0.8fr;
@@ -806,13 +1454,32 @@ class Spudzy {
       min-height: 220px;
       border-radius: var(--radius);
       border: 1px solid var(--border);
-      background:
-        linear-gradient(135deg, color-mix(in srgb, var(--primary) 30%, transparent), color-mix(in srgb, var(--secondary) 18%, transparent)),
-        var(--panel2);
+      background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)), var(--panel2);
       display: grid;
       place-items: center;
       font-size: 3rem;
       box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .gallery-tile span {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      font-size: clamp(1.2rem, 4vw, 2.1rem);
+      font-weight: 950;
+    }
+
+    .gallery-tile::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
+      background-size: ${isVoxel ? "34px 34px" : "42px 42px"};
+      opacity: 0.35;
     }
 
     .pricing {
@@ -829,7 +1496,7 @@ class Spudzy {
     }
 
     .form-box {
-      max-width: 520px;
+      max-width: 560px;
       padding: 24px;
       border-radius: var(--radius);
       border: 1px solid var(--border);
@@ -844,7 +1511,7 @@ class Spudzy {
       border: 1px solid var(--border);
       background: var(--panel2);
       color: var(--text);
-      border-radius: 16px;
+      border-radius: ${isVoxel ? "8px" : "16px"};
       padding: 13px 14px;
       outline: none;
       font: inherit;
@@ -859,6 +1526,65 @@ class Spudzy {
       margin-top: 18px;
       color: var(--muted);
       min-height: 24px;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .menu-item {
+      padding: 18px;
+      border-radius: var(--radius);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    .menu-item strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .search-box {
+      max-width: 460px;
+      padding: 18px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .canvas-wrap {
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 360px;
+      background: #020617;
+    }
+
+    .faq-item {
+      padding: 18px;
+      border-radius: var(--radius);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      margin-bottom: 10px;
+    }
+
+    .testimonial {
+      padding: 18px;
+      border-radius: var(--radius);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      min-height: 130px;
     }
 
     footer {
@@ -878,175 +1604,379 @@ class Spudzy {
       to { transform: rotate(360deg); }
     }
 
-    ${design.effects.includes("animated") || design.effects.includes("bounce") ? `
-    .card {
-      transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-
-    .card:hover {
-      transform: translateY(-6px);
-      border-color: color-mix(in srgb, var(--primary) 60%, var(--border));
-    }
-    ` : ""}
-
-    @media (max-width: 860px) {
+    @media (max-width: 900px) {
       .hero {
         grid-template-columns: 1fr;
       }
 
       .grid,
+      .gallery,
       .pricing,
-      .gallery {
+      .menu-grid,
+      .stats {
         grid-template-columns: 1fr;
       }
 
       .nav {
+        flex-direction: column;
         align-items: flex-start;
         border-radius: 24px;
-        flex-direction: column;
-      }
-
-      .nav-links {
-        flex-wrap: wrap;
       }
     }
   </style>
 </head>
 <body>
+  ${isVoxel ? `<div class="block-bg" aria-hidden="true"></div>` : ""}
+
   <div class="page">
-    ${hasNavbar ? `
-    <nav class="nav">
-      <div class="brand">
-        <div class="logo">⚡</div>
-        <span>${this.escapeHTML(design.title)}</span>
-      </div>
-      <div class="nav-links">
-        <a href="#features">Features</a>
-        ${hasGallery ? `<a href="#gallery">Gallery</a>` : ""}
-        ${hasPricing ? `<a href="#pricing">Pricing</a>` : ""}
-        ${hasForm ? `<a href="#contact">Contact</a>` : ""}
-      </div>
-    </nav>
-    ` : ""}
-
-    ${hasHero ? `
-    <section class="hero">
-      <div>
-        <div class="eyebrow">✨ Generated from your words by Spudzy</div>
-        <h1>${this.escapeHTML(design.title)} <span class="gradient-text">built different.</span></h1>
-        <p>
-          This page was generated from your prompt. Spudzy reads design words like color,
-          style, layout, animation, cards, gallery, pricing, forms, and buttons, then turns
-          them into a full responsive HTML experience.
-        </p>
-        ${hasButton ? `
-        <div class="actions">
-          <button class="btn" id="mainBtn">Launch demo</button>
-          <button class="btn secondary" id="secondaryBtn">Random accent</button>
-        </div>
-        ` : ""}
-      </div>
-
-      <div class="visual">
-        <div class="ring"></div>
-        <div class="orb"></div>
-      </div>
-    </section>
-    ` : ""}
-
-    ${hasCards ? `
-    <section class="section" id="features">
-      <h2 class="section-title">Feature cards</h2>
-      <p class="section-lead">
-        These cards were added because your prompt asked for layout, cards, dashboard,
-        grid, or a modern app-style interface.
-      </p>
-
-      <div class="grid">
-        <article class="card">
-          <h3>Smart layout</h3>
-          <p>Responsive sections, flexible grids, and polished spacing are generated automatically.</p>
-        </article>
-        <article class="card">
-          <h3>Prompt styling</h3>
-          <p>Words like dark, neon, luxury, blue, red, glass, and modern change the theme.</p>
-        </article>
-        <article class="card">
-          <h3>Interactive code</h3>
-          <p>Buttons, animations, and small JavaScript behaviors are included when useful.</p>
-        </article>
-      </div>
-    </section>
-    ` : ""}
-
-    ${hasGallery ? `
-    <section class="section" id="gallery">
-      <h2 class="section-title">Gallery</h2>
-      <p class="section-lead">A visual gallery generated because your prompt included gallery or visual-style words.</p>
-      <div class="gallery">
-        <div class="gallery-tile">🎨</div>
-        <div class="gallery-tile">🚀</div>
-      </div>
-    </section>
-    ` : ""}
-
-    ${hasPricing ? `
-    <section class="section" id="pricing">
-      <h2 class="section-title">Pricing</h2>
-      <p class="section-lead">Pricing cards are included because your prompt asked for pricing.</p>
-      <div class="pricing">
-        <div class="card">
-          <h3>Starter</h3>
-          <div class="price">$9</div>
-          <p>Simple launch package.</p>
-        </div>
-        <div class="card">
-          <h3>Pro</h3>
-          <div class="price">$29</div>
-          <p>More power, more polish.</p>
-        </div>
-        <div class="card">
-          <h3>Ultra</h3>
-          <div class="price">$99</div>
-          <p>Full premium experience.</p>
-        </div>
-      </div>
-    </section>
-    ` : ""}
-
-    ${hasForm ? `
-    <section class="section" id="contact">
-      <h2 class="section-title">${design.components.has("login") ? "Login" : design.components.has("signup") ? "Sign up" : "Contact form"}</h2>
-      <div class="form-box">
-        <input id="nameInput" placeholder="Name" />
-        <input id="emailInput" placeholder="Email" />
-        <textarea id="messageInput" placeholder="Message"></textarea>
-        <button class="btn" id="formBtn" style="margin-top: 12px;">Submit</button>
-        <div class="output" id="formOutput"></div>
-      </div>
-    </section>
-    ` : ""}
+    ${hasNavbar ? this.sectionNavbar(plan) : ""}
+    ${hasHero ? this.sectionHero(plan) : ""}
+    ${hasSearchBox ? this.sectionSearchBox(plan) : ""}
+    ${hasStats ? this.sectionStats(plan) : ""}
+    ${hasCards ? this.sectionCards(plan, cards) : ""}
+    ${hasGallery ? this.sectionGallery(plan, gallery) : ""}
+    ${hasMenu ? this.sectionMenu(plan, menuItems) : ""}
+    ${hasCanvas ? this.sectionCanvas(plan) : ""}
+    ${hasPricing ? this.sectionPricing(plan) : ""}
+    ${hasTestimonials ? this.sectionTestimonials(plan) : ""}
+    ${hasFAQ ? this.sectionFAQ(plan) : ""}
+    ${hasForm ? this.sectionForm(plan) : ""}
 
     <footer>
-      Built by Spudzy AI Engine v${this.version}. Prompt subject: ${this.escapeHTML(design.subject)}.
+      Built by Spudzy AI Engine v${this.version}. Generated from your prompt words.
     </footer>
   </div>
 
   <script>
-    const root = document.documentElement;
+    ${this.universalClientJS(plan)}
+  </script>
+</body>
+</html>`;
+  }
 
+  voxelCss() {
+    return `
+    .block-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.18;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.12) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(255,255,255,0.12) 2px, transparent 2px);
+      background-size: 42px 42px;
+      z-index: 0;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: auto 0 0 0;
+      height: 26vh;
+      background:
+        linear-gradient(90deg, #14532d 0 20%, #166534 20% 40%, #92400e 40% 60%, #78350f 60% 80%, #14532d 80% 100%);
+      clip-path: polygon(0 45%, 8% 45%, 8% 30%, 18% 30%, 18% 55%, 28% 55%, 28% 35%, 38% 35%, 38% 60%, 48% 60%, 48% 40%, 58% 40%, 58% 62%, 68% 62%, 68% 42%, 78% 42%, 78% 55%, 88% 55%, 88% 35%, 100% 35%, 100% 100%, 0 100%);
+      opacity: 0.45;
+      z-index: 0;
+      pointer-events: none;
+    }`;
+  }
+
+  sectionNavbar(plan) {
+    const labels = plan.special.voxelLike
+      ? ["Home", "Craft", "Explore", "Build", "Join"]
+      : ["Home", "Features", "Gallery", "Pricing", "Contact"];
+
+    return `
+    <nav class="nav">
+      <div class="brand">
+        <div class="logo">${plan.special.voxelLike ? "▣" : "⚡"}</div>
+        <span>${this.escapeHTML(plan.title)}</span>
+      </div>
+      <div class="nav-links">
+        <a href="#home">${labels[0]}</a>
+        <a href="#features">${labels[1]}</a>
+        <a href="#gallery">${labels[2]}</a>
+        <a href="#pricing">${labels[3]}</a>
+        <a href="#contact">${labels[4]}</a>
+      </div>
+    </nav>`;
+  }
+
+  sectionHero(plan) {
+    const primaryButton = plan.special.voxelLike ? "Start Building" : "Launch Demo";
+    const secondaryButton = plan.special.voxelLike ? "Explore Biomes" : "Random Theme";
+
+    return `
+    <section class="hero" id="home">
+      <div>
+        <div class="eyebrow">${plan.special.voxelLike ? "🟩 Original voxel-inspired style" : "✨ Prompt-built UI"}</div>
+        <h1>${this.escapeHTML(plan.title)} <span class="gradient-text">${plan.special.voxelLike ? "Block by Block." : "Built Better."}</span></h1>
+        <p>${this.escapeHTML(plan.subtitle)}</p>
+        <div class="actions">
+          <button class="btn" id="mainBtn">${primaryButton}</button>
+          <button class="btn secondary" id="themeBtn">${secondaryButton}</button>
+        </div>
+      </div>
+      <div class="visual">
+        <div class="ring"></div>
+        <div class="orb"></div>
+      </div>
+    </section>`;
+  }
+
+  sectionSearchBox(plan) {
+    return `
+    <section class="section">
+      <h2 class="section-title">Search</h2>
+      <div class="search-box">
+        <input id="searchInput" placeholder="Search this demo..." />
+        <div class="output" id="searchOutput"></div>
+      </div>
+    </section>`;
+  }
+
+  sectionStats(plan) {
+    const labels = plan.special.voxelLike
+      ? [["128", "Blocks"], ["7", "Biomes"], ["42", "Crafts"], ["99%", "Survival"]]
+      : [["98%", "Polish"], ["24k", "Interactions"], ["12", "Modules"], ["1", "HTML File"]];
+
+    return `
+    <section class="section">
+      <h2 class="section-title">Stats</h2>
+      <div class="stats">
+        ${labels.map(item => `
+        <div class="stat">
+          <strong>${item[0]}</strong>
+          <span>${item[1]}</span>
+        </div>`).join("")}
+      </div>
+    </section>`;
+  }
+
+  sectionCards(plan, cards) {
+    return `
+    <section class="section" id="features">
+      <h2 class="section-title">${plan.special.voxelLike ? "Craft Your World" : "Features"}</h2>
+      <p class="section-lead">${plan.special.voxelLike
+        ? "Explore original blocky systems inspired by voxel adventures, using no official assets."
+        : "These sections were selected directly from your prompt words."}</p>
+      <div class="grid">
+        ${cards.map(card => `
+        <article class="card">
+          <div class="card-icon">${card.icon}</div>
+          <h3>${this.escapeHTML(card.title)}</h3>
+          <p>${this.escapeHTML(card.text)}</p>
+        </article>`).join("")}
+      </div>
+    </section>`;
+  }
+
+  sectionGallery(plan, gallery) {
+    return `
+    <section class="section" id="gallery">
+      <h2 class="section-title">${plan.special.voxelLike ? "Biomes" : "Gallery"}</h2>
+      <p class="section-lead">${plan.special.voxelLike
+        ? "Original generated biome cards with no external assets."
+        : "A visual gallery created because your prompt asked for one."}</p>
+      <div class="gallery">
+        ${gallery.map(item => `<div class="gallery-tile"><span>${this.escapeHTML(item)}</span></div>`).join("")}
+      </div>
+    </section>`;
+  }
+
+  sectionMenu(plan, items) {
+    return `
+    <section class="section">
+      <h2 class="section-title">Menu</h2>
+      <div class="menu-grid">
+        ${items.map(item => `
+        <div class="menu-item">
+          <strong>${this.escapeHTML(item.name)}</strong>
+          <p>${this.escapeHTML(item.desc)}</p>
+        </div>`).join("")}
+      </div>
+    </section>`;
+  }
+
+  sectionCanvas(plan) {
+    return `
+    <section class="section">
+      <h2 class="section-title">${plan.special.voxelLike ? "Falling Blocks" : "Canvas Animation"}</h2>
+      <p class="section-lead">A live canvas section generated from your prompt.</p>
+      <div class="canvas-wrap">
+        <canvas id="demoCanvas"></canvas>
+      </div>
+    </section>`;
+  }
+
+  sectionPricing(plan) {
+    const titles = plan.special.voxelLike
+      ? ["Starter Realm", "Builder Realm", "Legend Realm"]
+      : ["Starter", "Pro", "Ultra"];
+
+    return `
+    <section class="section" id="pricing">
+      <h2 class="section-title">${plan.special.voxelLike ? "Choose Your Realm" : "Pricing"}</h2>
+      <div class="pricing">
+        <div class="card">
+          <h3>${titles[0]}</h3>
+          <div class="price">$9</div>
+          <p>Simple launch package with the essentials.</p>
+        </div>
+        <div class="card">
+          <h3>${titles[1]}</h3>
+          <div class="price">$29</div>
+          <p>More power, more sections, more polish.</p>
+        </div>
+        <div class="card">
+          <h3>${titles[2]}</h3>
+          <div class="price">$99</div>
+          <p>Full premium experience with extra visual energy.</p>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  sectionTestimonials(plan) {
+    return `
+    <section class="section">
+      <h2 class="section-title">Testimonials</h2>
+      <div class="grid">
+        <div class="testimonial">“This generated page feels polished and fast.”</div>
+        <div class="testimonial">“The design came together from one prompt.”</div>
+        <div class="testimonial">“A clean single-file demo with real styling.”</div>
+      </div>
+    </section>`;
+  }
+
+  sectionFAQ(plan) {
+    return `
+    <section class="section">
+      <h2 class="section-title">FAQ</h2>
+      <div class="faq-item">
+        <strong>Is this one file?</strong>
+        <p class="section-lead">Yes. This demo keeps HTML, CSS, and JavaScript together.</p>
+      </div>
+      <div class="faq-item">
+        <strong>Does it use external images?</strong>
+        <p class="section-lead">No. It uses CSS shapes, gradients, text, and browser drawing.</p>
+      </div>
+    </section>`;
+  }
+
+  sectionForm(plan) {
+    return `
+    <section class="section" id="contact">
+      <h2 class="section-title">${plan.special.voxelLike ? "Join The Realm" : "Contact"}</h2>
+      <div class="form-box">
+        <input id="nameInput" placeholder="Name" />
+        <input id="emailInput" placeholder="Email" />
+        <textarea id="messageInput" placeholder="${plan.special.voxelLike ? "Tell us what you want to build..." : "Message"}"></textarea>
+        <button class="btn" id="formBtn" style="margin-top: 12px;">Submit</button>
+        <div class="output" id="formOutput"></div>
+      </div>
+    </section>`;
+  }
+
+  cardContent(plan) {
+    if (plan.special.voxelLike) {
+      return [
+        { icon: "⛏️", title: "Mining", text: "Break blocks, discover resources, and carve your path through caves." },
+        { icon: "🧰", title: "Crafting", text: "Combine materials in a blocky crafting system built for imagination." },
+        { icon: "🏗️", title: "Building", text: "Stack original voxel blocks into bases, towers, farms, and worlds." },
+        { icon: "🔥", title: "Survival", text: "Face nightfall, glowing lava zones, and underground danger." },
+        { icon: "🌲", title: "Biomes", text: "Explore forests, deserts, snowfields, caves, and strange realms." },
+        { icon: "⚙️", title: "Logic Blocks", text: "Create simple machines with original block-based logic elements." }
+      ];
+    }
+
+    if (plan.pageType === "portfolio") {
+      return [
+        { icon: "🧩", title: "Projects", text: "Showcase your strongest work with polished project cards." },
+        { icon: "⚡", title: "Skills", text: "Highlight tools, languages, and creative strengths." },
+        { icon: "📬", title: "Contact", text: "Make it easy for people to reach out." }
+      ];
+    }
+
+    if (plan.pageType === "dashboard") {
+      return [
+        { icon: "📊", title: "Analytics", text: "Monitor metrics with cards, stats, and chart regions." },
+        { icon: "📁", title: "Reports", text: "Organize views into neat management sections." },
+        { icon: "⚡", title: "Performance", text: "Build a clean admin-style UI with strong contrast." }
+      ];
+    }
+
+    if (plan.pageType === "shop") {
+      return [
+        { icon: "🛒", title: "Products", text: "Feature items in product cards with strong calls to action." },
+        { icon: "⭐", title: "Best Sellers", text: "Highlight popular items with visual emphasis." },
+        { icon: "🚚", title: "Fast Checkout", text: "Guide visitors through a conversion-friendly layout." }
+      ];
+    }
+
+    if (plan.pageType === "restaurant") {
+      return [
+        { icon: "🍽️", title: "Fresh Menu", text: "Show dishes in a polished menu layout." },
+        { icon: "🔥", title: "Chef Specials", text: "Feature seasonal and signature meals." },
+        { icon: "📅", title: "Reservations", text: "Include quick booking and contact sections." }
+      ];
+    }
+
+    return [
+      { icon: "✨", title: "Smart Layout", text: "The page structure is chosen from your prompt words." },
+      { icon: "🎨", title: "Prompt Styling", text: "Colors, mood, effects, and sections are generated automatically." },
+      { icon: "⚙️", title: "Interactive JavaScript", text: "Buttons and small behaviors are included in the final HTML." }
+    ];
+  }
+
+  galleryContent(plan) {
+    if (plan.special.voxelLike) {
+      return ["🌲 Forest", "🏜️ Desert", "❄️ Snow", "🕳️ Cave", "🌋 Lava Zone"];
+    }
+
+    if (plan.pageType === "portfolio") {
+      return ["Project One", "Project Two", "Project Three"];
+    }
+
+    if (plan.pageType === "restaurant") {
+      return ["🍜 Signature Dish", "🍔 House Favorite", "🍰 Dessert"];
+    }
+
+    if (plan.pageType === "shop") {
+      return ["Featured Product", "Popular Product", "New Arrival"];
+    }
+
+    return ["Visual One", "Visual Two", "Visual Three"];
+  }
+
+  menuContent(plan) {
+    return [
+      { name: "House Special", desc: "A featured item for your generated restaurant page." },
+      { name: "Seasonal Favorite", desc: "A second menu item with supporting description." },
+      { name: "Chef’s Choice", desc: "A highlighted dish with polished presentation." }
+    ];
+  }
+
+  universalClientJS(plan) {
+    const canvasType = plan.special.canvasType || (plan.special.voxelLike ? "fallingBlocks" : "particles");
+
+    return `
+    const root = document.documentElement;
     const mainBtn = document.getElementById("mainBtn");
-    const secondaryBtn = document.getElementById("secondaryBtn");
+    const themeBtn = document.getElementById("themeBtn");
     const formBtn = document.getElementById("formBtn");
     const formOutput = document.getElementById("formOutput");
+    const searchInput = document.getElementById("searchInput");
+    const searchOutput = document.getElementById("searchOutput");
 
     if (mainBtn) {
       mainBtn.addEventListener("click", () => {
-        mainBtn.textContent = "Launched ✨";
+        mainBtn.textContent = "${plan.special.voxelLike ? "World Started ▣" : "Launched ✨"}";
         document.body.animate(
           [
             { filter: "brightness(1)" },
-            { filter: "brightness(1.25)" },
+            { filter: "brightness(1.2)" },
             { filter: "brightness(1)" }
           ],
           { duration: 550 }
@@ -1054,10 +1984,9 @@ class Spudzy {
       });
     }
 
-    if (secondaryBtn) {
-      const colors = ["#8b5cf6", "#06b6d4", "#ef4444", "#22c55e", "#f97316", "#ec4899"];
-
-      secondaryBtn.addEventListener("click", () => {
+    if (themeBtn) {
+      const colors = ["#8b5cf6", "#06b6d4", "#ef4444", "#22c55e", "#f97316", "#ec4899", "#f59e0b"];
+      themeBtn.addEventListener("click", () => {
         const one = colors[Math.floor(Math.random() * colors.length)];
         const two = colors[Math.floor(Math.random() * colors.length)];
         root.style.setProperty("--primary", one);
@@ -1067,759 +1996,301 @@ class Spudzy {
 
     if (formBtn && formOutput) {
       formBtn.addEventListener("click", () => {
-        formOutput.textContent = "Submitted locally. This demo has no backend yet.";
+        formOutput.textContent = "Submitted locally. Connect a backend to make this form real.";
       });
     }
-  </script>
-</body>
-</html>`;
-  }
 
-  themeFromDesign(design) {
-    if (design.background === "light") {
-      return {
-        bg: "#f8fafc",
-        panel: "rgba(255, 255, 255, 0.75)",
-        panel2: "rgba(255, 255, 255, 0.55)",
-        text: "#020617",
-        muted: "#475569",
-        border: "rgba(15, 23, 42, 0.12)",
-        shadow: "0 24px 80px rgba(15, 23, 42, 0.12)"
-      };
+    if (searchInput && searchOutput) {
+      searchInput.addEventListener("input", () => {
+        const value = searchInput.value.trim();
+        searchOutput.textContent = value ? "Local demo search for: " + value : "";
+      });
     }
 
-    return {
-      bg: "#020617",
-      panel: "rgba(15, 23, 42, 0.72)",
-      panel2: "rgba(2, 6, 23, 0.58)",
-      text: "#f8fafc",
-      muted: "#94a3b8",
-      border: "rgba(148, 163, 184, 0.18)",
-      shadow: "0 24px 80px rgba(0, 0, 0, 0.35)"
-    };
+    ${this.canvasClientJS(canvasType, plan)}
+    `;
   }
 
-  generateCanvasHTML(design) {
-    const theme = this.themeFromDesign(design);
-    const type = design.components.has("particles")
-      ? "particles"
-      : design.components.has("snake")
-      ? "snake"
-      : "ball";
+  canvasClientJS(type, plan) {
+    if (type === "fallingBlocks") {
+      return `
+      const canvas = document.getElementById("demoCanvas");
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        let w = 0;
+        let h = 0;
+        let dpr = Math.max(1, window.devicePixelRatio || 1);
+        const blocks = [];
+
+        function resizeCanvas() {
+          const rect = canvas.getBoundingClientRect();
+          w = rect.width;
+          h = rect.height;
+          canvas.width = Math.floor(w * dpr);
+          canvas.height = Math.floor(h * dpr);
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        function spawnBlock() {
+          const size = 24 + Math.random() * 24;
+          blocks.push({
+            x: Math.random() * w,
+            y: -size,
+            s: size,
+            vy: 1.5 + Math.random() * 3,
+            color: Math.random() > 0.5 ? "${plan.primary}" : "${plan.secondary}"
+          });
+        }
+
+        function draw() {
+          ctx.clearRect(0, 0, w, h);
+
+          const gradient = ctx.createLinearGradient(0, 0, w, h);
+          gradient.addColorStop(0, "#020617");
+          gradient.addColorStop(1, "#0f172a");
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, w, h);
+
+          if (Math.random() < 0.14) spawnBlock();
+
+          for (let i = blocks.length - 1; i >= 0; i--) {
+            const b = blocks[i];
+            b.y += b.vy;
+
+            ctx.fillStyle = b.color;
+            ctx.fillRect(b.x, b.y, b.s, b.s);
+            ctx.strokeStyle = "rgba(255,255,255,0.22)";
+            ctx.strokeRect(b.x, b.y, b.s, b.s);
+
+            if (b.y > h + 60) {
+              blocks.splice(i, 1);
+            }
+          }
+
+          requestAnimationFrame(draw);
+        }
+
+        window.addEventListener("resize", resizeCanvas);
+        resizeCanvas();
+        draw();
+      }`;
+    }
+
+    if (type === "bouncingBall") {
+      return `
+      const canvas = document.getElementById("demoCanvas");
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        let w = 0;
+        let h = 0;
+        let dpr = Math.max(1, window.devicePixelRatio || 1);
+
+        const ball = { x: 120, y: 120, r: 28, vx: 4, vy: 3 };
+
+        function resizeCanvas() {
+          const rect = canvas.getBoundingClientRect();
+          w = rect.width;
+          h = rect.height;
+          canvas.width = Math.floor(w * dpr);
+          canvas.height = Math.floor(h * dpr);
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        function draw() {
+          ctx.clearRect(0, 0, w, h);
+          ctx.fillStyle = "#020617";
+          ctx.fillRect(0, 0, w, h);
+
+          ball.x += ball.vx;
+          ball.y += ball.vy;
+
+          if (ball.x + ball.r > w || ball.x - ball.r < 0) ball.vx *= -1;
+          if (ball.y + ball.r > h || ball.y - ball.r < 0) ball.vy *= -1;
+
+          const glow = ctx.createRadialGradient(ball.x - 10, ball.y - 12, 2, ball.x, ball.y, ball.r * 2.3);
+          glow.addColorStop(0, "white");
+          glow.addColorStop(0.3, "${plan.secondary}");
+          glow.addColorStop(0.8, "${plan.primary}");
+          glow.addColorStop(1, "transparent");
+
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(ball.x, ball.y, ball.r * 2.1, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "${plan.primary}";
+          ctx.beginPath();
+          ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+          ctx.fill();
+
+          requestAnimationFrame(draw);
+        }
+
+        window.addEventListener("resize", resizeCanvas);
+        resizeCanvas();
+        draw();
+      }`;
+    }
 
     if (type === "particles") {
-      return this.generateParticlesCanvasHTML(design, theme);
+      return `
+      const canvas = document.getElementById("demoCanvas");
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        let w = 0;
+        let h = 0;
+        let dpr = Math.max(1, window.devicePixelRatio || 1);
+        const particles = [];
+
+        function resizeCanvas() {
+          const rect = canvas.getBoundingClientRect();
+          w = rect.width;
+          h = rect.height;
+          canvas.width = Math.floor(w * dpr);
+          canvas.height = Math.floor(h * dpr);
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        function seed() {
+          particles.length = 0;
+          for (let i = 0; i < 90; i++) {
+            particles.push({
+              x: Math.random() * w,
+              y: Math.random() * h,
+              vx: (Math.random() - 0.5) * 1.4,
+              vy: (Math.random() - 0.5) * 1.4,
+              r: 1 + Math.random() * 3
+            });
+          }
+        }
+
+        function draw() {
+          ctx.clearRect(0, 0, w, h);
+          ctx.fillStyle = "#020617";
+          ctx.fillRect(0, 0, w, h);
+
+          for (const p of particles) {
+            p.x += p.vx;
+            p.y += p.vy;
+            if (p.x < 0 || p.x > w) p.vx *= -1;
+            if (p.y < 0 || p.y > h) p.vy *= -1;
+
+            ctx.fillStyle = "${plan.primary}";
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          requestAnimationFrame(draw);
+        }
+
+        window.addEventListener("resize", () => {
+          resizeCanvas();
+          seed();
+        });
+
+        resizeCanvas();
+        seed();
+        draw();
+      }`;
     }
 
     if (type === "snake") {
-      return this.generateSnakeCanvasHTML(design, theme);
-    }
+      return `
+      const canvas = document.getElementById("demoCanvas");
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        canvas.width = 480;
+        canvas.height = 360;
 
-    return this.generateBouncingBallHTML(design, theme);
-  }
+        const size = 24;
+        const cols = Math.floor(canvas.width / size);
+        const rows = Math.floor(canvas.height / size);
 
-  generateBouncingBallHTML(design, theme) {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>${this.escapeHTML(design.title)} Canvas</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+        let snake = [{ x: 5, y: 5 }];
+        let food = { x: 10, y: 8 };
+        let dir = { x: 1, y: 0 };
+        let nextDir = { x: 1, y: 0 };
 
-    body {
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      background:
-        radial-gradient(circle at top left, ${design.primaryColor}55, transparent 30%),
-        radial-gradient(circle at bottom right, ${design.secondaryColor}44, transparent 30%),
-        ${theme.bg};
-      color: ${theme.text};
-      font-family: system-ui, sans-serif;
-      padding: 20px;
-    }
-
-    .app {
-      width: min(900px, 100%);
-      border: 1px solid ${theme.border};
-      border-radius: 28px;
-      overflow: hidden;
-      background: ${theme.panel};
-      box-shadow: ${theme.shadow};
-      backdrop-filter: blur(16px);
-    }
-
-    header {
-      padding: 18px 20px;
-      border-bottom: 1px solid ${theme.border};
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: center;
-    }
-
-    h1 {
-      font-size: clamp(1.6rem, 5vw, 3rem);
-      letter-spacing: -0.06em;
-    }
-
-    button {
-      border: 0;
-      border-radius: 999px;
-      padding: 10px 14px;
-      color: white;
-      font-weight: 800;
-      background: linear-gradient(135deg, ${design.primaryColor}, ${design.secondaryColor});
-      cursor: pointer;
-    }
-
-    canvas {
-      width: 100%;
-      height: 480px;
-      display: block;
-      background: #020617;
-    }
-  </style>
-</head>
-<body>
-  <main class="app">
-    <header>
-      <h1>${this.escapeHTML(design.title || "Bouncing Ball")}</h1>
-      <button id="boost">Boost</button>
-    </header>
-    <canvas id="canvas"></canvas>
-  </main>
-
-  <script>
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    const boost = document.getElementById("boost");
-
-    let w = 0;
-    let h = 0;
-    let dpr = Math.max(1, window.devicePixelRatio || 1);
-
-    const ball = {
-      x: 120,
-      y: 120,
-      r: 28,
-      vx: 4,
-      vy: 3.2,
-      hue: 0
-    };
-
-    function resize() {
-      const rect = canvas.getBoundingClientRect();
-      w = rect.width;
-      h = rect.height;
-      canvas.width = Math.floor(w * dpr);
-      canvas.height = Math.floor(h * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
-
-    function drawBackground() {
-      const gradient = ctx.createLinearGradient(0, 0, w, h);
-      gradient.addColorStop(0, "#020617");
-      gradient.addColorStop(1, "#111827");
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, w, h);
-
-      ctx.strokeStyle = "rgba(148, 163, 184, 0.12)";
-      for (let x = 0; x < w; x += 36) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
-      }
-
-      for (let y = 0; y < h; y += 36) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
-        ctx.stroke();
-      }
-    }
-
-    function drawBall() {
-      const glow = ctx.createRadialGradient(ball.x - 10, ball.y - 12, 2, ball.x, ball.y, ball.r * 2.4);
-      glow.addColorStop(0, "white");
-      glow.addColorStop(0.25, "${design.secondaryColor}");
-      glow.addColorStop(0.75, "${design.primaryColor}");
-      glow.addColorStop(1, "transparent");
-
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ball.r * 2.2, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "${design.primaryColor}";
-      ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "rgba(255,255,255,0.75)";
-      ctx.beginPath();
-      ctx.arc(ball.x - 9, ball.y - 10, 7, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    function update() {
-      ball.x += ball.vx;
-      ball.y += ball.vy;
-
-      if (ball.x + ball.r > w || ball.x - ball.r < 0) {
-        ball.vx *= -1;
-      }
-
-      if (ball.y + ball.r > h || ball.y - ball.r < 0) {
-        ball.vy *= -1;
-      }
-    }
-
-    function loop() {
-      drawBackground();
-      update();
-      drawBall();
-      requestAnimationFrame(loop);
-    }
-
-    boost.addEventListener("click", () => {
-      ball.vx *= 1.18;
-      ball.vy *= 1.18;
-      boost.textContent = "Boosted";
-      setTimeout(() => boost.textContent = "Boost", 700);
-    });
-
-    window.addEventListener("resize", resize);
-    resize();
-    loop();
-  </script>
-</body>
-</html>`;
-  }
-
-  generateParticlesCanvasHTML(design, theme) {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>${this.escapeHTML(design.title)} Particles</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      min-height: 100vh;
-      background: #020617;
-      color: #f8fafc;
-      font-family: system-ui, sans-serif;
-      overflow: hidden;
-    }
-
-    canvas {
-      width: 100vw;
-      height: 100vh;
-      display: block;
-    }
-
-    .label {
-      position: fixed;
-      top: 24px;
-      left: 24px;
-      padding: 14px 16px;
-      border-radius: 18px;
-      background: rgba(15, 23, 42, 0.72);
-      border: 1px solid rgba(148, 163, 184, 0.18);
-      backdrop-filter: blur(16px);
-    }
-
-    h1 {
-      font-size: clamp(1.4rem, 5vw, 3rem);
-      letter-spacing: -0.06em;
-    }
-
-    p {
-      color: #94a3b8;
-      margin-top: 4px;
-    }
-  </style>
-</head>
-<body>
-  <canvas id="canvas"></canvas>
-  <div class="label">
-    <h1>${this.escapeHTML(design.title)}</h1>
-    <p>Move your mouse. Particles follow.</p>
-  </div>
-
-  <script>
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-
-    let w = 0;
-    let h = 0;
-    let dpr = Math.max(1, window.devicePixelRatio || 1);
-
-    const mouse = { x: innerWidth / 2, y: innerHeight / 2 };
-    const particles = [];
-
-    function resize() {
-      w = innerWidth;
-      h = innerHeight;
-      canvas.width = Math.floor(w * dpr);
-      canvas.height = Math.floor(h * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
-
-    function createParticles() {
-      particles.length = 0;
-      const count = Math.min(160, Math.floor((w * h) / 9000));
-
-      for (let i = 0; i < count; i++) {
-        particles.push({
-          x: Math.random() * w,
-          y: Math.random() * h,
-          vx: (Math.random() - 0.5) * 1.4,
-          vy: (Math.random() - 0.5) * 1.4,
-          r: Math.random() * 2.2 + 1
-        });
-      }
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, w, h);
-
-      const gradient = ctx.createLinearGradient(0, 0, w, h);
-      gradient.addColorStop(0, "#020617");
-      gradient.addColorStop(1, "#0f172a");
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, w, h);
-
-      for (const p of particles) {
-        const dx = mouse.x - p.x;
-        const dy = mouse.y - p.y;
-        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-
-        if (dist < 180) {
-          p.vx += dx / dist * 0.025;
-          p.vy += dy / dist * 0.025;
+        function randomFood() {
+          food = {
+            x: Math.floor(Math.random() * cols),
+            y: Math.floor(Math.random() * rows)
+          };
         }
 
-        p.x += p.vx;
-        p.y += p.vy;
+        function tick() {
+          dir = nextDir;
 
-        p.vx *= 0.985;
-        p.vy *= 0.985;
+          const head = {
+            x: snake[0].x + dir.x,
+            y: snake[0].y + dir.y
+          };
 
-        if (p.x < 0 || p.x > w) p.vx *= -1;
-        if (p.y < 0 || p.y > h) p.vy *= -1;
+          if (
+            head.x < 0 || head.y < 0 ||
+            head.x >= cols || head.y >= rows ||
+            snake.some(part => part.x === head.x && part.y === head.y)
+          ) {
+            snake = [{ x: 5, y: 5 }];
+            dir = { x: 1, y: 0 };
+            nextDir = { x: 1, y: 0 };
+            randomFood();
+            return;
+          }
 
-        ctx.fillStyle = "${design.primaryColor}";
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
+          snake.unshift(head);
 
-      ctx.strokeStyle = "rgba(148, 163, 184, 0.13)";
-
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const a = particles[i];
-          const b = particles[j];
-          const dx = a.x - b.x;
-          const dy = a.y - b.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-
-          if (dist < 95) {
-            ctx.globalAlpha = 1 - dist / 95;
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.stroke();
-            ctx.globalAlpha = 1;
+          if (head.x === food.x && head.y === food.y) {
+            randomFood();
+          } else {
+            snake.pop();
           }
         }
-      }
 
-      requestAnimationFrame(draw);
-    }
+        function draw() {
+          ctx.fillStyle = "#020617";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    addEventListener("mousemove", event => {
-      mouse.x = event.clientX;
-      mouse.y = event.clientY;
-    });
+          ctx.fillStyle = "${plan.secondary}";
+          ctx.fillRect(food.x * size + 4, food.y * size + 4, size - 8, size - 8);
 
-    addEventListener("resize", () => {
-      resize();
-      createParticles();
-    });
+          ctx.fillStyle = "${plan.primary}";
+          for (const part of snake) {
+            ctx.fillRect(part.x * size + 3, part.y * size + 3, size - 6, size - 6);
+          }
+        }
 
-    resize();
-    createParticles();
-    draw();
-  </script>
-</body>
-</html>`;
-  }
-
-  generateSnakeCanvasHTML(design, theme) {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>${this.escapeHTML(design.title)} Snake</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      background: #020617;
-      color: #f8fafc;
-      font-family: system-ui, sans-serif;
-      padding: 20px;
-    }
-
-    .app {
-      width: min(560px, 100%);
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      border-radius: 26px;
-      overflow: hidden;
-      box-shadow: 0 24px 80px rgba(0,0,0,0.4);
-    }
-
-    header {
-      padding: 16px;
-      display: flex;
-      justify-content: space-between;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-    }
-
-    canvas {
-      width: 100%;
-      aspect-ratio: 1;
-      background: #020617;
-      display: block;
-    }
-
-    button {
-      border: 0;
-      border-radius: 999px;
-      padding: 8px 12px;
-      color: white;
-      font-weight: 800;
-      background: linear-gradient(135deg, ${design.primaryColor}, ${design.secondaryColor});
-      cursor: pointer;
-    }
-  </style>
-</head>
-<body>
-  <main class="app">
-    <header>
-      <strong>${this.escapeHTML(design.title || "Snake Game")}</strong>
-      <span>Score: <span id="score">0</span></span>
-      <button id="restart">Restart</button>
-    </header>
-    <canvas id="canvas" width="480" height="480"></canvas>
-  </main>
-
-  <script>
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    const scoreEl = document.getElementById("score");
-    const restart = document.getElementById("restart");
-
-    const size = 24;
-    const cells = canvas.width / size;
-
-    let snake;
-    let food;
-    let dir;
-    let nextDir;
-    let score;
-    let alive;
-
-    function reset() {
-      snake = [{ x: 10, y: 10 }];
-      food = randomFood();
-      dir = { x: 1, y: 0 };
-      nextDir = { x: 1, y: 0 };
-      score = 0;
-      alive = true;
-      scoreEl.textContent = score;
-    }
-
-    function randomFood() {
-      return {
-        x: Math.floor(Math.random() * cells),
-        y: Math.floor(Math.random() * cells)
-      };
-    }
-
-    function tick() {
-      if (!alive) return;
-
-      dir = nextDir;
-
-      const head = {
-        x: snake[0].x + dir.x,
-        y: snake[0].y + dir.y
-      };
-
-      if (
-        head.x < 0 ||
-        head.y < 0 ||
-        head.x >= cells ||
-        head.y >= cells ||
-        snake.some(part => part.x === head.x && part.y === head.y)
-      ) {
-        alive = false;
-        draw();
-        return;
-      }
-
-      snake.unshift(head);
-
-      if (head.x === food.x && head.y === food.y) {
-        score++;
-        scoreEl.textContent = score;
-        food = randomFood();
-      } else {
-        snake.pop();
-      }
-
-      draw();
-    }
-
-    function draw() {
-      ctx.fillStyle = "#020617";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.strokeStyle = "rgba(148,163,184,0.08)";
-      for (let i = 0; i <= cells; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i * size, 0);
-        ctx.lineTo(i * size, canvas.height);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(0, i * size);
-        ctx.lineTo(canvas.width, i * size);
-        ctx.stroke();
-      }
-
-      ctx.fillStyle = "${design.secondaryColor}";
-      ctx.fillRect(food.x * size + 4, food.y * size + 4, size - 8, size - 8);
-
-      ctx.fillStyle = "${design.primaryColor}";
-      for (const part of snake) {
-        ctx.fillRect(part.x * size + 3, part.y * size + 3, size - 6, size - 6);
-      }
-
-      if (!alive) {
-        ctx.fillStyle = "rgba(0,0,0,0.55)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "white";
-        ctx.font = "bold 42px system-ui";
-        ctx.textAlign = "center";
-        ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2);
-      }
-    }
-
-    addEventListener("keydown", event => {
-      if (event.key === "ArrowUp" && dir.y !== 1) nextDir = { x: 0, y: -1 };
-      if (event.key === "ArrowDown" && dir.y !== -1) nextDir = { x: 0, y: 1 };
-      if (event.key === "ArrowLeft" && dir.x !== 1) nextDir = { x: -1, y: 0 };
-      if (event.key === "ArrowRight" && dir.x !== -1) nextDir = { x: 1, y: 0 };
-    });
-
-    restart.addEventListener("click", reset);
-
-    reset();
-    draw();
-    setInterval(tick, 120);
-  </script>
-</body>
-</html>`;
-  }
-
-  generateTodoHTML(design) {
-    const theme = this.themeFromDesign(design);
-
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>${this.escapeHTML(design.title || "Todo App")}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      background:
-        radial-gradient(circle at top left, ${design.primaryColor}55, transparent 32%),
-        ${theme.bg};
-      color: ${theme.text};
-      font-family: system-ui, sans-serif;
-      padding: 20px;
-    }
-
-    .todo {
-      width: min(560px, 100%);
-      padding: 24px;
-      border-radius: 28px;
-      background: ${theme.panel};
-      border: 1px solid ${theme.border};
-      box-shadow: ${theme.shadow};
-      backdrop-filter: blur(16px);
-    }
-
-    h1 {
-      font-size: clamp(2rem, 8vw, 4rem);
-      letter-spacing: -0.08em;
-      margin: 0 0 16px;
-    }
-
-    form {
-      display: flex;
-      gap: 10px;
-    }
-
-    input {
-      flex: 1;
-      border: 1px solid ${theme.border};
-      background: ${theme.panel2};
-      color: ${theme.text};
-      border-radius: 999px;
-      padding: 14px 16px;
-      outline: none;
-    }
-
-    button {
-      border: 0;
-      border-radius: 999px;
-      padding: 12px 16px;
-      background: linear-gradient(135deg, ${design.primaryColor}, ${design.secondaryColor});
-      color: white;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    ul {
-      list-style: none;
-      padding: 0;
-      margin: 18px 0 0;
-      display: grid;
-      gap: 10px;
-    }
-
-    li {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      align-items: center;
-      border-radius: 18px;
-      padding: 12px 14px;
-      background: ${theme.panel2};
-      border: 1px solid ${theme.border};
-    }
-
-    .done {
-      text-decoration: line-through;
-      color: ${theme.muted};
-    }
-  </style>
-</head>
-<body>
-  <main class="todo">
-    <h1>${this.escapeHTML(design.title || "Todo App")}</h1>
-    <form id="form">
-      <input id="input" placeholder="Add a task..." />
-      <button>Add</button>
-    </form>
-    <ul id="list"></ul>
-  </main>
-
-  <script>
-    const form = document.getElementById("form");
-    const input = document.getElementById("input");
-    const list = document.getElementById("list");
-
-    let tasks = JSON.parse(localStorage.getItem("spudzy_todos") || "[]");
-
-    function save() {
-      localStorage.setItem("spudzy_todos", JSON.stringify(tasks));
-    }
-
-    function render() {
-      list.innerHTML = "";
-
-      tasks.forEach((task, index) => {
-        const li = document.createElement("li");
-
-        const span = document.createElement("span");
-        span.textContent = task.text;
-        if (task.done) span.className = "done";
-
-        const controls = document.createElement("div");
-
-        const toggle = document.createElement("button");
-        toggle.textContent = task.done ? "Undo" : "Done";
-        toggle.addEventListener("click", () => {
-          tasks[index].done = !tasks[index].done;
-          save();
-          render();
+        addEventListener("keydown", event => {
+          if (event.key === "ArrowUp" && dir.y !== 1) nextDir = { x: 0, y: -1 };
+          if (event.key === "ArrowDown" && dir.y !== -1) nextDir = { x: 0, y: 1 };
+          if (event.key === "ArrowLeft" && dir.x !== 1) nextDir = { x: -1, y: 0 };
+          if (event.key === "ArrowRight" && dir.x !== -1) nextDir = { x: 1, y: 0 };
         });
 
-        const remove = document.createElement("button");
-        remove.textContent = "Remove";
-        remove.addEventListener("click", () => {
-          tasks.splice(index, 1);
-          save();
-          render();
-        });
-
-        controls.append(toggle, remove);
-        li.append(span, controls);
-        list.appendChild(li);
-      });
+        randomFood();
+        setInterval(() => {
+          tick();
+          draw();
+        }, 120);
+      }`;
     }
 
-    form.addEventListener("submit", event => {
-      event.preventDefault();
-      const value = input.value.trim();
-
-      if (!value) return;
-
-      tasks.push({ text: value, done: false });
-      input.value = "";
-      save();
-      render();
-    });
-
-    render();
-  </script>
-</body>
-</html>`;
+    return "";
   }
 
-  generateCalculatorHTML(design) {
-    const theme = this.themeFromDesign(design);
+  // ===========================================================================
+  // SPECIAL APP GENERATORS
+  // ===========================================================================
+
+  generateCalculatorHTML(plan) {
+    const theme = this.getTheme(plan);
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>${this.escapeHTML(design.title || "Calculator")}</title>
+  <title>${this.escapeHTML(plan.title || "Calculator")}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     * { box-sizing: border-box; }
@@ -1829,16 +2300,14 @@ class Spudzy {
       min-height: 100vh;
       display: grid;
       place-items: center;
-      background:
-        radial-gradient(circle at top, ${design.primaryColor}44, transparent 35%),
-        ${theme.bg};
+      background: radial-gradient(circle at top, ${plan.primary}44, transparent 35%), ${theme.bg};
       color: ${theme.text};
       font-family: system-ui, sans-serif;
       padding: 20px;
     }
 
     .calc {
-      width: min(380px, 100%);
+      width: min(390px, 100%);
       padding: 18px;
       border-radius: 28px;
       background: ${theme.panel};
@@ -1882,7 +2351,7 @@ class Spudzy {
 
     .op,
     .equals {
-      background: linear-gradient(135deg, ${design.primaryColor}, ${design.secondaryColor});
+      background: linear-gradient(135deg, ${plan.primary}, ${plan.secondary});
       color: white;
     }
 
@@ -1898,22 +2367,18 @@ class Spudzy {
       <button data-key="C" class="wide">C</button>
       <button data-key="/" class="op">÷</button>
       <button data-key="*" class="op">×</button>
-
       <button data-key="7">7</button>
       <button data-key="8">8</button>
       <button data-key="9">9</button>
       <button data-key="-" class="op">−</button>
-
       <button data-key="4">4</button>
       <button data-key="5">5</button>
       <button data-key="6">6</button>
       <button data-key="+" class="op">+</button>
-
       <button data-key="1">1</button>
       <button data-key="2">2</button>
       <button data-key="3">3</button>
       <button data-key="=" class="equals">=</button>
-
       <button data-key="0" class="wide">0</button>
       <button data-key=".">.</button>
       <button data-key="Backspace">⌫</button>
@@ -1923,17 +2388,13 @@ class Spudzy {
   <script>
     const screen = document.getElementById("screen");
     const buttons = document.querySelectorAll("button");
-
     let expr = "";
 
     function safeEval(value) {
       if (!/^[0-9+\\-*/.() ]+$/.test(value)) return "Error";
-
       try {
         const result = Function('"use strict"; return (' + value + ')')();
-
         if (!Number.isFinite(result)) return "Error";
-
         return String(Number.isInteger(result) ? result : Number(result.toFixed(8)));
       } catch {
         return "Error";
@@ -1945,51 +2406,34 @@ class Spudzy {
     }
 
     function press(key) {
-      if (key === "C") {
-        expr = "";
-      } else if (key === "Backspace") {
-        expr = expr.slice(0, -1);
-      } else if (key === "=") {
-        expr = safeEval(expr);
-      } else {
-        expr += key;
-      }
-
+      if (key === "C") expr = "";
+      else if (key === "Backspace") expr = expr.slice(0, -1);
+      else if (key === "=") expr = safeEval(expr);
+      else expr += key;
       update();
     }
 
-    buttons.forEach(button => {
-      button.addEventListener("click", () => press(button.dataset.key));
-    });
+    buttons.forEach(button => button.addEventListener("click", () => press(button.dataset.key)));
 
     addEventListener("keydown", event => {
-      const allowed = "0123456789+-*/.=";
-
-      if (allowed.includes(event.key)) {
-        press(event.key === "Enter" ? "=" : event.key);
-      }
-
-      if (event.key === "Backspace") {
-        press("Backspace");
-      }
-
-      if (event.key === "Escape") {
-        press("C");
-      }
+      if ("0123456789+-*/.".includes(event.key)) press(event.key);
+      if (event.key === "Enter") press("=");
+      if (event.key === "Backspace") press("Backspace");
+      if (event.key === "Escape") press("C");
     });
   </script>
 </body>
 </html>`;
   }
 
-  generateChatbotHTML(design) {
-    const theme = this.themeFromDesign(design);
+  generateTodoHTML(plan) {
+    const theme = this.getTheme(plan);
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>${this.escapeHTML(design.title || "Mini Chatbot")}</title>
+  <title>${this.escapeHTML(plan.title || "Todo App")}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     * { box-sizing: border-box; }
@@ -1999,9 +2443,167 @@ class Spudzy {
       min-height: 100vh;
       display: grid;
       place-items: center;
-      background:
-        radial-gradient(circle at top left, ${design.primaryColor}44, transparent 32%),
-        ${theme.bg};
+      background: radial-gradient(circle at top left, ${plan.primary}55, transparent 32%), ${theme.bg};
+      color: ${theme.text};
+      font-family: system-ui, sans-serif;
+      padding: 20px;
+    }
+
+    .todo {
+      width: min(590px, 100%);
+      padding: 24px;
+      border-radius: 28px;
+      background: ${theme.panel};
+      border: 1px solid ${theme.border};
+      box-shadow: ${theme.shadow};
+      backdrop-filter: blur(16px);
+    }
+
+    h1 {
+      font-size: clamp(2rem, 8vw, 4rem);
+      letter-spacing: -0.08em;
+      margin-bottom: 16px;
+    }
+
+    form {
+      display: flex;
+      gap: 10px;
+    }
+
+    input {
+      flex: 1;
+      border: 1px solid ${theme.border};
+      background: ${theme.panel2};
+      color: ${theme.text};
+      border-radius: 999px;
+      padding: 14px 16px;
+      outline: none;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, ${plan.primary}, ${plan.secondary});
+      color: white;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 18px 0 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    li {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      border-radius: 18px;
+      padding: 12px 14px;
+      background: ${theme.panel2};
+      border: 1px solid ${theme.border};
+    }
+
+    .done {
+      text-decoration: line-through;
+      color: ${theme.muted};
+    }
+  </style>
+</head>
+<body>
+  <main class="todo">
+    <h1>${this.escapeHTML(plan.title || "Todo App")}</h1>
+    <form id="form">
+      <input id="input" placeholder="Add a task..." />
+      <button>Add</button>
+    </form>
+    <ul id="list"></ul>
+  </main>
+
+  <script>
+    const form = document.getElementById("form");
+    const input = document.getElementById("input");
+    const list = document.getElementById("list");
+    let tasks = JSON.parse(localStorage.getItem("spudzy_todos_v9") || "[]");
+
+    function save() {
+      localStorage.setItem("spudzy_todos_v9", JSON.stringify(tasks));
+    }
+
+    function render() {
+      list.innerHTML = "";
+
+      tasks.forEach((task, index) => {
+        const li = document.createElement("li");
+
+        const span = document.createElement("span");
+        span.textContent = task.text;
+        if (task.done) span.className = "done";
+
+        const controls = document.createElement("div");
+
+        const toggle = document.createElement("button");
+        toggle.textContent = task.done ? "Undo" : "Done";
+        toggle.addEventListener("click", () => {
+          tasks[index].done = !tasks[index].done;
+          save();
+          render();
+        });
+
+        const remove = document.createElement("button");
+        remove.textContent = "Remove";
+        remove.addEventListener("click", () => {
+          tasks.splice(index, 1);
+          save();
+          render();
+        });
+
+        controls.append(toggle, remove);
+        li.append(span, controls);
+        list.appendChild(li);
+      });
+    }
+
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      const value = input.value.trim();
+      if (!value) return;
+
+      tasks.push({ text: value, done: false });
+      input.value = "";
+      save();
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>`;
+  }
+
+  generateChatbotHTML(plan) {
+    const theme = this.getTheme(plan);
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>${this.escapeHTML(plan.title || "Mini Chatbot")}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at top left, ${plan.primary}44, transparent 32%), ${theme.bg};
       color: ${theme.text};
       font-family: system-ui, sans-serif;
       padding: 20px;
@@ -2048,7 +2650,7 @@ class Spudzy {
     }
 
     .user {
-      background: linear-gradient(135deg, ${design.primaryColor}, ${design.secondaryColor});
+      background: linear-gradient(135deg, ${plan.primary}, ${plan.secondary});
       color: white;
       align-self: flex-end;
     }
@@ -2075,7 +2677,7 @@ class Spudzy {
       border-radius: 999px;
       padding: 12px 18px;
       color: white;
-      background: linear-gradient(135deg, ${design.primaryColor}, ${design.secondaryColor});
+      background: linear-gradient(135deg, ${plan.primary}, ${plan.secondary});
       font-weight: 800;
       cursor: pointer;
     }
@@ -2083,7 +2685,7 @@ class Spudzy {
 </head>
 <body>
   <main class="chat">
-    <header>${this.escapeHTML(design.title || "Mini Chatbot")}</header>
+    <header>${this.escapeHTML(plan.title || "Mini Chatbot")}</header>
     <section class="messages" id="messages"></section>
     <form id="form">
       <input id="input" placeholder="Say something..." autocomplete="off" />
@@ -2099,9 +2701,10 @@ class Spudzy {
     const replies = [
       "That is interesting.",
       "Tell me more.",
-      "I am a small local chatbot demo.",
+      "I am a local chatbot demo.",
       "No backend needed for this example.",
-      "Spudzy generated this interface."
+      "Spudzy generated this interface.",
+      "Try asking me to build another section."
     ];
 
     function add(text, type) {
@@ -2114,7 +2717,6 @@ class Spudzy {
 
     form.addEventListener("submit", event => {
       event.preventDefault();
-
       const text = input.value.trim();
       if (!text) return;
 
@@ -2131,78 +2733,9 @@ class Spudzy {
 </html>`;
   }
 
-  generateCSSTheme(design) {
-    const theme = this.themeFromDesign(design);
-
-    return `:root {
-  --bg: ${theme.bg};
-  --panel: ${theme.panel};
-  --panel2: ${theme.panel2};
-  --text: ${theme.text};
-  --muted: ${theme.muted};
-  --border: ${theme.border};
-  --primary: ${design.primaryColor};
-  --secondary: ${design.secondaryColor};
-  --radius: 24px;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 35%, transparent), transparent 32%),
-    radial-gradient(circle at bottom right, color-mix(in srgb, var(--secondary) 30%, transparent), transparent 32%),
-    var(--bg);
-  color: var(--text);
-  font-family: system-ui, sans-serif;
-}
-
-.card {
-  background: var(--panel);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 24px;
-  backdrop-filter: blur(16px);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
-}
-
-button {
-  border: 0;
-  border-radius: 999px;
-  padding: 12px 18px;
-  color: white;
-  font-weight: 800;
-  cursor: pointer;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-}`;
-  }
-
-  generateButtonJS(design) {
-    return `document.addEventListener("DOMContentLoaded", () => {
-  const button = document.createElement("button");
-
-  button.textContent = "Spudzy Button";
-  button.style.border = "0";
-  button.style.borderRadius = "999px";
-  button.style.padding = "14px 22px";
-  button.style.color = "white";
-  button.style.fontWeight = "800";
-  button.style.cursor = "pointer";
-  button.style.background = "linear-gradient(135deg, ${design.primaryColor}, ${design.secondaryColor})";
-  button.style.boxShadow = "0 18px 45px rgba(0,0,0,0.25)";
-
-  button.addEventListener("click", () => {
-    alert("🥔 Spudzy says hi!");
-  });
-
-  document.body.appendChild(button);
-});`;
-  }
+  // ===========================================================================
+  // CODE EXPLAIN / FIX
+  // ===========================================================================
 
   handleExplainCode(ctx) {
     const code = this.extractCode(ctx.raw);
@@ -2223,9 +2756,16 @@ button {
     if (/addEventListener\s*\(/.test(code)) facts.push("It listens for events.");
     if (/localStorage/.test(code)) facts.push("It saves or reads data from localStorage.");
     if (/canvas|getContext\s*\(/.test(code)) facts.push("It uses canvas drawing.");
-    if (/innerHTML/.test(code)) tips.push("If user input touches innerHTML, prefer textContent to reduce injection risk.");
-    if (/fetch\s*\(/.test(code) && !/catch\s*\(/.test(code) && !/try\s*{/.test(code)) tips.push("Add try/catch or .catch() around fetch.");
-    if (/document\.getElementById/.test(code) && !/DOMContentLoaded/.test(code)) tips.push("Make sure DOM elements exist before selecting them.");
+
+    if (/innerHTML/.test(code)) {
+      tips.push("If user input touches innerHTML, prefer textContent unless HTML is required.");
+    }
+    if (/fetch\s*\(/.test(code) && !/catch\s*\(/.test(code) && !/try\s*{/.test(code)) {
+      tips.push("Add try/catch or .catch() around fetch.");
+    }
+    if (/document\.getElementById/.test(code) && !/DOMContentLoaded/.test(code)) {
+      tips.push("Make sure DOM elements exist before selecting them.");
+    }
 
     return [
       "Spudzy code explainer 💻",
@@ -2233,7 +2773,7 @@ button {
       "Detected:",
       facts.length ? facts.map(x => "- " + x).join("\n") : "- I did not detect many recognizable structures.",
       "",
-      "What to improve:",
+      "Improvement tips:",
       tips.length ? tips.map(x => "- " + x).join("\n") : "- The code looks structurally okay from quick static inspection.",
       "",
       "Plain English:",
@@ -2250,20 +2790,9 @@ button {
 
     const issues = [];
 
-    const pairs = [
-      ["(", ")"],
-      ["{", "}"],
-      ["[", "]"]
-    ];
-
-    for (const [open, close] of pairs) {
-      const a = (code.match(new RegExp("\\" + open, "g")) || []).length;
-      const b = (code.match(new RegExp("\\" + close, "g")) || []).length;
-
-      if (a !== b) {
-        issues.push(`Unbalanced ${open}${close}: found ${a} opening and ${b} closing.`);
-      }
-    }
+    this.checkPairs(code, "(", ")", "parentheses", issues);
+    this.checkPairs(code, "{", "}", "curly braces", issues);
+    this.checkPairs(code, "[", "]", "square brackets", issues);
 
     if (/fetch\s*\(/.test(code) && !/catch\s*\(/.test(code) && !/try\s*{/.test(code)) {
       issues.push("fetch is used without visible error handling.");
@@ -2271,10 +2800,6 @@ button {
 
     if (/innerHTML\s*=/.test(code)) {
       issues.push("innerHTML is used. If content comes from users, use textContent instead.");
-    }
-
-    if (/document\.getElementById\s*\(["'][^"']+["']\)/.test(code) && !/DOMContentLoaded/.test(code) && !/<script[\s\S]*<\/script>/i.test(code)) {
-      issues.push("DOM elements may be selected before the page loads.");
     }
 
     if (/const\s+\w+\s*;/.test(code)) {
@@ -2313,6 +2838,15 @@ button {
       .trim();
   }
 
+  checkPairs(code, open, close, name, issues) {
+    const a = (code.match(new RegExp("\\" + open, "g")) || []).length;
+    const b = (code.match(new RegExp("\\" + close, "g")) || []).length;
+
+    if (a !== b) {
+      issues.push(`Unbalanced ${name}: found ${a} opening and ${b} closing.`);
+    }
+  }
+
   plainEnglishCodeSummary(code) {
     const parts = [];
 
@@ -2324,15 +2858,21 @@ button {
     if (/canvas|getContext/.test(code)) parts.push("It draws graphics.");
     if (/addEventListener/.test(code)) parts.push("It reacts to user actions.");
 
-    return parts.length ? parts.join(" ") : "It appears to be code, but I need more context to explain it precisely.";
+    return parts.length
+      ? parts.join(" ")
+      : "It appears to be code, but I need more context to explain it precisely.";
   }
+
+  // ===========================================================================
+  // SEARCH
+  // ===========================================================================
 
   async handleSearch(ctx) {
     if (!this.cfg.enableSearch) {
       return "Spudzy search is disabled.";
     }
 
-    const query = ctx.topic || ctx.raw;
+    const query = ctx.topic || ctx.corrected || ctx.raw;
 
     if (!query) {
       return "Spudzy search mode 🌐 — Tell me what to search for.";
@@ -2358,9 +2898,7 @@ button {
     results.push(...await this.searchGitHub(query));
     results.push(...await this.searchHackerNews(query));
 
-    return results
-      .filter(Boolean)
-      .slice(0, this.cfg.searchLimit);
+    return results.filter(Boolean).slice(0, this.cfg.searchLimit);
   }
 
   async searchCustomEndpoint(query) {
@@ -2369,7 +2907,6 @@ button {
       if (!res.ok) return [];
 
       const data = await res.json();
-
       if (!Array.isArray(data.results)) return [];
 
       return data.results.map(item => ({
@@ -2493,6 +3030,10 @@ button {
     return output;
   }
 
+  // ===========================================================================
+  // MATH / MEMORY / OTHER MODES
+  // ===========================================================================
+
   handleMath(ctx) {
     if (!this.cfg.enableMath) {
       return "Math is disabled.";
@@ -2505,7 +3046,6 @@ button {
     }
 
     const results = matches.map(expr => `${expr} = ${this.safeMath(expr)}`);
-
     return "Spudzy math mode 🧮 — " + results.join("; ");
   }
 
@@ -2532,7 +3072,7 @@ button {
       return "Memory is disabled.";
     }
 
-    if (ctx.lower.includes("remember")) {
+    if (ctx.corrected.includes("remember")) {
       const text = ctx.raw.replace(/remember/ig, "").trim();
 
       if (!text) return "Tell Spudzy what to remember.";
@@ -2549,7 +3089,7 @@ button {
       return `Spudzy remembered: ${text}`;
     }
 
-    if (ctx.lower.includes("forget")) {
+    if (ctx.corrected.includes("forget")) {
       const text = ctx.raw.replace(/forget/ig, "").trim().toLowerCase();
 
       const before = this.memory.length;
@@ -2579,14 +3119,14 @@ button {
       "",
       `Once upon a time, ${subject} became a tiny spark inside a JavaScript file.`,
       "Every function was a doorway. Every bug was a dragon. Every button was a portal.",
-      "By the end, the little app learned that even browser code can feel magical when it is built with imagination."
+      "By the end, the little app learned that even browser code can feel magical when built with imagination."
     ].join("\n");
   }
 
   handleRoast(ctx) {
     const roasts = [
-      "That idea walked into the kitchen and forgot the recipe.",
-      "Your prompt has potential. It is currently hiding from it.",
+      "That prompt walked into the kitchen and forgot the recipe.",
+      "Your idea has potential. It is currently hiding from it.",
       "Spudzy looked at that and almost opened DevTools out of concern.",
       "That sentence compiled, but emotionally it threw an error.",
       "You cooked. The smoke alarm disagreed."
@@ -2596,7 +3136,7 @@ button {
   }
 
   handleQuestion(ctx) {
-    const kb = this.searchKB(ctx.raw);
+    const kb = this.searchKB(ctx.corrected);
 
     if (kb) {
       return "Spudzy 🥔 — " + kb.a;
@@ -2605,9 +3145,10 @@ button {
     return [
       "Spudzy 🥔 — I can help with that.",
       "",
-      "If you want the strongest result, ask me in one of these forms:",
+      "Try one of these:",
       "• make html for a dark neon portfolio with cards",
-      "• create a canvas bouncing ball animation",
+      "• create html for a minecraft like voxel sandbox page with falling blocks",
+      "• make a calculator with luxury gold dark theme",
       "• fix this code: ...",
       "• explain this code: ...",
       "• search the internet for ..."
@@ -2615,14 +3156,18 @@ button {
   }
 
   handleChat(ctx) {
-    const kb = this.searchKB(ctx.raw);
+    const kb = this.searchKB(ctx.corrected);
 
     if (kb) {
       return "Spudzy 🥔 — " + kb.a;
     }
 
+    const typoLine = ctx.typoChanges.length
+      ? "\n\nTypo handling noticed: " + ctx.typoChanges.slice(0, 6).map(t => `${t.from}→${t.to}`).join(", ")
+      : "";
+
     const remembered = this.memory
-      .filter(item => this.similarity(ctx.raw, item.text) > 0.15)
+      .filter(item => this.similarity(ctx.corrected, item.text) > 0.15)
       .slice(0, 2);
 
     let reply = `Spudzy 🥔 — I processed your message. Main idea: ${this.keywords(ctx.tokens).join(", ") || "general chat"}.`;
@@ -2631,10 +3176,15 @@ button {
       reply += "\n\nRelevant memory:\n" + remembered.map(item => "- " + item.text).join("\n");
     }
 
-    reply += "\n\nTry: `make html for a dark neon landing page with cards and a form`.";
+    reply += typoLine;
+    reply += "\n\nTry: `make html for a minecraft like voxel sandbox landing page with animated falling blocks`.";
 
     return reply;
   }
+
+  // ===========================================================================
+  // TEXT UTILITIES
+  // ===========================================================================
 
   searchKB(text) {
     let best = null;
@@ -2676,7 +3226,6 @@ button {
   similarity(a, b) {
     const av = this.vectorize(a);
     const bv = this.vectorize(b);
-
     const keys = new Set([...Object.keys(av), ...Object.keys(bv)]);
 
     let dot = 0;
@@ -2721,7 +3270,7 @@ button {
 
     return Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
+      .slice(0, 10)
       .map(([word]) => word);
   }
 
@@ -2732,7 +3281,7 @@ button {
       "i", "you", "me", "my", "your", "it", "that", "this", "as", "at",
       "so", "if", "then", "do", "does", "did", "can", "could", "would",
       "should", "will", "just", "like", "make", "create", "generate",
-      "write", "html", "code", "page", "website"
+      "write", "html", "code", "page", "website", "web", "app"
     ]);
   }
 
@@ -2755,36 +3304,6 @@ button {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
-  }
-
-  exportState() {
-    return {
-      version: this.version,
-      history: this.history,
-      memory: this.memory,
-      kb: this.kb
-    };
-  }
-
-  importState(state = {}) {
-    if (Array.isArray(state.history)) this.history = state.history;
-    if (Array.isArray(state.memory)) this.memory = state.memory;
-    if (Array.isArray(state.kb)) this.kb = state.kb;
-  }
-
-  addKnowledge(question, answer) {
-    this.kb.push({
-      q: String(question || ""),
-      a: String(answer || "")
-    });
-  }
-
-  clearHistory() {
-    this.history = [];
-  }
-
-  clearMemory() {
-    this.memory = [];
   }
 }
 

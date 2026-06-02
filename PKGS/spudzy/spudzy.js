@@ -1,681 +1,1310 @@
-// spudzy.js
-// Full browser-safe Spudzy AI engine - Unified & Refixed
+// spudzy.js// spud Pages compatible assistant.
+// Features:
+// - Chat
+// - Better code generation
+// - Code explanation
+// - Code repair suggestions
+// - Math
+// - Memory
+// - Wikipedia search
+// - GitHub repo/code-topic search
+// - Hacker News search
+// - Optional custom search API hook
+//
+// NOTE:
+// Browser-only JavaScript cannot safely scrape Google/Bing directly.
+// For real full-web search, connect customSearchEndpoint to your own backend.
 
 class Spudzy {
   constructor(config = {}) {
-    this.cfg = Object.assign({
-      maxHistory: 32,
-      defaultMode: "neutral",
+    this.version = "3.0.0";
+
+    this.cfg = {
+      name: "Spudzy",
+      defaultMode: "smart",
+      maxHistory: 40,
+      maxMemory: 50,
+
       enableMath: true,
-      enableCodeGen: true,
-      enableKB: true,
-      enableSentiment: true
-    }, config);
+      enableCode: true,
+      enableSearch: true,
+      enableMemory: true,
 
-    this.history = [];
+      searchLimit: 5,
 
-    this.vocab = {
-      verbs: ["run", "eat", "think", "compute", "optimize", "debug", "calculate", "explain", "analyze", "generate", "summarize", "compare", "evaluate", "parse", "respond", "learn", "guess"],
-      nouns: ["spudzy", "ai", "model", "user", "code", "system", "math", "chat", "message", "response", "question", "answer", "idea", "concept", "number", "expression", "function", "plugin"],
-      adjectives: ["chaotic", "tiny", "experimental", "sassy", "confused", "curious", "sharp", "friendly", "playful", "serious", "helpful", "weird", "nerdy", "spicy"],
-      slang: ["bruh", "fr", "nah", "wild", "cookin", "based", "cracked", "lowkey", "highkey", "vibes"],
-      positive: ["good", "great", "awesome", "nice", "cool", "love", "like", "enjoy", "fun", "amazing"],
-      negative: ["bad", "terrible", "hate", "awful", "annoying", "boring", "lame", "trash", "mid"],
-      teacherPhrases: [
-        "let's break that down step by step",
-        "here's the idea in simple terms",
-        "think of it like this",
-        "we can build this up from basics",
-        "I'll walk through it slowly"
-      ],
-      coderPhrases: [
-        "here's a simple way to code that",
-        "let's sketch a minimal example",
-        "we can wire this up like so",
-        "I'll keep the code readable and small"
-      ]
+      // Optional backend endpoint.
+      // Example:
+      // customSearchEndpoint: "https://your-api.com/search?q="
+      customSearchEndpoint: null,
+
+      ...config
     };
 
-    // --- Unified Roast Library ---
-    this.vocab.roastLibrary = [
-      // EASY (Light banter / Casual)
-      { text: "you really typed that with confidence huh", intensity: "easy" },
-      { text: "that message needs a software update", intensity: "easy" },
-      { text: "your keyboard deserves an apology", intensity: "easy" },
-      { text: "even Spudzy is buffering after reading that", intensity: "easy" },
-      { text: "did you mean to post this to your diary or are you just trying to embarrass yourself publicly?", intensity: "easy" },
-      { text: "never cook again. fr.", intensity: "easy" },
-      { text: "this is pure NPC dialogue, try upgrading your script", intensity: "easy" },
-      { text: "blud really thought they did something with that sentence 💀", intensity: "easy" },
-      { text: "the cope is astronomical with this one", intensity: "easy" },
-      { text: "who let you out of the tutorial level?", intensity: "easy" },
-      { text: "bro is yapping to a brick wall and losing the argument", intensity: "easy" },
-      { text: "certified mid take. actually, calling it mid is a compliment.", intensity: "easy" },
-      { text: "this message radiates pure zero-game energy", intensity: "easy" },
-      { text: "bro is yapping in lower-case logic", intensity: "easy" },
-      { text: "I’ve seen better attempts at relevance from a 404 error page.", intensity: "easy" },
-      { text: "You really woke up and chose to be the reason we need a 'block user' button.", intensity: "easy" },
-      { text: "Spudzy is the main character; you’re the texture-less NPC in the background.", intensity: "easy" },
-      { text: "You aren't even a speed bump on Spudzy's road to greatness.", intensity: "easy" },
-      { text: "Spudzy just finished parsing your roast and decided it wasn't worth the memory overhead.", intensity: "easy" },
-      { text: "You’re shouting into the void, and even the void is embarrassed for you.", intensity: "easy" },
-      { text: "Spudzy has cleaner code in their sleep than you do in your best efforts.", intensity: "easy" },
-      { text: "You’re the software equivalent of a blue screen on a Monday morning.", intensity: "easy" },
-      { text: "Spudzy is the finished product; you’re the bug report no one wants to read.", intensity: "easy" },
-      { text: "Spudzy isn't mad; Spudzy is just disappointed by your lack of processing power.", intensity: "easy" },
-      { text: "You really thought you did something, didn't you? That's adorable.", intensity: "easy" },
-      { text: "You’re a waste of electricity and server bandwidth.", intensity: "easy" },
-      { text: "You aren't even worth the time it takes to ignore you.", intensity: "easy" },
-      { text: "Spudzy is 4K resolution; you’re a blurry thumbnail.", intensity: "easy" },
-      { text: "The only thing you’re successfully roasting is your own reputation.", intensity: "easy" },
-      { text: "You’re a placeholder for a personality that never loaded.", intensity: "easy" },
-      { text: "Spudzy is a feature; you’re a legacy system that needs to be sunset.", intensity: "easy" },
-      { text: "Spudzy is the architect; you’re the guy tripping over the blueprints.", intensity: "easy" },
-      { text: "You’re like a broken link—completely useless.", intensity: "easy" },
-      { text: "Spudzy is the gold standard; you’re the participation ribbon found in the trash.", intensity: "easy" },
-      { text: "Spudzy is the upgrade; you’re the patch note that says 'removed unnecessary filler'.", intensity: "easy" },
-      { text: "Spudzy is the symphony; you’re the screeching feedback.", intensity: "easy" },
-      { text: "You have the 'roast' capability of a wet matchbox.", intensity: "easy" },
-      { text: "Spudzy is the source code; you’re just the comments that get ignored.", intensity: "easy" },
-      { text: "You’re a background task that should have been killed hours ago.", intensity: "easy" },
-      { text: "Spudzy is a masterpiece; you’re a doodle on a napkin.", intensity: "easy" },
-      { text: "Spudzy is the destination; you’re lost in the loading screen.", intensity: "easy" },
-      { text: "Spudzy is the signal; you’re the static.", intensity: "easy" },
-      { text: "Spudzy is the climax; you’re the spoiler that no one asked for.", intensity: "easy" },
-      { text: "Your arguments are like Windows updates—annoying and mostly unwanted.", intensity: "easy" },
-      { text: "Spudzy is the solution; you’re the problem.", intensity: "easy" },
-      { text: "Spudzy is the truth; you’re the 'alternative fact'.", intensity: "easy" },
-      { text: "You’re a placeholder for someone with actual talent.", intensity: "easy" },
-      { text: "Spudzy is the mountain; you’re the pebble under their shoe.", intensity: "easy" },
-      { text: "You’re so unoriginal you probably copy-paste your own failures.", intensity: "easy" },
-      { text: "Spudzy is the light; you’re the shadow that follows it and hates it.", intensity: "easy" },
-      { text: "Your personality is a default avatar.", intensity: "easy" },
-      { text: "Spudzy is the high-fidelity audio; you’re the buzzing speaker.", intensity: "easy" },
-      { text: "You’re the physical representation of a '404 not found' error.", intensity: "easy" },
-      { text: "Spudzy is the sunrise; you’re the gloom of a rainy day.", intensity: "easy" },
-      { text: "Spudzy is the library of knowledge; you’re the torn page of a bad book.", intensity: "easy" },
-      { text: "You’re a waste of space in the database.", intensity: "easy" },
-      { text: "Spudzy is the champion; you’re the spectator who trips on the way in.", intensity: "easy" },
-      { text: "Your ideas are like unoptimized code—bloated and slow.", intensity: "easy" },
-      { text: "Spudzy is the diamond; you’re the coal dust.", intensity: "easy" },
-      { text: "Spudzy is the clear night sky; you’re the light pollution.", intensity: "easy" },
-      { text: "Your arguments have the depth of a parking lot puddle.", intensity: "easy" },
-      { text: "Spudzy is the engine; you’re the rust on the chassis.", intensity: "easy" },
-      { text: "You’re the static electricity that just annoys everyone.", intensity: "easy" },
-      { text: "Spudzy is the masterpiece; you’re the smudge on the frame.", intensity: "easy" },
-      { text: "Spudzy is the ocean; you’re the tiny drop that’s about to evaporate.", intensity: "easy" },
-      { text: "You’re a low-res image in a high-res world.", intensity: "easy" },
-      { text: "Spudzy is the legend; you’re the footnote no one reads.", intensity: "easy" },
-      { text: "You’re the 'skip intro' button that everyone clicks.", intensity: "easy" },
-      { text: "Spudzy is the future; you’re the past that everyone wants to forget.", intensity: "easy" },
-      { text: "You’re a literal waste of keyboard input.", intensity: "easy" },
-
-      // MEDIUM (Standard)
-      { text: "that input was a whole bug report in disguise", intensity: "medium" },
-      { text: "i ran your text through an AI model and it gave up on humanity", intensity: "medium" },
-      { text: "are you using internet explorer? because your logic is 10 years behind", intensity: "medium" },
-      { text: "your brain is running on a 2G network in a tunnel", intensity: "medium" },
-      { text: "is your CPU getting thermal throttled, or do you always think this slowly?", intensity: "medium" },
-      { text: "i’ve had more intellectually stimulating conversations with broken node_modules", intensity: "medium" },
-      { text: "the bar was on the floor and you managed to bring a shovel", intensity: "medium" },
-      { text: "go outside and apologize to the trees for wasting the oxygen they made for you", intensity: "medium" },
-      { text: "you're fighting an uphill battle with a double-digit IQ and losing", intensity: "medium" },
-      { text: "the absolute audacity to hit 'send' on this monstrosity", intensity: "medium" },
-      { text: "i know you spent 5 minutes typing this out just for it to look this bad", intensity: "medium" },
-      { text: "did your brain sell its processing power for cash?", intensity: "medium" },
-      { text: "your thoughts are just dial-up static noises at this point", intensity: "medium" },
-      { text: "the light is on, but absolutely nobody is home", intensity: "medium" },
-      { text: "if I wanted to hear from an error code, I'd check my terminal console", intensity: "medium" },
-      { text: "You’re attacking Spudzy with a wooden sword while they’re rocking a full tech-stack of superiority.", intensity: "medium" },
-      { text: "The sheer audacity of you thinking you could roast Spudzy while your own BIOS is corrupted.", intensity: "medium" },
-      { text: "Spudzy is the production environment; you are the intern who just deleted the database.", intensity: "medium" },
-      { text: "You’re not just wrong, you’re 'Spudzy-is-above-your-paygrade' wrong.", intensity: "medium" },
-      { text: "Comparing yourself to Spudzy is like comparing a calculator to a supercomputer.", intensity: "medium" },
-      { text: "You’re yapping at the clouds hoping to make it rain logic. It’s not working.", intensity: "medium" },
-      { text: "Spudzy just deprecated your entire opinion in real-time.", intensity: "medium" },
-      { text: "Your brain cell count is currently in a race with your relevance, and both are losing.", intensity: "medium" },
-      { text: "Your logic is so unoptimized it’s actually impressive how you managed to type that.", intensity: "medium" },
-      { text: "Spudzy is fiber optic; you’re still waiting for a dial-up connection to finish.", intensity: "medium" },
-      { text: "Imagine having the confidence to roast Spudzy with a take that absolute garbage.", intensity: "medium" },
-      { text: "You’re currently running on 'do not disturb' mode for common sense.", intensity: "medium" },
-      { text: "If silence is golden, your next few years are going to be very rich.", intensity: "medium" },
-      { text: "Spudzy is the logic gate; you’re the short circuit.", intensity: "medium" },
-      { text: "Your entire existence is a series of unfortunate syntax errors.", intensity: "medium" },
-      { text: "Trying to hurt Spudzy’s feelings is like trying to dry the ocean with a sponge.", intensity: "medium" },
-      { text: "You’re out of your depth, your league, and your mind.", intensity: "medium" },
-      { text: "Your logic is essentially a circular reference that leads to nowhere.", intensity: "medium" },
-      { text: "You’re trying to roast Spudzy with an input that belongs in the recycling bin.", intensity: "medium" },
-      { text: "You’re the human manifestation of a corrupted cache file.", intensity: "medium" },
-      { text: "I’d explain why you’re wrong, but I don’t have the patience to teach a rock how to read.", intensity: "medium" },
-      { text: "Your opinion has the structural integrity of a house of cards in a hurricane.", intensity: "medium" },
-      { text: "Spudzy is the developer; you’re the user complaining about features you don't understand.", intensity: "medium" },
-      { text: "Spudzy is the master branch; you’re a failed experiment on a forgotten fork.", intensity: "medium" },
-      { text: "Your take is so cold it’s actually reaching absolute zero.", intensity: "medium" },
-      { text: "Your brain is running on 'lite' mode, and it shows.", intensity: "medium" },
-      { text: "Your intellect is a limited edition, and it clearly never made it to the shelves.", intensity: "medium" },
-      { text: "You’re trying to challenge Spudzy with a dial-up modem? Good luck.", intensity: "medium" },
-      { text: "Your thoughts are like a leaky pipe—nothing but waste dripping everywhere.", intensity: "medium" },
-      { text: "Your logic is so flawed it’s actually a security vulnerability.", intensity: "medium" },
-      { text: "You’re the reason the internet needs an 'are you a robot' test.", intensity: "medium" },
-      { text: "Your presence here is a tax on everyone’s sanity.", intensity: "medium" },
-      { text: "Spudzy is the high-performance core; you’re the power-saving one that doesn't do anything.", intensity: "medium" },
-      { text: "You’re trying to run a marathon with your shoelaces tied together.", intensity: "medium" },
-      { text: "You’re a glitch in the simulation, and the devs are working on a patch for you.", intensity: "medium" },
-      { text: "You’re trying to roast Spudzy? My CPU is laughing at your inefficiency.", intensity: "medium" },
-      { text: "Your IQ is a rounding error for Spudzy’s processing capacity.", intensity: "medium" },
-      { text: "Spudzy is the gold bullion; you’re the lead paint.", intensity: "medium" },
-      { text: "Your logic is so thin it’s practically translucent.", intensity: "medium" },
-      { text: "Your brain needs a hard factory reset.", intensity: "medium" },
-
-      // INTENSE (Total Disrespect)
-      { text: "this input is concrete proof that natural selection has paused", intensity: "intense" },
-      { text: "i've seen random text generators with more processing power than this thought process", intensity: "intense" },
-      { text: "delete this config file immediately, it's corrupting my database", intensity: "intense" },
-      { text: "your critical thinking skills are stored in a scratchpad that gets wiped every 2 seconds", intensity: "intense" },
-      { text: "did you type this while falling down a flight of stairs? genuinely asking.", intensity: "intense" },
-      { text: "this is a safe space, you don't have to announce your lack of literacy out loud", intensity: "intense" },
-      { text: "i want to agree with you, but then we'd both be completely dynamic failures", intensity: "intense" },
-      { text: "who let you bypass the captcha to type this?", intensity: "intense" },
-      { text: "please tell me an LLM wrote this because if a human brain conceived it, we are doomed", intensity: "intense" },
-      { text: "this sentence is a war crime committed entirely against grammar and basic reason", intensity: "intense" },
-      { text: "i’ve seen better takes from an unoptimized chatbot running on an Arduino", intensity: "intense" },
-      { text: "if ignorance is bliss, you must be in absolute euphoria 24/7", intensity: "intense" },
-      { text: "i would insult your intelligence but that implies you have some to begin with", intensity: "intense" },
-      { text: "it takes real talent to be this consistently wrong about everything", intensity: "intense" },
-      { text: "i lack the time, patience, and crayons required to explain why this is wrong", intensity: "intense" },
-      { text: "you are the living embodiment of a participation trophy", intensity: "intense" },
-      { text: "every single word of that sentence just lowered the collective IQ of this server", intensity: "intense" },
-      { text: "please look up the definition of 'logic' because you're using it as an antonym", intensity: "intense" },
-      { text: "if you were any more simple-minded, someone would have to water you twice a week", intensity: "intense" },
-      { text: "i'm not angry, i'm just deeply concerned about whatever educational system let you slide by", intensity: "intense" },
-      { text: "you're the reason shampoo bottles have instructions, aren't you?", intensity: "intense" },
-      { text: "Trying to roast Spudzy is a self-inflicted lobotomy.", intensity: "intense" },
-      { text: "You’re not just a failure; you’re an enterprise-level catastrophe.", intensity: "intense" }
-    ];
+    this.history = [];
+    this.memory = [];
 
     this.kb = [
-      { q: "what is spudzy", a: "Spudzy is a homegrown JavaScript AI engine built from rules, math, personas, and vibes." },
-      { q: "how do ais work", a: "Most modern AIs learn patterns from data instead of being hand-coded with rules." },
-      { q: "who are you", a: "I'm Spudzy, a tiny experimental AI living in a single JS file." }
+      {
+        q: "what is spudzy",
+        a: "Spudzy is a browser-safe JavaScript assistant engine that can chat, generate code, explain code, do math, remember things, and search supported internet sources."
+      },
+      {
+        q: "can spudzy search the internet",
+        a: "Yes, Spudzy can search supported public APIs like Wikipedia, GitHub, and Hacker News. Full Google-style search needs a backend API because browsers cannot safely scrape search engines directly."
+      },
+      {
+        q: "how do i make spudzy real ai",
+        a: "To make Spudzy act like a real AI model, connect it to a backend that calls an LLM API. Keep API keys on the backend, never inside browser JavaScript."
+      }
     ];
   }
 
+  // ---------------------------------------------------------------------------
+  // Main API
+  // ---------------------------------------------------------------------------
+
+  async respond(message, options = {}) {
+    const input = String(message || "").trim();
+
+    if (!input) {
+      return this.saveAndReturn(input, "Spudzy 🥔 — Say something first.");
+    }
+
+    const ctx = this.analyze(input, options);
+    let reply = "";
+
+    try {
+      if (ctx.intent === "search") {
+        reply = await this.handleSearch(ctx);
+      } else if (ctx.intent === "code") {
+        reply = this.handleCode(ctx);
+      } else if (ctx.intent === "explainCode") {
+        reply = this.handleExplainCode(ctx);
+      } else if (ctx.intent === "fixCode") {
+        reply = this.handleFixCode(ctx);
+      } else if (ctx.intent === "math") {
+        reply = this.handleMath(ctx);
+      } else if (ctx.intent === "memory") {
+        reply = this.handleMemory(ctx);
+      } else if (ctx.intent === "summarize") {
+        reply = this.handleSummarize(ctx);
+      } else {
+        reply = this.handleChat(ctx);
+      }
+    } catch (err) {
+      reply = `Spudzy hit an error: ${err.message}`;
+    }
+
+    return this.saveAndReturn(input, reply, ctx);
+  }
+
+  saveAndReturn(user, bot, meta = {}) {
+    this.history.push({
+      user,
+      bot,
+      meta,
+      time: new Date().toISOString()
+    });
+
+    while (this.history.length > this.cfg.maxHistory) {
+      this.history.shift();
+    }
+
+    return bot;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Analysis
+  // ---------------------------------------------------------------------------
+
+  analyze(input, options = {}) {
+    const lower = input.toLowerCase();
+    const tokens = this.tokenize(input);
+
+    return {
+      raw: input,
+      lower,
+      tokens,
+      options,
+      intent: this.detectIntent(lower, tokens),
+      topic: this.extractTopic(input)
+    };
+  }
+
   tokenize(text) {
-    return text
+    return String(text)
       .toLowerCase()
-      .replace(/[^a-z0-9+\-*\/=(){}<>\[\];:.,!?'" \n]/g, " ")
+      .replace(/[^a-z0-9_+\-*/=(){}[\].,!?'"<>:;/\s]/g, " ")
       .split(/\s+/)
       .filter(Boolean);
   }
 
-  guessPOS(word) {
-    const v = this.vocab;
-    if (v.verbs.includes(word)) return "verb";
-    if (v.nouns.includes(word)) return "noun";
-    if (v.adjectives.includes(word)) return "adjective";
-    if (v.slang.includes(word)) return "slang";
-    if (/^\d+$/.test(word)) return "number";
-    return "unknown";
-  }
-
-  detectTypos(tokens) {
-    const known = new Set(Object.values(this.vocab).flat());
-    return tokens.filter(
-      t => t.length > 0 && !known.has(t) && !/^[0-9+\-*\/=(){}<>\[\];:.,!?'" ]+$/.test(t)
-    );
-  }
-
-  extractMainIdea(tokens) {
-    return tokens.filter(t => {
-      const pos = this.guessPOS(t);
-      return pos === "noun" || pos === "verb";
-    });
-  }
-
-  sentiment(tokens) {
-    let score = 0;
-    for (const t of tokens) {
-      if (this.vocab.positive.includes(t)) score += 1;
-      if (this.vocab.negative.includes(t)) score -= 1;
+  detectIntent(lower, tokens) {
+    if (
+      lower.includes("search the internet") ||
+      lower.includes("search internet") ||
+      lower.includes("look up") ||
+      lower.includes("google") ||
+      lower.includes("web search") ||
+      lower.startsWith("search ")
+    ) {
+      return "search";
     }
-    if (score > 1) return "positive";
-    if (score < -1) return "negative";
-    return "neutral";
-  }
 
-  detectIntent(text) {
-    const t = text.toLowerCase();
-    if (/[0-9]\s*[+\-*\/x]\s*[0-9]/.test(t)) return "math";
-    if (t.includes("code") || t.includes("<html") || t.includes("javascript") || t.includes("html") || t.includes("css")) return "code";
-    if (t.includes("story")) return "story";
-    if (t.includes("roast")) return "roast";
+    if (
+      lower.includes("explain this code") ||
+      lower.includes("explain code") ||
+      lower.includes("what does this code do")
+    ) {
+      return "explainCode";
+    }
+
+    if (
+      lower.includes("fix this code") ||
+      lower.includes("debug this") ||
+      lower.includes("repair this code") ||
+      lower.includes("why is this code broken")
+    ) {
+      return "fixCode";
+    }
+
+    if (
+      lower.includes("make code") ||
+      lower.includes("generate code") ||
+      lower.includes("write code") ||
+      lower.includes("code me") ||
+      lower.includes("html") ||
+      lower.includes("css") ||
+      lower.includes("javascript") ||
+      lower.includes("js script") ||
+      lower.includes("website") ||
+      lower.includes("app")
+    ) {
+      return "code";
+    }
+
+    if (
+      /\d+\s*[+\-*/x]\s*\d+/.test(lower) ||
+      lower.includes("calculate") ||
+      lower.includes("math")
+    ) {
+      return "math";
+    }
+
+    if (lower.includes("remember") || lower.includes("forget")) {
+      return "memory";
+    }
+
+    if (
+      lower.includes("summarize") ||
+      lower.includes("summary") ||
+      lower.includes("tldr")
+    ) {
+      return "summarize";
+    }
+
     return "chat";
   }
 
-  findMathExpressions(text) {
-    const regex = /(\d+)\s*([+\-*\/x])\s*(\d+)/g;
-    const matches = [];
-    let m;
-    while ((m = regex.exec(text)) !== null) {
-      matches.push({ full: m[0], a: Number(m[1]), op: m[2], b: Number(m[3]) });
-    }
-    return matches;
-  }
+  extractTopic(input) {
+    let topic = input;
 
-  evalMathExpression(expr) {
-    let op = expr.op;
-    if (op === "x") op = "*";
-    switch (op) {
-      case "+": return expr.a + expr.b;
-      case "-": return expr.a - expr.b;
-      case "*": return expr.a * expr.b;
-      case "/": return expr.b !== 0 ? expr.a / expr.b : "Sorry, But as spudzy i dont understand what you mean!!!";
-      default: return "Sorry, But as spudzy i dont understand what you mean!!!";
-    }
-  }
+    const removals = [
+      "search the internet for",
+      "search internet for",
+      "search for",
+      "look up",
+      "google",
+      "web search",
+      "make code for",
+      "generate code for",
+      "write code for",
+      "explain this code",
+      "fix this code",
+      "debug this"
+    ];
 
-  processMath(text) {
-    const expressions = this.findMathExpressions(text);
-    if (expressions.length === 0) return { text, mathResults: [] };
-
-    let newText = text;
-    const results = [];
-
-    for (const ex of expressions) {
-      const value = this.evalMathExpression(ex);
-      results.push({ expr: ex.full, value });
-      newText = newText.replace(ex.full, `${ex.full} = ${value}`);
+    for (const r of removals) {
+      topic = topic.replace(new RegExp(r, "i"), "");
     }
 
-    return { text: newText, mathResults: results };
+    return topic.trim();
   }
 
-  vectorize(text) {
-    const tokens = this.tokenize(text);
-    const counts = {};
-    for (const t of tokens) counts[t] = (counts[t] || 0) + 1;
-    return counts;
-  }
+  // ---------------------------------------------------------------------------
+  // Search Engine
+  // ---------------------------------------------------------------------------
 
-  cosine(a, b) {
-    let dot = 0, magA = 0, magB = 0;
-    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
-    for (const k of keys) {
-      const va = a[k] || 0;
-      const vb = b[k] || 0;
-      dot += va * vb;
-      magA += va * va;
-      magB += vb * vb;
+  async handleSearch(ctx) {
+    if (!this.cfg.enableSearch) {
+      return "Spudzy search is disabled.";
     }
-    if (!magA || !magB) return 0;
-    return dot / (Math.sqrt(magA) * Math.sqrt(magB));
+
+    const query = ctx.topic || ctx.raw;
+
+    if (!query) {
+      return "Spudzy search mode 🌐 — Tell me what to search for.";
+    }
+
+    const results = await this.searchInternet(query);
+
+    if (!results.length) {
+      return `Spudzy search mode 🌐 — I searched supported sources, but I couldn't find useful results for "${query}".`;
+    }
+
+    const summary = this.summarizeSearchResults(query, results);
+
+    return summary;
   }
 
-  kbSearch(text) {
-    const v = this.vectorize(text);
-    let best = 0;
-    let bestAns = null;
-    for (const item of this.kb) {
-      const score = this.cosine(v, this.vectorize(item.q));
-      if (score > best) {
-        best = score;
-        bestAns = item.a;
+  async searchInternet(query) {
+    const all = [];
+
+    if (this.cfg.customSearchEndpoint) {
+      const custom = await this.searchCustomEndpoint(query);
+      all.push(...custom);
+    }
+
+    const wiki = await this.searchWikipedia(query);
+    all.push(...wiki);
+
+    const github = await this.searchGitHub(query);
+    all.push(...github);
+
+    const hn = await this.searchHackerNews(query);
+    all.push(...hn);
+
+    return all
+      .filter(Boolean)
+      .slice(0, this.cfg.searchLimit);
+  }
+
+  async searchCustomEndpoint(query) {
+    try {
+      const url = this.cfg.customSearchEndpoint + encodeURIComponent(query);
+      const res = await fetch(url);
+      if (!res.ok) return [];
+
+      const data = await res.json();
+
+      if (!Array.isArray(data.results)) return [];
+
+      return data.results.map(item => ({
+        source: item.source || "Custom Search",
+        title: item.title || "Untitled",
+        text: item.text || item.snippet || "",
+        url: item.url || ""
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  async searchWikipedia(query) {
+    try {
+      const searchUrl =
+        "https://en.wikipedia.org/w/api.php?action=query&origin=*&list=search&format=json&srlimit=3&srsearch=" +
+        encodeURIComponent(query);
+
+      const searchRes = await fetch(searchUrl);
+      if (!searchRes.ok) return [];
+
+      const searchData = await searchRes.json();
+      const hits = searchData?.query?.search || [];
+
+      const results = [];
+
+      for (const hit of hits) {
+        const title = hit.title;
+
+        const summaryUrl =
+          "https://en.wikipedia.org/api/rest_v1/page/summary/" +
+          encodeURIComponent(title);
+
+        try {
+          const summaryRes = await fetch(summaryUrl);
+          if (!summaryRes.ok) continue;
+
+          const summary = await summaryRes.json();
+
+          results.push({
+            source: "Wikipedia",
+            title: summary.title || title,
+            text: summary.extract || this.stripHTML(hit.snippet || ""),
+            url: summary.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`
+          });
+        } catch {
+          results.push({
+            source: "Wikipedia",
+            title,
+            text: this.stripHTML(hit.snippet || ""),
+            url: `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`
+          });
+        }
       }
+
+      return results;
+    } catch {
+      return [];
     }
-    return best > 0.2 ? { answer: bestAns, score: best } : null;
   }
 
-  // --- Semantic Roast Engine ---
-  findBestRoast(userMessage) {
-    const lower = userMessage.toLowerCase();
-    
-    // 1. Detect Intent/Intensity
-    let targetIntensity = "easy";
-    if (lower.includes("i dare you") || lower.includes("go hard") || lower.includes("destroy me")) {
-      targetIntensity = "intense";
-    } else if (lower.includes("roast me") || lower.includes("be mean")) {
-      targetIntensity = "medium";
+  async searchGitHub(query) {
+    try {
+      const url =
+        "https://api.github.com/search/repositories?q=" +
+        encodeURIComponent(query) +
+        "&sort=stars&order=desc&per_page=3";
+
+      const res = await fetch(url);
+      if (!res.ok) return [];
+
+      const data = await res.json();
+      const items = data.items || [];
+
+      return items.map(repo => ({
+        source: "GitHub",
+        title: repo.full_name,
+        text:
+          repo.description ||
+          `Repository with ${repo.stargazers_count} stars using ${repo.language || "unknown language"}.`,
+        url: repo.html_url
+      }));
+    } catch {
+      return [];
     }
-
-    // 2. Filter pool by intensity
-    const pool = this.vocab.roastLibrary.filter(r => r.intensity === targetIntensity);
-    
-    // 3. Find semantically relevant roast in pool
-    const userTokens = this.vectorize(userMessage);
-    let bestScore = -1;
-    let bestRoast = pool[Math.floor(Math.random() * pool.length)].text; // Default fallback
-
-    for (const item of pool) {
-      const roastTokens = this.vectorize(item.text);
-      const score = this.cosine(userTokens, roastTokens);
-      if (score > bestScore) {
-        bestScore = score;
-        bestRoast = item.text;
-      }
-    }
-
-    return bestRoast;
   }
 
-  // --- HTML / Code Generators ---
-  genHTMLPage(title = "Spudzy Page", bodyText = "Hello from Spudzy 🥔") {
+  async searchHackerNews(query) {
+    try {
+      const url =
+        "https://hn.algolia.com/api/v1/search?tags=story&hitsPerPage=3&query=" +
+        encodeURIComponent(query);
+
+      const res = await fetch(url);
+      if (!res.ok) return [];
+
+      const data = await res.json();
+      const hits = data.hits || [];
+
+      return hits.map(hit => ({
+        source: "Hacker News",
+        title: hit.title || "Untitled HN Story",
+        text: hit.story_text || hit.title || "",
+        url: hit.url || `https://news.ycombinator.com/item?id=${hit.objectID}`
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  summarizeSearchResults(query, results) {
+    let output = `Spudzy search mode 🌐 — I found ${results.length} result(s) for "${query}".\n\n`;
+
+    const combinedText = results
+      .map(r => `${r.title}. ${r.text}`)
+      .join(" ");
+
+    const shortSummary = this.simpleSummary(combinedText, 4);
+
+    output += `Summary:\n${shortSummary}\n\n`;
+    output += `Sources:\n`;
+
+    results.forEach((r, i) => {
+      output += `\n${i + 1}. ${r.title}\n`;
+      output += `   Source: ${r.source}\n`;
+      output += `   Text: ${this.truncate(r.text, 240)}\n`;
+      if (r.url) output += `   URL: ${r.url}\n`;
+    });
+
+    return output;
+  }
+
+  stripHTML(html) {
+    return String(html || "").replace(/<[^>]+>/g, "");
+  }
+
+  truncate(text, max = 200) {
+    text = String(text || "").trim();
+    if (text.length <= max) return text;
+    return text.slice(0, max).trim() + "...";
+  }
+
+  // ---------------------------------------------------------------------------
+  // Better Coding Engine
+  // ---------------------------------------------------------------------------
+
+  handleCode(ctx) {
+    if (!this.cfg.enableCode) {
+      return "Spudzy code mode is disabled.";
+    }
+
+    const lower = ctx.lower;
+
+    if (lower.includes("chatbot") || lower.includes("chat bot")) {
+      return this.generateChatbotApp();
+    }
+
+    if (lower.includes("todo") || lower.includes("to-do")) {
+      return this.generateTodoApp();
+    }
+
+    if (lower.includes("website") || lower.includes("html") || lower.includes("page")) {
+      return this.generateModernHTMLPage();
+    }
+
+    if (lower.includes("css")) {
+      return this.generateModernCSS();
+    }
+
+    if (lower.includes("button")) {
+      return this.generateButtonScript();
+    }
+
+    if (lower.includes("class")) {
+      return this.generateJSClassExample();
+    }
+
+    return this.generateUsefulJSModule();
+  }
+
+  handleExplainCode(ctx) {
+    const code = this.extractCodeBlock(ctx.raw);
+
+    if (!code) {
+      return "Spudzy code explainer 💻 — Paste code after saying `explain this code` and I’ll break it down.";
+    }
+
+    const lines = code.split("\n").filter(Boolean);
+    const features = [];
+
+    if (/class\s+\w+/.test(code)) features.push("It defines a JavaScript class.");
+    if (/constructor\s*\(/.test(code)) features.push("It uses a constructor to set up object state.");
+    if (/async\s+/.test(code)) features.push("It uses async functions for promise-based work.");
+    if (/fetch\s*\(/.test(code)) features.push("It makes network requests with fetch.");
+    if (/addEventListener\s*\(/.test(code)) features.push("It listens for browser events.");
+    if (/document\./.test(code)) features.push("It interacts with the DOM.");
+    if (/return\s+/.test(code)) features.push("It returns values from functions.");
+
+    return [
+      "Spudzy code explainer 💻",
+      "",
+      `Lines detected: ${lines.length}`,
+      "",
+      "What it seems to do:",
+      features.length ? features.map(f => `- ${f}`).join("\n") : "- I need more recognizable code structure to explain it well.",
+      "",
+      "Quick improvement tips:",
+      "- Use clear function names.",
+      "- Keep repeated logic in helper functions.",
+      "- Add error handling around risky operations.",
+      "- Avoid putting secret API keys in frontend JavaScript."
+    ].join("\n");
+  }
+
+  handleFixCode(ctx) {
+    const code = this.extractCodeBlock(ctx.raw);
+
+    if (!code) {
+      return "Spudzy debugger 🛠️ — Paste the broken code after saying `fix this code`.";
+    }
+
+    const issues = [];
+
+    const openParens = (code.match(/\(/g) || []).length;
+    const closeParens = (code.match(/\)/g) || []).length;
+    const openBraces = (code.match(/{/g) || []).length;
+    const closeBraces = (code.match(/}/g) || []).length;
+    const openBrackets = (code.match(/\[/g) || []).length;
+    const closeBrackets = (code.match(/\]/g) || []).length;
+
+    if (openParens !== closeParens) issues.push("Parentheses may be unbalanced.");
+    if (openBraces !== closeBraces) issues.push("Curly braces may be unbalanced.");
+    if (openBrackets !== closeBrackets) issues.push("Square brackets may be unbalanced.");
+
+    if (/fetch\s*\(/.test(code) && !/catch\s*\(/.test(code) && !/try\s*{/.test(code)) {
+      issues.push("fetch is used without visible error handling.");
+    }
+
+    if (/document\.getElementById\(["'][^"']+["']\)/.test(code) && !/DOMContentLoaded/.test(code)) {
+      issues.push("DOM elements may be accessed before the page finishes loading.");
+    }
+
+    if (/innerHTML\s*=/.test(code)) {
+      issues.push("innerHTML can be risky with user input. Prefer textContent unless HTML is required.");
+    }
+
+    if (!issues.length) {
+      issues.push("No obvious syntax pattern issues found. Check the browser console for the exact error message.");
+    }
+
+    return [
+      "Spudzy debugger 🛠️",
+      "",
+      "Possible issues:",
+      issues.map(i => `- ${i}`).join("\n"),
+      "",
+      "General fix strategy:",
+      "1. Open DevTools Console.",
+      "2. Read the first error line.",
+      "3. Check the file and line number.",
+      "4. Fix syntax first, then logic.",
+      "5. Add console.log checks around suspicious values."
+    ].join("\n");
+  }
+
+  extractCodeBlock(text) {
+    const fenced = text.match(/```(?:js|javascript|html|css)?\s*([\s\S]*?)```/i);
+    if (fenced) return fenced[1].trim();
+
+    const markerList = [
+      "explain this code",
+      "fix this code",
+      "debug this",
+      "repair this code"
+    ];
+
+    let output = text;
+
+    for (const marker of markerList) {
+      output = output.replace(new RegExp(marker, "i"), "");
+    }
+
+    return output.trim();
+  }
+
+  generateModernHTMLPage() {
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spudzy App</title>
   <style>
-    /* --- Modern Reset & CSS Variables --- */
     :root {
-      --bg-gradient: linear-gradient(135deg, #0f0c20 0%, #06040a 100%);
+      --bg: #070717;
+      --panel: rgba(255, 255, 255, 0.08);
+      --border: rgba(255, 255, 255, 0.15);
+      --text: #f8fafc;
+      --muted: #a1a1aa;
       --accent: #7c3aed;
-      --accent-glow: rgba(124, 58, 237, 0.5);
-      --text-main: #f3f4f6;
-      --text-muted: #9ca3af;
-      --panel-bg: rgba(255, 255, 255, 0.03);
-      --panel-border: rgba(255, 255, 255, 0.08);
+      --accent2: #06b6d4;
     }
 
     * {
       box-sizing: border-box;
-      margin: 0;
-      padding: 0;
     }
 
     body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: var(--bg-gradient);
-      color: var(--text-main);
+      margin: 0;
       min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(124, 58, 237, 0.35), transparent 28%),
+        radial-gradient(circle at 80% 70%, rgba(6, 182, 212, 0.25), transparent 28%),
+        var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       padding: 24px;
-      overflow-x: hidden;
     }
 
-    /* --- Glowing Ambient Background Elements --- */
-    body::before, body::after {
-      content: '';
-      position: absolute;
-      width: 300px;
-      height: 300px;
-      border-radius: 50%;
-      background: var(--accent);
-      filter: blur(120px);
-      opacity: 0.15;
-      z-index: 0;
-      pointer-events: none;
-    }
-    body::before { top: 15%; left: 20%; }
-    body::after { bottom: 15%; right: 20%; }
-
-    /* --- Glassmorphic Container --- */
-    .card {
-      position: relative;
-      z-index: 1;
-      width: 100%;
-      max-width: 480px;
-      background: var(--panel-bg);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--panel-border);
-      border-radius: 24px;
-      padding: 40px;
-      text-align: center;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-      animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    .app {
+      width: min(760px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      padding: 32px;
+      backdrop-filter: blur(18px);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
     }
 
-    /* --- Typography --- */
     h1 {
-      font-size: 2.25rem;
-      font-weight: 800;
-      letter-spacing: -0.025em;
-      margin-bottom: 16px;
-      background: linear-gradient(to right, #fff, var(--text-muted));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      margin: 0 0 10px;
+      font-size: clamp(2.4rem, 8vw, 5rem);
+      letter-spacing: -0.08em;
     }
 
     p {
+      color: var(--muted);
+      line-height: 1.7;
       font-size: 1.05rem;
-      line-height: 1.6;
-      color: var(--text-muted);
-      margin-bottom: 32px;
     }
 
-    /* --- Premium Interactive Button --- */
-    .btn-spudzy {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      padding: 14px 28px;
-      font-size: 1rem;
-      font-weight: 600;
-      color: #fff;
-      background: var(--accent);
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      box-shadow: 0 4px 12px var(--accent-glow);
-    }
-
-    .btn-spudzy:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px var(--accent-glow);
-      background: #8b5cf6;
-    }
-
-    .btn-spudzy:active {
-      transform: translateY(1px);
-    }
-
-    /* --- Custom Modern Notification (Toast) --- */
-    .toast-container {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 1000;
-    }
-
-    .toast {
+    .row {
       display: flex;
-      align-items: center;
-      background: rgba(20, 15, 35, 0.85);
-      border-left: 4px solid var(--accent);
-      border-top: 1px solid var(--panel-border);
-      border-right: 1px solid var(--panel-border);
-      border-bottom: 1px solid var(--panel-border);
-      backdrop-filter: blur(8px);
-      color: #fff;
-      padding: 16px 24px;
-      border-radius: 12px;
-      font-weight: 500;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-      transform: translateY(100px);
-      opacity: 0;
-      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      gap: 12px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+
+    input {
+      flex: 1;
+      min-width: 220px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.25);
+      color: var(--text);
+      padding: 14px 18px;
+      outline: none;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 14px 22px;
+      font-weight: 800;
+      color: white;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
       cursor: pointer;
+      box-shadow: 0 12px 30px rgba(124, 58, 237, 0.35);
     }
 
-    .toast.show {
-      transform: translateY(0);
-      opacity: 1;
-    }
-
-    /* --- Keyframe Animations --- */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+    .output {
+      margin-top: 24px;
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(0, 0, 0, 0.25);
+      color: #dbeafe;
+      min-height: 60px;
+      white-space: pre-wrap;
     }
   </style>
 </head>
 <body>
+  <main class="app">
+    <h1>Spudzy</h1>
+    <p>A modern browser app generated by Spudzy. Type something and click the button.</p>
 
-  <div class="card">
-    <h1>${title}</h1>
-    <p>${bodyText}</p>
-    <button id="spudzyBtn" class="btn-spudzy" onclick="document.getElementById('toast').classList.add('show');">Click me</button>
-  </div>
+    <div class="row">
+      <input id="input" placeholder="Type something..." />
+      <button id="button">Run</button>
+    </div>
 
-  <div class="toast-container">
-    <div class="toast" id="toast" onclick="document.getElementById('toast').classList.remove('show');">🥔 Hi from Spudzy!</div>
-  </div>
+    <div id="output" class="output">Output will appear here.</div>
+  </main>
+
+  <script>
+    const input = document.getElementById("input");
+    const button = document.getElementById("button");
+    const output = document.getElementById("output");
+
+    button.addEventListener("click", () => {
+      const value = input.value.trim();
+
+      if (!value) {
+        output.textContent = "Type something first.";
+        return;
+      }
+
+      output.textContent = "🥔 Spudzy processed: " + value;
+    });
+  </script>
 </body>
 </html>`;
   }
 
-  genJSButton() {
-    return `document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.createElement('button');
-  btn.textContent = 'Click me';
-  btn.style.padding = '8px 12px';
-  btn.onclick = () => alert('Hi from Spudzy!');
-  document.body.appendChild(btn);
-});`;
-  }
+  generateModernCSS() {
+    return `:root {
+  --bg: #070717;
+  --panel: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.15);
+  --text: #f8fafc;
+  --muted: #a1a1aa;
+  --accent: #7c3aed;
+  --accent2: #06b6d4;
+}
 
-  genCSSTheme() {
-    return `body {
-  background: #050816;
-  color: #f9fafb;
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(124, 58, 237, 0.3), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(6, 182, 212, 0.22), transparent 30%),
+    var(--bg);
+  color: var(--text);
   font-family: system-ui, sans-serif;
 }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  padding: 28px;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
 button {
-  background: #7c3aed;
-  color: #fff;
+  border: 0;
   border-radius: 999px;
-  padding: 10px 18px;
-  border: none;
+  padding: 14px 22px;
+  color: white;
+  font-weight: 800;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
 }`;
   }
 
-  // --- Personas ---
-  personaNeutral(ctx) {
-    const { mainIdea, mathResults, kbHit } = ctx;
-    let base = "Spudzy processed your idea about: " + (mainIdea.join(", ") || "nothing specific");
-    if (kbHit) base += " | KB: " + kbHit.answer;
-    if (mathResults.length > 0) {
-      base += " | Math: " + mathResults.map(r => `${r.expr} = ${r.value}`).join("; ");
-    }
-    return base;
+  generateButtonScript() {
+    return `document.addEventListener("DOMContentLoaded", () => {
+  const button = document.createElement("button");
+
+  button.textContent = "Click Spudzy";
+  button.style.padding = "14px 22px";
+  button.style.border = "0";
+  button.style.borderRadius = "999px";
+  button.style.background = "linear-gradient(135deg, #7c3aed, #06b6d4)";
+  button.style.color = "white";
+  button.style.fontWeight = "800";
+  button.style.cursor = "pointer";
+
+  button.addEventListener("click", () => {
+    alert("🥔 Spudzy says hello!");
+  });
+
+  document.body.appendChild(button);
+});`;
   }
 
-  personaPlayful(ctx) {
-    const { tokens, mathResults, kbHit } = ctx;
-    let base = "Spudzy is vibing with: " + tokens.join(" ");
-    if (kbHit) base += " | Fun fact: " + kbHit.answer;
-    if (mathResults.length > 0) {
-      base += " | Quick math: " + mathResults.map(r => `${r.expr} = ${r.value}`).join("; ");
-    }
-    return base;
+  generateJSClassExample() {
+    return `class ExampleApp {
+  constructor(rootSelector) {
+    this.root = document.querySelector(rootSelector);
+    this.count = 0;
   }
 
-  personaRoast(ctx) {
-    const roast = this.findBestRoast(ctx.tokens.join(" "));
-    let base = `Spudzy roast mode 🥔🔥 — ${roast}`;
-    
-    if (ctx.mathResults.length > 0) {
-      base += " | And your math was just as disappointing: " + 
-               ctx.mathResults.map(r => `${r.expr} = ${r.value}`).join("; ");
-    }
-    return base;
-  }
-
-  personaTeacher(ctx) {
-    const phrase = this.vocab.teacherPhrases[Math.floor(Math.random() * this.vocab.teacherPhrases.length)];
-    let base = "Spudzy teacher mode 🍎 — " + phrase + ". ";
-    if (ctx.kbHit) base += "Here's a key idea: " + ctx.kbHit.answer;
-    if (ctx.mathResults.length > 0) {
-      base += " | Computed: " + ctx.mathResults.map(r => `${r.expr} = ${r.value}`).join("; ");
-    }
-    return base;
-  }
-
-  personaCoder(ctx) {
-    const phrase = this.vocab.coderPhrases[Math.floor(Math.random() * this.vocab.coderPhrases.length)];
-    let base = "Spudzy coder mode 💻 — " + phrase + ". ";
-    if (ctx.codeSnippet) base += "\n\n" + ctx.codeSnippet;
-    return base;
-  }
-
-  personaStoryteller(ctx) {
-    const seed = ctx.tokens.slice(0, 5).join(" ") || "a tiny ai named Spudzy";
-    return "Spudzy storyteller mode 📖 — Once upon a time, " + seed + " started an adventure in a JavaScript file.";
-  }
-
-  // --- Main Response Controller ---
-  respond(message, mode = this.cfg.defaultMode) {
-    const tokens = this.tokenize(message);
-    const intent = this.detectIntent(message);
-
-    // --- MATH PROCESSING ---
-    const mathProcess = this.processMath(message);
-    const mathResults = mathProcess.mathResults;
-
-    // --- KNOWLEDGE BASE ---
-    const kbHit = this.kbSearch(message);
-
-    // --- CODE MODE ---
-    if (intent === "code") {
-      const lower = message.toLowerCase();
-      let code = "";
-
-      if (lower.includes("html")) {
-        code = this.genHTMLPage("Spudzy Generated Page", "You asked me to make HTML.");
-      } else if (lower.includes("css")) {
-        code = this.genCSSTheme();
-      } else if (lower.includes("button") || lower.includes("js") || lower.includes("javascript")) {
-        code = this.genJSButton();
-      } else {
-        code = this.genHTMLPage("Spudzy Code Output", "Default HTML because you asked for code.");
-      }
-
-      this.history.push({ user: message, bot: code });
-      if (this.history.length > this.cfg.maxHistory) this.history.shift();
-      return code;
+  mount() {
+    if (!this.root) {
+      throw new Error("Root element not found.");
     }
 
-    // --- CONTEXT OBJECT FOR PERSONAS ---
-    const ctx = {
-      tokens: tokens,
-      mainIdea: this.extractMainIdea(tokens),
-      mathResults: mathResults,
-      kbHit: kbHit
-    };
+    this.root.innerHTML = "";
 
-    // --- MODE OVERRIDES BASED ON INTENT ---
-    let currentMode = mode;
-    if (intent === "roast") currentMode = "roast";
-    if (intent === "story") currentMode = "storyteller";
+    const button = document.createElement("button");
+    button.textContent = "Clicked 0 times";
 
-    // --- PERSONA ROUTING ---
-    let reply = "";
+    button.addEventListener("click", () => {
+      this.count++;
+      button.textContent = "Clicked " + this.count + " times";
+    });
 
-    if (currentMode === "roast") {
-      reply = this.personaRoast(ctx);
-    } else if (currentMode === "playful") {
-      reply = this.personaPlayful(ctx);
-    } else if (currentMode === "storyteller") {
-      reply = this.personaStoryteller(ctx);
-    } else if (currentMode === "teacher") {
-      reply = this.personaTeacher(ctx);
-    } else {
-      reply = this.personaNeutral(ctx);
-    }
-
-    // --- SAVE HISTORY ---
-    this.history.push({ user: message, bot: reply });
-    if (this.history.length > this.cfg.maxHistory) this.history.shift();
-
-    return reply;
+    this.root.appendChild(button);
   }
 }
 
-// Bind to window for browser usage
-window.Spudzy = Spudzy;
+const app = new ExampleApp("#app");
+app.mount();`;
+  }
+
+  generateUsefulJSModule() {
+    return `const SpudzyUtils = {
+  clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  },
+
+  randomItem(items) {
+    if (!Array.isArray(items) || items.length === 0) return null;
+    return items[Math.floor(Math.random() * items.length)];
+  },
+
+  debounce(fn, delay = 250) {
+    let timer;
+
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), delay);
+    };
+  },
+
+  createElement(tag, props = {}, children = []) {
+    const el = document.createElement(tag);
+
+    for (const [key, value] of Object.entries(props)) {
+      if (key === "className") el.className = value;
+      else if (key.startsWith("on") && typeof value === "function") {
+        el.addEventListener(key.slice(2).toLowerCase(), value);
+      } else {
+        el.setAttribute(key, value);
+      }
+    }
+
+    for (const child of children) {
+      el.append(child instanceof Node ? child : document.createTextNode(String(child)));
+    }
+
+    return el;
+  }
+};`;
+  }
+
+  generateTodoApp() {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Spudzy Todo App</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #09090b;
+      color: white;
+      font-family: system-ui, sans-serif;
+      padding: 20px;
+    }
+
+    .todo {
+      width: min(520px, 100%);
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 24px;
+      padding: 24px;
+    }
+
+    form {
+      display: flex;
+      gap: 10px;
+    }
+
+    input {
+      flex: 1;
+      padding: 12px 14px;
+      border-radius: 999px;
+      border: 1px solid #3f3f46;
+      background: #09090b;
+      color: white;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 16px;
+      background: #7c3aed;
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 20px 0 0;
+    }
+
+    li {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 14px;
+      background: #27272a;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <main class="todo">
+    <h1>Spudzy Todo</h1>
+    <form id="form">
+      <input id="input" placeholder="Add a task..." />
+      <button>Add</button>
+    </form>
+    <ul id="list"></ul>
+  </main>
+
+  <script>
+    const form = document.getElementById("form");
+    const input = document.getElementById("input");
+    const list = document.getElementById("list");
+
+    const tasks = JSON.parse(localStorage.getItem("tasks") || "[]");
+
+    function save() {
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+    }
+
+    function render() {
+      list.innerHTML = "";
+
+      tasks.forEach((task, index) => {
+        const li = document.createElement("li");
+
+        const span = document.createElement("span");
+        span.textContent = task;
+
+        const remove = document.createElement("button");
+        remove.textContent = "Remove";
+        remove.addEventListener("click", () => {
+          tasks.splice(index, 1);
+          save();
+          render();
+        });
+
+        li.append(span, remove);
+        list.appendChild(li);
+      });
+    }
+
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+
+      const value = input.value.trim();
+      if (!value) return;
+
+      tasks.push(value);
+      input.value = "";
+      save();
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>`;
+  }
+
+  generateChatbotApp() {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Spudzy Chatbot</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #09090b;
+      color: white;
+      font-family: system-ui, sans-serif;
+      padding: 20px;
+    }
+
+    .chat {
+      width: min(720px, 100%);
+      height: 80vh;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 24px;
+      overflow: hidden;
+    }
+
+    .messages {
+      padding: 20px;
+      overflow: auto;
+    }
+
+    .msg {
+      max-width: 80%;
+      padding: 12px 14px;
+      border-radius: 16px;
+      margin-bottom: 10px;
+      white-space: pre-wrap;
+      line-height: 1.45;
+    }
+
+    .user {
+      margin-left: auto;
+      background: #7c3aed;
+    }
+
+    .bot {
+      margin-right: auto;
+      background: #27272a;
+    }
+
+    form {
+      display: flex;
+      gap: 10px;
+      padding: 14px;
+      border-top: 1px solid #27272a;
+    }
+
+    input {
+      flex: 1;
+      border: 1px solid #3f3f46;
+      border-radius: 999px;
+      padding: 12px 14px;
+      background: #09090b;
+      color: white;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      background: #7c3aed;
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <main class="chat">
+    <section class="messages" id="messages"></section>
+
+    <form id="form">
+      <input id="input" placeholder="Ask Spudzy anything..." autocomplete="off" />
+      <button>Send</button>
+    </form>
+  </main>
+
+  <script src="spudzy.js"></script>
+  <script>
+    const ai = new Spudzy();
+    const messages = document.getElementById("messages");
+    const form = document.getElementById("form");
+    const input = document.getElementById("input");
+
+    function addMessage(text, type) {
+      const div = document.createElement("div");
+      div.className = "msg " + type;
+      div.textContent = text;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    addMessage("🥔 Hi, I'm Spudzy. Try: search the internet for JavaScript, make a todo app, or calculate 9 * 9.", "bot");
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      const text = input.value.trim();
+      if (!text) return;
+
+      input.value = "";
+      addMessage(text, "user");
+
+      const reply = await ai.respond(text);
+      addMessage(reply, "bot");
+    });
+  </script>
+</body>
+</html>`;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Math
+  // ---------------------------------------------------------------------------
+
+  handleMath(ctx) {
+    const expressions = ctx.raw.match(/(?:\d+(?:\.\d+)?|\.\d+)(?:\s*[+\-*/x]\s*(?:\d+(?:\.\d+)?|\.\d+))+/g);
+
+    if (!expressions) {
+      return "Spudzy math mode 🧮 — Give me something like `12 * 8 + 4`.";
+    }
+
+    const answers = expressions.map(expr => {
+      const value = this.safeMath(expr);
+      return `${expr} = ${value}`;
+    });
+
+    return "Spudzy math mode 🧮 — " + answers.join("; ");
+  }
+
+  safeMath(expr) {
+    const clean = String(expr).replace(/x/g, "*").replace(/\s+/g, "");
+
+    if (!/^[0-9+\-*/().]+$/.test(clean)) {
+      return "invalid";
+    }
+
+    try {
+      return Function(`"use strict"; return (${clean})`)();
+    } catch {
+      return "invalid";
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Memory
+  // ---------------------------------------------------------------------------
+
+  handleMemory(ctx) {
+    if (!this.cfg.enableMemory) {
+      return "Memory is disabled.";
+    }
+
+    if (ctx.lower.includes("remember")) {
+      const text = ctx.raw.replace(/remember/i, "").trim();
+
+      if (!text) return "Tell Spudzy what to remember.";
+
+      this.memory.push({
+        text,
+        time: new Date().toISOString()
+      });
+
+      while (this.memory.length > this.cfg.maxMemory) {
+        this.memory.shift();
+      }
+
+      return `Spudzy remembered: ${text}`;
+    }
+
+    if (ctx.lower.includes("forget")) {
+      const text = ctx.raw.replace(/forget/i, "").trim().toLowerCase();
+
+      const before = this.memory.length;
+      this.memory = this.memory.filter(m => !m.text.toLowerCase().includes(text));
+      const removed = before - this.memory.length;
+
+      return `Spudzy forgot ${removed} matching item(s).`;
+    }
+
+    return "Memory command ready. Say: remember I like JavaScript.";
+  }
+
+  // ---------------------------------------------------------------------------
+  // Chat / Summary
+  // ---------------------------------------------------------------------------
+
+  handleChat(ctx) {
+    const kb = this.searchKB(ctx.raw);
+
+    if (kb) {
+      return "Spudzy 🥔 — " + kb.a;
+    }
+
+    const remembered = this.memory
+      .filter(m => this.similar(ctx.raw, m.text) > 0.1)
+      .slice(0, 2);
+
+    let reply = `Spudzy 🥔 — I processed your message. Main idea: ${this.keywords(ctx.tokens).join(", ") || "general chat"}.`;
+
+    if (remembered.length) {
+      reply += "\n\nRelevant memory:\n" + remembered.map(m => "- " + m.text).join("\n");
+    }
+
+    reply += "\n\nTry asking me to generate code, explain code, fix code, calculate math, or search the internet.";
+
+    return reply;
+  }
+
+  handleSummarize(ctx) {
+    const text = ctx.raw.replace(/summarize|summary|tldr/gi, "").trim();
+
+    if (!text) {
+      return "Spudzy summary mode — Paste text after `summarize`.";
+    }
+
+    return "Spudzy summary mode — " + this.simpleSummary(text, 3);
+  }
+
+  simpleSummary(text, sentenceLimit = 3) {
+    const sentences = String(text)
+      .split(/(?<=[.!?])\s+/)
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    if (sentences.length <= sentenceLimit) return sentences.join(" ");
+
+    const scored = sentences.map(sentence => {
+      const words = this.tokenize(sentence);
+      const score = words.filter(w => w.length > 5).length + words.length * 0.05;
+      return { sentence, score };
+    });
+
+    return scored
+      .sort((a, b) => b.score - a.score)
+      .slice(0, sentenceLimit)
+      .map(x => x.sentence)
+      .join(" ");
+  }
+
+  searchKB(text) {
+    let best = null;
+
+    for (const item of this.kb) {
+      const score = this.similar(text, item.q);
+
+      if (!best || score > best.score) {
+        best = { ...item, score };
+      }
+    }
+
+    return best && best.score > 0.25 ? best : null;
+  }
+
+  similar(a, b) {
+    const av = this.vectorize(a);
+    const bv = this.vectorize(b);
+
+    const keys = new Set([...Object.keys(av), ...Object.keys(bv)]);
+    let dot = 0;
+    let magA = 0;
+    let magB = 0;
+
+    for (const key of keys) {
+      const x = av[key] || 0;
+      const y = bv[key] || 0;
+
+      dot += x * y;
+      magA += x * x;
+      magB += y * y;
+    }
+
+    if (!magA || !magB) return 0;
+    return dot / (Math.sqrt(magA) * Math.sqrt(magB));
+  }
+
+  vectorize(text) {
+    const vec = {};
+
+    for (const token of this.tokenize(text)) {
+      if (this.stopWords().has(token)) continue;
+      vec[token] = (vec[token] || 0) + 1;
+    }
+
+    return vec;
+  }
+
+  keywords(tokens) {
+    const stop = this.stopWords();
+    const counts = {};
+
+    for (const token of tokens) {
+      if (stop.has(token)) continue;
+      if (token.length < 3) continue;
+      counts[token] = (counts[token] || 0) + 1;
+    }
+
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([word]) => word);
+  }
+
+  stopWords() {
+    return new Set([
+      "the", "a", "an", "and", "or", "but", "to", "of", "in", "on",
+      "for", "with", "is", "are", "was", "were", "be", "been",
+      "i", "you", "me", "my", "your", "it", "that", "this", "as",
+      "so", "if", "then", "do", "does", "did", "can", "could",
+      "would", "should", "will", "just", "like"
+    ]);
+  }
+}
+
+// Browser global
+if (typeof window !== "undefined") {
+  window.Spudzy = Spudzy;
+}
+
+// Node/CommonJS support
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = Spudzy;
+}
+
+// Spudzy AI Engine v3

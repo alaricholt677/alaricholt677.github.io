@@ -1,5 +1,21 @@
 // spudzy.js
 // Spudzy AI Engine v9
+// SAMPLE: How sending to the AI works in this app
+// 1. Get text from the input box
+// const text = inputEl.value.trim();
+
+// 2. Read the selected mode (neutral, playful, etc)
+// const mode = modeEl.value;
+
+// 3. Send the message to the AI engine
+// const reply = await spudzy.respond(text, {
+//   mode,
+//   persona: mode
+// });
+
+// 4. Show the AI response in the chat UI
+// addMessage(reply, "bot");
+
 // Browser-safe GitHub Pages assistant focused on:
 // - Strong typo handling
 // - Strong "make html ..." prompt handling

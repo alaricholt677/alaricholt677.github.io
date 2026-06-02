@@ -177,7 +177,7 @@
   },
   {
     "id": "minecraft",
-    "name": "Minecraft Demo"
+    "name": "Minecraft Demo",
     "icon": "⚒️",
     "description": "This IS an MC Demo",
     "category": ["Games", "Creative Games", "Survival Games"],

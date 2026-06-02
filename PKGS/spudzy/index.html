@@ -6,7 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
@@ -46,7 +50,6 @@
       z-index: -1;
     }
 
-    /* Sidebar */
     .sidebar {
       width: 260px;
       border-right: 1px solid rgba(148, 163, 184, 0.25);
@@ -70,7 +73,8 @@
       color: #e5e7eb;
     }
 
-    .new-chat-btn {
+    .new-chat-btn,
+    .small-btn {
       padding: 6px 10px;
       border-radius: 999px;
       border: 1px solid rgba(148, 163, 184, 0.6);
@@ -78,6 +82,12 @@
       color: #e5e7eb;
       font-size: 11px;
       cursor: pointer;
+    }
+
+    .new-chat-btn:hover,
+    .small-btn:hover {
+      border-color: #a855f7;
+      color: #fff;
     }
 
     .conv-list {
@@ -98,6 +108,12 @@
       display: flex;
       flex-direction: column;
       gap: 2px;
+      border: 1px solid transparent;
+    }
+
+    .conv-item:hover {
+      background: rgba(15, 23, 42, 0.9);
+      border-color: rgba(148, 163, 184, 0.25);
     }
 
     .conv-item.active {
@@ -118,21 +134,23 @@
     }
 
     .sidebar-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
       font-size: 10px;
       color: #6b7280;
-      padding-top: 4px;
+      padding-top: 8px;
       border-top: 1px solid rgba(31, 41, 55, 0.8);
     }
 
-    /* Main area */
     .main {
       flex: 1;
       display: flex;
       flex-direction: column;
       position: relative;
+      min-width: 0;
     }
 
-    /* Splash */
     .splash {
       position: absolute;
       inset: 0;
@@ -147,7 +165,10 @@
     }
 
     @keyframes splashFadeOut {
-      to { opacity: 0; visibility: hidden; }
+      to {
+        opacity: 0;
+        visibility: hidden;
+      }
     }
 
     .splash-logo {
@@ -238,7 +259,6 @@
       color: #9ca3af;
     }
 
-    /* Header */
     .header {
       padding: 16px 20px 10px;
       display: flex;
@@ -254,6 +274,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      min-width: 0;
     }
 
     .app-icon {
@@ -266,11 +287,13 @@
       justify-content: center;
       font-size: 18px;
       box-shadow: 0 0 0 1px rgba(248, 250, 252, 0.15);
+      flex-shrink: 0;
     }
 
     .app-title {
       display: flex;
       flex-direction: column;
+      min-width: 0;
     }
 
     .app-title span:first-child {
@@ -281,6 +304,9 @@
     .app-title span:last-child {
       font-size: 11px;
       color: #9ca3af;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .header-right {
@@ -289,6 +315,7 @@
       gap: 8px;
       font-size: 11px;
       color: #9ca3af;
+      flex-shrink: 0;
     }
 
     .pill {
@@ -298,7 +325,6 @@
       background: rgba(15, 23, 42, 0.8);
     }
 
-    /* Chat area */
     .chat-wrapper {
       flex: 1;
       display: flex;
@@ -323,6 +349,10 @@
       align-items: flex-start;
     }
 
+    .msg-row.user-row {
+      justify-content: flex-end;
+    }
+
     .msg-avatar {
       width: 26px;
       height: 26px;
@@ -333,6 +363,7 @@
       justify-content: center;
       font-size: 14px;
       flex-shrink: 0;
+      border: 1px solid rgba(148, 163, 184, 0.25);
     }
 
     .msg {
@@ -344,12 +375,14 @@
       opacity: 0;
       animation: fadeIn 0.25s ease-out forwards;
       white-space: pre-wrap;
+      overflow-wrap: anywhere;
     }
 
     .msg.user {
       margin-left: auto;
       background: linear-gradient(135deg, #1f2937, #020617);
       border-bottom-right-radius: 4px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
     }
 
     .msg.bot {
@@ -359,8 +392,14 @@
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .typing {
@@ -370,7 +409,6 @@
       padding: 6px 4px 0;
     }
 
-    /* Canvas panel */
     .canvas-panel {
       border-top: 1px solid rgba(148, 163, 184, 0.25);
       background: rgba(15, 23, 42, 0.95);
@@ -386,11 +424,13 @@
       align-items: center;
       font-size: 11px;
       color: #9ca3af;
+      gap: 10px;
     }
 
     .canvas-tabs {
       display: flex;
       gap: 6px;
+      flex-shrink: 0;
     }
 
     .canvas-tab {
@@ -443,7 +483,6 @@
       background: white;
     }
 
-    /* Input bar */
     .input-bar {
       padding: 10px 16px 16px;
       border-top: 1px solid rgba(148, 163, 184, 0.25);
@@ -468,6 +507,7 @@
       color: #f9fafb;
       outline: none;
       font-size: 14px;
+      min-width: 0;
     }
 
     #msgInput:focus {
@@ -487,7 +527,7 @@
       justify-content: center;
       cursor: pointer;
       box-shadow: 0 10px 25px rgba(79, 70, 229, 0.6);
-      transition: transform 0.12s ease-out, box-shadow 0.12s ease-out;
+      transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, opacity 0.12s ease-out;
       flex-shrink: 0;
     }
 
@@ -501,10 +541,17 @@
       box-shadow: 0 6px 18px rgba(79, 70, 229, 0.6);
     }
 
+    #sendBtn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
     .mode-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 10px;
       font-size: 11px;
       color: #9ca3af;
     }
@@ -516,93 +563,155 @@
       background: rgba(15, 23, 42, 0.95);
       color: #e5e7eb;
       font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
 
     @media (max-width: 900px) {
-      .app-shell { max-height: none; height: 100vh; border-radius: 0; }
-      .sidebar { display: none; }
+      body {
+        align-items: stretch;
+        justify-content: stretch;
+      }
+
+      .app-shell {
+        max-height: none;
+        height: 100vh;
+        border-radius: 0;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .header-right {
+        display: none;
+      }
+
+      .msg {
+        max-width: 88%;
+      }
+
+      .canvas-body {
+        height: 220px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .mode-row {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      #modeSelect {
+        width: 100%;
+      }
+
+      .canvas-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .canvas-tabs {
+        width: 100%;
+      }
+
+      .canvas-tab {
+        flex: 1;
+      }
     }
   </style>
 </head>
 
 <body>
   <div class="app-shell">
-    <!-- Sidebar -->
-    <div class="sidebar">
+    <aside class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-title">Conversations</div>
         <button class="new-chat-btn" id="newChatBtn">+ New</button>
       </div>
-      <div class="conv-list" id="convList"></div>
-      <div class="sidebar-footer">
-        Stored locally in your browser. Spudzy can spin up as many chats as you want.
-      </div>
-    </div>
 
-    <!-- Main -->
-    <div class="main">
-      <!-- Splash -->
+      <div class="conv-list" id="convList"></div>
+
+      <div class="sidebar-footer">
+        <div>Stored locally in your browser.</div>
+        <button class="small-btn" id="clearChatsBtn">Clear chats</button>
+      </div>
+    </aside>
+
+    <main class="main">
       <div class="splash">
         <div class="splash-logo">
           <div class="pan">
             <div class="bun"></div>
           </div>
         </div>
+
         <div class="splash-title">
           <div class="mask-icon">🎭</div>
           <span>Spudzy Chef</span>
         </div>
-        <div class="splash-sub">Comedy‑coded AI, cooked to order.</div>
+
+        <div class="splash-sub">Comedy-coded AI, cooked to order.</div>
       </div>
 
-      <!-- Header -->
-      <div class="header">
+      <header class="header">
         <div class="header-left">
           <div class="app-icon">🎭</div>
           <div class="app-title">
             <span>Spudzy Chef</span>
-            <span>Playful reasoning • Code & canvas</span>
+            <span>Playful reasoning • Code • Canvas • Search</span>
           </div>
         </div>
+
         <div class="header-right">
           <div class="pill">Chef Mode</div>
-          <div class="pill">Local · Prototype</div>
+          <div class="pill">GitHub Pages Ready</div>
         </div>
-      </div>
+      </header>
 
-      <!-- Chat -->
-      <div class="chat-wrapper">
+      <section class="chat-wrapper">
         <div id="chat"></div>
         <div id="typing" class="typing" style="display:none;">Spudzy is thinking…</div>
-      </div>
+      </section>
 
-      <!-- Canvas panel -->
-      <div class="canvas-panel" id="canvasPanel">
+      <section class="canvas-panel" id="canvasPanel">
         <div class="canvas-header">
-          <span>Canvas mode: HTML detected in last reply.</span>
+          <span id="canvasStatus">Canvas mode: HTML detected in last reply.</span>
+
           <div class="canvas-tabs">
             <button class="canvas-tab active" id="tabPreview">Preview</button>
             <button class="canvas-tab" id="tabCode">View code</button>
           </div>
         </div>
+
         <div class="canvas-body">
           <div class="canvas-preview" id="canvasPreview">
-            <iframe id="canvasFrame"></iframe>
+            <iframe id="canvasFrame" title="Spudzy preview"></iframe>
           </div>
+
           <div class="canvas-code" id="canvasCode" style="display:none;">
             <textarea id="canvasCodeText" readonly></textarea>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Input -->
-      <div class="input-bar">
+      <section class="input-bar">
         <div class="input-row">
-          <input id="msgInput" type="text" placeholder="Ask Spudzy to roast, code, teach, or draw a canvas…" />
+          <input
+            id="msgInput"
+            type="text"
+            placeholder="Ask Spudzy to search, code, teach, roast, or draw a canvas..."
+            autocomplete="off"
+          />
           <button id="sendBtn" aria-label="Send">➤</button>
         </div>
+
         <div class="mode-row">
-          <span>Tip: “make html”, “canvas demo”, “explain this”, “roast me”.</span>
+          <span>Try: “search the internet for JavaScript”, “make html”, “create a canvas animation”, “fix this code”.</span>
+
           <select id="modeSelect">
             <option value="neutral">Neutral</option>
             <option value="playful">Playful</option>
@@ -612,23 +721,57 @@
             <option value="storyteller">Storyteller</option>
           </select>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   </div>
 
   <script src="spudzy.js"></script>
+
   <script>
-    // ---- Conversation storage ----
-    const STORAGE_KEY = "spudzy_conversations_v1";
+    const STORAGE_KEY = "spudzy_conversations_v2";
 
     let conversations = [];
     let currentConvId = null;
+    let isBusy = false;
+
+    const chatEl = document.getElementById("chat");
+    const inputEl = document.getElementById("msgInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const modeEl = document.getElementById("modeSelect");
+    const typingEl = document.getElementById("typing");
+    const newChatBtn = document.getElementById("newChatBtn");
+    const clearChatsBtn = document.getElementById("clearChatsBtn");
+
+    const convList = document.getElementById("convList");
+
+    const canvasPanel = document.getElementById("canvasPanel");
+    const canvasFrame = document.getElementById("canvasFrame");
+    const canvasCodeText = document.getElementById("canvasCodeText");
+    const canvasStatus = document.getElementById("canvasStatus");
+
+    const tabPreview = document.getElementById("tabPreview");
+    const tabCode = document.getElementById("tabCode");
+    const canvasPreview = document.getElementById("canvasPreview");
+    const canvasCode = document.getElementById("canvasCode");
+
+    if (typeof Spudzy === "undefined") {
+      alert("Spudzy failed to load. Make sure spudzy.js is in the same folder as index.html.");
+    }
+
+    const spudzy = new Spudzy({
+      defaultMode: "neutral",
+      defaultPersona: "neutral",
+      maxHistory: 64,
+      enableSearch: true,
+      searchLimit: 5
+    });
 
     function loadConversations() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return [];
-        return JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
       } catch {
         return [];
       }
@@ -638,19 +781,26 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
     }
 
-    function createConversation() {
-      const id = "conv_" + Date.now();
+    function createConversation(withWelcome = true) {
+      const id = "conv_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+
       const conv = {
         id,
         title: "New chat",
         createdAt: new Date().toISOString(),
         messages: []
       };
+
       conversations.unshift(conv);
       currentConvId = id;
+
       saveConversations();
       renderConversationList();
       renderConversation(conv);
+
+      if (withWelcome) {
+        addMessage(getWelcomeText(), "bot");
+      }
     }
 
     function getCurrentConversation() {
@@ -658,82 +808,83 @@
     }
 
     function updateConversationTitle(conv, firstUserMessage) {
-      if (!firstUserMessage) return;
+      if (!conv || !firstUserMessage) return;
+
       const trimmed = firstUserMessage.trim();
       if (!trimmed) return;
-      conv.title = trimmed.length > 40 ? trimmed.slice(0, 37) + "..." : trimmed;
+
+      if (conv.title === "New chat") {
+        conv.title = trimmed.length > 40 ? trimmed.slice(0, 37) + "..." : trimmed;
+      }
     }
 
     function renderConversationList() {
-      const listEl = document.getElementById("convList");
-      listEl.innerHTML = "";
+      convList.innerHTML = "";
+
       conversations.forEach(conv => {
         const item = document.createElement("div");
         item.className = "conv-item" + (conv.id === currentConvId ? " active" : "");
+
         const title = document.createElement("div");
         title.className = "conv-title";
         title.textContent = conv.title || "Untitled chat";
+
         const meta = document.createElement("div");
         meta.className = "conv-meta";
+
         const date = new Date(conv.createdAt);
         meta.textContent = date.toLocaleString();
+
         item.appendChild(title);
         item.appendChild(meta);
-        item.onclick = () => {
+
+        item.addEventListener("click", () => {
           currentConvId = conv.id;
           renderConversationList();
           renderConversation(conv);
-        };
-        listEl.appendChild(item);
+        });
+
+        convList.appendChild(item);
       });
     }
 
     function renderConversation(conv) {
-      const chatEl = document.getElementById("chat");
       chatEl.innerHTML = "";
       hideCanvasPanel();
+
+      if (!conv) return;
+
       conv.messages.forEach(msg => {
         addMessage(msg.text, msg.role === "user" ? "user" : "bot", false);
       });
+
       chatEl.scrollTop = chatEl.scrollHeight;
+
+      const lastBotHtml = [...conv.messages]
+        .reverse()
+        .find(msg => msg.role === "bot" && isHtmlLike(msg.text));
+
+      if (lastBotHtml) {
+        showCanvasPanelWith(lastBotHtml.text);
+      }
     }
 
-    // ---- UI + Spudzy ----
-    const chatEl = document.getElementById("chat");
-    const inputEl = document.getElementById("msgInput");
-    const sendBtn = document.getElementById("sendBtn");
-    const modeEl = document.getElementById("modeSelect");
-    const typingEl = document.getElementById("typing");
-    const newChatBtn = document.getElementById("newChatBtn");
-
-    const canvasPanel = document.getElementById("canvasPanel");
-    const canvasFrame = document.getElementById("canvasFrame");
-    const canvasCodeText = document.getElementById("canvasCodeText");
-    const tabPreview = document.getElementById("tabPreview");
-    const tabCode = document.getElementById("tabCode");
-    const canvasPreview = document.getElementById("canvasPreview");
-    const canvasCode = document.getElementById("canvasCode");
-
-    const spudzy = new Spudzy({ defaultMode: "neutral", maxHistory: 64 });
-
     function addMessage(text, from, pushToConv = true) {
+      const safeText = String(text ?? "");
+
       const row = document.createElement("div");
-      row.className = "msg-row";
+      row.className = "msg-row " + (from === "user" ? "user-row" : "bot-row");
 
       if (from === "bot") {
         const avatar = document.createElement("div");
         avatar.className = "msg-avatar";
         avatar.textContent = "🎭";
         row.appendChild(avatar);
-      } else {
-        const spacer = document.createElement("div");
-        spacer.style.width = "26px";
-        row.appendChild(spacer);
       }
 
       const bubble = document.createElement("div");
       bubble.className = "msg " + from;
-      bubble.textContent = text;
+      bubble.textContent = safeText;
       row.appendChild(bubble);
 
       chatEl.appendChild(row);
@@ -741,41 +892,122 @@
 
       if (pushToConv) {
         const conv = getCurrentConversation();
+
         if (conv) {
-          conv.messages.push({ role: from, text });
-          if (conv.messages.length === 1 && from === "user") {
-            updateConversationTitle(conv, text);
+          conv.messages.push({
+            role: from,
+            text: safeText,
+            time: new Date().toISOString()
+          });
+
+          if (from === "user") {
+            const firstUser = conv.messages.find(m => m.role === "user");
+            if (firstUser) updateConversationTitle(conv, firstUser.text);
           }
+
           saveConversations();
           renderConversationList();
         }
       }
     }
 
+    function getWelcomeText() {
+      return [
+        "👋 Welcome to Spudzy Chef!",
+        "",
+        "I work with the new async spudzy.js engine.",
+        "",
+        "Try asking:",
+        "• search the internet for JavaScript",
+        "• make html with a bouncing ball",
+        "• create a canvas animation",
+        "• explain this code: console.log('hi')",
+        "• fix this code: function test( {",
+        "• calculate 12 * 8 + 4",
+        "",
+        "If I generate HTML, the preview panel opens automatically.",
+        "Your conversations save locally in this browser."
+      ].join("\n");
+    }
+
     function showTyping(show) {
       typingEl.style.display = show ? "block" : "none";
-      if (show) chatEl.scrollTop = chatEl.scrollHeight;
+      sendBtn.disabled = show;
+      isBusy = show;
+
+      if (show) {
+        chatEl.scrollTop = chatEl.scrollHeight;
+      }
     }
 
     function isHtmlLike(text) {
-      const lower = text.toLowerCase();
+      const lower = String(text || "").toLowerCase();
+
       return (
         lower.includes("<!doctype") ||
         lower.includes("<html") ||
+        lower.includes("<body") ||
         lower.includes("<canvas") ||
-        lower.includes("<body")
+        lower.includes("<script") ||
+        lower.includes("&lt;!doctype") ||
+        lower.includes("&lt;html") ||
+        lower.includes("&lt;body") ||
+        lower.includes("&lt;canvas") ||
+        lower.includes("&lt;script")
       );
     }
 
-    function showCanvasPanelWith(html) {
+    function decodeHtmlEntities(text) {
+      const value = String(text || "");
+
+      if (!value.includes("&lt;") && !value.includes("&gt;")) {
+        return value;
+      }
+
+      const textarea = document.createElement("textarea");
+      textarea.innerHTML = value;
+      return textarea.value;
+    }
+
+    function extractHtmlFromReply(reply) {
+      let text = decodeHtmlEntities(reply);
+
+      const fencedMatch = text.match(/```(?:html)?\s*([\s\S]*?)```/i);
+      if (fencedMatch) {
+        text = fencedMatch[1].trim();
+      }
+
+      const doctypeIndex = text.toLowerCase().indexOf("<!doctype");
+      if (doctypeIndex !== -1) {
+        return text.slice(doctypeIndex).trim();
+      }
+
+      const htmlIndex = text.toLowerCase().indexOf("<html");
+      if (htmlIndex !== -1) {
+        return text.slice(htmlIndex).trim();
+      }
+
+      if (text.toLowerCase().includes("<canvas") || text.toLowerCase().includes("<body")) {
+        return text;
+      }
+
+      return text;
+    }
+
+    function showCanvasPanelWith(reply) {
+      const html = extractHtmlFromReply(reply);
+
       canvasPanel.style.display = "flex";
       canvasFrame.srcdoc = html;
       canvasCodeText.value = html;
+      canvasStatus.textContent = "Canvas mode: HTML detected in last reply.";
       setCanvasTab("preview");
     }
 
     function hideCanvasPanel() {
       canvasPanel.style.display = "none";
+      canvasFrame.srcdoc = "";
+      canvasCodeText.value = "";
     }
 
     function setCanvasTab(which) {
@@ -792,10 +1024,9 @@
       }
     }
 
-    tabPreview.onclick = () => setCanvasTab("preview");
-    tabCode.onclick = () => setCanvasTab("code");
+    async function sendMessage() {
+      if (isBusy) return;
 
-    function sendMessage() {
       const text = inputEl.value.trim();
       if (!text) return;
 
@@ -803,41 +1034,76 @@
 
       addMessage(text, "user");
       inputEl.value = "";
-      showTyping(true);
       hideCanvasPanel();
+      showTyping(true);
 
-      setTimeout(() => {
-        const reply = spudzy.respond(text, mode);
+      try {
+        const reply = await spudzy.respond(text, {
+          mode,
+          persona: mode
+        });
+
         showTyping(false);
         addMessage(reply, "bot");
 
         if (isHtmlLike(reply)) {
           showCanvasPanelWith(reply);
         }
-      }, 320);
+      } catch (err) {
+        showTyping(false);
+
+        const message = err && err.message
+          ? err.message
+          : "Unknown error.";
+
+        addMessage("Spudzy error: " + message, "bot");
+      }
     }
 
+    function clearAllChats() {
+      conversations = [];
+      currentConvId = null;
+      saveConversations();
+      createConversation(true);
+    }
+
+    tabPreview.addEventListener("click", () => setCanvasTab("preview"));
+    tabCode.addEventListener("click", () => setCanvasTab("code"));
+
     sendBtn.addEventListener("click", sendMessage);
-    inputEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") sendMessage();
+
+    inputEl.addEventListener("keydown", event => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
     });
 
     newChatBtn.addEventListener("click", () => {
-      createConversation();
+      createConversation(true);
+      inputEl.focus();
     });
 
-    // Init
+    clearChatsBtn.addEventListener("click", () => {
+      clearAllChats();
+      inputEl.focus();
+    });
+
     conversations = loadConversations();
+
     if (conversations.length === 0) {
-      createConversation();
+      createConversation(true);
     } else {
       currentConvId = conversations[0].id;
       renderConversationList();
       renderConversation(conversations[0]);
+
+      if (getCurrentConversation()?.messages.length === 0) {
+        addMessage(getWelcomeText(), "bot");
+      }
     }
 
-addMessage("👋 Welcome to Spudzy Chef!\n\nHere’s how to use me inside your HTML page:\n\n1. Add the chat UI elements to your page such as the chat container, input box, and send button.\n2. Include the Spudzy engine by adding &lt;script src=&quot;spudzy.js&quot;&gt;&lt;/script&gt; inside your HTML.\n3. Create a new instance of the AI using: const spudzy = new Spudzy({ defaultMode: &quot;neutral&quot; }).\n4. Write a sendMessage() function that reads the user input and calls spudzy.respond(text,mode).\n5. Use addMessage() to display both the user message and the bot response inside your chat UI.\n6. The bot response is returned as plain text, and if it contains HTML tags like &lt;html&gt; or &lt;canvas&gt;, the app can render it in an iframe using srcdoc.\n7. The chatbot works entirely in the browser, so no server is required; everything runs locally using JavaScript.\n I reply instantly with text, jokes, math, code, or stories.\n• If I generate HTML or canvas code, the preview panel will open automatically.\nYou can switch my personality using the mode selector (Playful, Roast, Teacher, Coder, Storyteller).\n Every chat is saved in the sidebar so you can return to it anytime.\n\nTry asking:\n• “make html with a bouncing ball”\n• “explain gravity like I’m five”\n• “roast my homework”\n• “create a canvas animation”\n• “write a JS button that alerts hi”\n\nI’m ready when you are — what should we cook up first?", "bot");
-
+    inputEl.focus();
   </script>
 </body>
 </html>

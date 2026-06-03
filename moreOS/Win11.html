@@ -4187,6 +4187,40 @@ function addCopilotMessage(pid, text, role = 'bot') {
     chat.scrollTop = chat.scrollHeight;
 }
 
+async function copilotSendPrompt(pid, text) {
+    if (!copilotData[pid]) return;
+
+    const modeEl = document.getElementById(`copilot-mode-${pid}`);
+    const mode = modeEl?.value || copilotData[pid].mode || 'neutral';
+
+    const msg = String(text || '').trim();
+    if (!msg) return;
+
+    // show user message
+    addCopilotMessage(pid, msg, 'user');
+
+    // show typing
+    setCopilotBusy(pid, true);
+
+    try {
+        const spudzy = await ensureSpudzyInstance();
+
+        // ✅ CORRECT spudzy usage (from your working example)
+        const reply = await spudzy.respond(msg, {
+            mode,
+            persona: mode
+        });
+
+        addCopilotMessage(pid, reply, 'bot');
+
+    } catch (err) {
+        console.error(err);
+        addCopilotMessage(pid, 'Error: ' + (err.message || 'Unknown error'), 'system');
+    } finally {
+        setCopilotBusy(pid, false);
+    }
+}
+
 function getCopilotWelcomeText() {
     return [
         "👋 Welcome to Copilot.",

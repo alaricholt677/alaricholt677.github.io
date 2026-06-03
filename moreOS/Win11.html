@@ -4154,6 +4154,39 @@ async function appCopilot(args = {}) {
     }
 }
 
+function addCopilotMessage(pid, text, role = 'bot') {
+    const chat = document.getElementById(`copilot-chat-${pid}`);
+    if (!chat) return;
+
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.justifyContent = role === 'user' ? 'flex-end' : 'flex-start';
+    row.style.margin = '8px 0';
+
+    const bubble = document.createElement('div');
+    bubble.style.maxWidth = '70%';
+    bubble.style.padding = '10px 12px';
+    bubble.style.borderRadius = '14px';
+    bubble.style.whiteSpace = 'pre-wrap';
+
+    if (role === 'user') {
+        bubble.style.background = '#0078d7';
+        bubble.style.color = '#fff';
+    } else if (role === 'system') {
+        bubble.style.background = '#333';
+        bubble.style.opacity = '0.8';
+    } else {
+        bubble.style.background = '#1f1f1f';
+    }
+
+    bubble.textContent = text;
+
+    row.appendChild(bubble);
+    chat.appendChild(row);
+
+    chat.scrollTop = chat.scrollHeight;
+}
+
 let settingsData = {};
 
 function appSettings() {

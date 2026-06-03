@@ -1,6 +1,225 @@
 /*
   Spudzy Vid / RealLifeVideo
-  Browser-only procedural prompt(str) {  Browser-only procedural prompt-to-video generator.
+  Clean browser-only procedural prompt-to-video generator.
+
+  API:
+    const data = await RealLifeVideo.generate(prompt, {
+      width: 1280,
+      height: 720,
+      seconds: 6,
+      fps: 30,
+      bitrate: 8000000,
+      appendCanvas: false,
+      returnFrames: false
+    });
+
+  Returns:
+    {
+      ok,
+      originalPrompt,
+      correctedPrompt,
+      parsed,
+      width,
+      height,
+      fps,
+      seconds,
+      frameCount,
+      mimeType,
+      blob,
+      url,
+      frames,
+      canvas
+    }
+
+  No server. No real AI model. Canvas + MediaRecorder only.
+*/
+
+(function attachSpudzyVid(global) {
+  "use strict";
+
+  const DEFAULTS = {
+    width: 960,
+    height: 540,
+    fps: 30,
+    seconds: 6,
+    bitrate: 6000000,
+    quality: 0.92,
+    mimeType: "",
+    appendCanvas: false,
+    returnFrames: false,
+    transparent: false,
+    seed: null,
+    debug: false
+  };
+
+  const TYPO_MAP = {
+    teh: "the",
+    tha: "that",
+    tht: "that",
+    dosent: "doesn't",
+    doesnt: "doesn't",
+    dont: "don't",
+    cant: "can't",
+    wont: "won't",
+    opver: "over",
+    ovre: "over",
+    lfie: "life",
+    lik: "like",
+    lkot: "lot",
+    alot: "a lot",
+    genrator: "generator",
+    genrate: "generate",
+    genrated: "generated",
+    refrence: "reference",
+    refrences: "references",
+    anyt: "any",
+    bitrte: "bitrate",
+    bitratee: "bitrate",
+    realstic: "realistic",
+    realistc: "realistic",
+    realisticaly: "realistically",
+    realstically: "realistically",
+    cinamatic: "cinematic",
+    cinamtic: "cinematic",
+    nigth: "night",
+    nite: "night",
+    raing: "rain",
+    rian: "rain",
+    wather: "weather",
+    pepole: "people",
+    peaple: "people",
+    ppl: "people",
+    vehical: "vehicle",
+    vehicals: "vehicles",
+    carz: "cars",
+    buildng: "building",
+    buildingss: "buildings",
+    forrest: "forest",
+    mountian: "mountain",
+    mountians: "mountains",
+    ocen: "ocean",
+    watter: "water",
+    sunet: "sunset",
+    sunris: "sunrise",
+    camra: "camera",
+    movment: "movement",
+    movign: "moving",
+    glwoing: "glowing",
+    glowng: "glowing",
+    foggyy: "foggy",
+    blury: "blurry",
+    smoothe: "smooth",
+    pixle: "pixel",
+    pixles: "pixels",
+    voxle: "voxel",
+    minecarft: "minecraft",
+    minecrft: "minecraft",
+    mnecraft: "minecraft",
+    mcraft: "minecraft"
+  };
+
+  const STYLE_ALIASES = {
+    twoD: ["2d", "flat", "cartoon", "side scroller", "side-scroller", "vector"],
+    threeD: ["3d", "depth", "volumetric", "perspective"],
+    pixel: ["pixel", "pixelart", "pixel art", "8bit", "8-bit", "16bit", "16-bit", "retro game"],
+    voxel: ["voxel", "blocky", "blocks", "cubes", "mc", "minecraft", "craft", "sandbox"],
+    lowpoly: ["low poly", "low-poly", "polygon", "faceted"],
+    realistic: ["realistic", "real life", "lifelike", "natural", "documentary", "photoreal"],
+    cinematic: ["cinematic", "movie", "film", "epic", "anamorphic"],
+    anime: ["anime", "manga", "cel shade", "cel-shaded", "cel shaded"],
+    comic: ["comic", "ink", "halftone", "graphic novel"],
+    watercolor: ["watercolor", "paint", "painterly", "brush"],
+    clay: ["clay", "claymation", "stop motion", "toy"],
+    noir: ["noir", "black and white", "monochrome", "detective"],
+    synthwave: ["synthwave", "retrowave", "outrun", "neon"],
+    horror: ["horror", "scary", "creepy", "haunted", "dark"],
+    fantasy: ["fantasy", "magic", "dragon", "castle", "wizard"],
+    scifi: ["sci-fi", "scifi", "science fiction", "future", "spaceship", "cyber", "robot"],
+    arcade: ["arcade", "score", "coin", "boss", "powerup"],
+    platformer: ["platformer", "jump", "platform", "side view"],
+    racing: ["racing", "race", "speed", "drift", "cars", "track", "highway"],
+    rpg: ["rpg", "quest", "village", "inventory", "hero"],
+    shooter: ["shooter", "laser", "blaster", "battle"],
+    cozy: ["cozy", "warm", "soft", "cute"],
+    glitch: ["glitch", "corrupt", "datamosh", "static"],
+    vapor: ["vaporwave", "pastel", "mallsoft"],
+    sketch: ["chalk", "sketch", "pencil", "hand drawn", "hand-drawn"]
+  };
+
+  const SCENE_ALIASES = {
+    city: ["city", "street", "downtown", "urban", "alley", "skyscraper", "buildings"],
+    forest: ["forest", "woods", "trees", "jungle", "nature"],
+    ocean: ["ocean", "sea", "beach", "shore", "waves", "island"],
+    desert: ["desert", "sand", "dunes", "cactus"],
+    mountain: ["mountain", "mountains", "valley", "cliff", "hills"],
+    space: ["space", "galaxy", "stars", "planet", "nebula", "moon"],
+    room: ["room", "house", "apartment", "kitchen", "bedroom", "office", "indoor"],
+    farm: ["farm", "field", "barn", "crops"],
+    dungeon: ["dungeon", "cave", "ruins", "temple"],
+    track: ["track", "road", "highway", "raceway"],
+    village: ["village", "town", "market"],
+    abstract: ["abstract", "dream", "surreal", "particles"]
+  };
+
+  const OBJECT_ALIASES = {
+    people: ["people", "person", "human", "crowd", "walking"],
+    cars: ["car", "cars", "traffic", "vehicle", "vehicles"],
+    birds: ["bird", "birds", "seagull", "seagulls"],
+    animals: ["animal", "animals", "dog", "cat", "deer", "horse", "cow", "sheep"],
+    rain: ["rain", "rainy", "storm", "wet"],
+    snow: ["snow", "snowy", "winter", "ice"],
+    fog: ["fog", "foggy", "mist", "misty"],
+    fire: ["fire", "flame", "explosion", "lava"],
+    water: ["water", "river", "lake", "pool"],
+    clouds: ["cloud", "clouds", "cloudy"],
+    sun: ["sun", "sunny", "bright"],
+    sunset: ["sunset", "sunrise", "golden hour"],
+    night: ["night", "midnight", "dark"],
+    robot: ["robot", "android", "mech"],
+    dragon: ["dragon"],
+    castle: ["castle"],
+    sword: ["sword"],
+    coins: ["coin", "coins", "gold"],
+    hearts: ["heart", "hearts", "health"],
+    cubes: ["cube", "cubes", "block", "blocks"]
+  };
+
+  const WORD_EFFECTS = {
+    blue: { color: "#3b82f6" },
+    red: { color: "#ef4444" },
+    green: { color: "#22c55e" },
+    yellow: { color: "#eab308" },
+    purple: { color: "#a855f7" },
+    pink: { color: "#ec4899" },
+    orange: { color: "#f97316" },
+    gold: { color: "#facc15" },
+    silver: { color: "#cbd5e1" },
+    black: { color: "#020617" },
+    white: { color: "#f8fafc" },
+    fast: { speed: 1.8 },
+    speedy: { speed: 1.8 },
+    slow: { speed: 0.55 },
+    calm: { speed: 0.65 },
+    chaos: { chaos: 1 },
+    chaotic: { chaos: 1 },
+    glowing: { glow: 1 },
+    glow: { glow: 1 },
+    huge: { scale: 1.55 },
+    giant: { scale: 1.75 },
+    tiny: { scale: 0.65 },
+    small: { scale: 0.75 },
+    many: { density: 1.5 },
+    lots: { density: 1.5 },
+    crowded: { density: 1.8 },
+    minimal: { density: 0.55 },
+    empty: { density: 0.35 }
+  };
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function hashString(str) {
     let h = 2166136261 >>> 0;
     for (let i = 0; i < str.length; i++) {
       h ^= str.charCodeAt(i);
@@ -18,6 +237,10 @@
       t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
+  }
+
+  function unique(arr) {
+    return Array.from(new Set(arr));
   }
 
   function levenshtein(a, b) {
@@ -44,11 +267,7 @@
     return dp[b.length][a.length];
   }
 
-  function unique(arr) {
-    return Array.from(new Set(arr));
-  }
-
-  function allKnownWords() {
+  function buildKnownWords() {
     return unique(
       Object.keys(TYPO_MAP)
         .concat(Object.values(TYPO_MAP))
@@ -61,10 +280,10 @@
       .filter((x) => !x.includes(" "));
   }
 
-  const KNOWN_WORDS = allKnownWords();
+  const KNOWN_WORDS = buildKnownWords();
 
   function normalizePrompt(prompt) {
-    let text = String(prompt || "")
+    const text = String(prompt || "")
       .toLowerCase()
       .replace(/[^\w\s'-]/g, " ")
       .replace(/\s+/g, " ")
@@ -102,8 +321,8 @@
 
   function scoreAliases(text, aliases) {
     let score = 0;
-    for (const term of aliases) {
-      if (text.includes(term)) score += term.length + 1;
+    for (const alias of aliases) {
+      if (text.includes(alias)) score += alias.length + 1;
     }
     return score;
   }
@@ -125,15 +344,16 @@
     }
 
     let scene = "abstract";
-    let best = -1;
+    let bestScore = -1;
+
     for (const key of Object.keys(sceneScores)) {
-      if (sceneScores[key] > best) {
-        best = sceneScores[key];
+      if (sceneScores[key] > bestScore) {
+        bestScore = sceneScores[key];
         scene = key;
       }
     }
 
-    if (best <= 0) scene = "abstract";
+    if (bestScore <= 0) scene = "abstract";
 
     const objects = {};
     for (const key of Object.keys(OBJECT_ALIASES)) {
@@ -152,6 +372,10 @@
 
     if (scene === "space") {
       objects.clouds = false;
+    }
+
+    if (styles.voxel) {
+      objects.cubes = true;
     }
 
     const modifiers = {
@@ -196,8 +420,11 @@
       modifiers,
       gameMode,
       referenceMode: {
-        requested: text.includes("reference") || text.includes("style of") || text.includes("like"),
-        note: "References are interpreted as broad procedural style hints, not exact copies."
+        requested:
+          text.includes("reference") ||
+          text.includes("style of") ||
+          text.includes("like"),
+        note: "Reference words are used as broad procedural style hints, not exact copies."
       }
     };
   }
@@ -205,7 +432,9 @@
   function chooseMimeType(preferred) {
     if (typeof MediaRecorder === "undefined") return "";
 
-    if (preferred && MediaRecorder.isTypeSupported(preferred)) return preferred;
+    if (preferred && MediaRecorder.isTypeSupported(preferred)) {
+      return preferred;
+    }
 
     const candidates = [
       "video/webm;codecs=vp9",
@@ -221,8 +450,8 @@
   }
 
   function colorWithAlpha(hex, alpha) {
-    const clean = hex.replace("#", "");
-    const n = parseInt(clean, 16);
+    const clean = String(hex || "#ffffff").replace("#", "");
+    const n = parseInt(clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean, 16);
     const r = (n >> 16) & 255;
     const g = (n >> 8) & 255;
     const b = n & 255;
@@ -253,8 +482,6 @@
         platforms: [],
         coins: [],
         enemies: [],
-        sprites: [],
-        gridLines: [],
         roomObjects: [],
         rain: [],
         snow: [],
@@ -269,6 +496,10 @@
 
     pick(arr) {
       return arr[Math.floor(this.rand(0, arr.length))];
+    }
+
+    density(base) {
+      return Math.max(1, Math.floor(base * this.parsed.modifiers.density));
     }
 
     makePalette() {
@@ -400,10 +631,6 @@
       };
     }
 
-    density(base) {
-      return Math.max(1, Math.floor(base * this.parsed.modifiers.density));
-    }
-
     generate() {
       this.generateStars();
       this.generateClouds();
@@ -484,8 +711,8 @@
           y: this.height * 0.78 - h,
           w,
           h,
-          rows: Math.floor(h / 18),
-          cols: Math.floor(w / 13),
+          rows: Math.max(2, Math.floor(h / 18)),
+          cols: Math.max(2, Math.floor(w / 13)),
           phase: this.rand(0, 100)
         });
         x += w + this.rand(4, 14);
@@ -555,15 +782,14 @@
 
     generateBlocks() {
       const block = Math.max(18, Math.floor(this.width / 48));
+
       for (let y = this.height * 0.54; y < this.height + block; y += block) {
         for (let x = -block; x < this.width + block; x += block) {
-          const yy = y + Math.sin(x * 0.02 + this.seed) * block * 0.5;
           this.items.blocks.push({
             x,
-            y: yy,
+            y: y + Math.sin(x * 0.02 + this.seed) * block * 0.5,
             s: block,
-            type: y < this.height * 0.65 ? "grass" : this.rng() > 0.3 ? "dirt" : "stone",
-            shade: this.rand(0.75, 1.15)
+            type: y < this.height * 0.65 ? "grass" : this.rng() > 0.3 ? "dirt" : "stone"
           });
         }
       }
@@ -598,16 +824,6 @@
           s: this.rand(18, 42),
           phase: this.rand(0, Math.PI * 2),
           color: this.pick(["#ef4444", "#7c2d12", "#581c87", "#0f766e"])
-        });
-      }
-
-      for (let i = 0; i < this.density(16); i++) {
-        this.items.sprites.push({
-          x: this.rand(0, this.width),
-          y: this.rand(this.height * 0.25, this.height * 0.75),
-          s: this.rand(20, 60),
-          color: this.pick(["#22d3ee", "#f472b6", "#a3e635", "#facc15"]),
-          phase: this.rand(0, Math.PI * 2)
         });
       }
     }
@@ -650,9 +866,7 @@
     }
 
     generateWordObjects() {
-      const visualWords = this.parsed.words
-        .filter((w) => w.length > 2)
-        .slice(0, 80);
+      const visualWords = this.parsed.words.filter((word) => word.length > 2).slice(0, 80);
 
       for (const word of visualWords) {
         this.items.wordObjects.push({
@@ -702,8 +916,8 @@
 
       if (p.styles.voxel) this.drawVoxelWorld(t);
       else if (p.styles.pixel || p.gameMode === "pixel-arcade") this.drawPixelGame(t);
-      else if (p.styles.platformer) this.drawPlatformer(t);
-      else if (p.styles.racing) this.drawRacing(t);
+      else if (p.styles.racing || p.scene === "track") this.drawRacing(t);
+      else if (p.styles.platformer) this.drawPixelGame(t);
       else if (p.scene === "space") this.drawSpace(t);
       else if (p.scene === "ocean") this.drawOcean(t);
       else if (p.scene === "forest" || p.scene === "farm") this.drawForest(t);
@@ -711,7 +925,7 @@
       else if (p.scene === "mountain") this.drawMountainScene(t);
       else if (p.scene === "room") this.drawRoom(t);
       else if (p.scene === "dungeon") this.drawDungeon(t);
-      else if (p.scene === "city" || p.scene === "track") this.drawCity(t);
+      else if (p.scene === "city") this.drawCity(t);
       else this.drawAbstract(t);
 
       if (p.objects.dragon || p.styles.fantasy) this.drawFantasyLayer(t);
@@ -721,8 +935,9 @@
       if (p.objects.fog) this.drawFog(t);
 
       this.drawPromptWordLayer(t);
+      this.drawParticles(t);
       this.drawStyleOverlay(t);
-      this.drawGrain(t);
+      this.drawGrain();
 
       if (p.styles.cinematic) this.drawCinematicBars();
 
@@ -751,8 +966,9 @@
       g.addColorStop(0, pal.skyTop);
       g.addColorStop(0.5, pal.skyMid);
       g.addColorStop(1, pal.skyBottom);
+
       ctx.fillStyle = g;
-      ctx.fillRect(-30, -30, this.w + 60, this.h + 60);
+      ctx.fillRect(-40, -40, this.w + 80, this.h + 80);
 
       if (!this.world.parsed.objects.night && this.world.parsed.scene !== "space") {
         this.drawSun(this.w * 0.78, this.h * 0.22, 46, pal.sun);
@@ -773,6 +989,7 @@
       glow.addColorStop(0, color);
       glow.addColorStop(0.36, colorWithAlpha(color, 0.34));
       glow.addColorStop(1, "rgba(255,255,255,0)");
+
       ctx.fillStyle = glow;
       ctx.beginPath();
       ctx.arc(x, y, r * 4, 0, Math.PI * 2);
@@ -803,6 +1020,7 @@
       for (const c of this.world.items.clouds) {
         const x = ((c.x + t * c.speed) % (this.w + c.w * 2)) - c.w;
         const y = c.y + Math.sin(t * 0.4 + c.x) * 3;
+
         ctx.fillStyle = `rgba(${color},${c.alpha})`;
         ctx.beginPath();
         ctx.ellipse(x, y, c.w * 0.35, c.h * 0.72, 0, 0, Math.PI * 2);
@@ -828,12 +1046,14 @@
       for (const b of this.world.items.buildings) {
         ctx.fillStyle = p.objects.night ? "#020617" : "#1e293b";
         ctx.fillRect(b.x, b.y, b.w, b.h);
+
         ctx.strokeStyle = "rgba(255,255,255,0.07)";
         ctx.strokeRect(b.x, b.y, b.w, b.h);
 
         for (let iy = 0; iy < b.rows; iy++) {
           for (let ix = 0; ix < b.cols; ix++) {
             const flicker = Math.sin(ix * 7.13 + iy * 11.91 + b.phase + t * 1.8);
+
             if (flicker > -0.15) {
               ctx.fillStyle =
                 p.styles.synthwave || p.styles.scifi
@@ -841,6 +1061,7 @@
                     ? pal.accent
                     : pal.accent2
                   : "rgba(255,226,130,0.82)";
+
               ctx.fillRect(b.x + 7 + ix * 13, b.y + 8 + iy * 17, 5, 8);
             }
           }
@@ -850,6 +1071,7 @@
 
     drawRoad(t) {
       const ctx = this.ctx;
+
       ctx.fillStyle = this.world.parsed.objects.rain ? "#111827" : "#1f2937";
       ctx.fillRect(0, this.h * 0.78, this.w, this.h * 0.22);
 
@@ -859,16 +1081,21 @@
       ctx.lineWidth = 3;
       ctx.setLineDash([34, 28]);
       ctx.lineDashOffset = -t * 70;
+
       ctx.beginPath();
       ctx.moveTo(0, this.h * 0.885);
       ctx.lineTo(this.w, this.h * 0.885);
       ctx.stroke();
+
       ctx.setLineDash([]);
     }
 
     drawCars(t) {
       for (const car of this.world.items.cars) {
-        const x = ((car.x + t * car.speed * this.world.parsed.modifiers.speed) % (this.w + 260)) - 130;
+        const x =
+          ((car.x + t * car.speed * this.world.parsed.modifiers.speed) %
+            (this.w + 260)) -
+          130;
         this.drawCar(x, car.y, car.size, car.color, car.speed < 0);
       }
     }
@@ -960,7 +1187,7 @@
     }
 
     drawForest(t) {
-      this.drawMountains(t);
+      this.drawMountains();
       this.drawGround(this.world.palette.ground, 0.68);
 
       const trees = this.world.items.trees.slice().sort((a, b) => a.y - b.y);
@@ -999,6 +1226,7 @@
 
     drawOcean(t) {
       const ctx = this.ctx;
+
       ctx.fillStyle = "#075985";
       ctx.fillRect(0, this.h * 0.56, this.w, this.h * 0.5);
 
@@ -1019,6 +1247,7 @@
           if (x === -20) ctx.moveTo(x, y);
           else ctx.lineTo(x, y);
         }
+
         ctx.strokeStyle = `rgba(255,255,255,${wave.alpha})`;
         ctx.lineWidth = 1.5;
         ctx.stroke();
@@ -1029,14 +1258,17 @@
 
     drawDesert(t) {
       const ctx = this.ctx;
+
       for (let i = 0; i < 7; i++) {
         const yBase = this.h * (0.58 + i * 0.065);
         ctx.beginPath();
         ctx.moveTo(0, this.h);
+
         for (let x = 0; x <= this.w; x += 18) {
           const y = yBase + Math.sin(x * 0.006 + t * 0.24 + i) * (24 + i * 4);
           ctx.lineTo(x, y);
         }
+
         ctx.lineTo(this.w, this.h);
         ctx.closePath();
         ctx.fillStyle = `rgba(180,83,9,${0.18 + i * 0.08})`;
@@ -1045,13 +1277,14 @@
     }
 
     drawMountainScene(t) {
-      this.drawMountains(t);
+      this.drawMountains();
       this.drawGround("#1f2937", 0.74);
       if (this.world.parsed.objects.birds) this.drawBirds(t);
     }
 
-    drawMountains(t) {
+    drawMountains() {
       const ctx = this.ctx;
+
       for (const m of this.world.items.mountains) {
         ctx.fillStyle = `rgba(15,23,42,${m.shade})`;
         ctx.beginPath();
@@ -1076,8 +1309,9 @@
       this.ctx.fillRect(0, this.h * start, this.w, this.h * (1 - start));
     }
 
-    drawRoom(t) {
+    drawRoom() {
       const ctx = this.ctx;
+
       ctx.fillStyle = "#292524";
       ctx.fillRect(0, 0, this.w, this.h);
 
@@ -1099,10 +1333,11 @@
 
     drawDungeon(t) {
       const ctx = this.ctx;
+      const tile = Math.max(32, Math.floor(this.w / 24));
+
       ctx.fillStyle = "#111827";
       ctx.fillRect(0, 0, this.w, this.h);
 
-      const tile = Math.max(32, Math.floor(this.w / 24));
       for (let y = 0; y < this.h; y += tile) {
         for (let x = 0; x < this.w; x += tile) {
           ctx.fillStyle = (x / tile + y / tile) % 2 ? "#1f2937" : "#0f172a";
@@ -1118,6 +1353,7 @@
     drawSpace(t) {
       const ctx = this.ctx;
       const pal = this.world.palette;
+
       for (let i = 0; i < 8; i++) {
         const x = this.w * 0.2 + i * this.w * 0.08 + Math.sin(t * 0.4 + i) * 30;
         const y = this.h * 0.34 + Math.cos(t * 0.3 + i) * 25;
@@ -1152,28 +1388,7 @@
       const p = this.world.parsed;
       const pal = this.world.palette;
 
-      this.drawVoxelSunAndClouds(t);
-
-      for (const b of this.world.items.blocks) {
-        this.drawBlock(b.x, b.y, b.s, b.type, b.shade);
-      }
-
-      if (p.objects.cubes || p.styles.voxel) {
-        for (let i = 0; i < 18; i++) {
-          const s = 30 + (i % 5) * 7;
-          const x = (i * 89 + Math.sin(t + i) * 10) % this.w;
-          const y = this.h * 0.46 + Math.sin(t * 0.7 + i) * 35;
-          this.drawIsoCube(x, y, s, i % 2 ? pal.accent : pal.accent2);
-        }
-      }
-
-      if (p.objects.people) this.drawBlockyPeople(t);
-      if (p.objects.animals) this.drawBlockyAnimals(t);
-    }
-
-    drawVoxelSunAndClouds(t) {
-      const ctx = this.ctx;
-      ctx.fillStyle = this.world.palette.sun;
+      ctx.fillStyle = pal.sun;
       ctx.fillRect(this.w * 0.78, this.h * 0.18, 58, 58);
 
       ctx.fillStyle = "rgba(255,255,255,0.5)";
@@ -1183,9 +1398,25 @@
         ctx.fillRect(x, y, 80, 24);
         ctx.fillRect(x + 22, y - 18, 50, 24);
       }
+
+      for (const b of this.world.items.blocks) {
+        this.drawBlock(b.x, b.y, b.s, b.type);
+      }
+
+      if (p.objects.cubes || p.styles.voxel) {
+        for (let i = 0; i < 18; i++) {
+          const s = 30 + (i % 5) * 7;
+          const x = (i * 89 + Math.sin(t + i) * 10) % this.w;
+          const y = this.h * 0.46 + Math.sin(t * 0.7 + i) * 35;
+          this.drawCube(x, y, s, i % 2 ? pal.accent : pal.accent2);
+        }
+      }
+
+      if (p.objects.people) this.drawBlockyPeople(t);
+      if (p.objects.animals) this.drawBlockyAnimals(t);
     }
 
-    drawBlock(x, y, s, type, shade) {
+    drawBlock(x, y, s, type) {
       const ctx = this.ctx;
       const colors = {
         grass: ["#22c55e", "#15803d"],
@@ -1195,31 +1426,40 @@
         water: ["#0284c7", "#075985"]
       };
       const c = colors[type] || colors.dirt;
+
       ctx.fillStyle = c[0];
       ctx.fillRect(x, y, s, s);
+
       ctx.fillStyle = c[1];
       ctx.fillRect(x, y + s * 0.68, s, s * 0.32);
+
       ctx.strokeStyle = "rgba(0,0,0,0.18)";
       ctx.strokeRect(x, y, s, s);
     }
 
-    drawIsoCube(x, y, s, color) {
+    drawCube(x, y, s, color) {
       const ctx = this.ctx;
+
       ctx.fillStyle = color;
       ctx.fillRect(x, y, s, s);
+
       ctx.fillStyle = colorWithAlpha("#000000", 0.18);
       ctx.fillRect(x, y + s * 0.7, s, s * 0.3);
+
       ctx.strokeStyle = "rgba(255,255,255,0.25)";
       ctx.strokeRect(x, y, s, s);
     }
 
     drawBlockyPeople(t) {
       const ctx = this.ctx;
+
       for (let i = 0; i < 12; i++) {
         const x = ((i * 100 + t * 25) % (this.w + 100)) - 50;
         const y = this.h * 0.68 + Math.sin(i) * 40;
+
         ctx.fillStyle = "#2563eb";
         ctx.fillRect(x, y, 20, 42);
+
         ctx.fillStyle = "#d6a77a";
         ctx.fillRect(x - 2, y - 22, 24, 22);
       }
@@ -1227,12 +1467,15 @@
 
     drawBlockyAnimals(t) {
       const ctx = this.ctx;
+
       for (let i = 0; i < 8; i++) {
         const x = ((i * 140 + t * 18) % (this.w + 120)) - 60;
         const y = this.h * 0.72 + Math.sin(i) * 35;
+
         ctx.fillStyle = "#f8fafc";
         ctx.fillRect(x, y, 44, 24);
         ctx.fillRect(x + 34, y - 12, 18, 18);
+
         ctx.fillStyle = "#111827";
         ctx.fillRect(x + 39, y - 6, 4, 4);
       }
@@ -1241,18 +1484,9 @@
     drawPixelGame(t) {
       const ctx = this.ctx;
       const pixel = Math.max(4, Math.floor(this.w / 180));
+
       ctx.imageSmoothingEnabled = false;
 
-      this.drawPixelGrid(pixel);
-      this.drawPlatforms(t);
-      this.drawGameItems(t);
-      this.drawPixelHero(t);
-
-      ctx.imageSmoothingEnabled = true;
-    }
-
-    drawPixelGrid(pixel) {
-      const ctx = this.ctx;
       ctx.strokeStyle = "rgba(255,255,255,0.045)";
       ctx.lineWidth = 1;
 
@@ -1269,13 +1503,21 @@
         ctx.lineTo(this.w, y);
         ctx.stroke();
       }
+
+      this.drawPlatforms();
+      this.drawGameItems(t);
+      this.drawPixelHero(t);
+
+      ctx.imageSmoothingEnabled = true;
     }
 
-    drawPlatforms(t) {
+    drawPlatforms() {
       const ctx = this.ctx;
+
       for (const pl of this.world.items.platforms) {
         ctx.fillStyle = pl.type === "metal" ? "#64748b" : pl.type === "wood" ? "#92400e" : "#22c55e";
         ctx.fillRect(pl.x, pl.y, pl.w, pl.h);
+
         ctx.fillStyle = "rgba(0,0,0,0.2)";
         ctx.fillRect(pl.x, pl.y + pl.h * 0.65, pl.w, pl.h * 0.35);
       }
@@ -1284,13 +1526,19 @@
     drawGameItems(t) {
       const ctx = this.ctx;
 
-      if (this.world.parsed.objects.coins || this.world.parsed.styles.arcade || this.world.parsed.styles.platformer) {
+      if (
+        this.world.parsed.objects.coins ||
+        this.world.parsed.styles.arcade ||
+        this.world.parsed.styles.platformer ||
+        this.world.parsed.styles.pixel
+      ) {
         for (const c of this.world.items.coins) {
           const wobble = Math.sin(t * 4 + c.phase);
           ctx.fillStyle = "#facc15";
           ctx.beginPath();
           ctx.ellipse(c.x, c.y, c.r * (0.35 + Math.abs(wobble) * 0.65), c.r, 0, 0, Math.PI * 2);
           ctx.fill();
+
           ctx.strokeStyle = "#ca8a04";
           ctx.stroke();
         }
@@ -1299,8 +1547,10 @@
       for (const e of this.world.items.enemies) {
         const x = e.x + Math.sin(t * 1.8 + e.phase) * 40;
         const y = e.y + Math.sin(t * 5 + e.phase) * 4;
+
         ctx.fillStyle = e.color;
         ctx.fillRect(x, y, e.s, e.s);
+
         ctx.fillStyle = "#fff";
         ctx.fillRect(x + e.s * 0.22, y + e.s * 0.25, e.s * 0.18, e.s * 0.18);
         ctx.fillRect(x + e.s * 0.62, y + e.s * 0.25, e.s * 0.18, e.s * 0.18);
@@ -1315,19 +1565,18 @@
 
       ctx.fillStyle = "#3b82f6";
       ctx.fillRect(x - s / 2, y - s, s, s);
+
       ctx.fillStyle = "#d6a77a";
       ctx.fillRect(x - s * 0.35, y - s * 1.55, s * 0.7, s * 0.55);
+
       ctx.fillStyle = "#111827";
       ctx.fillRect(x - s * 0.2, y - s * 1.35, 5, 5);
       ctx.fillRect(x + s * 0.1, y - s * 1.35, 5, 5);
     }
 
-    drawPlatformer(t) {
-      this.drawPixelGame(t);
-    }
-
     drawRacing(t) {
       const ctx = this.ctx;
+
       ctx.fillStyle = "#111827";
       ctx.fillRect(0, this.h * 0.45, this.w, this.h * 0.55);
 
@@ -1344,10 +1593,12 @@
       ctx.lineWidth = 4;
       ctx.setLineDash([30, 30]);
       ctx.lineDashOffset = -t * 180;
+
       ctx.beginPath();
       ctx.moveTo(this.w * 0.5, this.h * 0.48);
       ctx.lineTo(this.w * 0.5, this.h);
       ctx.stroke();
+
       ctx.setLineDash([]);
 
       this.drawCars(t);
@@ -1377,13 +1628,16 @@
 
     drawAnimals(t) {
       const ctx = this.ctx;
+
       for (let i = 0; i < 7; i++) {
         const x = ((i * 190 + t * 18) % (this.w + 120)) - 60;
         const y = this.h * 0.78 + Math.sin(i) * 28;
+
         ctx.fillStyle = "rgba(0,0,0,0.45)";
         ctx.beginPath();
         ctx.ellipse(x, y, 24, 12, 0, 0, Math.PI * 2);
         ctx.fill();
+
         ctx.beginPath();
         ctx.arc(x + 24, y - 8, 9, 0, Math.PI * 2);
         ctx.fill();
@@ -1414,11 +1668,14 @@
 
     drawSciFiLayer(t) {
       const ctx = this.ctx;
+
       for (let i = 0; i < 5; i++) {
         const x = (i * 220 + t * 50) % (this.w + 120) - 60;
         const y = this.h * 0.22 + Math.sin(t + i) * 35;
+
         ctx.strokeStyle = "rgba(0,245,255,0.75)";
         ctx.lineWidth = 2;
+
         ctx.beginPath();
         ctx.moveTo(x - 30, y);
         ctx.lineTo(x + 30, y);
@@ -1433,6 +1690,7 @@
 
     drawRain(t) {
       const ctx = this.ctx;
+
       ctx.save();
       ctx.strokeStyle = "rgba(180,220,255,0.44)";
       ctx.lineWidth = 1;
@@ -1453,9 +1711,11 @@
 
     drawSnow(t) {
       const ctx = this.ctx;
+
       for (const s of this.world.items.snow) {
         const y = (s.y + t * s.speed) % (this.h + 30);
         const x = (s.x + Math.sin(t + s.phase) * 18 + t * s.drift + this.w) % this.w;
+
         ctx.fillStyle = `rgba(255,255,255,${s.a})`;
         ctx.beginPath();
         ctx.arc(x, y, s.r, 0, Math.PI * 2);
@@ -1465,13 +1725,16 @@
 
     drawFog(t) {
       const ctx = this.ctx;
+
       for (let i = 0; i < 9; i++) {
         const y = this.h * (0.18 + i * 0.08);
         const x = Math.sin(t * 0.16 + i) * this.w * 0.08;
+
         const g = ctx.createLinearGradient(0, y - 60, 0, y + 60);
         g.addColorStop(0, "rgba(255,255,255,0)");
         g.addColorStop(0.5, "rgba(255,255,255,0.095)");
         g.addColorStop(1, "rgba(255,255,255,0)");
+
         ctx.fillStyle = g;
         ctx.fillRect(x - 120, y - 80, this.w + 240, 160);
       }
@@ -1482,34 +1745,55 @@
       const p = this.world.parsed;
 
       for (const obj of this.world.items.wordObjects) {
-        const h = obj.hash;
-        const mode = h % 7;
-        const x = (obj.x + Math.sin(t + obj.phase) * obj.speed) % this.w;
+        const mode = obj.hash % 7;
+        const x = (obj.x + Math.sin(t + obj.phase) * obj.speed + this.w) % this.w;
         const y = (obj.y + Math.cos(t * 0.7 + obj.phase) * obj.speed * 0.5 + this.h) % this.h;
 
         ctx.save();
-        ctx.globalAlpha = 0.04 + ((h % 100) / 100) * 0.08;
+        ctx.globalAlpha = 0.04 + ((obj.hash % 100) / 100) * 0.08;
+        ctx.fillStyle = obj.color;
 
         if (p.styles.pixel || p.styles.voxel) {
-          ctx.fillStyle = obj.color;
           const s = obj.size;
           ctx.fillRect(x, y, s, s);
           if (mode % 2) ctx.fillRect(x + s * 0.4, y - s * 0.4, s, s);
         } else {
-          ctx.fillStyle = obj.color;
           ctx.beginPath();
-          if (mode === 0) ctx.arc(x, y, obj.size, 0, Math.PI * 2);
-          else if (mode === 1) ctx.rect(x, y, obj.size * 1.5, obj.size);
-          else {
+
+          if (mode === 0) {
+            ctx.arc(x, y, obj.size, 0, Math.PI * 2);
+          } else if (mode === 1) {
+            ctx.rect(x, y, obj.size * 1.5, obj.size);
+          } else {
             ctx.moveTo(x, y - obj.size);
             ctx.lineTo(x - obj.size, y + obj.size);
             ctx.lineTo(x + obj.size, y + obj.size);
             ctx.closePath();
           }
+
           ctx.fill();
         }
 
         ctx.restore();
+      }
+    }
+
+    drawParticles(t) {
+      const ctx = this.ctx;
+      const p = this.world.parsed;
+
+      for (const part of this.world.items.particles) {
+        const x = (part.x + part.vx * t * 60 + this.w) % this.w;
+        const y = (part.y + part.vy * t * 60 + this.h) % this.h;
+
+        ctx.fillStyle =
+          p.styles.synthwave || p.modifiers.glow
+            ? `hsla(${part.hue}, 100%, 70%, ${part.a})`
+            : `rgba(255,255,255,${part.a * 0.6})`;
+
+        ctx.beginPath();
+        ctx.arc(x, y, part.r, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
 
@@ -1518,12 +1802,8 @@
       const p = this.world.parsed;
 
       if (p.styles.noir) {
-        ctx.fillStyle = "rgba(0,0,0,0.25)";
+        ctx.fillStyle = "rgba(0,0,0,0.28)";
         ctx.fillRect(0, 0, this.w, this.h);
-        ctx.globalCompositeOperation = "saturation";
-        ctx.fillStyle = "rgba(255,255,255,1)";
-        ctx.fillRect(0, 0, this.w, this.h);
-        ctx.globalCompositeOperation = "source-over";
       }
 
       if (p.styles.comic) {
@@ -1543,7 +1823,7 @@
 
       if (p.styles.watercolor) {
         for (let i = 0; i < 12; i++) {
-          ctx.fillStyle = `rgba(255,255,255,${0.018})`;
+          ctx.fillStyle = "rgba(255,255,255,0.018)";
           ctx.beginPath();
           ctx.ellipse(
             (i * 97 + Math.sin(t + i) * 20) % this.w,
@@ -1577,17 +1857,21 @@
       );
       vignette.addColorStop(0, "rgba(0,0,0,0)");
       vignette.addColorStop(1, "rgba(0,0,0,0.36)");
+
       ctx.fillStyle = vignette;
       ctx.fillRect(0, 0, this.w, this.h);
     }
 
     drawHalftone(t) {
       const ctx = this.ctx;
-      ctx.fillStyle = "rgba(0,0,0,0.07)";
       const gap = 18;
+
+      ctx.fillStyle = "rgba(0,0,0,0.07)";
+
       for (let y = 0; y < this.h; y += gap) {
         for (let x = 0; x < this.w; x += gap) {
           const r = 1.5 + Math.sin(x * 0.02 + y * 0.02 + t) * 1.2;
+
           ctx.beginPath();
           ctx.arc(x, y, Math.max(0.5, r), 0, Math.PI * 2);
           ctx.fill();
@@ -1595,9 +1879,10 @@
       }
     }
 
-    drawGrain(t) {
+    drawGrain() {
       const ctx = this.ctx;
-      const amount = Math.floor((this.w * this.h) / 1000);
+      const amount = Math.floor((this.w * this.h) / 1100);
+
       ctx.save();
       ctx.globalAlpha = this.world.parsed.styles.pixel ? 0.025 : 0.052;
 
@@ -1605,6 +1890,7 @@
         const x = Math.random() * this.w;
         const y = Math.random() * this.h;
         const v = 130 + Math.random() * 125;
+
         ctx.fillStyle = `rgb(${v},${v},${v})`;
         ctx.fillRect(x, y, 1, 1);
       }
@@ -1615,6 +1901,7 @@
     drawCinematicBars() {
       const ctx = this.ctx;
       const bar = Math.floor(this.h * 0.09);
+
       ctx.fillStyle = "rgba(0,0,0,0.92)";
       ctx.fillRect(0, 0, this.w, bar);
       ctx.fillRect(0, this.h - bar, this.w, bar);
@@ -1623,6 +1910,7 @@
     roundRect(x, y, w, h, r) {
       const ctx = this.ctx;
       r = Math.min(r, w / 2, h / 2);
+
       ctx.beginPath();
       ctx.moveTo(x + r, y);
       ctx.lineTo(x + w - r, y);
@@ -1640,11 +1928,15 @@
   class RealLifeVideoEngine {
     constructor(options = {}) {
       this.options = Object.assign({}, DEFAULTS, options);
-      this.options.width = Math.max(160, Math.floor(this.options.width));
-      this.options.height = Math.max(90, Math.floor(this.options.height));
-      this.options.fps = clamp(Math.floor(this.options.fps), 1, 60);
-      this.options.seconds = clamp(Number(this.options.seconds), 0.5, 60);
-      this.options.bitrate = Math.max(100000, Math.floor(Number(this.options.bitrate || DEFAULTS.bitrate)));
+
+      this.options.width = Math.max(160, Math.floor(Number(this.options.width) || DEFAULTS.width));
+      this.options.height = Math.max(90, Math.floor(Number(this.options.height) || DEFAULTS.height));
+      this.options.fps = clamp(Math.floor(Number(this.options.fps) || DEFAULTS.fps), 1, 60);
+      this.options.seconds = clamp(Number(this.options.seconds) || DEFAULTS.seconds, 0.5, 60);
+      this.options.bitrate = Math.max(
+        100000,
+        Math.floor(Number(this.options.bitrate || DEFAULTS.bitrate))
+      );
 
       this.canvas = this.options.canvas || document.createElement("canvas");
       this.canvas.width = this.options.width;
@@ -1695,6 +1987,7 @@
       for (let i = 0; i < totalFrames; i++) {
         const t = i / this.options.fps;
         renderer.render(t);
+
         if (this.options.returnFrames) {
           frames.push(this.canvas.toDataURL("image/webp", this.options.quality));
         }
@@ -1713,23 +2006,30 @@
         videoBitsPerSecond: this.options.bitrate
       };
 
-      if (mimeType) recorderOptions.mimeType = mimeType;
+      if (mimeType) {
+        recorderOptions.mimeType = mimeType;
+      }
 
       let recorder;
+
       try {
         recorder = new MediaRecorder(stream, recorderOptions);
-      } catch (err) {
+      } catch (error) {
         recorder = new MediaRecorder(stream);
       }
 
       return new Promise((resolve, reject) => {
         const totalFrames = Math.floor(this.options.fps * this.options.seconds);
         const frameDuration = 1000 / this.options.fps;
-        let start = performance.now();
+        const start = performance.now();
+
         let stopped = false;
+        let lastCapturedFrame = -1;
 
         recorder.ondataavailable = (event) => {
-          if (event.data && event.data.size > 0) chunks.push(event.data);
+          if (event.data && event.data.size > 0) {
+            chunks.push(event.data);
+          }
         };
 
         recorder.onerror = (event) => {
@@ -1772,19 +2072,24 @@
 
           if (
             this.options.returnFrames &&
+            currentFrame !== lastCapturedFrame &&
             currentFrame % Math.max(1, Math.floor(this.options.fps / 6)) === 0
           ) {
             frames.push(this.canvas.toDataURL("image/webp", this.options.quality));
+            lastCapturedFrame = currentFrame;
           }
 
           if (currentFrame >= totalFrames) {
             try {
               recorder.stop();
-            } catch (err) {
-              reject(err);
+            } catch (error) {
+              reject(error);
             }
 
-            for (const track of stream.getTracks()) track.stop();
+            for (const track of stream.getTracks()) {
+              track.stop();
+            }
+
             return;
           }
 
@@ -1821,224 +2126,16 @@
       return parsePrompt(prompt);
     },
 
-    version: "2.0.0-style-expanded"
+    version: "3.0.0-clean-fixed"
   };
 
   global.RealLifeVideo = RealLifeVideo;
+  global.SpudzyVid = RealLifeVideo;
+  global.SpudzyVideo = RealLifeVideo;
+  global.spudzyVid = RealLifeVideo;
+  global.spudzyVideo = RealLifeVideo;
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports = RealLifeVideo;
   }
 })(typeof window !== "undefined" ? window : globalThis);
-
-  API:
-    const data = await RealLifeVideo.generate(prompt, options)
-
-  Returns:
-    {
-      ok,
-      originalPrompt,
-      correctedPrompt,
-      parsed,
-      width,
-      height,
-      fps,
-      seconds,
-      frameCount,
-      mimeType,
-      blob,
-      url,
-      frames,
-      canvas
-    }
-
-  Notes:
-  - No server.
-  - No real AI model.
-  - Uses Canvas + MediaRecorder.
-  - Prompt words procedurally build visual parts.
-*/
-
-(function attachRealLifeVideo(global) {
-  "use strict";
-
-  const DEFAULTS = {
-    width: 960,
-    height: 540,
-    fps: 30,
-    seconds: 6,
-    bitrate: 6000000,
-    quality: 0.92,
-    mimeType: "",
-    appendCanvas: false,
-    returnFrames: false,
-    transparent: false,
-    seed: null,
-    debug: false
-  };
-
-  const TYPO_MAP = {
-    teh: "the",
-    tha: "that",
-    tht: "that",
-    dosent: "doesn't",
-    doesnt: "doesn't",
-    dont: "don't",
-    cant: "can't",
-    wont: "won't",
-    opver: "over",
-    ovre: "over",
-    lfie: "life",
-    lik: "like",
-    lkot: "lot",
-    alot: "a lot",
-    genrator: "generator",
-    genrate: "generate",
-    genrated: "generated",
-    refrence: "reference",
-    refrences: "references",
-    anyt: "any",
-    bitrte: "bitrate",
-    bitratee: "bitrate",
-    realstic: "realistic",
-    realistc: "realistic",
-    realisticaly: "realistically",
-    realstically: "realistically",
-    cinamatic: "cinematic",
-    cinamtic: "cinematic",
-    nigth: "night",
-    nite: "night",
-    raing: "rain",
-    rian: "rain",
-    wather: "weather",
-    pepole: "people",
-    peaple: "people",
-    ppl: "people",
-    vehical: "vehicle",
-    vehicals: "vehicles",
-    carz: "cars",
-    buildng: "building",
-    buildingss: "buildings",
-    forrest: "forest",
-    mountian: "mountain",
-    mountians: "mountains",
-    ocen: "ocean",
-    watter: "water",
-    sunet: "sunset",
-    sunris: "sunrise",
-    camra: "camera",
-    movment: "movement",
-    movign: "moving",
-    glwoing: "glowing",
-    glowng: "glowing",
-    foggyy: "foggy",
-    blury: "blurry",
-    smoothe: "smooth",
-    pixle: "pixel",
-    pixles: "pixels",
-    voxle: "voxel",
-    minecarft: "minecraft",
-    minecrft: "minecraft",
-    mnecraft: "minecraft"
-  };
-
-  const STYLE_ALIASES = {
-    twoD: ["2d", "flat", "cartoon", "side scroller", "side-scroller", "vector"],
-    threeD: ["3d", "depth", "volumetric", "perspective"],
-    pixel: ["pixel", "pixelart", "pixel art", "8bit", "8-bit", "16bit", "16-bit", "retro game"],
-    voxel: ["voxel", "blocky", "blocks", "cubes", "mc", "minecraft", "craft", "sandbox"],
-    lowpoly: ["low poly", "low-poly", "polygon", "faceted"],
-    realistic: ["realistic", "real life", "lifelike", "natural", "documentary", "photoreal"],
-    cinematic: ["cinematic", "movie", "film", "epic", "anamorphic"],
-    anime: ["anime", "manga", "cel shade", "cel-shaded", "cel shaded"],
-    comic: ["comic", "ink", "halftone", "graphic novel"],
-    watercolor: ["watercolor", "paint", "painterly", "brush"],
-    clay: ["clay", "claymation", "stop motion", "toy"],
-    noir: ["noir", "black and white", "monochrome", "detective"],
-    synthwave: ["synthwave", "retrowave", "outrun", "neon"],
-    horror: ["horror", "scary", "creepy", "haunted", "dark"],
-    fantasy: ["fantasy", "magic", "dragon", "castle", "wizard"],
-    scifi: ["sci-fi", "scifi", "science fiction", "future", "spaceship", "cyber"],
-    arcade: ["arcade", "score", "coin", "boss", "powerup"],
-    platformer: ["platformer", "jump", "platform", "side view"],
-    racing: ["racing", "race", "speed", "drift", "cars", "track"],
-    rpg: ["rpg", "quest", "village", "inventory", "hero"],
-    shooter: ["shooter", "laser", "blaster", "battle"],
-    cozy: ["cozy", "warm", "soft", "cute"],
-    glitch: ["glitch", "corrupt", "datamosh", "static"],
-    vapor: ["vaporwave", "pastel", "mallsoft"],
-    chalk: ["chalk", "sketch", "pencil", "hand drawn", "hand-drawn"]
-  };
-
-  const SCENE_ALIASES = {
-    city: ["city", "street", "downtown", "urban", "alley", "skyscraper", "buildings"],
-    forest: ["forest", "woods", "trees", "jungle", "nature"],
-    ocean: ["ocean", "sea", "beach", "shore", "waves", "island"],
-    desert: ["desert", "sand", "dunes", "cactus"],
-    mountain: ["mountain", "valley", "cliff", "hills"],
-    space: ["space", "galaxy", "stars", "planet", "nebula", "moon"],
-    room: ["room", "house", "apartment", "kitchen", "bedroom", "office", "indoor"],
-    farm: ["farm", "field", "barn", "crops"],
-    dungeon: ["dungeon", "cave", "ruins", "temple"],
-    track: ["track", "road", "highway", "raceway"],
-    village: ["village", "town", "market"],
-    abstract: ["abstract", "dream", "surreal", "particles"]
-  };
-
-  const OBJECT_ALIASES = {
-    people: ["people", "person", "human", "crowd", "walking"],
-    cars: ["car", "cars", "traffic", "vehicle", "vehicles"],
-    birds: ["bird", "birds", "seagull", "seagulls"],
-    animals: ["animal", "animals", "dog", "cat", "deer", "horse"],
-    rain: ["rain", "rainy", "storm", "wet"],
-    snow: ["snow", "snowy", "winter", "ice"],
-    fog: ["fog", "foggy", "mist", "misty"],
-    fire: ["fire", "flame", "explosion", "lava"],
-    water: ["water", "river", "lake", "pool"],
-    clouds: ["cloud", "clouds", "cloudy"],
-    sun: ["sun", "sunny", "bright"],
-    sunset: ["sunset", "sunrise", "golden hour"],
-    night: ["night", "midnight", "dark"],
-    robot: ["robot", "android", "mech"],
-    dragon: ["dragon"],
-    castle: ["castle"],
-    sword: ["sword"],
-    coins: ["coin", "coins", "gold"],
-    hearts: ["heart", "hearts", "health"],
-    cubes: ["cube", "cubes", "block", "blocks"]
-  };
-
-  const WORD_EFFECTS = {
-    blue: { color: "#3b82f6" },
-    red: { color: "#ef4444" },
-    green: { color: "#22c55e" },
-    yellow: { color: "#eab308" },
-    purple: { color: "#a855f7" },
-    pink: { color: "#ec4899" },
-    orange: { color: "#f97316" },
-    gold: { color: "#facc15" },
-    silver: { color: "#cbd5e1" },
-    black: { color: "#020617" },
-    white: { color: "#f8fafc" },
-    fast: { speed: 1.8 },
-    speedy: { speed: 1.8 },
-    slow: { speed: 0.55 },
-    calm: { speed: 0.65 },
-    chaos: { chaos: 1 },
-    chaotic: { chaos: 1 },
-    glowing: { glow: 1 },
-    glow: { glow: 1 },
-    huge: { scale: 1.55 },
-    giant: { scale: 1.75 },
-    tiny: { scale: 0.65 },
-    small: { scale: 0.75 },
-    many: { density: 1.5 },
-    lots: { density: 1.5 },
-    minimal: { density: 0.55 },
-    empty: { density: 0.35 }
-  };
-
-  function clamp(v, min, max) {
-    return Math.max(min, Math.min(max, v));
-  }
-

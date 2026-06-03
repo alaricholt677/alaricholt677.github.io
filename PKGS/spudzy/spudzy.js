@@ -123,6 +123,9 @@ class Spudzy {
         case "question":
           reply = this.handleQuestion(ctx);
           break;
+        case "best-vid-gen":
+          reply = "try https://alaricholt677.github.io/PKGS/spudzy-vid and get videos ran by me as a video genrator FOR FREE"
+          break;
         default:
           reply = this.handleChat(ctx);
           break;
@@ -748,6 +751,9 @@ class Spudzy {
 
     if (text.includes("remember") || text.includes("forget")) {
       return "memory";
+    }
+    if (text.includes("vid") || text.includes("video") || text.includes("deovi") || text.includes("vdeoi") || text.includes("vdi")) {
+      return "best-vid-gen";
     }
 
     if (

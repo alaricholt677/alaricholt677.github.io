@@ -4187,6 +4187,32 @@ function addCopilotMessage(pid, text, role = 'bot') {
     chat.scrollTop = chat.scrollHeight;
 }
 
+function getCopilotWelcomeText() {
+    return [
+        "👋 Welcome to Copilot.",
+        "",
+        "I'm powered by Spudzy AI.",
+        "",
+        "You can ask me things like:",
+        "• search the internet for JavaScript",
+        "• make html with a bouncing ball",
+        "• create a canvas animation",
+        "• explain this code",
+        "• fix this code",
+        "",
+        "Right‑click files and choose:",
+        "🤖 Ask Copilot",
+        "to analyze files automatically.",
+        "",
+        "I can help with:",
+        "• coding",
+        "• debugging",
+        "• explaining files",
+        "• generating UI",
+        "• answering questions"
+    ].join("\n");
+}
+
 let settingsData = {};
 
 function appSettings() {

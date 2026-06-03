@@ -4154,6 +4154,24 @@ async function appCopilot(args = {}) {
     }
 }
 
+function copilotSend(pid) {
+    if (!copilotData[pid]) return;
+
+    // prevent sending while AI is busy
+    if (copilotData[pid].busy) return;
+
+    const input = document.getElementById(`copilot-input-${pid}`);
+    if (!input) return;
+
+    const text = input.value.trim();
+    if (!text) return;
+
+    // clear input box
+    input.value = "";
+
+    // send to AI
+    copilotSendPrompt(pid, text);
+}
 function addCopilotMessage(pid, text, role = 'bot') {
     const chat = document.getElementById(`copilot-chat-${pid}`);
     if (!chat) return;

@@ -738,7 +738,7 @@ const DEF_REG = {
     'htm':'browser', 'html':'browser', 'svg':'browser', 'mp4':'browser', 
     'exe':'exehost', zip:'zipviewer' };
 const DEF_FS = { "Desktop": {}, "Documents": {}, "Pictures": {} };
-const APP_ICONS = { explorer:'📁', browser:'🌐', msstore:'🛍️', notepad:'📝', paint:'🎨', regedit:'⚙️', settings:'⚙️', camera:'📷', exehost:'💻', zipviewer:'🗜️' };
+const APP_ICONS = { explorer:'📁', browser:'🌐', msstore:'🛍️', notepad:'📝', paint:'🎨', regedit:'⚙️', settings:'⚙️', camera:'📷', exehost:'💻', zipviewer:'🗜️', copilot:'🤖' };
 
 let OS = { users:{}, fs:{}, reg:{...DEF_REG}, pins:{}, settings:{}, curr:null, clip:{path:null}, pids:1, wins:{}, z:100 };
 
@@ -1317,7 +1317,7 @@ function doCreateUser() {
     if(!n) return; if(OS.users[n]) return alert("User already exists.");
     OS.users[n]={pin:p};
 OS.fs[n]=JSON.parse(JSON.stringify(DEF_FS)); 
-OS.pins[n]=['explorer', 'browser', 'settings', 'msstore'];
+OS.pins[n]=['copilot', 'explorer', 'browser', 'settings', 'msstore'];
 OS.settings[n]={
     view:'medium',
     exts:true,
@@ -1517,7 +1517,8 @@ function getAllAppsList() {
         { id: 'paint', name: 'Paint', icon: '🎨', type: 'app' },
         { id: 'camera', name: 'Camera', icon: '📷', type: 'app' },
         { id: 'settings', name: 'Settings', icon: '⚙️', type: 'app' },
-        { id: 'regedit', name: 'Registry Editor', icon: '🧬', type: 'app' }
+        { id: 'regedit', name: 'Registry Editor', icon: '🧬', type: 'app' },
+        { id: 'copilot', name: 'Copilot', icon: '🤖', type: 'app' }
     ];
 }
 function getRecentFiles(limit = 8) {
@@ -1726,6 +1727,7 @@ function showFileCtx(x, y, path) {
         ]});
         m.push({ l: 'Open in notepad', act: `openApp('notepad',{p:'${path}'})` });
     }
+    m.push({ l: '🤖 Ask Copilot about this file', act: `askCopilotFile('${path}')` });
     m.push({ l: 'Open file location in file explorer', act: `openApp('explorer',{p:'${pPath(path)}'})` });
     m.push('sep');
     m.push({ l: 'Copy', act: `OS.clip={path:'${path}'}` });
@@ -1740,6 +1742,35 @@ function showFileCtx(x, y, path) {
     
     m.push('sep', { l: 'Properties', act: `showProps('${path}')` });
     showCtx(x, y, m);
+}
+
+function askCopilotFile(path) {
+    closeMenus();
+
+    const node = getNode(path);
+    if (!node) return;
+
+    const info = {
+        name: fName(path),
+        path: path,
+        type: node.type === 'file' ? 'File' : 'Folder',
+        size: node.type === 'file' ? (node.cnt?.length || 0) : Object.keys(node || {}).length,
+        extension: fExt(path) || 'none'
+    };
+
+    // Open Copilot
+    openApp('copilot', {
+        autoAsk: true,
+        prompt: `Analyze this ${info.type}:
+
+Name: ${info.name}
+Path: ${info.path}
+Type: ${info.type}
+Extension: ${info.extension}
+Size: ${info.size}
+
+Explain what this file likely is and what I can do with it.`
+    });
 }
 
 let dvdTempSessions = {};
@@ -2609,6 +2640,7 @@ function openApp(id, args={}) {
         case 'zipviewer': appZipViewer(args); break;
         case 'regedit': appRegedit(); break;
         case 'exehost': appExe(args); break;
+        case 'copilot': appCopilot(args); break;
     }
 }
 
@@ -4443,6 +4475,192 @@ function appExe(args) {
     } catch(e) { w.cnt.innerHTML = `<div style="padding:30px;color:red;font-size:16px;"><b>Fatal Error:</b> Invalid Executable Format.<br><br>Base64 encoded HTML string required.</div>`; }
 }
 
+let spudzyLoader = null;
+let copilotData = {};
+
+function ensureSpudzy() {
+    if (window.spudzy) return Promise.resolve(window.spudzy);
+    if (spudzyLoader) return spudzyLoader;
+
+    spudzyLoader = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-spudzy-lib="true"]');
+        if (existing) {
+            existing.onload = () => resolve(window.spudzy);
+            existing.onerror = reject;
+            return;
+        }
+
+        const s = document.createElement('script');
+        s.src = 'https://alaricholt677.github.io/PKGS/spudzy/spudzy.js';
+        s.async = true;
+        s.dataset.spudzyLib = 'true';
+        s.onload = () => resolve(window.spudzy);
+        s.onerror = () => reject(new Error('Failed to load spudzy.js'));
+        document.head.appendChild(s);
+    });
+
+    return spudzyLoader;
+}
+
+async function appCopilot(args = {}) {
+    const w = spawnWin('copilot', 'Copilot', '🤖', 920, 640);
+
+    copilotData[w.pid] = {
+        mode: args.mode || 'neutral',
+        loading: false
+    };
+
+    w.cnt.innerHTML = `
+        <div style="display:flex; flex-direction:column; height:100%; background:linear-gradient(180deg, #101216 0%, #0b0d11 100%); color:white;">
+            <div class="toolbar" style="display:flex; gap:10px; align-items:center; background:rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.08); color:white;">
+                <div style="font-size:20px;">🤖</div>
+                <div style="font-weight:700;">Copilot</div>
+                <div style="opacity:.65; font-size:12px;">Powered by Spudzy</div>
+
+                <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
+                    <select id="copilot-mode-${w.pid}" class="btn" style="padding:6px 10px;" onchange="copilotSetMode('${w.pid}', this.value)">
+                        <option value="neutral">Neutral</option>
+                        <option value="playful">Playful</option>
+                        <option value="assistant">Assistant</option>
+                        <option value="smart">Smart</option>
+                    </select>
+                    <button class="btn" onclick="copilotClear('${w.pid}')">Clear</button>
+                </div>
+            </div>
+
+            <div id="copilot-chat-${w.pid}" style="flex:1; overflow:auto; padding:18px; display:flex; flex-direction:column; gap:12px;">
+                <div style="align-self:flex-start; max-width:78%; padding:12px 14px; border-radius:18px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.08);">
+                    Hi — I’m Copilot. Ask me anything.
+                </div>
+            </div>
+
+            <div style="padding:14px; border-top:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03);">
+                <div style="display:flex; gap:10px; align-items:flex-end;">
+                    <textarea
+                        id="copilot-input-${w.pid}"
+                        placeholder="Ask Copilot..."
+                        style="
+                            flex:1;
+                            min-height:52px;
+                            max-height:160px;
+                            resize:vertical;
+                            padding:12px 14px;
+                            border-radius:16px;
+                            border:1px solid rgba(255,255,255,0.12);
+                            background:#11151c;
+                            color:white;
+                            font-family:inherit;
+                        "
+                    ></textarea>
+                    <button class="btn btn-primary" onclick="copilotSend('${w.pid}')">Send</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const modeEl = document.getElementById(`copilot-mode-${w.pid}`);
+    if (modeEl) modeEl.value = copilotData[w.pid].mode;
+
+    const inputEl = document.getElementById(`copilot-input-${w.pid}`);
+    inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            copilotSend(w.pid);
+        }
+    });
+
+    try {
+        await ensureSpudzy();
+        addCopilotMessage(w.pid, 'Spudzy loaded successfully.', 'system');
+    } catch (err) {
+        addCopilotMessage(w.pid, 'Failed to load spudzy.js', 'system');
+        console.error(err);
+    }
+}
+
+function addCopilotMessage(pid, text, role = 'bot') {
+    const chat = document.getElementById(`copilot-chat-${pid}`);
+    if (!chat) return;
+
+    const isUser = role === 'user';
+    const isSystem = role === 'system';
+
+    const bubble = document.createElement('div');
+    bubble.style.alignSelf = isUser ? 'flex-end' : 'flex-start';
+    bubble.style.maxWidth = '78%';
+    bubble.style.padding = '12px 14px';
+    bubble.style.borderRadius = '18px';
+    bubble.style.whiteSpace = 'pre-wrap';
+    bubble.style.wordBreak = 'break-word';
+    bubble.style.lineHeight = '1.45';
+
+    if (isUser) {
+        bubble.style.background = 'linear-gradient(135deg, #0078d7, #0067c0)';
+        bubble.style.color = 'white';
+    } else if (isSystem) {
+        bubble.style.background = 'rgba(255,255,255,0.05)';
+        bubble.style.border = '1px dashed rgba(255,255,255,0.12)';
+        bubble.style.opacity = '0.85';
+    } else {
+        bubble.style.background = 'rgba(255,255,255,0.07)';
+        bubble.style.border = '1px solid rgba(255,255,255,0.08)';
+    }
+
+    bubble.textContent = text;
+    chat.appendChild(bubble);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+window.copilotSetMode = function(pid, value) {
+    if (!copilotData[pid]) return;
+    copilotData[pid].mode = value;
+};
+
+window.copilotClear = function(pid) {
+    const chat = document.getElementById(`copilot-chat-${pid}`);
+    if (!chat) return;
+    chat.innerHTML = `
+        <div style="align-self:flex-start; max-width:78%; padding:12px 14px; border-radius:18px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.08);">
+            Chat cleared. Ask me anything.
+        </div>
+    `;
+};
+
+window.copilotSend = async function(pid) {
+    const inputEl = document.getElementById(`copilot-input-${pid}`);
+    const modeEl = document.getElementById(`copilot-mode-${pid}`);
+    if (!inputEl || !modeEl) return;
+
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    inputEl.value = '';
+    addCopilotMessage(pid, text, 'user');
+
+    try {
+        if (!window.spudzy) {
+            await ensureSpudzy();
+        }
+
+        // 1. Get text from the input box
+        // const text = inputEl.value.trim();
+
+        // 2. Read the selected mode (neutral, playful, etc)
+        const mode = modeEl.value;
+
+        // 3. Send the message to the AI engine
+        const reply = await spudzy.respond(text, {
+            mode,
+            persona: mode
+        });
+
+        // 4. Show the AI response in the chat UI
+        addCopilotMessage(pid, reply, 'bot');
+    } catch (err) {
+        console.error(err);
+        addCopilotMessage(pid, `Error: ${err.message}`, 'system');
+    }
+};
 /**
  * 9. START MENU SEARCH
  */

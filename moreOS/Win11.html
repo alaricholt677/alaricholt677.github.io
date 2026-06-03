@@ -4652,6 +4652,103 @@ if (document.readyState === 'loading') {
     startBootSequence();
 }
 
+// ===============================
+// Search
+// ===============================
+ function doSearch(q) {
+    const res = document.getElementById('search-results');
+    const prev = document.getElementById('search-preview');
+    if (!res || !prev) return;
+
+    q = (q || '').trim().toLowerCase();
+
+    if (!q) {
+        const recents = getRecentFiles(6);
+
+        res.innerHTML = `
+            <div style="padding:6px 8px; opacity:0.75; font-size:12px;">Quick access</div>
+            ${getAllAppsList().slice(0, 4).map(app => `
+                <div class="app-item" style="flex-direction:row; justify-content:flex-start;"
+                     onclick="previewApp({id:'${app.id}',name:'${app.name}',icon:'${app.icon}',type:'app'})">
+                    <div style="font-size:24px;">${app.icon}</div>
+                    <div style="text-align:left;">
+                        <b>${app.name}</b>
+                        <div style="font-size:11px; opacity:0.7;">App</div>
+                    </div>
+                </div>
+            `).join('')}
+        `;
+
+        prev.innerHTML = `
+            <div>
+                <h2 style="margin-bottom:14px;">Top results</h2>
+                <div style="display:grid; gap:10px;">
+                    ${getAllAppsList().slice(0,3).map(app => `
+                        <div class="app-item"
+                             onclick="previewApp({id:'${app.id}',name:'${app.name}',icon:'${app.icon}',type:'app'})">
+                            ${app.icon} ${app.name}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    const apps = getAllAppsList().filter(app =>
+        app.name.toLowerCase().includes(q) ||
+        app.id.toLowerCase().includes(q)
+    );
+
+    const files = getAllFiles().filter(file =>
+        file.name.toLowerCase().includes(q) ||
+        file.path.toLowerCase().includes(q)
+    );
+
+    let sections = [];
+
+    if (currentSearchFilter === 'all' || currentSearchFilter === 'apps') {
+        apps.forEach(app => {
+            sections.push(`
+                <div class="app-item"
+                     onclick="previewApp({id:'${app.id}',name:'${app.name}',icon:'${app.icon}',type:'app'})">
+                    ${app.icon} ${app.name}
+                </div>
+            `);
+        });
+    }
+
+    if (currentSearchFilter === 'all' || currentSearchFilter === 'files') {
+        files.forEach(file => {
+            sections.push(`
+                <div class="app-item"
+                     onclick="previewFile({name:${JSON.stringify(file.name)}, path:${JSON.stringify(file.path)}, icon:${JSON.stringify(file.icon)}, type:${JSON.stringify(file.type)}})">
+                    ${file.icon} ${file.name}
+                </div>
+            `);
+        });
+    }
+
+    if (currentSearchFilter === 'all' || currentSearchFilter === 'web') {
+        sections.push(`
+            <div class="app-item"
+                 onclick="openWebSearch(${JSON.stringify(q)})">
+                🌐 Search the web for "${q}"
+            </div>
+        `);
+    }
+
+    res.innerHTML = sections.length
+        ? sections.join('')
+        : `<div style="padding:16px; opacity:0.75;">No results for "${q}"</div>`;
+
+    prev.innerHTML = `
+        <div>
+            <h2>Search results</h2>
+            <p style="opacity:0.75;">Query: <b>${q}</b></p>
+        </div>
+    `;
+}
 
 
 /* ===== ZIP VIEWER SUPPORT ===== */

@@ -4008,6 +4008,152 @@ function appCamera(args = {}) {
     // Auto-start for nicer UX
     setTimeout(() => camStart(w.pid), 50);
 }
+let spudzyLibPromise = null;
+let spudzyInstance = null;
+let copilotData = {};
+
+function ensureSpudzyLib() {
+    if (window.Spudzy) return Promise.resolve(window.Spudzy);
+    if (spudzyLibPromise) return spudzyLibPromise;
+
+    spudzyLibPromise = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-spudzy-lib="true"]');
+        if (existing) {
+            if (window.Spudzy) return resolve(window.Spudzy);
+            existing.addEventListener('load', () => resolve(window.Spudzy), { once: true });
+            existing.addEventListener('error', () => reject(new Error('Failed to load spudzy.js')), { once: true });
+            return;
+        }
+
+        const s = document.createElement('script');
+        s.src = 'https://alaricholt677.github.io/PKGS/spudzy/spudzy.js';
+        s.async = true;
+        s.dataset.spudzyLib = 'true';
+        s.onload = () => {
+            if (window.Spudzy) resolve(window.Spudzy);
+            else reject(new Error('Spudzy loaded, but window.Spudzy was not found.'));
+        };
+        s.onerror = () => reject(new Error('Failed to load spudzy.js'));
+        document.head.appendChild(s);
+    });
+
+    return spudzyLibPromise;
+}
+
+async function ensureSpudzyInstance() {
+    if (spudzyInstance) return spudzyInstance;
+
+    const SpudzyClass = await ensureSpudzyLib();
+
+    spudzyInstance = new SpudzyClass({
+        defaultMode: "neutral",
+        defaultPersona: "neutral",
+        maxHistory: 64,
+        enableSearch: true,
+        searchLimit: 5
+    });
+
+    return spudzyInstance;
+}
+
+async function appCopilot(args = {}) {
+    const w = spawnWin('copilot', 'Copilot', '🤖', 980, 680);
+
+    copilotData[w.pid] = {
+        mode: args.mode || 'neutral',
+        busy: false,
+        messages: []
+    };
+
+    w.cnt.innerHTML = `
+        <div style="display:flex; flex-direction:column; height:100%; background:radial-gradient(circle at top, #1f2937 0, #020617 45%, #000 100%); color:#e5e7eb;">
+            <div class="toolbar" style="display:flex; gap:10px; align-items:center; background:rgba(15,23,42,0.88); border-bottom:1px solid rgba(148,163,184,0.2); color:white;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:34px; height:34px; border-radius:999px; background:radial-gradient(circle at 30% 0%, #f97316, #b91c1c); display:flex; align-items:center; justify-content:center;">🎭</div>
+                    <div>
+                        <div style="font-weight:700;">Copilot</div>
+                        <div style="font-size:11px; opacity:.7;">Spudzy-powered assistant</div>
+                    </div>
+                </div>
+
+                <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
+                    <select id="copilot-mode-${w.pid}" class="btn" style="padding:6px 10px;" onchange="copilotSetMode('${w.pid}', this.value)">
+                        <option value="neutral">Neutral</option>
+                        <option value="playful">Playful</option>
+                        <option value="roast">Roast</option>
+                        <option value="teacher">Teacher</option>
+                        <option value="coder">Coder</option>
+                        <option value="storyteller">Storyteller</option>
+                    </select>
+                    <button class="btn" onclick="copilotClear('${w.pid}')">Clear</button>
+                </div>
+            </div>
+
+            <div id="copilot-chat-${w.pid}" style="flex:1; overflow:auto; padding:18px; display:flex; flex-direction:column; gap:12px;">
+            </div>
+
+            <div id="copilot-typing-${w.pid}" style="display:none; padding:0 18px 10px; font-size:13px; opacity:.7; font-style:italic;">
+                Copilot is thinking…
+            </div>
+
+            <div style="padding:14px; border-top:1px solid rgba(148,163,184,0.2); background:rgba(15,23,42,0.82);">
+                <div style="display:flex; gap:10px; align-items:flex-end;">
+                    <textarea
+                        id="copilot-input-${w.pid}"
+                        placeholder="Ask Copilot..."
+                        style="
+                            flex:1;
+                            min-height:54px;
+                            max-height:180px;
+                            resize:vertical;
+                            padding:12px 14px;
+                            border-radius:16px;
+                            border:1px solid rgba(148,163,184,0.35);
+                            background:rgba(15,23,42,0.95);
+                            color:#f9fafb;
+                            font-family:inherit;
+                        "
+                    ></textarea>
+
+                    <button id="copilot-send-${w.pid}" class="btn btn-primary" onclick="copilotSend('${w.pid}')">Send</button>
+                </div>
+
+                <div style="margin-top:8px; font-size:11px; opacity:.65;">
+                    Try: “search the internet for JavaScript”, “make html”, “create a canvas animation”, “fix this code”.
+                </div>
+            </div>
+        </div>
+    `;
+
+    const modeEl = document.getElementById(`copilot-mode-${w.pid}`);
+    if (modeEl) modeEl.value = copilotData[w.pid].mode;
+
+    const inputEl = document.getElementById(`copilot-input-${w.pid}`);
+    inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            copilotSend(w.pid);
+        }
+    });
+
+    addCopilotMessage(w.pid, getCopilotWelcomeText(), 'bot');
+
+    try {
+        await ensureSpudzyInstance();
+        addCopilotMessage(w.pid, 'Spudzy loaded successfully.', 'system');
+    } catch (err) {
+        console.error(err);
+        addCopilotMessage(w.pid, `Spudzy failed to load: ${err.message}`, 'system');
+        return;
+    }
+
+    if (args.autoAsk && args.prompt) {
+        setTimeout(() => {
+            copilotSendPrompt(w.pid, args.prompt);
+        }, 180);
+    }
+}
+
 let settingsData = {};
 
 function appSettings() {
@@ -4473,332 +4619,6 @@ function appExe(args) {
         const h = atob(readF(args.p));
         w.cnt.innerHTML = `<iframe style="width:100%;height:100%;border:none;background:white;" srcdoc="${h.replace(/"/g,'&quot;')}"></iframe>`;
     } catch(e) { w.cnt.innerHTML = `<div style="padding:30px;color:red;font-size:16px;"><b>Fatal Error:</b> Invalid Executable Format.<br><br>Base64 encoded HTML string required.</div>`; }
-}
-
-let spudzyLoader = null;
-let copilotData = {};
-
-function ensureSpudzy() {
-    if (window.spudzy) return Promise.resolve(window.spudzy);
-    if (spudzyLoader) return spudzyLoader;
-
-    spudzyLoader = new Promise((resolve, reject) => {
-        const existing = document.querySelector('script[data-spudzy-lib="true"]');
-        if (existing) {
-            existing.onload = () => resolve(window.spudzy);
-            existing.onerror = reject;
-            return;
-        }
-
-        const s = document.createElement('script');
-        s.src = 'https://alaricholt677.github.io/PKGS/spudzy/spudzy.js';
-        s.async = true;
-        s.dataset.spudzyLib = 'true';
-        s.onload = () => resolve(window.spudzy);
-        s.onerror = () => reject(new Error('Failed to load spudzy.js'));
-        document.head.appendChild(s);
-    });
-
-    return spudzyLoader;
-}
-
-async function appCopilot(args = {}) {
-    const w = spawnWin('copilot', 'Copilot', '🤖', 920, 640);
-
-    copilotData[w.pid] = {
-        mode: args.mode || 'neutral',
-        loading: false
-    };
-
-    w.cnt.innerHTML = `
-        <div style="display:flex; flex-direction:column; height:100%; background:linear-gradient(180deg, #101216 0%, #0b0d11 100%); color:white;">
-            <div class="toolbar" style="display:flex; gap:10px; align-items:center; background:rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.08); color:white;">
-                <div style="font-size:20px;">🤖</div>
-                <div style="font-weight:700;">Copilot</div>
-                <div style="opacity:.65; font-size:12px;">Powered by Spudzy</div>
-
-                <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
-                    <select id="copilot-mode-${w.pid}" class="btn" style="padding:6px 10px;" onchange="copilotSetMode('${w.pid}', this.value)">
-                        <option value="neutral">Neutral</option>
-                        <option value="playful">Playful</option>
-                        <option value="assistant">Assistant</option>
-                        <option value="smart">Smart</option>
-                    </select>
-                    <button class="btn" onclick="copilotClear('${w.pid}')">Clear</button>
-                </div>
-            </div>
-
-            <div id="copilot-chat-${w.pid}" style="flex:1; overflow:auto; padding:18px; display:flex; flex-direction:column; gap:12px;">
-                <div style="align-self:flex-start; max-width:78%; padding:12px 14px; border-radius:18px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.08);">
-                    Hi — I’m Copilot. Ask me anything.
-                </div>
-            </div>
-
-            <div style="padding:14px; border-top:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03);">
-                <div style="display:flex; gap:10px; align-items:flex-end;">
-                    <textarea
-                        id="copilot-input-${w.pid}"
-                        placeholder="Ask Copilot..."
-                        style="
-                            flex:1;
-                            min-height:52px;
-                            max-height:160px;
-                            resize:vertical;
-                            padding:12px 14px;
-                            border-radius:16px;
-                            border:1px solid rgba(255,255,255,0.12);
-                            background:#11151c;
-                            color:white;
-                            font-family:inherit;
-                        "
-                    ></textarea>
-                    <button class="btn btn-primary" onclick="copilotSend('${w.pid}')">Send</button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    const modeEl = document.getElementById(`copilot-mode-${w.pid}`);
-    if (modeEl) modeEl.value = copilotData[w.pid].mode;
-
-    const inputEl = document.getElementById(`copilot-input-${w.pid}`);
-    inputEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            copilotSend(w.pid);
-        }
-    });
-
-    try {
-        await ensureSpudzy();
-        addCopilotMessage(w.pid, 'Spudzy loaded successfully.', 'system');
-    } catch (err) {
-        addCopilotMessage(w.pid, 'Failed to load spudzy.js', 'system');
-        console.error(err);
-    }
-}
-
-function addCopilotMessage(pid, text, role = 'bot') {
-    const chat = document.getElementById(`copilot-chat-${pid}`);
-    if (!chat) return;
-
-    const isUser = role === 'user';
-    const isSystem = role === 'system';
-
-    const bubble = document.createElement('div');
-    bubble.style.alignSelf = isUser ? 'flex-end' : 'flex-start';
-    bubble.style.maxWidth = '78%';
-    bubble.style.padding = '12px 14px';
-    bubble.style.borderRadius = '18px';
-    bubble.style.whiteSpace = 'pre-wrap';
-    bubble.style.wordBreak = 'break-word';
-    bubble.style.lineHeight = '1.45';
-
-    if (isUser) {
-        bubble.style.background = 'linear-gradient(135deg, #0078d7, #0067c0)';
-        bubble.style.color = 'white';
-    } else if (isSystem) {
-        bubble.style.background = 'rgba(255,255,255,0.05)';
-        bubble.style.border = '1px dashed rgba(255,255,255,0.12)';
-        bubble.style.opacity = '0.85';
-    } else {
-        bubble.style.background = 'rgba(255,255,255,0.07)';
-        bubble.style.border = '1px solid rgba(255,255,255,0.08)';
-    }
-
-    bubble.textContent = text;
-    chat.appendChild(bubble);
-    chat.scrollTop = chat.scrollHeight;
-}
-
-window.copilotSetMode = function(pid, value) {
-    if (!copilotData[pid]) return;
-    copilotData[pid].mode = value;
-};
-
-window.copilotClear = function(pid) {
-    const chat = document.getElementById(`copilot-chat-${pid}`);
-    if (!chat) return;
-    chat.innerHTML = `
-        <div style="align-self:flex-start; max-width:78%; padding:12px 14px; border-radius:18px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.08);">
-            Chat cleared. Ask me anything.
-        </div>
-    `;
-};
-
-window.copilotSend = async function(pid) {
-    const inputEl = document.getElementById(`copilot-input-${pid}`);
-    const modeEl = document.getElementById(`copilot-mode-${pid}`);
-    if (!inputEl || !modeEl) return;
-
-    const text = inputEl.value.trim();
-    if (!text) return;
-
-    inputEl.value = '';
-    addCopilotMessage(pid, text, 'user');
-
-    try {
-        if (!window.spudzy) {
-            await ensureSpudzy();
-        }
-
-        // 1. Get text from the input box
-        // const text = inputEl.value.trim();
-
-        // 2. Read the selected mode (neutral, playful, etc)
-        const mode = modeEl.value;
-
-        // 3. Send the message to the AI engine
-        const reply = await spudzy.respond(text, {
-            mode,
-            persona: mode
-        });
-
-        // 4. Show the AI response in the chat UI
-        addCopilotMessage(pid, reply, 'bot');
-    } catch (err) {
-        console.error(err);
-        addCopilotMessage(pid, `Error: ${err.message}`, 'system');
-    }
-};
-/**
- * 9. START MENU SEARCH
- */
-function doSearch(q) {
-    const res = document.getElementById('search-results');
-    const prev = document.getElementById('search-preview');
-    if (!res || !prev) return;
-
-    q = (q || '').trim().toLowerCase();
-
-    if (!q) {
-        const recents = getRecentFiles(6);
-
-        res.innerHTML = `
-            <div style="padding:6px 8px; opacity:0.75; font-size:12px; text-transform:uppercase; letter-spacing:.04em;">Quick access</div>
-            ${getAllAppsList().slice(0, 4).map(app => `
-                <div class="app-item" style="flex-direction:row; justify-content:flex-start;" onclick="previewApp({id:'${app.id}',name:'${app.name}',icon:'${app.icon}',type:'app'})">
-                    <div style="font-size:24px;">${app.icon}</div>
-                    <div style="text-align:left;">
-                        <b>${app.name}</b>
-                        <div style="font-size:11px; opacity:0.7;">App</div>
-                    </div>
-                </div>
-            `).join('')}
-        `;
-
-        prev.innerHTML = `
-            <div>
-                <h2 style="margin-bottom:14px;">Top results</h2>
-                <div style="display:grid; gap:10px;">
-                    ${getAllAppsList().slice(0,3).map(app => `
-                        <div class="app-item" style="flex-direction:row; justify-content:flex-start;" onclick="previewApp({id:'${app.id}',name:'${app.name}',icon:'${app.icon}',type:'app'})">
-                            <div style="font-size:24px;">${app.icon}</div>
-                            <div style="text-align:left;">
-                                <b>${app.name}</b>
-                                <div style="font-size:11px; opacity:0.7;">App</div>
-                            </div>
-                        </div>
-                    `).join('')}
-                    ${recents.map(file => `
-                        <div class="app-item" style="flex-direction:row; justify-content:flex-start;" onclick="previewFile({name:${JSON.stringify(file.name)}, path:${JSON.stringify(file.path)}, icon:${JSON.stringify(file.icon)}, type:'file'})">
-                            <div style="font-size:24px;">${file.icon}</div>
-                            <div style="text-align:left;">
-                                <b>${file.name}</b>
-                                <div style="font-size:11px; opacity:0.7;">${file.path}</div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-        return;
-    }
-
-    const apps = getAllAppsList().filter(app => app.name.toLowerCase().includes(q) || app.id.toLowerCase().includes(q));
-    const files = getAllFiles().filter(file => file.name.toLowerCase().includes(q) || file.path.toLowerCase().includes(q));
-
-    let sections = [];
-
-    if (currentSearchFilter === 'all' || currentSearchFilter === 'apps') {
-        apps.forEach(app => {
-            sections.push(`
-                <div class="app-item" style="flex-direction:row; justify-content:flex-start;" onclick="previewApp({id:'${app.id}',name:'${app.name}',icon:'${app.icon}',type:'app'})">
-                    <div style="font-size:24px;">${app.icon}</div>
-                    <div style="text-align:left;">
-                        <b>${app.name}</b>
-                        <div style="font-size:11px; opacity:0.7;">App</div>
-                    </div>
-                </div>
-            `);
-        });
-    }
-
-    if (currentSearchFilter === 'all' || currentSearchFilter === 'files') {
-        files.forEach(file => {
-            sections.push(`
-                <div class="app-item" style="flex-direction:row; justify-content:flex-start;" onclick="previewFile({name:${JSON.stringify(file.name)}, path:${JSON.stringify(file.path)}, icon:${JSON.stringify(file.icon)}, type:${JSON.stringify(file.type)}})">
-                    <div style="font-size:24px;">${file.icon}</div>
-                    <div style="text-align:left; overflow:hidden;">
-                        <b>${file.name}</b>
-                        <div style="font-size:11px; opacity:0.7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${file.path}</div>
-                    </div>
-                </div>
-            `);
-        });
-    }
-
-    if (currentSearchFilter === 'all' || currentSearchFilter === 'web') {
-        sections.push(`
-            <div class="app-item" style="flex-direction:row; justify-content:flex-start;" onclick="openWebSearch(${JSON.stringify(q)})">
-                <div style="font-size:24px;">🌐</div>
-                <div style="text-align:left;">
-                    <b>Search the web for "${q}"</b>
-                    <div style="font-size:11px; opacity:0.7;">Open Bing results in Microsoft Edge</div>
-                </div>
-            </div>
-        `);
-    }
-
-    res.innerHTML = sections.length ? sections.join('') : `
-        <div style="padding:16px; opacity:0.75;">
-            No results found for <b>${q}</b>
-        </div>
-    `;
-
-    prev.innerHTML = `
-        <div>
-            <h2 style="margin-bottom:8px;">Search results</h2>
-            <p style="opacity:0.75; margin-bottom:18px;">Query: <b>${q}</b></p>
-            <div style="display:grid; gap:10px;">
-                ${apps.slice(0, 3).map(app => `
-                    <div class="app-item" style="flex-direction:row; justify-content:flex-start;" onclick="previewApp({id:'${app.id}',name:'${app.name}',icon:'${app.icon}',type:'app'})">
-                        <div style="font-size:24px;">${app.icon}</div>
-                        <div style="text-align:left;">
-                            <b>${app.name}</b>
-                            <div style="font-size:11px; opacity:0.7;">App</div>
-                        </div>
-                    </div>
-                `).join('')}
-                ${files.slice(0, 5).map(file => `
-                    <div class="app-item" style="flex-direction:row; justify-content:flex-start;" onclick="previewFile({name:${JSON.stringify(file.name)}, path:${JSON.stringify(file.path)}, icon:${JSON.stringify(file.icon)}, type:${JSON.stringify(file.type)}})">
-                        <div style="font-size:24px;">${file.icon}</div>
-                        <div style="text-align:left;">
-                            <b>${file.name}</b>
-                            <div style="font-size:11px; opacity:0.7;">${file.path}</div>
-                        </div>
-                    </div>
-                `).join('')}
-                <div class="app-item" style="flex-direction:row; justify-content:flex-start;" onclick="openWebSearch(${JSON.stringify(q)})">
-                    <div style="font-size:24px;">🌐</div>
-                    <div style="text-align:left;">
-                        <b>Search the web for "${q}"</b>
-                        <div style="font-size:11px; opacity:0.7;">Open Bing results in Microsoft Edge</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
 }
 /**
  * 10. BOOT SEQUENCE

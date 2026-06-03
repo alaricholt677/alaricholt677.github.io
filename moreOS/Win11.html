@@ -4221,6 +4221,25 @@ async function copilotSendPrompt(pid, text) {
     }
 }
 
+function setCopilotBusy(pid, busy) {
+    if (!copilotData[pid]) return;
+
+    copilotData[pid].busy = !!busy;
+
+    const typing = document.getElementById(`copilot-typing-${pid}`);
+    const sendBtn = document.getElementById(`copilot-send-${pid}`);
+
+    // show / hide “thinking” message
+    if (typing) {
+        typing.style.display = busy ? 'block' : 'none';
+    }
+
+    // disable / enable send button
+    if (sendBtn) {
+        sendBtn.disabled = busy;
+    }
+}
+``
 function getCopilotWelcomeText() {
     return [
         "👋 Welcome to Copilot.",

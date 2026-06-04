@@ -1151,6 +1151,74 @@ extractFileText(text) {
     return this.generateUniversalHTML(plan);
   }
 
+detectFileKind(text) {
+  const sample = String(text ?? "").trim();
+
+  let type = "unknown";
+
+  if (!sample) {
+    type = "unknown";
+  } else {
+
+    // JSON
+    if (/^\s*[{[][\s\S]*[}\]]\s*$/.test(sample)) {
+      try {
+        JSON.parse(sample);
+        type = "json";
+      } catch {}
+    }
+
+    // HTML
+    else if (/<(!doctype html|html|head|body)\b/i.test(sample)) {
+      type = "html";
+    }
+
+    // XML / SVG
+    else if (/^<\?xml|<svg\b|<\/svg>/i.test(sample)) {
+      type = "xml/svg";
+    }
+
+    // JavaScript
+    else if (/\b(function|const|let|var|class|=>|import|export|module\.exports|require|document\.|window\.|addEventListener|fetch)\b/.test(sample)) {
+      type = "javascript";
+    }
+
+    // CSS
+    else if (
+      /[a-z0-9_-]+\s*\{[^}]*\}/i.test(sample) &&
+      /(color|background|display|position|margin|padding)\s*:/i.test(sample)
+    ) {
+      type = "css";
+    }
+
+    // Markdown
+    else if (/^#{1,6}\s|\n[-*]\s|\n```/m.test(sample)) {
+      type = "markdown";
+    }
+
+    // Config
+    else if (/^[\w.-]+\s*[:=]\s*.+$/m.test(sample)) {
+      type = "config";
+    }
+
+    // Log
+    else if (/\b(error|warning|failed|exception|trace)\b/i.test(sample)) {
+      type = "log";
+    }
+
+    // File tree
+    else if (/(\|--|\+-|\\|\/)/.test(sample) && sample.split("\n").length > 2) {
+      type = "file-tree";
+    }
+
+    // Fallback
+    else {
+      type = "plain-text";
+    }
+  }
+
+  return type;
+}
   // ===========================================================================
   // THEMES / HTML GENERATION
   // ===========================================================================

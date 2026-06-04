@@ -2632,17 +2632,8 @@
         <img src="search.svg" alt="Search Icon" width="24" height="24">
       </button>
 
-  <!-- Toggle button (place where you want the control) -->
-<button id="mini-aim-toggle" class="mini-aim-toggle" aria-controls="mini-aim-sidebar" aria-expanded="false" title="Open Mini AIM OS">
-  <span class="mini-aim-toggle-icon" aria-hidden="true">
-    <!-- compact icon -->
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" focusable="false" aria-hidden="true">
-      <rect x="3" y="4" width="18" height="16" rx="2" fill="#06b6d4"/>
-      <path d="M7 9h10M7 13h6" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  </span>
-  <span class="mini-aim-toggle-label">Mini AIM</span>
-</button>
+<!-- Sidebar Toggle Button -->
+<button id="copilotOpenBtn" type="button">Open Copilot</button>
 
     </div>
     <div class="taskbar-center">
@@ -2707,6 +2698,700 @@
       <div class="taskbar-notify"></div>
     </div>
   </div>
+
+<!-- Copilot Sidebar -->
+<aside id="copilotSidebar" class="copilot-sidebar" aria-label="Copilot Sidebar">
+  <div class="copilot-header">
+    <div class="copilot-title-wrap">
+      <div class="copilot-dot"></div>
+      <h2 class="copilot-title">Copilot</h2>
+    </div>
+    <button id="copilotCloseBtn" class="copilot-close" type="button" aria-label="Close Copilot">
+      ✕
+    </button>
+  </div>
+
+  <div id="copilotConversation" class="copilot-conversation">
+    <div class="copilot-message bot">
+      Hi! Pick <strong>Copilot Text</strong> or <strong>Copilot Video</strong> from your context menu, then send a message.
+    </div>
+  </div>
+
+  <div class="copilot-input-area">
+    <textarea
+      id="copilotMessageBox"
+      class="copilot-message-box"
+      placeholder="Type a message..."
+      rows="2"
+    ></textarea>
+    <button id="copilotSendBtn" class="copilot-send-btn" type="button">Send</button>
+  </div>
+</aside>
+
+<style>
+  /* SIDEBAR ONLY */
+  .copilot-sidebar {
+    position: fixed;
+    top: 0;
+    right: -380px;
+    width: 360px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: rgba(24, 28, 38, 0.96);
+    color: #f3f6ff;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: -12px 0 32px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    transition: right 0.28s ease;
+    z-index: 9999;
+    overflow: hidden;
+    font-family: "Segoe UI", Arial, sans-serif;
+  }
+
+  .copilot-sidebar.open {
+    right: 0;
+  }
+
+  .copilot-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.04),
+      rgba(255, 255, 255, 0.01)
+    );
+  }
+
+  .copilot-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .copilot-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #7c9cff, #8b5cf6);
+    box-shadow: 0 0 12px rgba(124, 156, 255, 0.7);
+  }
+
+  .copilot-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+
+  .copilot-close {
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: transparent;
+    color: #d9e2ff;
+    font-size: 18px;
+    line-height: 1;
+    padding: 6px 8px;
+    border-radius: 10px;
+    transition: background 0.18s ease, color 0.18s ease;
+  }
+
+  .copilot-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+  }
+
+  .copilot-conversation {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scroll-behavior: smooth;
+  }
+
+  .copilot-message {
+    max-width: 88%;
+    padding: 10px 12px;
+    border-radius: 16px;
+    line-height: 1.4;
+    font-size: 14px;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
+
+  .copilot-message.user {
+    align-self: flex-end;
+    background: linear-gradient(135deg, #4f7cff, #6b5cff);
+    color: #fff;
+    border-bottom-right-radius: 6px;
+  }
+
+  .copilot-message.bot {
+    align-self: flex-start;
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom-left-radius: 6px;
+  }
+
+  .copilot-input-area {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    padding: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(15, 18, 26, 0.9);
+  }
+
+  .copilot-message-box {
+    resize: none;
+    min-height: 44px;
+    max-height: 120px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    color: #ffffff;
+    outline: none;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .copilot-message-box::placeholder {
+    color: rgba(220, 228, 255, 0.6);
+  }
+
+  .copilot-message-box:focus {
+    border-color: rgba(124, 156, 255, 0.8);
+    box-shadow: 0 0 0 3px rgba(124, 156, 255, 0.15);
+  }
+
+  .copilot-send-btn {
+    align-self: end;
+    height: 44px;
+    padding: 0 16px;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #4f7cff, #7c5cff);
+    box-shadow: 0 10px 20px rgba(79, 124, 255, 0.25);
+    transition: transform 0.14s ease, filter 0.14s ease, opacity 0.14s ease;
+  }
+
+  .copilot-send-btn:hover {
+    filter: brightness(1.08);
+  }
+
+  .copilot-send-btn:active {
+    transform: translateY(1px) scale(0.99);
+  }
+
+  .copilot-send-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .copilot-conversation::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  .copilot-conversation::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+  }
+
+  .copilot-conversation::-webkit-scrollbar-track {
+    background: transparent;
+  }
+</style>
+
+<script>
+(() => {
+  const SPUDZY_TEXT_SRC = "https://alaricholt677.github.io/PKGS/spudzy/spudzy.js";
+  const SPUDZY_VIDEO_SRC = "https://alaricholt677.github.io/PKGS/spudzy-vid/spudzy-vid-js.js";
+
+  let textLoadPromise = null;
+  let videoLoadPromise = null;
+  let spudzyTextInstance = null;
+
+  function getConversationEl() {
+    return document.getElementById("copilotConversation");
+  }
+
+  function getMessageBoxEl() {
+    return document.getElementById("copilotMessageBox");
+  }
+
+  function getSendBtnEl() {
+    return document.getElementById("copilotSendBtn");
+  }
+
+  function setInputState(disabled) {
+    const box = getMessageBoxEl();
+    const btn = getSendBtnEl();
+    if (box) box.disabled = !!disabled;
+    if (btn) btn.disabled = !!disabled;
+  }
+
+  window.addMessage = window.addMessage || function(text, sender = "bot") {
+    const conversation = getConversationEl();
+    if (!conversation) return null;
+
+    const msg = document.createElement("div");
+    msg.className = `copilot-message ${sender}`;
+    msg.textContent = String(text ?? "");
+    conversation.appendChild(msg);
+    conversation.scrollTop = conversation.scrollHeight;
+    return msg;
+  };
+
+  function addBotMessage(text) {
+    return window.addMessage(String(text ?? ""), "bot");
+  }
+
+  function addStatusMessage(text) {
+    const conversation = getConversationEl();
+    if (!conversation) return null;
+
+    const msg = document.createElement("div");
+    msg.className = "copilot-message bot";
+    msg.dataset.status = "true";
+    msg.textContent = String(text ?? "");
+    conversation.appendChild(msg);
+    conversation.scrollTop = conversation.scrollHeight;
+    return msg;
+  }
+
+  function updateStatusMessage(el, text) {
+    if (el) el.textContent = String(text ?? "");
+  }
+
+  function removeMessage(el) {
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  }
+
+  function appendBotNode(node) {
+    const conversation = getConversationEl();
+    if (!conversation || !node) return;
+    conversation.appendChild(node);
+    conversation.scrollTop = conversation.scrollHeight;
+  }
+
+  function loadExternalScript(src) {
+    return new Promise((resolve, reject) => {
+      const existing = document.querySelector(`script[src="${src}"]`);
+
+      if (existing) {
+        if (existing.dataset.loaded === "true") {
+          resolve();
+          return;
+        }
+
+        existing.addEventListener("load", () => resolve(), { once: true });
+        existing.addEventListener("error", () => reject(new Error(`Failed to load script: ${src}`)), { once: true });
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = src;
+      script.async = true;
+
+      script.onload = () => {
+        script.dataset.loaded = "true";
+        resolve();
+      };
+
+      script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+
+      document.head.appendChild(script);
+    });
+  }
+
+  async function ensureTextEngineLoaded() {
+    if (window.Spudzy) return window.Spudzy;
+    if (!textLoadPromise) textLoadPromise = loadExternalScript(SPUDZY_TEXT_SRC);
+    await textLoadPromise;
+
+    if (!window.Spudzy) {
+      throw new Error("Spudzy text engine loaded, but window.Spudzy was not found.");
+    }
+
+    return window.Spudzy;
+  }
+
+  async function ensureVideoEngineLoaded() {
+    const existing =
+      window.RealLifeVideo ||
+      window.SpudzyVid ||
+      window.SpudzyVideo ||
+      window.spudzyVid ||
+      window.spudzyVideo;
+
+    if (existing) return existing;
+
+    if (!videoLoadPromise) videoLoadPromise = loadExternalScript(SPUDZY_VIDEO_SRC);
+    await videoLoadPromise;
+
+    const engine =
+      window.RealLifeVideo ||
+      window.SpudzyVid ||
+      window.SpudzyVideo ||
+      window.spudzyVid ||
+      window.spudzyVideo;
+
+    if (!engine) {
+      throw new Error("Spudzy video engine loaded, but no global video API was found.");
+    }
+
+    return engine;
+  }
+
+  async function getTextEngine() {
+    if (spudzyTextInstance) return spudzyTextInstance;
+
+    const SpudzyClass = await ensureTextEngineLoaded();
+    spudzyTextInstance = new SpudzyClass({
+      defaultMode: "neutral",
+      defaultPersona: "neutral",
+      enableSearch: true,
+      enableCode: true,
+      enableMath: true,
+      enableMemory: true,
+      typoCorrection: true
+    });
+
+    return spudzyTextInstance;
+  }
+
+  function looksLikeHTML(text) {
+    const value = String(text || "").trim().toLowerCase();
+    return (
+      value.startsWith("<!doctype html") ||
+      value.startsWith("<html") ||
+      value.includes("<head") ||
+      value.includes("<body")
+    );
+  }
+
+  function maybeFormatTextReply(reply) {
+    const text = String(reply ?? "");
+    return looksLikeHTML(text)
+      ? "Spudzy returned HTML code:\n\n" + text
+      : text;
+  }
+
+  function getTextModeSettings() {
+    const textBtn = document.getElementById("ctxCopilotText");
+    return {
+      mode: textBtn?.dataset?.mode || textBtn?.dataset?.persona || "neutral",
+      persona: textBtn?.dataset?.persona || textBtn?.dataset?.mode || "neutral"
+    };
+  }
+
+  function parseBool(value, fallback = false) {
+    if (value == null || value === "") return fallback;
+    return String(value).toLowerCase() === "true";
+  }
+
+  function parseNum(value, fallback) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function getVideoModeSettings() {
+    const videoBtn = document.getElementById("ctxCopilotVideo");
+
+    return {
+      width: parseNum(videoBtn?.dataset?.width, 960),
+      height: parseNum(videoBtn?.dataset?.height, 540),
+      fps: parseNum(videoBtn?.dataset?.fps, 30),
+      seconds: parseNum(videoBtn?.dataset?.seconds, 6),
+      bitrate: parseNum(videoBtn?.dataset?.bitrate, 6000000),
+      quality: parseNum(videoBtn?.dataset?.quality, 0.92),
+      appendCanvas: parseBool(videoBtn?.dataset?.appendCanvas, false),
+      returnFrames: parseBool(videoBtn?.dataset?.returnFrames, true),
+      transparent: parseBool(videoBtn?.dataset?.transparent, false),
+      debug: parseBool(videoBtn?.dataset?.debug, false),
+      typoDistance: parseNum(videoBtn?.dataset?.typoDistance, 2),
+      wordLayerLimit: parseNum(videoBtn?.dataset?.wordLayerLimit, 260),
+      maxParticles: parseNum(videoBtn?.dataset?.maxParticles, 900),
+      mimeType: videoBtn?.dataset?.mimeType || ""
+    };
+  }
+
+  function createMediaCardShell() {
+    const wrap = document.createElement("div");
+    wrap.className = "copilot-message bot";
+    wrap.style.maxWidth = "96%";
+    wrap.style.display = "flex";
+    wrap.style.flexDirection = "column";
+    wrap.style.gap = "10px";
+    wrap.style.padding = "12px";
+    wrap.style.alignSelf = "flex-start";
+    return wrap;
+  }
+
+  function createMetaLine(label, value) {
+    const row = document.createElement("div");
+    row.style.fontSize = "12px";
+    row.style.opacity = "0.82";
+    row.style.lineHeight = "1.35";
+
+    const strong = document.createElement("strong");
+    strong.textContent = label + ": ";
+
+    const span = document.createElement("span");
+    span.textContent = String(value ?? "");
+
+    row.appendChild(strong);
+    row.appendChild(span);
+    return row;
+  }
+
+  function addVideoResultToConversation(result, prompt) {
+    const wrap = createMediaCardShell();
+
+    const title = document.createElement("div");
+    title.style.fontWeight = "700";
+    title.style.fontSize = "14px";
+    title.textContent = result.ok
+      ? "Spudzy Video generated"
+      : "Spudzy Video preview result";
+    wrap.appendChild(title);
+
+    wrap.appendChild(createMetaLine("Prompt", prompt));
+
+    if (result.correctedPrompt && result.correctedPrompt !== prompt) {
+      wrap.appendChild(createMetaLine("Corrected prompt", result.correctedPrompt));
+    }
+
+    wrap.appendChild(createMetaLine("Size", `${result.width}×${result.height}`));
+    wrap.appendChild(createMetaLine("FPS", result.fps));
+    wrap.appendChild(createMetaLine("Seconds", result.seconds));
+
+    if (result.mimeType) {
+      wrap.appendChild(createMetaLine("Format", result.mimeType));
+    }
+
+    if (result.reason) {
+      const notice = document.createElement("div");
+      notice.style.fontSize = "12px";
+      notice.style.opacity = "0.9";
+      notice.textContent = result.reason;
+      wrap.appendChild(notice);
+    }
+
+    if (result.url) {
+      const video = document.createElement("video");
+      video.controls = true;
+      video.playsInline = true;
+      video.muted = true;
+      video.preload = "metadata";
+      video.src = result.url;
+      video.style.width = "100%";
+      video.style.maxWidth = "100%";
+      video.style.borderRadius = "14px";
+      video.style.background = "#000";
+      wrap.appendChild(video);
+
+      const controls = document.createElement("div");
+      controls.style.display = "flex";
+      controls.style.flexWrap = "wrap";
+      controls.style.gap = "8px";
+
+      const openLink = document.createElement("a");
+      openLink.href = result.url;
+      openLink.target = "_blank";
+      openLink.rel = "noopener noreferrer";
+      openLink.textContent = "Open video";
+      openLink.style.color = "#9fc2ff";
+      openLink.style.textDecoration = "none";
+
+      const downloadLink = document.createElement("a");
+      downloadLink.href = result.url;
+      downloadLink.download = "spudzy-video.webm";
+      downloadLink.textContent = "Download video";
+      downloadLink.style.color = "#9fc2ff";
+      downloadLink.style.textDecoration = "none";
+
+      controls.appendChild(openLink);
+      controls.appendChild(downloadLink);
+      wrap.appendChild(controls);
+    }
+
+    if ((!result.ok || !result.url) && Array.isArray(result.frames) && result.frames.length) {
+      const frameTitle = document.createElement("div");
+      frameTitle.style.fontSize = "12px";
+      frameTitle.style.opacity = "0.85";
+      frameTitle.textContent = "Preview frames";
+      wrap.appendChild(frameTitle);
+
+      const grid = document.createElement("div");
+      grid.style.display = "grid";
+      grid.style.gridTemplateColumns = "repeat(2, minmax(0, 1fr))";
+      grid.style.gap = "8px";
+
+      result.frames.slice(0, 6).forEach((src, index) => {
+        const img = document.createElement("img");
+        img.src = src;
+        img.alt = `Preview frame ${index + 1}`;
+        img.style.width = "100%";
+        img.style.borderRadius = "10px";
+        img.style.display = "block";
+        img.style.background = "#000";
+        grid.appendChild(img);
+      });
+
+      wrap.appendChild(grid);
+    }
+
+    if (result.canvas && typeof HTMLCanvasElement !== "undefined" && result.canvas instanceof HTMLCanvasElement) {
+      const previewTitle = document.createElement("div");
+      previewTitle.style.fontSize = "12px";
+      previewTitle.style.opacity = "0.85";
+      previewTitle.textContent = "Canvas preview";
+      wrap.appendChild(previewTitle);
+
+      const canvasPreview = document.createElement("img");
+      canvasPreview.src = result.canvas.toDataURL("image/png");
+      canvasPreview.alt = "Video canvas preview";
+      canvasPreview.style.width = "100%";
+      canvasPreview.style.borderRadius = "12px";
+      canvasPreview.style.display = "block";
+      canvasPreview.style.background = "#000";
+      wrap.appendChild(canvasPreview);
+    }
+
+    if (result.parsed) {
+      const summary = document.createElement("details");
+      summary.style.fontSize = "12px";
+      summary.style.opacity = "0.9";
+
+      const titleEl = document.createElement("summary");
+      titleEl.textContent = "Parsed video details";
+      summary.appendChild(titleEl);
+
+      const pre = document.createElement("pre");
+      pre.style.whiteSpace = "pre-wrap";
+      pre.style.wordBreak = "break-word";
+      pre.style.margin = "8px 0 0";
+      pre.style.fontSize = "11px";
+      pre.textContent = JSON.stringify({
+        scene: result.parsed.scene,
+        gameMode: result.parsed.gameMode,
+        uiMode: result.parsed.uiMode,
+        futureMode: result.parsed.futureMode,
+        command: result.parsed.command,
+        effects: result.parsed.effects,
+        actions: result.parsed.actions,
+        objects: result.parsed.objects
+      }, null, 2);
+
+      summary.appendChild(pre);
+      wrap.appendChild(summary);
+    }
+
+    appendBotNode(wrap);
+  }
+
+  window.handleCopilotText = async function(message) {
+    const input = String(message ?? "").trim();
+    if (!input) return;
+
+    const { mode, persona } = getTextModeSettings();
+    const status = addStatusMessage("Loading Spudzy text…");
+
+    try {
+      setInputState(true);
+
+      const spudzy = await getTextEngine();
+      updateStatusMessage(status, "Generating text response…");
+
+      const reply = await spudzy.respond(input, { mode, persona });
+
+      removeMessage(status);
+      addBotMessage(maybeFormatTextReply(reply));
+    } catch (error) {
+      removeMessage(status);
+      addBotMessage(
+        "Text mode error: " +
+        (error && error.message ? error.message : "Unknown error.")
+      );
+    } finally {
+      setInputState(false);
+      const box = getMessageBoxEl();
+      if (box) box.focus();
+    }
+  };
+
+  window.handleCopilotVideo = async function(message) {
+    const input = String(message ?? "").trim();
+    if (!input) return;
+
+    const status = addStatusMessage("Loading Spudzy video…");
+
+    try {
+      setInputState(true);
+
+      const videoEngine = await ensureVideoEngineLoaded();
+      const options = getVideoModeSettings();
+
+      updateStatusMessage(status, "Generating procedural video…");
+
+      const result = await videoEngine.generate(input, options);
+
+      removeMessage(status);
+      addVideoResultToConversation(result, input);
+    } catch (error) {
+      removeMessage(status);
+      addBotMessage(
+        "Video mode error: " +
+        (error && error.message ? error.message : "Unknown error.")
+      );
+    } finally {
+      setInputState(false);
+      const box = getMessageBoxEl();
+      if (box) box.focus();
+    }
+  };
+
+  window.reloadCopilotTextEngine = async function() {
+    spudzyTextInstance = null;
+    await ensureTextEngineLoaded();
+    addBotMessage("Spudzy text engine reloaded.");
+  };
+
+  window.reloadCopilotVideoEngine = async function() {
+    await ensureVideoEngineLoaded();
+    addBotMessage("Spudzy video engine loaded.");
+  };
+
+  window.clearCopilotTextHistory = async function() {
+    const spudzy = await getTextEngine();
+    if (typeof spudzy.clearHistory === "function") {
+      spudzy.clearHistory();
+      addBotMessage("Spudzy text history cleared.");
+    }
+  };
+
+  window.clearCopilotTextMemory = async function() {
+    const spudzy = await getTextEngine();
+    if (typeof spudzy.clearMemory === "function") {
+      spudzy.clearMemory();
+      addBotMessage("Spudzy text memory cleared.");
+    }
+  };
+})();
+</script>
 
   <!-- time flyout -->
   <div id="time-flyout">

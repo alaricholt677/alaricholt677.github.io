@@ -1,24 +1,24 @@
 /*
   Spudzy Vid / RealLifeVideo
-  v6.0.0-any-prompt-video-core
+  v7.0.0-recreate-ui-future-video
 
   Browser-only procedural prompt-to-video generator.
   No server. No real AI model. Canvas + MediaRecorder only.
 
-  Main idea:
-  - Any text prompt works.
-  - Typos are corrected.
-  - Unknown words still affect the video through hashed visual tokens.
-  - Supports command-style prompts:
-      make a dragon fly in the rain in an rpg game with the effect fire
-      make robot dance with effect neon glitch in cyberpunk city
-      make car drift fast with effect lightning
+  Same API:
+    const data = await RealLifeVideo.generate(prompt, options)
+
+  Supports prompts like:
+    "make a dragon fly in the rain in an rpg game with the effect fire"
+    "recreate this futuristic UI being used in a video"
+    "make a dashboard app in use with neon hologram effect"
+    "not UI, make future city flythrough with glitch"
 */
 
 (function attachSpudzyVid(global) {
   "use strict";
 
-  const VERSION = "6.0.0-any-prompt-video-core";
+  const VERSION = "7.0.0-recreate-ui-future-video";
 
   const DEFAULTS = {
     width: 960,
@@ -54,13 +54,11 @@
     mak: "make",
     maek: "make",
     mkae: "make",
-    mke: "make",
     makee: "make",
     creat: "create",
     crate: "create",
     genrate: "generate",
     genrated: "generated",
-    genrator: "generator",
     vidueo: "video",
     vidoe: "video",
     videeo: "video",
@@ -74,9 +72,7 @@
     anytyhing: "anything",
     yo: "you",
     wil: "will",
-    wiht: "with",
     fukllly: "fully",
-    fullyy: "fully",
     responces: "responses",
     responce: "response",
     focueses: "focuses",
@@ -108,48 +104,48 @@
     alot: "a lot",
     refrence: "reference",
     refrences: "references",
+    recreat: "recreate",
+    recraete: "recreate",
+    recrete: "recreate",
+    remak: "remake",
+    usi: "using",
+    usign: "using",
+    useing: "using",
+    beign: "being",
+    futre: "future",
+    futur: "future",
+    futurstic: "futuristic",
+    futurisitc: "futuristic",
+    uii: "ui",
+    dashbord: "dashboard",
+    dashbaord: "dashboard",
+    buttton: "button",
+    buton: "button",
+    logn: "login",
+    singup: "signup",
+    appp: "app",
     realstic: "realistic",
     realistc: "realistic",
     cinamatic: "cinematic",
     cinamtic: "cinematic",
-    cineamtic: "cinematic",
     nigth: "night",
     nite: "night",
     raing: "rain",
     rian: "rain",
-    wather: "weather",
-    wether: "weather",
     pepole: "people",
     peaple: "people",
     ppl: "people",
-    humen: "human",
-    vehical: "vehicle",
-    vehicals: "vehicles",
     carz: "cars",
-    buildng: "building",
-    buildingss: "buildings",
     forrest: "forest",
     mountian: "mountain",
     mountians: "mountains",
     ocen: "ocean",
-    oecan: "ocean",
     watter: "water",
-    sunet: "sunset",
-    sunris: "sunrise",
-    camra: "camera",
-    movment: "movement",
-    movign: "moving",
-    glwoing: "glowing",
-    glowng: "glowing",
-    foggyy: "foggy",
-    blury: "blurry",
-    smoothe: "smooth",
     pixle: "pixel",
     pixles: "pixels",
     voxle: "voxel",
     minecarft: "minecraft",
     minecrft: "minecraft",
-    mnecraft: "minecraft",
     mcraft: "minecraft",
     robo: "robot",
     roboot: "robot",
@@ -157,32 +153,21 @@
     dragn: "dragon",
     dragun: "dragon",
     firre: "fire",
-    firey: "fiery",
     explotion: "explosion",
-    explod: "explode",
-    snowwy: "snowy",
-    dessert: "desert",
     spac: "space",
     galxy: "galaxy",
-    nebla: "nebula",
-    cyper: "cyber",
     cyberpuk: "cyberpunk",
     cyberpnk: "cyberpunk",
     neonn: "neon",
     gltich: "glitch",
-    gltichy: "glitch",
-    retrro: "retro",
     horor: "horror",
     fanasty: "fantasy",
-    scifi: "sci-fi",
     syfy: "sci-fi",
-    anim: "anime",
     cartton: "cartoon",
     runing: "running",
     flyng: "flying",
     jumpng: "jumping",
-    dancng: "dancing",
-    spining: "spinning"
+    dancng: "dancing"
   };
 
   const DICT = {
@@ -195,6 +180,7 @@
       anime: ["anime", "manga", "cel shaded", "cel-shaded"],
       comic: ["comic", "ink", "halftone", "graphic novel"],
       cyberpunk: ["cyberpunk", "cyber city", "neon city", "future city"],
+      futuristic: ["future", "futuristic", "next gen", "hologram", "holographic", "sci fi future"],
       synthwave: ["synthwave", "retrowave", "outrun", "neon"],
       horror: ["horror", "scary", "creepy", "haunted", "dark"],
       fantasy: ["fantasy", "magic", "dragon", "wizard", "castle"],
@@ -216,7 +202,12 @@
       vlog: ["vlog", "handheld", "phone video"],
       drone: ["drone", "aerial", "overhead"],
       timelapse: ["timelapse", "time lapse"],
-      slowmo: ["slowmo", "slow motion", "slow-mo"]
+      slowmo: ["slowmo", "slow motion", "slow-mo"],
+      ui: ["ui", "user interface", "interface", "app screen", "screen design"],
+      dashboard: ["dashboard", "analytics", "charts", "admin panel", "control panel"],
+      mobile: ["mobile", "phone app", "iphone", "android app"],
+      desktop: ["desktop", "website", "web app", "browser"],
+      gameUi: ["game ui", "hud", "health bar", "inventory ui", "game menu"]
     },
 
     scenes: {
@@ -237,6 +228,8 @@
       concert: ["concert", "stage", "music", "dj"],
       lab: ["lab", "laboratory", "science"],
       cyberspace: ["cyberspace", "digital world", "matrix"],
+      uiStudio: ["ui", "interface", "dashboard", "app", "website", "screen"],
+      futureCity: ["future city", "futuristic city", "hologram city"],
       abstract: ["abstract", "dream", "surreal", "particles"]
     },
 
@@ -274,7 +267,15 @@
       lightning: ["lightning", "thunder"],
       portal: ["portal", "vortex", "wormhole"],
       text: ["text", "letters", "words"],
-      music: ["music", "notes", "song", "beat"]
+      music: ["music", "notes", "song", "beat"],
+      cursor: ["cursor", "mouse", "pointer", "click"],
+      buttons: ["button", "buttons", "cta"],
+      cards: ["card", "cards", "panel", "panels"],
+      charts: ["chart", "charts", "graph", "graphs"],
+      menu: ["menu", "sidebar", "nav", "navigation"],
+      login: ["login", "signin", "sign in", "signup", "register"],
+      avatar: ["avatar", "profile", "user icon"],
+      hologram: ["hologram", "holographic"]
     },
 
     actions: {
@@ -299,7 +300,14 @@
       pulse: ["pulse", "beat"],
       zoom: ["zoom", "camera zoom"],
       shake: ["shake", "quake"],
-      wave: ["wave", "waving"]
+      wave: ["wave", "waving"],
+      click: ["click", "tap", "press"],
+      scroll: ["scroll", "swipe"],
+      type: ["type", "typing", "input"],
+      open: ["open", "reveal", "expand"],
+      close: ["close", "collapse"],
+      recreate: ["recreate", "remake", "copy", "rebuild", "based on"],
+      use: ["use", "using", "in use", "being used"]
     },
 
     effects: {
@@ -322,11 +330,13 @@
       ripple: ["ripple", "wave distortion"],
       pixelate: ["pixelate", "pixelated"],
       chromatic: ["chromatic", "rgb split"],
-      hologram: ["hologram", "holo"],
+      hologram: ["hologram", "holo", "holographic"],
       matrix: ["matrix", "code rain"],
       hearts: ["hearts", "love"],
       coins: ["coins", "gold"],
-      stars: ["stars", "sparkles"]
+      stars: ["stars", "sparkles"],
+      glass: ["glass", "glassmorphism", "frosted"],
+      future: ["future", "futuristic", "next gen"]
     },
 
     colors: {
@@ -415,15 +425,10 @@
   function colorWithAlpha(hex, alpha) {
     const clean = String(hex || "#ffffff").replace("#", "");
     const n = parseInt(
-      clean.length === 3
-        ? clean.split("").map((c) => c + c).join("")
-        : clean,
+      clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean,
       16
     );
-    const r = (n >> 16) & 255;
-    const g = (n >> 8) & 255;
-    const b = n & 255;
-    return `rgba(${r},${g},${b},${alpha})`;
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
   }
 
   function levenshtein(a, b, max = 99) {
@@ -443,11 +448,7 @@
 
       for (let j = 1; j <= b.length; j++) {
         const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-        curr[j] = Math.min(
-          prev[j] + 1,
-          curr[j - 1] + 1,
-          prev[j - 1] + cost
-        );
+        curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
         if (curr[j] < rowMin) rowMin = curr[j];
       }
 
@@ -504,18 +505,20 @@
       "mine craft": "minecraft",
       "slow motion": "slow motion",
       "time lapse": "timelapse",
-      "r p g": "rpg"
+      "r p g": "rpg",
+      "in vid": "in video",
+      "as vid": "as video",
+      "recreate usi": "recreate using",
+      "being in use": "being used",
+      "not ui": "no ui",
+      "not a ui": "no ui"
     };
 
     for (const bad of Object.keys(phraseFixes)) {
-      text = text.replace(
-        new RegExp("\\b" + escapeRegExp(bad) + "\\b", "g"),
-        phraseFixes[bad]
-      );
+      text = text.replace(new RegExp("\\b" + escapeRegExp(bad) + "\\b", "g"), phraseFixes[bad]);
     }
 
-    const maxDistance =
-      options.typoDistance == null ? DEFAULTS.typoDistance : options.typoDistance;
+    const maxDistance = options.typoDistance == null ? DEFAULTS.typoDistance : options.typoDistance;
 
     const corrected = text.split(" ").filter(Boolean).map((raw) => {
       const word = collapseRepeats(raw.replace(/^['"]+|['"]+$/g, ""));
@@ -583,25 +586,46 @@
   function extractCommand(text) {
     const command = {
       requested: false,
+      recreate: false,
+      using: false,
+      inUse: false,
       object: null,
       action: null,
       effect: null,
       raw: null
     };
 
+    command.recreate =
+      hasTerm(text, "recreate") ||
+      hasTerm(text, "remake") ||
+      hasTerm(text, "copy") ||
+      hasTerm(text, "rebuild") ||
+      text.includes("based on");
+
+    command.using =
+      hasTerm(text, "using") ||
+      hasTerm(text, "use") ||
+      text.includes("with this") ||
+      text.includes("from this");
+
+    command.inUse =
+      text.includes("in use") ||
+      text.includes("being used") ||
+      text.includes("user using") ||
+      text.includes("using the ui") ||
+      text.includes("using the app");
+
     const match = text.match(
-      /\b(?:make|create|generate|spawn|show)\s+(.+?)(?:\s+(?:with|using|add)\s+(?:the\s+)?effect\s+(.+)|$)/i
+      /\b(?:make|create|generate|spawn|show|recreate|remake|rebuild)\s+(.+?)(?:\s+(?:with|using|add)\s+(?:the\s+)?effect\s+(.+)|$)/i
     );
 
-    if (!match) return command;
+    if (!match && !command.recreate && !command.inUse) return command;
 
     command.requested = true;
-    command.raw = match[0];
+    command.raw = match ? match[0] : text;
 
-    const core = match[1].trim();
-    command.effect = match[2]
-      ? match[2].trim().split(/\s+/).slice(0, 8).join(" ")
-      : null;
+    const core = match ? match[1].trim() : text;
+    command.effect = match && match[2] ? match[2].trim().split(/\s+/).slice(0, 8).join(" ") : null;
 
     let foundObject = null;
     let foundAction = null;
@@ -622,11 +646,8 @@
 
     const parts = core.split(/\s+/).filter(Boolean);
 
-    command.object = foundObject || parts[0] || null;
-    command.action =
-      foundAction ||
-      parts.slice(1).find((w) => !["a", "an", "the", "it", "in", "with"].includes(w)) ||
-      "idle";
+    command.object = foundObject || parts.find((w) => !["a", "an", "the", "it", "in", "with", "using"].includes(w)) || null;
+    command.action = foundAction || (command.inUse ? "use" : "idle");
 
     return command;
   }
@@ -647,10 +668,35 @@
       sceneScores[key] = scoreAliases(text, DICT.scenes[key]);
     }
 
-    const scene = bestKeyByAliases(text, DICT.scenes, "abstract");
     const command = extractCommand(text);
 
-    if (scene === "city") {
+    const noUi = text.includes("no ui") || text.includes("not ui") || text.includes("without ui");
+    const uiRequested =
+      !noUi &&
+      (
+        styles.ui ||
+        styles.dashboard ||
+        styles.mobile ||
+        styles.desktop ||
+        styles.gameUi ||
+        objects.buttons ||
+        objects.cards ||
+        objects.charts ||
+        objects.menu ||
+        objects.login ||
+        objects.cursor ||
+        text.includes("app") ||
+        text.includes("website") ||
+        text.includes("interface")
+      );
+
+    let scene = bestKeyByAliases(text, DICT.scenes, "abstract");
+    if (uiRequested) scene = "uiStudio";
+    if ((styles.futuristic || effects.future || objects.hologram) && !uiRequested) {
+      scene = scene === "abstract" ? "futureCity" : scene;
+    }
+
+    if (scene === "city" || scene === "futureCity") {
       objects.cars = objects.cars || hasTerm(text, "street") || hasTerm(text, "traffic");
       objects.people = objects.people || hasTerm(text, "walking");
     }
@@ -667,10 +713,12 @@
 
     if (styles.voxel) objects.cubes = true;
     if (styles.rpg) styles.fantasy = true;
+    if (styles.futuristic) styles.scifi = true;
     if (effects.fire) objects.fire = true;
     if (effects.lightning) objects.lightning = true;
     if (effects.hearts) objects.hearts = true;
     if (effects.coins) objects.coins = true;
+    if (effects.hologram) objects.hologram = true;
 
     if (command.object && DICT.objects[command.object]) {
       objects[command.object] = true;
@@ -682,9 +730,7 @@
 
     if (command.effect) {
       for (const key of Object.keys(DICT.effects)) {
-        if (includesAny(command.effect, DICT.effects[key].concat([key]))) {
-          effects[key] = true;
-        }
+        if (includesAny(command.effect, DICT.effects[key].concat([key]))) effects[key] = true;
       }
     }
 
@@ -704,9 +750,7 @@
     };
 
     for (const word of words) {
-      if (DICT.colors[word]) {
-        modifiers.colors.push(DICT.colors[word]);
-      }
+      if (DICT.colors[word]) modifiers.colors.push(DICT.colors[word]);
 
       const mod = DICT.modifiers[word];
       if (!mod) continue;
@@ -722,12 +766,13 @@
       if (mod.cute) modifiers.cute += mod.cute;
     }
 
-    if (effects.neon || effects.bloom) modifiers.glow += 1;
+    if (effects.neon || effects.bloom || effects.hologram) modifiers.glow += 1;
     if (effects.glitch) modifiers.chaos += 0.75;
     if (effects.fast) modifiers.speed *= 1.7;
     if (effects.slowmo || styles.slowmo) modifiers.speed *= 0.55;
     if (actions.run || actions.fly || actions.drift) modifiers.speed *= 1.25;
     if (actions.shake) modifiers.shake += 1;
+    if (uiRequested) modifiers.glow += styles.futuristic || effects.hologram ? 0.8 : 0.2;
 
     const gameMode =
       styles.voxel ? "voxel-sandbox" :
@@ -735,8 +780,8 @@
       styles.racing ? "racing" :
       styles.platformer ? "platformer" :
       styles.rpg ? "rpg" :
-      styles.shooter ? "shooter" :
       styles.arcade ? "arcade" :
+      uiRequested ? "ui-video" :
       "cinematic-sim";
 
     const promptSignature = words.map((word) => {
@@ -746,8 +791,8 @@
         hash: h,
         influence: {
           hue: h % 360,
-          shape: h % 7,
-          motion: h % 5,
+          shape: h % 8,
+          motion: h % 6,
           size: 8 + (h % 34)
         }
       };
@@ -767,12 +812,16 @@
       command,
       modifiers,
       gameMode,
+      uiMode: uiRequested,
+      noUi,
+      futureMode: !!(styles.futuristic || effects.future || objects.hologram),
       referenceMode: {
         requested:
+          command.recreate ||
           hasTerm(text, "reference") ||
           text.includes("style of") ||
           hasTerm(text, "like"),
-        note: "Reference words are broad procedural hints, not exact copies."
+        note: "Reference/recreate words are broad procedural hints, not exact copies."
       }
     };
   }
@@ -780,20 +829,12 @@
   function chooseMimeType(preferred) {
     if (typeof MediaRecorder === "undefined") return "";
 
-    if (preferred && MediaRecorder.isTypeSupported(preferred)) {
-      return preferred;
-    }
+    if (preferred && MediaRecorder.isTypeSupported(preferred)) return preferred;
 
-    const candidates = [
-      "video/webm;codecs=vp9",
-      "video/webm;codecs=vp8",
-      "video/webm"
-    ];
-
+    const candidates = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
     for (const type of candidates) {
       if (MediaRecorder.isTypeSupported(type)) return type;
     }
-
     return "";
   }
 
@@ -827,7 +868,10 @@
         snow: [],
         wordObjects: [],
         sparks: [],
-        icons: []
+        icons: [],
+        uiCards: [],
+        uiLines: [],
+        uiButtons: []
       };
 
       this.generate();
@@ -863,6 +907,20 @@
         };
       }
 
+      if (p.uiMode || p.futureMode || p.styles.cyberpunk || p.effects.neon) {
+        return {
+          skyTop: "#020617",
+          skyMid: "#111827",
+          skyBottom: "#030712",
+          ground: "#050816",
+          dark: "#020617",
+          light: "#e0f2fe",
+          accent: "#22d3ee",
+          accent2: "#a855f7",
+          sun: "#67e8f9"
+        };
+      }
+
       if (p.styles.rpg || p.styles.fantasy || p.objects.dragon) {
         return {
           skyTop: "#312e81",
@@ -874,20 +932,6 @@
           accent: "#f97316",
           accent2: "#a855f7",
           sun: "#fde68a"
-        };
-      }
-
-      if (p.styles.cyberpunk || p.styles.synthwave || p.effects.neon) {
-        return {
-          skyTop: "#120024",
-          skyMid: "#3b0764",
-          skyBottom: "#020617",
-          ground: "#050816",
-          dark: "#020617",
-          light: "#ffffff",
-          accent: "#00f5ff",
-          accent2: "#ff00e6",
-          sun: "#fb7185"
         };
       }
 
@@ -947,20 +991,6 @@
         };
       }
 
-      if (p.scene === "forest" || p.scene === "farm") {
-        return {
-          skyTop: "#93c5fd",
-          skyMid: "#bfdbfe",
-          skyBottom: "#dcfce7",
-          ground: "#166534",
-          dark: "#052e16",
-          light: "#f0fdf4",
-          accent: "#22c55e",
-          accent2: "#84cc16",
-          sun: "#fde68a"
-        };
-      }
-
       return {
         skyTop: "#60a5fa",
         skyMid: "#93c5fd",
@@ -993,6 +1023,7 @@
       this.generateWordObjects();
       this.generateSparks();
       this.generateIcons();
+      this.generateUi();
     }
 
     generateStars() {
@@ -1052,7 +1083,6 @@
       while (x < this.width + 120) {
         const w = this.rand(34, 95);
         const h = this.rand(this.height * 0.18, this.height * 0.6);
-
         this.items.buildings.push({
           x,
           y: this.height * 0.78 - h,
@@ -1062,7 +1092,6 @@
           cols: Math.max(2, Math.floor(w / 13)),
           phase: this.rand(0, 100)
         });
-
         x += w + this.rand(4, 14);
       }
     }
@@ -1130,7 +1159,6 @@
 
     generateBlocks() {
       const block = Math.max(18, Math.floor(this.width / 48));
-
       for (let y = this.height * 0.54; y < this.height + block; y += block) {
         for (let x = -block; x < this.width + block; x += block) {
           this.items.blocks.push({
@@ -1215,9 +1243,7 @@
 
     generateWordObjects() {
       const limit = this.options.wordLayerLimit || 260;
-      const visualWords = this.parsed.words
-        .filter((word) => word.length > 1)
-        .slice(0, limit);
+      const visualWords = this.parsed.words.filter((word) => word.length > 1).slice(0, limit);
 
       for (const word of visualWords) {
         const h = hashString(word);
@@ -1258,6 +1284,38 @@
         });
       }
     }
+
+    generateUi() {
+      for (let i = 0; i < 10; i++) {
+        this.items.uiCards.push({
+          x: this.rand(this.width * 0.08, this.width * 0.78),
+          y: this.rand(this.height * 0.12, this.height * 0.72),
+          w: this.rand(110, 260),
+          h: this.rand(56, 150),
+          phase: this.rand(0, Math.PI * 2),
+          hue: this.rand(180, 300)
+        });
+      }
+
+      for (let i = 0; i < 34; i++) {
+        this.items.uiLines.push({
+          x: this.rand(this.width * 0.12, this.width * 0.85),
+          y: this.rand(this.height * 0.16, this.height * 0.82),
+          w: this.rand(35, 180),
+          phase: this.rand(0, Math.PI * 2)
+        });
+      }
+
+      for (let i = 0; i < 8; i++) {
+        this.items.uiButtons.push({
+          x: this.rand(this.width * 0.14, this.width * 0.76),
+          y: this.rand(this.height * 0.2, this.height * 0.78),
+          w: this.rand(80, 180),
+          h: this.rand(26, 46),
+          phase: this.rand(0, Math.PI * 2)
+        });
+      }
+    }
   }
 
   class Renderer {
@@ -1284,7 +1342,9 @@
 
       this.drawBackground(t);
 
-      if (p.styles.voxel) this.drawVoxelWorld(t);
+      if (p.uiMode) this.drawUiVideo(t);
+      else if (p.scene === "futureCity") this.drawFutureCity(t);
+      else if (p.styles.voxel) this.drawVoxelWorld(t);
       else if (p.styles.pixel || p.gameMode === "pixel-arcade") this.drawPixelGame(t);
       else if (p.styles.racing || p.scene === "track") this.drawRacing(t);
       else if (p.scene === "space") this.drawSpace(t);
@@ -1325,7 +1385,7 @@
       const p = this.world.parsed;
       const speed = p.modifiers.speed;
       const chaos = p.modifiers.chaos + p.modifiers.shake;
-      const cinematic = p.styles.cinematic ? 1 : 0.45;
+      const cinematic = p.styles.cinematic || p.futureMode ? 1 : 0.45;
 
       return {
         x: Math.sin(t * 0.55 * speed) * 8 * cinematic + Math.sin(t * 18) * chaos * 2,
@@ -1347,27 +1407,24 @@
       ctx.fillStyle = g;
       ctx.fillRect(-60, -60, this.w + 120, this.h + 120);
 
-      if (!p.objects.night && p.scene !== "space") {
+      if (!p.objects.night && p.scene !== "space" && !p.uiMode && !p.futureMode) {
         this.drawSun(this.w * 0.78, this.h * 0.22, 46, pal.sun);
       }
 
-      if (p.objects.night || p.scene === "space") this.drawStars(t);
-      if (p.objects.clouds || p.scene !== "space") this.drawClouds(t);
+      if (p.objects.night || p.scene === "space" || p.futureMode || p.uiMode) this.drawStars(t);
+      if ((p.objects.clouds || p.scene !== "space") && !p.uiMode) this.drawClouds(t);
     }
 
     drawSun(x, y, r, color) {
       const ctx = this.ctx;
       const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 4);
-
       glow.addColorStop(0, color);
       glow.addColorStop(0.36, colorWithAlpha(color, 0.34));
       glow.addColorStop(1, "rgba(255,255,255,0)");
-
       ctx.fillStyle = glow;
       ctx.beginPath();
       ctx.arc(x, y, r * 4, 0, Math.PI * 2);
       ctx.fill();
-
       ctx.fillStyle = color;
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -1393,7 +1450,6 @@
       for (const c of this.world.items.clouds) {
         const x = ((c.x + t * c.speed) % (this.w + c.w * 2)) - c.w;
         const y = c.y + Math.sin(t * 0.4 + c.x) * 3;
-
         ctx.fillStyle = `rgba(${color},${c.alpha})`;
         ctx.beginPath();
         ctx.ellipse(x, y, c.w * 0.35, c.h * 0.72, 0, 0, Math.PI * 2);
@@ -1401,6 +1457,188 @@
         ctx.ellipse(x + c.w * 0.56, y, c.w * 0.45, c.h * 0.82, 0, 0, Math.PI * 2);
         ctx.fill();
       }
+    }
+
+    drawUiVideo(t) {
+      const ctx = this.ctx;
+      const p = this.world.parsed;
+      const pal = this.world.palette;
+
+      const pad = Math.min(this.w, this.h) * 0.06;
+      const mainX = pad;
+      const mainY = pad;
+      const mainW = this.w - pad * 2;
+      const mainH = this.h - pad * 2;
+
+      ctx.save();
+
+      if (p.effects.hologram || p.futureMode) {
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = pal.accent;
+      }
+
+      ctx.fillStyle = "rgba(2,6,23,0.78)";
+      this.roundRect(mainX, mainY, mainW, mainH, 28);
+      ctx.fill();
+
+      ctx.strokeStyle = colorWithAlpha(pal.accent, 0.6);
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      const sidebarW = mainW * 0.18;
+      ctx.fillStyle = "rgba(15,23,42,0.85)";
+      this.roundRect(mainX + 16, mainY + 16, sidebarW, mainH - 32, 18);
+      ctx.fill();
+
+      for (let i = 0; i < 7; i++) {
+        const y = mainY + 48 + i * 42;
+        ctx.fillStyle = i === Math.floor((t * 1.2) % 7)
+          ? colorWithAlpha(pal.accent, 0.5)
+          : "rgba(148,163,184,0.22)";
+        this.roundRect(mainX + 34, y, sidebarW - 36, 18, 9);
+        ctx.fill();
+      }
+
+      const contentX = mainX + sidebarW + 34;
+      const contentW = mainW - sidebarW - 54;
+
+      ctx.fillStyle = "rgba(15,23,42,0.64)";
+      this.roundRect(contentX, mainY + 18, contentW, 70, 18);
+      ctx.fill();
+
+      ctx.fillStyle = colorWithAlpha(pal.light, 0.85);
+      ctx.font = `${Math.max(18, Math.floor(this.w / 45))}px system-ui, sans-serif`;
+      ctx.fillText(p.command.recreate ? "Recreated Video UI" : "Live Generated Interface", contentX + 24, mainY + 62);
+
+      for (const card of this.world.items.uiCards) {
+        const pulse = 0.88 + Math.sin(t * 2 + card.phase) * 0.06;
+        const x = contentX + ((card.x - contentX + t * 8) % Math.max(100, contentW - card.w));
+        const y = card.y;
+        ctx.fillStyle = p.effects.glass
+          ? "rgba(255,255,255,0.11)"
+          : `hsla(${card.hue},70%,35%,0.28)`;
+        this.roundRect(x, y, card.w * pulse, card.h * pulse, 18);
+        ctx.fill();
+        ctx.strokeStyle = colorWithAlpha(pal.accent, 0.28);
+        ctx.stroke();
+
+        if (p.objects.charts || p.styles.dashboard) {
+          this.drawMiniChart(x + 14, y + 18, card.w - 28, card.h - 34, t + card.phase);
+        }
+      }
+
+      for (const line of this.world.items.uiLines) {
+        const alpha = 0.18 + Math.abs(Math.sin(t * 2 + line.phase)) * 0.3;
+        ctx.fillStyle = colorWithAlpha(pal.light, alpha);
+        this.roundRect(line.x, line.y, line.w, 5, 3);
+        ctx.fill();
+      }
+
+      for (const btn of this.world.items.uiButtons) {
+        const active = Math.sin(t * 3 + btn.phase) > 0.35;
+        ctx.fillStyle = active ? colorWithAlpha(pal.accent, 0.65) : "rgba(30,41,59,0.8)";
+        this.roundRect(btn.x, btn.y, btn.w, btn.h, 14);
+        ctx.fill();
+      }
+
+      if (p.command.inUse || p.actions.click || p.actions.use) {
+        this.drawCursor(t);
+      }
+
+      if (p.effects.hologram || p.futureMode) {
+        this.drawHologramGrid(t);
+      }
+
+      ctx.restore();
+    }
+
+    drawMiniChart(x, y, w, h, t) {
+      const ctx = this.ctx;
+      ctx.strokeStyle = "rgba(34,211,238,0.65)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+
+      for (let i = 0; i <= 18; i++) {
+        const px = x + (i / 18) * w;
+        const py = y + h * 0.55 + Math.sin(t + i * 0.7) * h * 0.25;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(168,85,247,0.18)";
+      ctx.fillRect(x, y + h * 0.62, w, h * 0.28);
+    }
+
+    drawCursor(t) {
+      const ctx = this.ctx;
+      const x = this.w * 0.55 + Math.sin(t * 1.4) * this.w * 0.22;
+      const y = this.h * 0.52 + Math.cos(t * 1.1) * this.h * 0.22;
+
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + 22, y + 10);
+      ctx.lineTo(x + 10, y + 15);
+      ctx.lineTo(x + 4, y + 31);
+      ctx.lineTo(x - 4, y + 28);
+      ctx.lineTo(x + 3, y + 13);
+      ctx.closePath();
+      ctx.fill();
+
+      const click = Math.sin(t * 5) > 0.55;
+      if (click) {
+        ctx.strokeStyle = "rgba(34,211,238,0.6)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(x, y, 28 + Math.sin(t * 20) * 5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    drawHologramGrid(t) {
+      const ctx = this.ctx;
+      ctx.strokeStyle = "rgba(34,211,238,0.12)";
+      ctx.lineWidth = 1;
+
+      for (let x = 0; x < this.w; x += 34) {
+        ctx.beginPath();
+        ctx.moveTo(x + Math.sin(t + x) * 4, 0);
+        ctx.lineTo(x, this.h);
+        ctx.stroke();
+      }
+
+      for (let y = 0; y < this.h; y += 34) {
+        ctx.beginPath();
+        ctx.moveTo(0, y + Math.cos(t + y) * 4);
+        ctx.lineTo(this.w, y);
+        ctx.stroke();
+      }
+    }
+
+    drawFutureCity(t) {
+      this.drawCity(t);
+      const ctx = this.ctx;
+      const pal = this.world.palette;
+
+      for (let i = 0; i < 12; i++) {
+        const x = (i * 120 + Math.sin(t + i) * 20) % this.w;
+        const y = this.h * 0.22 + Math.cos(t * 0.9 + i) * 45;
+
+        ctx.strokeStyle = colorWithAlpha(pal.accent, 0.55);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(x, y, 44, 14, Math.sin(t + i), 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = colorWithAlpha(pal.accent2, 0.15);
+        ctx.beginPath();
+        ctx.ellipse(x, y, 58, 18, Math.sin(t + i), 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      this.drawHologramGrid(t);
     }
 
     drawCity(t) {
@@ -1417,7 +1655,7 @@
       const pal = this.world.palette;
 
       for (const b of this.world.items.buildings) {
-        ctx.fillStyle = p.objects.night ? "#020617" : "#1e293b";
+        ctx.fillStyle = p.objects.night || p.futureMode ? "#020617" : "#1e293b";
         ctx.fillRect(b.x, b.y, b.w, b.h);
 
         ctx.strokeStyle = "rgba(255,255,255,0.07)";
@@ -1426,13 +1664,11 @@
         for (let iy = 0; iy < b.rows; iy++) {
           for (let ix = 0; ix < b.cols; ix++) {
             const flicker = Math.sin(ix * 7.13 + iy * 11.91 + b.phase + t * 1.8);
-
             if (flicker > -0.15) {
               ctx.fillStyle =
-                p.styles.synthwave || p.styles.scifi || p.styles.cyberpunk
+                p.styles.synthwave || p.styles.scifi || p.styles.cyberpunk || p.futureMode
                   ? ix % 2 ? pal.accent : pal.accent2
                   : "rgba(255,226,130,0.82)";
-
               ctx.fillRect(b.x + 7 + ix * 13, b.y + 8 + iy * 17, 5, 8);
             }
           }
@@ -1442,14 +1678,14 @@
 
     drawRoad(t) {
       const ctx = this.ctx;
+      const p = this.world.parsed;
 
-      ctx.fillStyle = this.world.parsed.objects.rain ? "#111827" : "#1f2937";
+      ctx.fillStyle = p.objects.rain ? "#111827" : "#1f2937";
       ctx.fillRect(0, this.h * 0.78, this.w, this.h * 0.22);
 
-      ctx.strokeStyle =
-        this.world.parsed.styles.synthwave || this.world.parsed.styles.cyberpunk
-          ? "rgba(0,245,255,0.8)"
-          : "rgba(255,255,255,0.35)";
+      ctx.strokeStyle = p.futureMode || p.styles.synthwave || p.styles.cyberpunk
+        ? "rgba(0,245,255,0.8)"
+        : "rgba(255,255,255,0.35)";
 
       ctx.lineWidth = 3;
       ctx.setLineDash([34, 28]);
@@ -1463,11 +1699,7 @@
 
     drawCars(t) {
       for (const car of this.world.items.cars) {
-        const x =
-          ((car.x + t * car.speed * this.world.parsed.modifiers.speed) %
-            (this.w + 260)) -
-          130;
-
+        const x = ((car.x + t * car.speed * this.world.parsed.modifiers.speed) % (this.w + 260)) - 130;
         this.drawCar(x, car.y, car.size, car.color, car.speed < 0);
       }
     }
@@ -1496,19 +1728,12 @@
       ctx.arc(w * 0.28, 0, 8 * scale, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = "rgba(255,245,180,0.9)";
-      ctx.fillRect(w * 0.44, -h * 0.65, 8 * scale, 6 * scale);
-
       ctx.restore();
     }
 
     drawPeople(t) {
       for (const person of this.world.items.people) {
-        const x =
-          ((person.x + t * person.speed * this.world.parsed.modifiers.speed) %
-            (this.w + 80)) -
-          40;
-
+        const x = ((person.x + t * person.speed * this.world.parsed.modifiers.speed) % (this.w + 80)) - 40;
         const bob = Math.sin(t * 6 + person.phase) * 2.2;
         this.drawPerson(x, person.y + bob, person.scale, person.coat, t + person.phase);
       }
@@ -1522,7 +1747,6 @@
       ctx.strokeStyle = "rgba(0,0,0,0.35)";
       ctx.lineWidth = 6 * scale;
       ctx.lineCap = "round";
-
       ctx.beginPath();
       ctx.moveTo(x, y - s * 1.6);
       ctx.lineTo(x - walk, y - s * 0.6);
@@ -1562,12 +1786,8 @@
     drawForest(t) {
       this.drawMountains();
       this.drawGround(this.world.palette.ground, 0.68);
-
       const trees = this.world.items.trees.slice().sort((a, b) => a.y - b.y);
-      for (const tree of trees) {
-        this.drawTree(tree.x, tree.y, tree.w, tree.h, tree.layer);
-      }
-
+      for (const tree of trees) this.drawTree(tree.x, tree.y, tree.w, tree.h, tree.layer);
       if (this.world.parsed.objects.animals) this.drawAnimals(t);
       if (this.world.parsed.objects.birds) this.drawBirds(t);
     }
@@ -1612,7 +1832,6 @@
 
       for (const wave of this.world.items.waves) {
         ctx.beginPath();
-
         for (let x = -20; x <= this.w + 20; x += 8) {
           const y =
             wave.y +
@@ -1622,29 +1841,22 @@
           if (x === -20) ctx.moveTo(x, y);
           else ctx.lineTo(x, y);
         }
-
         ctx.strokeStyle = `rgba(255,255,255,${wave.alpha})`;
         ctx.lineWidth = 1.5;
         ctx.stroke();
       }
-
-      if (this.world.parsed.objects.birds) this.drawBirds(t);
     }
 
     drawDesert(t) {
       const ctx = this.ctx;
-
       for (let i = 0; i < 7; i++) {
         const yBase = this.h * (0.58 + i * 0.065);
-
         ctx.beginPath();
         ctx.moveTo(0, this.h);
-
         for (let x = 0; x <= this.w; x += 18) {
           const y = yBase + Math.sin(x * 0.006 + t * 0.24 + i) * (24 + i * 4);
           ctx.lineTo(x, y);
         }
-
         ctx.lineTo(this.w, this.h);
         ctx.closePath();
         ctx.fillStyle = `rgba(180,83,9,${0.18 + i * 0.08})`;
@@ -1687,7 +1899,6 @@
 
     drawRoom() {
       const ctx = this.ctx;
-
       ctx.fillStyle = "#292524";
       ctx.fillRect(0, 0, this.w, this.h);
 
@@ -1735,10 +1946,8 @@
         const x = this.w * 0.2 + i * this.w * 0.08 + Math.sin(t * 0.4 + i) * 30;
         const y = this.h * 0.34 + Math.cos(t * 0.3 + i) * 25;
         const g = ctx.createRadialGradient(x, y, 0, x, y, 170);
-
         g.addColorStop(0, i % 2 ? colorWithAlpha(pal.accent, 0.13) : colorWithAlpha(pal.accent2, 0.12));
         g.addColorStop(1, "rgba(0,0,0,0)");
-
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, this.w, this.h);
       }
@@ -1746,7 +1955,6 @@
       const px = this.w * 0.7 + Math.sin(t * 0.2) * 20;
       const py = this.h * 0.42 + Math.cos(t * 0.17) * 12;
       const planet = ctx.createRadialGradient(px - 35, py - 35, 4, px, py, 120);
-
       planet.addColorStop(0, pal.accent);
       planet.addColorStop(0.55, pal.accent2);
       planet.addColorStop(1, "#020617");
@@ -1771,17 +1979,7 @@
       ctx.fillStyle = pal.sun;
       ctx.fillRect(this.w * 0.78, this.h * 0.18, 58, 58);
 
-      ctx.fillStyle = "rgba(255,255,255,0.5)";
-      for (let i = 0; i < 8; i++) {
-        const x = ((i * 180 + t * 20) % (this.w + 120)) - 80;
-        const y = 70 + (i % 3) * 35;
-        ctx.fillRect(x, y, 80, 24);
-        ctx.fillRect(x + 22, y - 18, 50, 24);
-      }
-
-      for (const b of this.world.items.blocks) {
-        this.drawBlock(b.x, b.y, b.s, b.type);
-      }
+      for (const b of this.world.items.blocks) this.drawBlock(b.x, b.y, b.s, b.type);
 
       for (let i = 0; i < 18; i++) {
         const s = 30 + (i % 5) * 7;
@@ -1803,42 +2001,32 @@
         sand: ["#facc15", "#ca8a04"],
         water: ["#0284c7", "#075985"]
       };
-
       const c = colors[type] || colors.dirt;
-
       ctx.fillStyle = c[0];
       ctx.fillRect(x, y, s, s);
-
       ctx.fillStyle = c[1];
       ctx.fillRect(x, y + s * 0.68, s, s * 0.32);
-
       ctx.strokeStyle = "rgba(0,0,0,0.18)";
       ctx.strokeRect(x, y, s, s);
     }
 
     drawCube(x, y, s, color) {
       const ctx = this.ctx;
-
       ctx.fillStyle = color;
       ctx.fillRect(x, y, s, s);
-
       ctx.fillStyle = colorWithAlpha("#000000", 0.18);
       ctx.fillRect(x, y + s * 0.7, s, s * 0.3);
-
       ctx.strokeStyle = "rgba(255,255,255,0.25)";
       ctx.strokeRect(x, y, s, s);
     }
 
     drawBlockyPeople(t) {
       const ctx = this.ctx;
-
       for (let i = 0; i < 12; i++) {
         const x = ((i * 100 + t * 25) % (this.w + 100)) - 50;
         const y = this.h * 0.68 + Math.sin(i) * 40;
-
         ctx.fillStyle = "#2563eb";
         ctx.fillRect(x, y, 20, 42);
-
         ctx.fillStyle = "#d6a77a";
         ctx.fillRect(x - 2, y - 22, 24, 22);
       }
@@ -1846,15 +2034,12 @@
 
     drawBlockyAnimals(t) {
       const ctx = this.ctx;
-
       for (let i = 0; i < 8; i++) {
         const x = ((i * 140 + t * 18) % (this.w + 120)) - 60;
         const y = this.h * 0.72 + Math.sin(i) * 35;
-
         ctx.fillStyle = "#f8fafc";
         ctx.fillRect(x, y, 44, 24);
         ctx.fillRect(x + 34, y - 12, 18, 18);
-
         ctx.fillStyle = "#111827";
         ctx.fillRect(x + 39, y - 6, 4, 4);
       }
@@ -1891,15 +2076,9 @@
 
     drawPlatforms() {
       const ctx = this.ctx;
-
       for (const pl of this.world.items.platforms) {
-        ctx.fillStyle =
-          pl.type === "metal" ? "#64748b" :
-          pl.type === "wood" ? "#92400e" :
-          "#22c55e";
-
+        ctx.fillStyle = pl.type === "metal" ? "#64748b" : pl.type === "wood" ? "#92400e" : "#22c55e";
         ctx.fillRect(pl.x, pl.y, pl.w, pl.h);
-
         ctx.fillStyle = "rgba(0,0,0,0.2)";
         ctx.fillRect(pl.x, pl.y + pl.h * 0.65, pl.w, pl.h * 0.35);
       }
@@ -1909,30 +2088,13 @@
       const ctx = this.ctx;
       const p = this.world.parsed;
 
-      if (
-        p.objects.coins ||
-        p.styles.arcade ||
-        p.styles.platformer ||
-        p.styles.pixel ||
-        p.styles.rpg ||
-        p.effects.coins
-      ) {
+      if (p.objects.coins || p.styles.arcade || p.styles.platformer || p.styles.pixel || p.styles.rpg || p.effects.coins) {
         for (const c of this.world.items.coins) {
           const wobble = Math.sin(t * 4 + c.phase);
-
           ctx.fillStyle = "#facc15";
           ctx.beginPath();
-          ctx.ellipse(
-            c.x,
-            c.y,
-            c.r * (0.35 + Math.abs(wobble) * 0.65),
-            c.r,
-            0,
-            0,
-            Math.PI * 2
-          );
+          ctx.ellipse(c.x, c.y, c.r * (0.35 + Math.abs(wobble) * 0.65), c.r, 0, 0, Math.PI * 2);
           ctx.fill();
-
           ctx.strokeStyle = "#ca8a04";
           ctx.stroke();
         }
@@ -1941,10 +2103,8 @@
       for (const e of this.world.items.enemies) {
         const x = e.x + Math.sin(t * 1.8 + e.phase) * 40;
         const y = e.y + Math.sin(t * 5 + e.phase) * 4;
-
         ctx.fillStyle = e.color;
         ctx.fillRect(x, y, e.s, e.s);
-
         ctx.fillStyle = "#fff";
         ctx.fillRect(x + e.s * 0.22, y + e.s * 0.25, e.s * 0.18, e.s * 0.18);
         ctx.fillRect(x + e.s * 0.62, y + e.s * 0.25, e.s * 0.18, e.s * 0.18);
@@ -2021,16 +2181,13 @@
 
     drawAnimals(t) {
       const ctx = this.ctx;
-
       for (let i = 0; i < 7; i++) {
         const x = ((i * 190 + t * 18) % (this.w + 120)) - 60;
         const y = this.h * 0.78 + Math.sin(i) * 28;
-
         ctx.fillStyle = "rgba(0,0,0,0.45)";
         ctx.beginPath();
         ctx.ellipse(x, y, 24, 12, 0, 0, Math.PI * 2);
         ctx.fill();
-
         ctx.beginPath();
         ctx.arc(x + 24, y - 8, 9, 0, Math.PI * 2);
         ctx.fill();
@@ -2061,19 +2218,15 @@
 
     drawSciFiLayer(t) {
       const ctx = this.ctx;
-
       for (let i = 0; i < 5; i++) {
         const x = (i * 220 + t * 50) % (this.w + 120) - 60;
         const y = this.h * 0.22 + Math.sin(t + i) * 35;
-
         ctx.strokeStyle = "rgba(0,245,255,0.75)";
         ctx.lineWidth = 2;
-
         ctx.beginPath();
         ctx.moveTo(x - 30, y);
         ctx.lineTo(x + 30, y);
         ctx.stroke();
-
         ctx.fillStyle = "rgba(0,245,255,0.25)";
         ctx.beginPath();
         ctx.ellipse(x, y, 44, 16, 0, 0, Math.PI * 2);
@@ -2083,7 +2236,6 @@
 
     drawRain(t) {
       const ctx = this.ctx;
-
       ctx.save();
       ctx.strokeStyle = "rgba(180,220,255,0.44)";
       ctx.lineWidth = 1;
@@ -2091,7 +2243,6 @@
       for (const r of this.world.items.rain) {
         const y = (r.y + t * r.speed) % (this.h + 80);
         const x = (r.x + t * r.drift + this.w) % this.w;
-
         ctx.globalAlpha = r.a;
         ctx.beginPath();
         ctx.moveTo(x, y);
@@ -2104,11 +2255,9 @@
 
     drawSnow(t) {
       const ctx = this.ctx;
-
       for (const s of this.world.items.snow) {
         const y = (s.y + t * s.speed) % (this.h + 30);
         const x = (s.x + Math.sin(t + s.phase) * 18 + t * s.drift + this.w) % this.w;
-
         ctx.fillStyle = `rgba(255,255,255,${s.a})`;
         ctx.beginPath();
         ctx.arc(x, y, s.r, 0, Math.PI * 2);
@@ -2118,16 +2267,13 @@
 
     drawFog(t) {
       const ctx = this.ctx;
-
       for (let i = 0; i < 9; i++) {
         const y = this.h * (0.18 + i * 0.08);
         const x = Math.sin(t * 0.16 + i) * this.w * 0.08;
-
         const g = ctx.createLinearGradient(0, y - 60, 0, y + 60);
         g.addColorStop(0, "rgba(255,255,255,0)");
         g.addColorStop(0.5, "rgba(255,255,255,0.095)");
         g.addColorStop(1, "rgba(255,255,255,0)");
-
         ctx.fillStyle = g;
         ctx.fillRect(x - 120, y - 80, this.w + 240, 160);
       }
@@ -2135,17 +2281,14 @@
 
     drawFire(t) {
       const ctx = this.ctx;
-
       for (let i = 0; i < 32; i++) {
         const x = (i * 47 + Math.sin(t + i) * 30) % this.w;
         const y = this.h * 0.75 + Math.sin(t * 3 + i) * 20;
         const r = 20 + Math.sin(t * 5 + i) * 10;
-
         const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2);
         g.addColorStop(0, "rgba(250,204,21,0.75)");
         g.addColorStop(0.45, "rgba(249,115,22,0.38)");
         g.addColorStop(1, "rgba(239,68,68,0)");
-
         ctx.fillStyle = g;
         ctx.beginPath();
         ctx.arc(x, y, r * 2, 0, Math.PI * 2);
@@ -2163,16 +2306,13 @@
       for (let i = 0; i < 3; i++) {
         let x = this.w * (0.2 + i * 0.27);
         let y = 0;
-
         ctx.beginPath();
         ctx.moveTo(x, y);
-
         for (let k = 0; k < 8; k++) {
           x += Math.sin(t * 20 + i + k) * 25;
           y += this.h * 0.08;
           ctx.lineTo(x, y);
         }
-
         ctx.stroke();
       }
     }
@@ -2181,7 +2321,6 @@
       const ctx = this.ctx;
       ctx.fillStyle = "rgba(0,255,120,0.18)";
       ctx.font = "16px monospace";
-
       for (let x = 0; x < this.w; x += 20) {
         const y = (t * 80 + x * 7) % this.h;
         ctx.fillText(String.fromCharCode(0x30A0 + ((x + y) | 0) % 96), x, y);
@@ -2190,12 +2329,10 @@
 
     drawFloatingHearts(t) {
       const ctx = this.ctx;
-
       for (const icon of this.world.items.icons) {
         const x = (icon.x + Math.sin(t + icon.phase) * 35) % this.w;
         const y = this.h - ((t * icon.speed + icon.y) % this.h);
         const s = icon.s;
-
         ctx.fillStyle = "rgba(236,72,153,0.38)";
         ctx.beginPath();
         ctx.arc(x - s * 0.25, y, s * 0.35, 0, Math.PI * 2);
@@ -2208,12 +2345,10 @@
 
     drawCoinBurst(t) {
       const ctx = this.ctx;
-
       for (const icon of this.world.items.icons) {
         const x = (icon.x + Math.sin(t * 2 + icon.phase) * 60 + this.w) % this.w;
         const y = (icon.y + Math.cos(t + icon.phase) * 40 + this.h) % this.h;
         const s = icon.s * 0.45;
-
         ctx.fillStyle = "rgba(250,204,21,0.42)";
         ctx.beginPath();
         ctx.ellipse(x, y, s, s * 1.35, Math.sin(t + icon.phase), 0, Math.PI * 2);
@@ -2223,11 +2358,9 @@
 
     drawSparkBurst(t) {
       const ctx = this.ctx;
-
       for (const s of this.world.items.sparks) {
         const x = (s.x + Math.sin(t + s.phase) * s.speed + this.w) % this.w;
         const y = (s.y + Math.cos(t * 0.8 + s.phase) * s.speed + this.h) % this.h;
-
         ctx.fillStyle = `hsla(${s.h},100%,70%,0.35)`;
         ctx.beginPath();
         ctx.arc(x, y, s.r, 0, Math.PI * 2);
@@ -2238,8 +2371,10 @@
     drawCommandSubject(t) {
       const ctx = this.ctx;
       const p = this.world.parsed;
-      const hasSubject = p.command.requested || p.objects.dragon || p.objects.robot || p.objects.cars;
 
+      if (p.uiMode) return;
+
+      const hasSubject = p.command.requested || p.objects.dragon || p.objects.robot || p.objects.cars;
       if (!hasSubject) return;
 
       const obj =
@@ -2247,7 +2382,6 @@
         (p.objects.dragon ? "dragon" : p.objects.robot ? "robot" : p.objects.cars ? "cars" : "object");
 
       const action = p.command.action || (p.actions.fly ? "fly" : p.actions.run ? "run" : "idle");
-
       const flyY = action === "fly" ? Math.sin(t * 2.4) * 70 - 70 : 0;
       const x = this.w * 0.5 + Math.sin(t * 1.5 * p.modifiers.speed) * 100;
       const y = this.h * 0.48 + Math.cos(t * 1.2) * 35 + flyY;
@@ -2295,7 +2429,6 @@
         ctx.fillStyle = "#64748b";
         this.roundRect(x - s * 0.5, y - s * 0.6, s, s * 1.1, 8);
         ctx.fill();
-
         ctx.fillStyle = "#22d3ee";
         ctx.fillRect(x - s * 0.25, y - s * 0.25, s * 0.18, s * 0.18);
         ctx.fillRect(x + s * 0.08, y - s * 0.25, s * 0.18, s * 0.18);
@@ -2316,8 +2449,8 @@
       const p = this.world.parsed;
 
       for (const obj of this.world.items.wordObjects) {
-        const mode = obj.hash % 7;
-        const motion = obj.hash % 5;
+        const mode = obj.hash % 8;
+        const motion = obj.hash % 6;
         let x = obj.x;
         let y = obj.y;
 
@@ -2326,9 +2459,7 @@
           y = (obj.y + Math.cos(t * 0.7 + obj.phase) * obj.speed * 0.5 + this.h) % this.h;
         } else if (motion === 1) {
           x = (obj.x + t * obj.speed + this.w) % this.w;
-          y = obj.y;
         } else if (motion === 2) {
-          x = obj.x;
           y = (obj.y + t * obj.speed + this.h) % this.h;
         } else if (motion === 3) {
           x = this.w * 0.5 + Math.cos(t + obj.phase) * obj.speed * 2;
@@ -2339,7 +2470,7 @@
         }
 
         ctx.save();
-        ctx.globalAlpha = 0.045 + ((obj.hash % 100) / 100) * 0.09;
+        ctx.globalAlpha = p.uiMode ? 0.035 : 0.045 + ((obj.hash % 100) / 100) * 0.09;
         ctx.fillStyle = obj.color;
 
         if (p.styles.pixel || p.styles.voxel) {
@@ -2348,20 +2479,15 @@
           if (mode % 2) ctx.fillRect(x + s * 0.4, y - s * 0.4, s, s);
         } else {
           ctx.beginPath();
-
-          if (mode === 0) {
-            ctx.arc(x, y, obj.size, 0, Math.PI * 2);
-          } else if (mode === 1) {
-            ctx.rect(x, y, obj.size * 1.5, obj.size);
-          } else if (mode === 2) {
-            ctx.ellipse(x, y, obj.size * 1.4, obj.size * 0.7, t, 0, Math.PI * 2);
-          } else {
+          if (mode === 0) ctx.arc(x, y, obj.size, 0, Math.PI * 2);
+          else if (mode === 1) ctx.rect(x, y, obj.size * 1.5, obj.size);
+          else if (mode === 2) ctx.ellipse(x, y, obj.size * 1.4, obj.size * 0.7, t, 0, Math.PI * 2);
+          else {
             ctx.moveTo(x, y - obj.size);
             ctx.lineTo(x - obj.size, y + obj.size);
             ctx.lineTo(x + obj.size, y + obj.size);
             ctx.closePath();
           }
-
           ctx.fill();
         }
 
@@ -2378,7 +2504,7 @@
         const y = (part.y + part.vy * t * 60 + this.h) % this.h;
 
         ctx.fillStyle =
-          p.styles.synthwave || p.modifiers.glow || p.effects.neon
+          p.styles.synthwave || p.modifiers.glow || p.effects.neon || p.uiMode || p.futureMode
             ? `hsla(${part.hue},100%,70%,${part.a})`
             : `rgba(255,255,255,${part.a * 0.6})`;
 
@@ -2433,20 +2559,14 @@
         for (let i = 0; i < 10; i++) {
           const y = Math.random() * this.h;
           const h = Math.random() * 8 + 2;
-
-          ctx.fillStyle = i % 2
-            ? "rgba(0,255,255,0.08)"
-            : "rgba(255,0,255,0.08)";
-
+          ctx.fillStyle = i % 2 ? "rgba(0,255,255,0.08)" : "rgba(255,0,255,0.08)";
           ctx.fillRect(Math.random() * 20 - 10, y, this.w, h);
         }
       }
 
-      if (p.effects.scanlines || p.effects.vhs) {
-        ctx.fillStyle = "rgba(0,0,0,0.12)";
-        for (let y = 0; y < this.h; y += 4) {
-          ctx.fillRect(0, y, this.w, 1);
-        }
+      if (p.effects.scanlines || p.effects.vhs || p.uiMode) {
+        ctx.fillStyle = p.uiMode ? "rgba(34,211,238,0.035)" : "rgba(0,0,0,0.12)";
+        for (let y = 0; y < this.h; y += 4) ctx.fillRect(0, y, this.w, 1);
       }
 
       if (p.styles.blueprint) {
@@ -2473,10 +2593,8 @@
         this.h * 0.5,
         this.w * 0.78
       );
-
       vignette.addColorStop(0, "rgba(0,0,0,0)");
       vignette.addColorStop(1, "rgba(0,0,0,0.36)");
-
       ctx.fillStyle = vignette;
       ctx.fillRect(0, 0, this.w, this.h);
     }
@@ -2484,13 +2602,11 @@
     drawHalftone(t) {
       const ctx = this.ctx;
       const gap = 18;
-
       ctx.fillStyle = "rgba(0,0,0,0.07)";
 
       for (let y = 0; y < this.h; y += gap) {
         for (let x = 0; x < this.w; x += gap) {
           const r = 1.5 + Math.sin(x * 0.02 + y * 0.02 + t) * 1.2;
-
           ctx.beginPath();
           ctx.arc(x, y, Math.max(0.5, r), 0, Math.PI * 2);
           ctx.fill();
@@ -2513,7 +2629,6 @@
         const x = Math.random() * this.w;
         const y = Math.random() * this.h;
         const v = 130 + Math.random() * 125;
-
         ctx.fillStyle = `rgb(${v},${v},${v})`;
         ctx.fillRect(x, y, 1, 1);
       }
@@ -2524,7 +2639,6 @@
     drawCinematicBars() {
       const ctx = this.ctx;
       const bar = Math.floor(this.h * 0.09);
-
       ctx.fillStyle = "rgba(0,0,0,0.92)";
       ctx.fillRect(0, 0, this.w, bar);
       ctx.fillRect(0, this.h - bar, this.w, bar);
@@ -2552,32 +2666,11 @@
     constructor(options = {}) {
       this.options = Object.assign({}, DEFAULTS, options);
 
-      this.options.width = Math.max(
-        160,
-        Math.floor(Number(this.options.width) || DEFAULTS.width)
-      );
-
-      this.options.height = Math.max(
-        90,
-        Math.floor(Number(this.options.height) || DEFAULTS.height)
-      );
-
-      this.options.fps = clamp(
-        Math.floor(Number(this.options.fps) || DEFAULTS.fps),
-        1,
-        60
-      );
-
-      this.options.seconds = clamp(
-        Number(this.options.seconds) || DEFAULTS.seconds,
-        0.5,
-        60
-      );
-
-      this.options.bitrate = Math.max(
-        100000,
-        Math.floor(Number(this.options.bitrate || DEFAULTS.bitrate))
-      );
+      this.options.width = Math.max(160, Math.floor(Number(this.options.width) || DEFAULTS.width));
+      this.options.height = Math.max(90, Math.floor(Number(this.options.height) || DEFAULTS.height));
+      this.options.fps = clamp(Math.floor(Number(this.options.fps) || DEFAULTS.fps), 1, 60);
+      this.options.seconds = clamp(Number(this.options.seconds) || DEFAULTS.seconds, 0.5, 60);
+      this.options.bitrate = Math.max(100000, Math.floor(Number(this.options.bitrate || DEFAULTS.bitrate)));
 
       this.canvas = this.options.canvas || document.createElement("canvas");
       this.canvas.width = this.options.width;
@@ -2599,7 +2692,6 @@
 
       if (!canRecord) {
         const frames = this.renderFramesOnly(renderer);
-
         return {
           ok: false,
           reason: "MediaRecorder or canvas.captureStream is not supported in this browser.",
@@ -2629,7 +2721,6 @@
       for (let i = 0; i < totalFrames; i++) {
         const t = i / this.options.fps;
         renderer.render(t);
-
         if (this.options.returnFrames) {
           frames.push(this.canvas.toDataURL("image/webp", this.options.quality));
         }

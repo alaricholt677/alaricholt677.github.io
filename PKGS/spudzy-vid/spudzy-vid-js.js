@@ -1,41 +1,27 @@
 /*
   Spudzy Vid / RealLifeVideo
-  Clean browser-only procedural prompt-to-video generator.
+  v5.0.0-more-real-code
 
-  API:
-    const data = await RealLifeVideo.generate(prompt, {
-      width: 1280,
-      height: 720,
-      seconds: 6,
-      fps: 30,
-      bitrate: 8000000,
-      appendCanvas: false,
-      returnFrames: false
-    });
-
-  Returns:
-    {
-      ok,
-      originalPrompt,
-      correctedPrompt,
-      parsed,
-      width,
-      height,
-      fps,
-      seconds,
-      frameCount,
-      mimeType,
-      blob,
-      url,
-      frames,
-      canvas
-    }
-
+  Browser-only procedural prompt-to-video generator.
   No server. No real AI model. Canvas + MediaRecorder only.
+
+  Supports:
+    RealLifeVideo.generate(prompt, options)
+    RealLifeVideo.create(options)
+    RealLifeVideo.correctPrompt(prompt)
+    RealLifeVideo.parsePrompt(prompt)
+
+  Prompt examples:
+    "make dragon fly with effect neon"
+    "make robot dance with effect glitch in cyberpunk city"
+    "realstic cinamatic car drift with fire and rain"
+    "pixle space shooter with coins and lasers"
 */
 
 (function attachSpudzyVid(global) {
   "use strict";
+
+  const VERSION = "5.0.0-more-real-code";
 
   const DEFAULTS = {
     width: 960,
@@ -49,13 +35,62 @@
     returnFrames: false,
     transparent: false,
     seed: null,
-    debug: false
+    debug: false,
+    canvas: null,
+    typoDistance: 2,
+    wordLayerLimit: 220
   };
 
   const TYPO_MAP = {
     teh: "the",
     tha: "that",
     tht: "that",
+    thsi: "this",
+    tihs: "this",
+    adn: "and",
+    annd: "and",
+    wih: "with",
+    wit: "with",
+    wiht: "with",
+    whith: "with",
+    whit: "with",
+    makee: "make",
+    mak: "make",
+    maek: "make",
+    mkae: "make",
+    mke: "make",
+    creat: "create",
+    crate: "create",
+    genrate: "generate",
+    genrated: "generated",
+    genrator: "generator",
+    vidueo: "video",
+    vidoe: "video",
+    videeo: "video",
+    poromp: "prompt",
+    porompt: "prompt",
+    promt: "prompt",
+    promp: "prompt",
+    worss: "words",
+    wrods: "words",
+    morew: "more",
+    mnore: "more",
+    enything: "anything",
+    anyt: "any",
+    lif: "life",
+    lfie: "life",
+    wel: "well",
+    takw: "take",
+    lon: "long",
+    gper: "per",
+    styel: "style",
+    stlye: "style",
+    effct: "effect",
+    efct: "effect",
+    efect: "effect",
+    effets: "effects",
+    doo: "do",
+    doen: "does",
     dosent: "doesn't",
     doesnt: "doesn't",
     dont: "don't",
@@ -63,16 +98,11 @@
     wont: "won't",
     opver: "over",
     ovre: "over",
-    lfie: "life",
     lik: "like",
     lkot: "lot",
     alot: "a lot",
-    genrator: "generator",
-    genrate: "generate",
-    genrated: "generated",
     refrence: "reference",
     refrences: "references",
-    anyt: "any",
     bitrte: "bitrate",
     bitratee: "bitrate",
     realstic: "realistic",
@@ -81,14 +111,19 @@
     realstically: "realistically",
     cinamatic: "cinematic",
     cinamtic: "cinematic",
+    cineamtic: "cinematic",
+    moive: "movie",
+    flim: "film",
     nigth: "night",
     nite: "night",
     raing: "rain",
     rian: "rain",
     wather: "weather",
+    wether: "weather",
     pepole: "people",
     peaple: "people",
     ppl: "people",
+    humen: "human",
     vehical: "vehicle",
     vehicals: "vehicles",
     carz: "cars",
@@ -98,6 +133,7 @@
     mountian: "mountain",
     mountians: "mountains",
     ocen: "ocean",
+    oecan: "ocean",
     watter: "water",
     sunet: "sunset",
     sunris: "sunrise",
@@ -115,39 +151,95 @@
     minecarft: "minecraft",
     minecrft: "minecraft",
     mnecraft: "minecraft",
-    mcraft: "minecraft"
+    mcraft: "minecraft",
+    robo: "robot",
+    roboot: "robot",
+    dragin: "dragon",
+    dragn: "dragon",
+    dragun: "dragon",
+    firre: "fire",
+    firey: "fiery",
+    explotion: "explosion",
+    explod: "explode",
+    snowwy: "snowy",
+    dessert: "desert",
+    spac: "space",
+    galxy: "galaxy",
+    nebla: "nebula",
+    cyper: "cyber",
+    cyberpuk: "cyberpunk",
+    cyberpnk: "cyberpunk",
+    neonn: "neon",
+    gltich: "glitch",
+    gltichy: "glitchy",
+    glitchy: "glitch",
+    vintge: "vintage",
+    retrro: "retro",
+    horor: "horror",
+    fanasty: "fantasy",
+    scifi: "sci-fi",
+    syfy: "sci-fi",
+    anim: "anime",
+    cartton: "cartoon",
+    runing: "running",
+    flyng: "flying",
+    jumpng: "jumping",
+    dancng: "dancing",
+    spining: "spinning",
+    shacky: "shaky"
   };
 
   const STYLE_ALIASES = {
-    twoD: ["2d", "flat", "cartoon", "side scroller", "side-scroller", "vector"],
-    threeD: ["3d", "depth", "volumetric", "perspective"],
+    twoD: ["2d", "flat", "cartoon", "side scroller", "side-scroller", "vector", "paper cutout"],
+    threeD: ["3d", "depth", "volumetric", "perspective", "isometric", "diorama"],
     pixel: ["pixel", "pixelart", "pixel art", "8bit", "8-bit", "16bit", "16-bit", "retro game"],
     voxel: ["voxel", "blocky", "blocks", "cubes", "mc", "minecraft", "craft", "sandbox"],
     lowpoly: ["low poly", "low-poly", "polygon", "faceted"],
     realistic: ["realistic", "real life", "lifelike", "natural", "documentary", "photoreal"],
-    cinematic: ["cinematic", "movie", "film", "epic", "anamorphic"],
+    cinematic: ["cinematic", "movie", "film", "epic", "anamorphic", "trailer", "wide shot"],
     anime: ["anime", "manga", "cel shade", "cel-shaded", "cel shaded"],
     comic: ["comic", "ink", "halftone", "graphic novel"],
     watercolor: ["watercolor", "paint", "painterly", "brush"],
     clay: ["clay", "claymation", "stop motion", "toy"],
     noir: ["noir", "black and white", "monochrome", "detective"],
     synthwave: ["synthwave", "retrowave", "outrun", "neon"],
+    vapor: ["vaporwave", "pastel", "mallsoft"],
     horror: ["horror", "scary", "creepy", "haunted", "dark"],
     fantasy: ["fantasy", "magic", "dragon", "castle", "wizard"],
-    scifi: ["sci-fi", "scifi", "science fiction", "future", "spaceship", "cyber", "robot"],
+    scifi: ["sci-fi", "scifi", "science fiction", "future", "spaceship", "cyber", "robot", "hologram"],
     arcade: ["arcade", "score", "coin", "boss", "powerup"],
     platformer: ["platformer", "jump", "platform", "side view"],
     racing: ["racing", "race", "speed", "drift", "cars", "track", "highway"],
     rpg: ["rpg", "quest", "village", "inventory", "hero"],
     shooter: ["shooter", "laser", "blaster", "battle"],
     cozy: ["cozy", "warm", "soft", "cute"],
-    glitch: ["glitch", "corrupt", "datamosh", "static"],
-    vapor: ["vaporwave", "pastel", "mallsoft"],
-    sketch: ["chalk", "sketch", "pencil", "hand drawn", "hand-drawn"]
+    glitch: ["glitch", "corrupt", "datamosh", "static", "broken signal"],
+    sketch: ["chalk", "sketch", "pencil", "hand drawn", "hand-drawn"],
+    cyberpunk: ["cyberpunk", "cyber city", "neon city"],
+    steampunk: ["steampunk", "brass", "gears", "airship"],
+    western: ["western", "cowboy", "saloon"],
+    minimal: ["minimal", "clean", "simple"],
+    maximal: ["maximal", "busy", "detailed"],
+    glass: ["glass", "glassmorphism", "transparent ui"],
+    chrome: ["chrome", "metallic", "silver metal"],
+    lava: ["lava", "magma", "volcanic"],
+    underwater: ["underwater", "submarine", "reef"],
+    paper: ["paper", "origami", "cardboard"],
+    blueprint: ["blueprint", "technical drawing", "schematic"],
+    dream: ["dream", "dreamy", "surreal", "liminal"],
+    matrix: ["matrix", "code rain", "green code"],
+    toon3d: ["3d cartoon", "toy movie"],
+    sports: ["sports", "stadium", "arena"],
+    music: ["music video", "concert", "stage", "dj"],
+    securityCam: ["security camera", "cctv", "surveillance"],
+    drone: ["drone shot", "aerial", "overhead"],
+    vlog: ["vlog", "handheld", "phone video"],
+    timelapse: ["timelapse", "time lapse"],
+    slowmo: ["slowmo", "slow motion", "slow-mo"]
   };
 
   const SCENE_ALIASES = {
-    city: ["city", "street", "downtown", "urban", "alley", "skyscraper", "buildings"],
+    city: ["city", "street", "downtown", "urban", "alley", "skyscraper", "buildings", "metropolis"],
     forest: ["forest", "woods", "trees", "jungle", "nature"],
     ocean: ["ocean", "sea", "beach", "shore", "waves", "island"],
     desert: ["desert", "sand", "dunes", "cactus"],
@@ -158,14 +250,27 @@
     dungeon: ["dungeon", "cave", "ruins", "temple"],
     track: ["track", "road", "highway", "raceway"],
     village: ["village", "town", "market"],
-    abstract: ["abstract", "dream", "surreal", "particles"]
+    abstract: ["abstract", "dream", "surreal", "particles"],
+    lab: ["lab", "laboratory", "science"],
+    stadium: ["stadium", "arena", "sports"],
+    school: ["school", "classroom", "campus"],
+    hospital: ["hospital", "clinic"],
+    mall: ["mall", "store", "shop"],
+    factory: ["factory", "warehouse", "industrial"],
+    castle: ["castle", "kingdom", "palace"],
+    volcano: ["volcano", "lava", "magma"],
+    underwater: ["underwater", "reef", "coral", "submarine"],
+    sky: ["sky", "cloud kingdom", "air"],
+    concert: ["concert", "stage", "music", "dj"],
+    cyberspace: ["cyberspace", "matrix", "digital world"],
+    comicPanel: ["comic panel", "page", "panels"]
   };
 
   const OBJECT_ALIASES = {
-    people: ["people", "person", "human", "crowd", "walking"],
-    cars: ["car", "cars", "traffic", "vehicle", "vehicles"],
-    birds: ["bird", "birds", "seagull", "seagulls"],
-    animals: ["animal", "animals", "dog", "cat", "deer", "horse", "cow", "sheep"],
+    people: ["people", "person", "human", "crowd", "walking", "runner", "dancer", "hero", "character"],
+    cars: ["car", "cars", "traffic", "vehicle", "vehicles", "truck", "bus"],
+    birds: ["bird", "birds", "seagull", "seagulls", "eagle"],
+    animals: ["animal", "animals", "dog", "cat", "deer", "horse", "cow", "sheep", "wolf", "fox"],
     rain: ["rain", "rainy", "storm", "wet"],
     snow: ["snow", "snowy", "winter", "ice"],
     fog: ["fog", "foggy", "mist", "misty"],
@@ -175,13 +280,98 @@
     sun: ["sun", "sunny", "bright"],
     sunset: ["sunset", "sunrise", "golden hour"],
     night: ["night", "midnight", "dark"],
-    robot: ["robot", "android", "mech"],
-    dragon: ["dragon"],
+    robot: ["robot", "android", "mech", "drone"],
+    dragon: ["dragon", "wyvern"],
     castle: ["castle"],
-    sword: ["sword"],
+    sword: ["sword", "blade"],
     coins: ["coin", "coins", "gold"],
     hearts: ["heart", "hearts", "health"],
-    cubes: ["cube", "cubes", "block", "blocks"]
+    cubes: ["cube", "cubes", "block", "blocks"],
+    spaceship: ["spaceship", "rocket", "ufo"],
+    train: ["train", "railway"],
+    boat: ["boat", "ship"],
+    plane: ["plane", "airplane", "jet"],
+    zombie: ["zombie", "undead"],
+    ghost: ["ghost", "spirit"],
+    dinosaur: ["dinosaur", "trex", "t-rex"],
+    fish: ["fish", "shark", "whale"],
+    butterfly: ["butterfly", "butterflies"],
+    flowers: ["flower", "flowers"],
+    lightning: ["lightning", "thunder"],
+    portal: ["portal", "vortex", "wormhole"],
+    text: ["text", "letters", "words"],
+    music: ["music", "notes", "song", "beat"]
+  };
+
+  const ACTION_ALIASES = {
+    idle: ["idle", "stand", "pose", "wait"],
+    walk: ["walk", "walking", "stroll"],
+    run: ["run", "running", "sprint"],
+    fly: ["fly", "flying", "soar"],
+    jump: ["jump", "jumping", "bounce"],
+    dance: ["dance", "dancing", "groove"],
+    spin: ["spin", "spinning", "rotate", "twirl"],
+    explode: ["explode", "exploding", "burst"],
+    glow: ["glow", "glowing", "shine"],
+    fall: ["fall", "falling", "drop"],
+    rise: ["rise", "rising", "ascend"],
+    chase: ["chase", "pursue"],
+    drift: ["drift", "sliding"],
+    swim: ["swim", "swimming"],
+    fight: ["fight", "battle", "attack"],
+    shoot: ["shoot", "laser", "blast"],
+    build: ["build", "construct"],
+    transform: ["transform", "morph", "change"],
+    pulse: ["pulse", "beat"],
+    zoom: ["zoom", "camera zoom"],
+    shake: ["shake", "quake"],
+    wave: ["wave", "waving"]
+  };
+
+  const EFFECT_ALIASES = {
+    neon: ["neon", "glow", "glowing", "electric"],
+    glitch: ["glitch", "static", "corrupt", "datamosh"],
+    fire: ["fire", "flame", "burning"],
+    ice: ["ice", "frozen", "frost"],
+    rainbow: ["rainbow", "colorful", "prismatic"],
+    magic: ["magic", "sparkle", "spell"],
+    smoke: ["smoke", "dust"],
+    lightning: ["lightning", "electric", "storm"],
+    blur: ["blur", "blurry", "motion blur"],
+    slowmo: ["slowmo", "slow motion", "slow-mo"],
+    fast: ["fast", "speedy", "quick"],
+    zoom: ["zoom", "dolly"],
+    vhs: ["vhs", "tape", "retro video"],
+    grain: ["grain", "film grain"],
+    scanlines: ["scanline", "scanlines", "crt"],
+    bloom: ["bloom", "bright glow"],
+    ripple: ["ripple", "wave distortion"],
+    pixelate: ["pixelate", "pixelated"],
+    chromatic: ["chromatic", "rgb split"],
+    hologram: ["hologram", "holo"],
+    matrix: ["matrix", "code rain"],
+    hearts: ["hearts", "love"],
+    coins: ["coins", "gold"],
+    stars: ["stars", "sparkles"]
+  };
+
+  const VIDEO_TYPE_ALIASES = {
+    cinematic: ["cinematic", "movie", "film", "trailer"],
+    vlog: ["vlog", "handheld", "phone video"],
+    timelapse: ["timelapse", "time lapse"],
+    slowmo: ["slowmo", "slow motion"],
+    musicVideo: ["music video", "beat", "concert"],
+    commercial: ["commercial", "ad", "product"],
+    documentary: ["documentary", "nature doc"],
+    gameplay: ["gameplay", "game video"],
+    loop: ["loop", "seamless"],
+    intro: ["intro", "logo reveal"],
+    outro: ["outro", "ending"],
+    trailer: ["trailer", "teaser"],
+    tutorial: ["tutorial", "explainer"],
+    securityCam: ["security camera", "cctv"],
+    drone: ["drone shot", "aerial"],
+    pov: ["pov", "first person"]
   };
 
   const WORD_EFFECTS = {
@@ -196,27 +386,55 @@
     silver: { color: "#cbd5e1" },
     black: { color: "#020617" },
     white: { color: "#f8fafc" },
+    cyan: { color: "#22d3ee" },
+    teal: { color: "#14b8a6" },
+    lime: { color: "#84cc16" },
+    violet: { color: "#8b5cf6" },
+    crimson: { color: "#dc2626" },
     fast: { speed: 1.8 },
     speedy: { speed: 1.8 },
+    turbo: { speed: 2.25 },
     slow: { speed: 0.55 },
     calm: { speed: 0.65 },
     chaos: { chaos: 1 },
     chaotic: { chaos: 1 },
     glowing: { glow: 1 },
     glow: { glow: 1 },
+    neon: { glow: 1.4 },
     huge: { scale: 1.55 },
     giant: { scale: 1.75 },
+    massive: { scale: 2 },
     tiny: { scale: 0.65 },
     small: { scale: 0.75 },
     many: { density: 1.5 },
     lots: { density: 1.5 },
     crowded: { density: 1.8 },
+    army: { density: 2.2 },
     minimal: { density: 0.55 },
-    empty: { density: 0.35 }
+    empty: { density: 0.35 },
+    shaky: { shake: 1 },
+    smooth: { smooth: 1 },
+    zoom: { zoom: 1 },
+    dreamy: { dream: 1 },
+    epic: { epic: 1 },
+    scary: { fear: 1 },
+    cute: { cute: 1 }
   };
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+  }
+
+  function unique(arr) {
+    return Array.from(new Set(arr));
+  }
+
+  function flatValues(obj) {
+    return Object.values(obj).reduce((a, b) => a.concat(b), []);
+  }
+
+  function escapeRegExp(s) {
+    return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
   function hashString(str) {
@@ -239,41 +457,50 @@
     };
   }
 
-  function unique(arr) {
-    return Array.from(new Set(arr));
-  }
-
-  function levenshtein(a, b) {
+  function levenshtein(a, b, max = 99) {
     if (a === b) return 0;
-    if (!a.length) return b.length;
-    if (!b.length) return a.length;
+    if (!a) return b.length;
+    if (!b) return a.length;
+    if (Math.abs(a.length - b.length) > max) return max + 1;
 
-    const dp = Array.from({ length: b.length + 1 }, (_, i) => [i]);
-    for (let j = 0; j <= a.length; j++) dp[0][j] = j;
+    const prev = new Array(b.length + 1);
+    const curr = new Array(b.length + 1);
 
-    for (let i = 1; i <= b.length; i++) {
-      for (let j = 1; j <= a.length; j++) {
-        dp[i][j] =
-          b[i - 1] === a[j - 1]
-            ? dp[i - 1][j - 1]
-            : Math.min(
-                dp[i - 1][j - 1] + 1,
-                dp[i][j - 1] + 1,
-                dp[i - 1][j] + 1
-              );
+    for (let j = 0; j <= b.length; j++) prev[j] = j;
+
+    for (let i = 1; i <= a.length; i++) {
+      curr[0] = i;
+      let rowMin = curr[0];
+
+      for (let j = 1; j <= b.length; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        curr[j] = Math.min(
+          prev[j] + 1,
+          curr[j - 1] + 1,
+          prev[j - 1] + cost
+        );
+        if (curr[j] < rowMin) rowMin = curr[j];
       }
+
+      if (rowMin > max) return max + 1;
+
+      for (let j = 0; j <= b.length; j++) prev[j] = curr[j];
     }
 
-    return dp[b.length][a.length];
+    return prev[b.length];
   }
 
   function buildKnownWords() {
     return unique(
       Object.keys(TYPO_MAP)
         .concat(Object.values(TYPO_MAP))
-        .concat(Object.values(STYLE_ALIASES).flat())
-        .concat(Object.values(SCENE_ALIASES).flat())
-        .concat(Object.values(OBJECT_ALIASES).flat())
+        .concat(flatValues(STYLE_ALIASES))
+        .concat(flatValues(SCENE_ALIASES))
+        .concat(flatValues(OBJECT_ALIASES))
+        .concat(flatValues(ACTION_ALIASES))
+        .concat(flatValues(EFFECT_ALIASES))
+        .concat(flatValues(VIDEO_TYPE_ALIASES))
+        .concat(Object.keys(WORD_EFFECTS))
     )
       .filter(Boolean)
       .map((x) => String(x).toLowerCase())
@@ -282,100 +509,218 @@
 
   const KNOWN_WORDS = buildKnownWords();
 
-  function normalizePrompt(prompt) {
-    const text = String(prompt || "")
+  function collapseRepeats(word) {
+    return String(word).replace(/([a-z])\1{2,}/gi, "$1$1");
+  }
+
+  function normalizePrompt(prompt, options = {}) {
+    let text = String(prompt || "")
       .toLowerCase()
-      .replace(/[^\w\s'-]/g, " ")
+      .replace(/[“”]/g, "\"")
+      .replace(/[’]/g, "'")
+      .replace(/[_-]+/g, " ")
+      .replace(/[^a-z0-9\s'".,:;!?/]+/gi, " ")
       .replace(/\s+/g, " ")
       .trim();
 
-    const words = text.split(" ").filter(Boolean);
+    const phraseFixes = {
+      "with the efect": "with effect",
+      "with the effect": "with effect",
+      "using effect": "with effect",
+      "make it": "make",
+      "real life": "realistic",
+      "black white": "black and white",
+      "side scroller": "side-scroller",
+      "mine craft": "minecraft",
+      "slow motion": "slow motion",
+      "time lapse": "timelapse"
+    };
 
-    const corrected = words.map((word) => {
+    for (const bad of Object.keys(phraseFixes)) {
+      text = text.replace(
+        new RegExp("\\b" + escapeRegExp(bad) + "\\b", "g"),
+        phraseFixes[bad]
+      );
+    }
+
+    const maxDistance =
+      options.typoDistance == null ? DEFAULTS.typoDistance : options.typoDistance;
+
+    const corrected = text.split(" ").filter(Boolean).map((raw) => {
+      const word = collapseRepeats(raw.replace(/^['"]+|['"]+$/g, ""));
+
       if (TYPO_MAP[word]) return TYPO_MAP[word];
+      if (word.length < 4 || /\d/.test(word)) return word;
 
-      if (word.length >= 5) {
-        let best = word;
-        let bestDistance = Infinity;
+      let best = word;
+      let bestDistance = Infinity;
+      const allowed = word.length >= 8 ? Math.max(maxDistance, 2) : maxDistance;
 
-        for (const candidate of KNOWN_WORDS) {
-          const d = levenshtein(word, candidate);
-          if (d < bestDistance) {
-            bestDistance = d;
-            best = candidate;
-          }
+      for (const candidate of KNOWN_WORDS) {
+        const d = levenshtein(word, candidate, allowed);
+        if (d < bestDistance) {
+          bestDistance = d;
+          best = candidate;
         }
-
-        if (bestDistance <= 1) return best;
       }
 
-      return word;
+      return bestDistance <= allowed ? best : word;
     });
 
     return corrected.join(" ").replace(/\s+/g, " ").trim();
   }
 
+  function hasTerm(text, term) {
+    return new RegExp("(?:^|\\b)" + escapeRegExp(term) + "(?:\\b|$)", "i").test(text);
+  }
+
   function includesAny(text, list) {
-    return list.some((term) => text.includes(term));
+    return list.some((term) => hasTerm(text, term));
   }
 
   function scoreAliases(text, aliases) {
     let score = 0;
     for (const alias of aliases) {
-      if (text.includes(alias)) score += alias.length + 1;
+      if (hasTerm(text, alias)) score += alias.length + 2;
     }
     return score;
   }
 
-  function parsePrompt(prompt) {
+  function flagsFromAliases(text, aliases) {
+    const out = {};
+    for (const key of Object.keys(aliases)) {
+      out[key] = includesAny(text, aliases[key]);
+    }
+    return out;
+  }
+
+  function bestKeyByAliases(text, aliases, fallback) {
+    let best = fallback;
+    let bestScore = -1;
+
+    for (const key of Object.keys(aliases)) {
+      const score = scoreAliases(text, aliases[key]);
+      if (score > bestScore) {
+        bestScore = score;
+        best = key;
+      }
+    }
+
+    return bestScore > 0 ? best : fallback;
+  }
+
+  function extractCommand(text) {
+    const command = {
+      requested: false,
+      object: null,
+      action: null,
+      effect: null,
+      raw: null
+    };
+
+    const match = text.match(
+      /\b(?:make|create|generate|spawn|show)\s+(.+?)(?:\s+(?:with|using|add)\s+(?:the\s+)?effect\s+(.+)|$)/i
+    );
+
+    if (!match) return command;
+
+    command.requested = true;
+    command.raw = match[0];
+
+    const core = match[1].trim();
+    command.effect = match[2]
+      ? match[2].trim().split(/\s+/).slice(0, 5).join(" ")
+      : null;
+
+    let foundObject = null;
+    let foundAction = null;
+
+    for (const key of Object.keys(OBJECT_ALIASES)) {
+      if (includesAny(core, OBJECT_ALIASES[key].concat([key]))) {
+        foundObject = key;
+        break;
+      }
+    }
+
+    for (const key of Object.keys(ACTION_ALIASES)) {
+      if (includesAny(core, ACTION_ALIASES[key].concat([key]))) {
+        foundAction = key;
+        break;
+      }
+    }
+
+    const parts = core.split(/\s+/).filter(Boolean);
+
+    command.object = foundObject || parts[0] || null;
+    command.action =
+      foundAction ||
+      parts.slice(1).find((w) => !["a", "an", "the", "it"].includes(w)) ||
+      "idle";
+
+    return command;
+  }
+
+  function parsePrompt(prompt, options = {}) {
     const originalPrompt = String(prompt || "");
-    const correctedPrompt = normalizePrompt(originalPrompt);
+    const correctedPrompt = normalizePrompt(originalPrompt, options);
     const text = correctedPrompt;
     const words = unique(text.split(/\s+/).filter(Boolean));
 
-    const styles = {};
-    for (const key of Object.keys(STYLE_ALIASES)) {
-      styles[key] = includesAny(text, STYLE_ALIASES[key]);
-    }
+    const styles = flagsFromAliases(text, STYLE_ALIASES);
+    const objects = flagsFromAliases(text, OBJECT_ALIASES);
+    const actions = flagsFromAliases(text, ACTION_ALIASES);
+    const effects = flagsFromAliases(text, EFFECT_ALIASES);
+    const videoTypes = flagsFromAliases(text, VIDEO_TYPE_ALIASES);
 
     const sceneScores = {};
     for (const key of Object.keys(SCENE_ALIASES)) {
       sceneScores[key] = scoreAliases(text, SCENE_ALIASES[key]);
     }
 
-    let scene = "abstract";
-    let bestScore = -1;
+    const scene = bestKeyByAliases(text, SCENE_ALIASES, "abstract");
+    const videoType = bestKeyByAliases(
+      text,
+      VIDEO_TYPE_ALIASES,
+      styles.cinematic ? "cinematic" : "loop"
+    );
 
-    for (const key of Object.keys(sceneScores)) {
-      if (sceneScores[key] > bestScore) {
-        bestScore = sceneScores[key];
-        scene = key;
-      }
-    }
-
-    if (bestScore <= 0) scene = "abstract";
-
-    const objects = {};
-    for (const key of Object.keys(OBJECT_ALIASES)) {
-      objects[key] = includesAny(text, OBJECT_ALIASES[key]);
-    }
+    const command = extractCommand(text);
 
     if (scene === "city") {
-      objects.cars = objects.cars || text.includes("street") || text.includes("traffic");
-      objects.people = objects.people || text.includes("walking");
+      objects.cars = objects.cars || hasTerm(text, "street") || hasTerm(text, "traffic");
+      objects.people = objects.people || hasTerm(text, "walking");
     }
 
-    if (scene === "ocean") {
+    if (scene === "ocean" || scene === "underwater") {
       objects.water = true;
-      objects.birds = objects.birds || text.includes("beach") || text.includes("shore");
+      objects.birds = objects.birds || hasTerm(text, "beach") || hasTerm(text, "shore");
     }
 
     if (scene === "space") {
       objects.clouds = false;
+      objects.spaceship = objects.spaceship || styles.scifi;
     }
 
-    if (styles.voxel) {
-      objects.cubes = true;
+    if (styles.voxel) objects.cubes = true;
+    if (effects.fire) objects.fire = true;
+    if (effects.lightning) objects.lightning = true;
+    if (effects.hearts) objects.hearts = true;
+    if (effects.coins) objects.coins = true;
+
+    if (command.object && OBJECT_ALIASES[command.object]) {
+      objects[command.object] = true;
+    }
+
+    if (command.action && ACTION_ALIASES[command.action]) {
+      actions[command.action] = true;
+    }
+
+    if (command.effect) {
+      for (const key of Object.keys(EFFECT_ALIASES)) {
+        if (includesAny(command.effect, EFFECT_ALIASES[key].concat([key]))) {
+          effects[key] = true;
+        }
+      }
     }
 
     const modifiers = {
@@ -384,6 +729,12 @@
       scale: 1,
       glow: 0,
       chaos: 0,
+      shake: 0,
+      zoom: 0,
+      dream: 0,
+      epic: 0,
+      fear: 0,
+      cute: 0,
       colors: []
     };
 
@@ -396,8 +747,21 @@
       if (effect.scale) modifiers.scale *= effect.scale;
       if (effect.glow) modifiers.glow += effect.glow;
       if (effect.chaos) modifiers.chaos += effect.chaos;
+      if (effect.shake) modifiers.shake += effect.shake;
+      if (effect.zoom) modifiers.zoom += effect.zoom;
+      if (effect.dream) modifiers.dream += effect.dream;
+      if (effect.epic) modifiers.epic += effect.epic;
+      if (effect.fear) modifiers.fear += effect.fear;
+      if (effect.cute) modifiers.cute += effect.cute;
       if (effect.color) modifiers.colors.push(effect.color);
     }
+
+    if (effects.neon || effects.bloom) modifiers.glow += 1;
+    if (effects.glitch) modifiers.chaos += 0.75;
+    if (effects.fast) modifiers.speed *= 1.7;
+    if (effects.slowmo || videoTypes.slowmo) modifiers.speed *= 0.55;
+    if (actions.run || actions.fly || actions.drift) modifiers.speed *= 1.25;
+    if (actions.shake) modifiers.shake += 1;
 
     const gameMode =
       styles.voxel ? "voxel-sandbox" :
@@ -417,14 +781,19 @@
       sceneScores,
       styles,
       objects,
+      actions,
+      effects,
+      videoTypes,
+      videoType,
+      command,
       modifiers,
       gameMode,
       referenceMode: {
         requested:
-          text.includes("reference") ||
+          hasTerm(text, "reference") ||
           text.includes("style of") ||
-          text.includes("like"),
-        note: "Reference words are used as broad procedural style hints, not exact copies."
+          hasTerm(text, "like"),
+        note: "Reference words are broad procedural hints, not exact copies."
       }
     };
   }
@@ -451,10 +820,17 @@
 
   function colorWithAlpha(hex, alpha) {
     const clean = String(hex || "#ffffff").replace("#", "");
-    const n = parseInt(clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean, 16);
+    const n = parseInt(
+      clean.length === 3
+        ? clean.split("").map((c) => c + c).join("")
+        : clean,
+      16
+    );
+
     const r = (n >> 16) & 255;
     const g = (n >> 8) & 255;
     const b = n & 255;
+
     return `rgba(${r},${g},${b},${alpha})`;
   }
 
@@ -467,6 +843,7 @@
       this.seed = options.seed || hashString(parsed.correctedPrompt || "spudzy-vid");
       this.rng = makeRng(this.seed);
       this.palette = this.makePalette();
+
       this.items = {
         stars: [],
         clouds: [],
@@ -485,8 +862,11 @@
         roomObjects: [],
         rain: [],
         snow: [],
-        wordObjects: []
+        wordObjects: [],
+        sparks: [],
+        icons: []
       };
+
       this.generate();
     }
 
@@ -520,6 +900,20 @@
         };
       }
 
+      if (p.styles.cyberpunk || p.styles.synthwave || p.effects.neon) {
+        return {
+          skyTop: "#120024",
+          skyMid: "#3b0764",
+          skyBottom: "#020617",
+          ground: "#050816",
+          dark: "#020617",
+          light: "#ffffff",
+          accent: "#00f5ff",
+          accent2: "#ff00e6",
+          sun: "#fb7185"
+        };
+      }
+
       if (p.styles.voxel) {
         return {
           skyTop: "#60a5fa",
@@ -534,7 +928,7 @@
         };
       }
 
-      if (p.styles.pixel) {
+      if (p.styles.pixel || p.effects.matrix) {
         return {
           skyTop: "#111827",
           skyMid: "#312e81",
@@ -545,20 +939,6 @@
           accent: "#22d3ee",
           accent2: "#f472b6",
           sun: "#facc15"
-        };
-      }
-
-      if (p.styles.synthwave || p.styles.vapor) {
-        return {
-          skyTop: "#120024",
-          skyMid: "#3b0764",
-          skyBottom: "#020617",
-          ground: "#050816",
-          dark: "#020617",
-          light: "#ffffff",
-          accent: "#00f5ff",
-          accent2: "#ff00e6",
-          sun: "#fb7185"
         };
       }
 
@@ -590,7 +970,7 @@
         };
       }
 
-      if (p.scene === "ocean") {
+      if (p.scene === "ocean" || p.scene === "underwater") {
         return {
           skyTop: "#38bdf8",
           skyMid: "#7dd3fc",
@@ -648,10 +1028,12 @@
       this.generateRoomObjects();
       this.generateWeather();
       this.generateWordObjects();
+      this.generateSparks();
+      this.generateIcons();
     }
 
     generateStars() {
-      for (let i = 0; i < this.density(220); i++) {
+      for (let i = 0; i < this.density(260); i++) {
         this.items.stars.push({
           x: this.rand(0, this.width),
           y: this.rand(0, this.height * 0.72),
@@ -663,39 +1045,39 @@
     }
 
     generateClouds() {
-      for (let i = 0; i < this.density(28); i++) {
+      for (let i = 0; i < this.density(34); i++) {
         this.items.clouds.push({
           x: this.rand(-this.width, this.width),
           y: this.rand(30, this.height * 0.45),
-          w: this.rand(90, 290),
-          h: this.rand(22, 76),
-          speed: this.rand(4, 24),
+          w: this.rand(90, 320),
+          h: this.rand(22, 80),
+          speed: this.rand(4, 28),
           alpha: this.rand(0.05, 0.25)
         });
       }
     }
 
     generateParticles() {
-      for (let i = 0; i < this.density(180); i++) {
+      for (let i = 0; i < this.density(260); i++) {
         this.items.particles.push({
           x: this.rand(0, this.width),
           y: this.rand(0, this.height),
-          vx: this.rand(-0.8, 0.8),
-          vy: this.rand(-0.6, 0.45),
-          r: this.rand(0.6, 3.1),
-          a: this.rand(0.08, 0.48),
+          vx: this.rand(-0.9, 0.9),
+          vy: this.rand(-0.7, 0.5),
+          r: this.rand(0.6, 3.4),
+          a: this.rand(0.08, 0.52),
           hue: this.rand(0, 360)
         });
       }
     }
 
     generateMountains() {
-      for (let i = 0; i < 11; i++) {
+      for (let i = 0; i < 12; i++) {
         this.items.mountains.push({
           x: i * (this.width / 8) - this.rand(60, 140),
           base: this.rand(this.height * 0.55, this.height * 0.82),
-          w: this.rand(170, 370),
-          h: this.rand(120, 320),
+          w: this.rand(170, 390),
+          h: this.rand(120, 330),
           shade: this.rand(0.25, 0.78)
         });
       }
@@ -704,8 +1086,9 @@
     generateBuildings() {
       let x = -40;
       while (x < this.width + 120) {
-        const w = this.rand(34, 92);
+        const w = this.rand(34, 95);
         const h = this.rand(this.height * 0.18, this.height * 0.6);
+
         this.items.buildings.push({
           x,
           y: this.height * 0.78 - h,
@@ -715,29 +1098,30 @@
           cols: Math.max(2, Math.floor(w / 13)),
           phase: this.rand(0, 100)
         });
+
         x += w + this.rand(4, 14);
       }
     }
 
     generateCars() {
-      for (let i = 0; i < this.density(20); i++) {
+      for (let i = 0; i < this.density(24); i++) {
         this.items.cars.push({
           x: this.rand(-this.width, this.width),
           y: this.rand(this.height * 0.78, this.height * 0.93),
-          speed: this.rand(35, 130) * (this.rng() > 0.5 ? 1 : -1),
-          size: this.rand(0.65, 1.35) * this.parsed.modifiers.scale,
+          speed: this.rand(35, 150) * (this.rng() > 0.5 ? 1 : -1),
+          size: this.rand(0.65, 1.45) * this.parsed.modifiers.scale,
           color: this.pick(["#ef4444", "#3b82f6", "#eab308", "#f8fafc", "#22c55e", "#a855f7"])
         });
       }
     }
 
     generatePeople() {
-      for (let i = 0; i < this.density(34); i++) {
+      for (let i = 0; i < this.density(42); i++) {
         this.items.people.push({
           x: this.rand(0, this.width),
           y: this.rand(this.height * 0.7, this.height * 0.93),
-          speed: this.rand(8, 40) * (this.rng() > 0.5 ? 1 : -1),
-          scale: this.rand(0.55, 1.25) * this.parsed.modifiers.scale,
+          speed: this.rand(8, 48) * (this.rng() > 0.5 ? 1 : -1),
+          scale: this.rand(0.55, 1.3) * this.parsed.modifiers.scale,
           phase: this.rand(0, Math.PI * 2),
           coat: this.pick(["#111827", "#1f2937", "#7f1d1d", "#172554", "#064e3b", "#581c87"])
         });
@@ -745,11 +1129,11 @@
     }
 
     generateBirds() {
-      for (let i = 0; i < this.density(24); i++) {
+      for (let i = 0; i < this.density(30); i++) {
         this.items.birds.push({
           x: this.rand(-100, this.width),
           y: this.rand(45, this.height * 0.42),
-          speed: this.rand(20, 80),
+          speed: this.rand(20, 90),
           scale: this.rand(0.45, 1.35),
           phase: this.rand(0, Math.PI * 2)
         });
@@ -757,24 +1141,24 @@
     }
 
     generateTrees() {
-      for (let i = 0; i < this.density(90); i++) {
+      for (let i = 0; i < this.density(100); i++) {
         this.items.trees.push({
           x: this.rand(-60, this.width + 60),
           y: this.rand(this.height * 0.58, this.height),
-          h: this.rand(55, 190),
-          w: this.rand(18, 58),
+          h: this.rand(55, 200),
+          w: this.rand(18, 60),
           layer: this.rand(0, 1)
         });
       }
     }
 
     generateWaves() {
-      for (let i = 0; i < 14; i++) {
+      for (let i = 0; i < 16; i++) {
         this.items.waves.push({
           y: this.height * (0.56 + i * 0.035),
           amp: this.rand(4, 18),
           freq: this.rand(0.006, 0.022),
-          speed: this.rand(0.6, 2),
+          speed: this.rand(0.6, 2.2),
           alpha: this.rand(0.12, 0.36)
         });
       }
@@ -796,11 +1180,11 @@
     }
 
     generatePlatforms() {
-      for (let i = 0; i < this.density(18); i++) {
+      for (let i = 0; i < this.density(20); i++) {
         this.items.platforms.push({
           x: this.rand(0, this.width),
           y: this.rand(this.height * 0.35, this.height * 0.82),
-          w: this.rand(70, 210),
+          w: this.rand(70, 220),
           h: this.rand(12, 34),
           type: this.pick(["grass", "metal", "stone", "wood"])
         });
@@ -808,7 +1192,7 @@
     }
 
     generateGameItems() {
-      for (let i = 0; i < this.density(30); i++) {
+      for (let i = 0; i < this.density(38); i++) {
         this.items.coins.push({
           x: this.rand(30, this.width - 30),
           y: this.rand(this.height * 0.25, this.height * 0.78),
@@ -817,11 +1201,11 @@
         });
       }
 
-      for (let i = 0; i < this.density(12); i++) {
+      for (let i = 0; i < this.density(15); i++) {
         this.items.enemies.push({
           x: this.rand(0, this.width),
           y: this.rand(this.height * 0.68, this.height * 0.9),
-          s: this.rand(18, 42),
+          s: this.rand(18, 45),
           phase: this.rand(0, Math.PI * 2),
           color: this.pick(["#ef4444", "#7c2d12", "#581c87", "#0f766e"])
         });
@@ -829,7 +1213,7 @@
     }
 
     generateRoomObjects() {
-      for (let i = 0; i < this.density(18); i++) {
+      for (let i = 0; i < this.density(20); i++) {
         this.items.roomObjects.push({
           x: this.rand(this.width * 0.08, this.width * 0.92),
           y: this.rand(this.height * 0.45, this.height * 0.86),
@@ -841,18 +1225,18 @@
     }
 
     generateWeather() {
-      for (let i = 0; i < this.density(560); i++) {
+      for (let i = 0; i < this.density(600); i++) {
         this.items.rain.push({
           x: this.rand(0, this.width),
           y: this.rand(0, this.height),
-          len: this.rand(8, 25),
-          speed: this.rand(360, 780),
-          drift: this.rand(-100, -20),
+          len: this.rand(8, 26),
+          speed: this.rand(360, 800),
+          drift: this.rand(-110, -20),
           a: this.rand(0.16, 0.58)
         });
       }
 
-      for (let i = 0; i < this.density(380); i++) {
+      for (let i = 0; i < this.density(420); i++) {
         this.items.snow.push({
           x: this.rand(0, this.width),
           y: this.rand(0, this.height),
@@ -866,7 +1250,10 @@
     }
 
     generateWordObjects() {
-      const visualWords = this.parsed.words.filter((word) => word.length > 2).slice(0, 80);
+      const limit = this.options.wordLayerLimit || 220;
+      const visualWords = this.parsed.words
+        .filter((word) => word.length > 2)
+        .slice(0, limit);
 
       for (const word of visualWords) {
         this.items.wordObjects.push({
@@ -874,8 +1261,8 @@
           hash: hashString(word),
           x: this.rand(0, this.width),
           y: this.rand(0, this.height),
-          size: this.rand(8, 32),
-          speed: this.rand(4, 44),
+          size: this.rand(8, 34),
+          speed: this.rand(4, 48),
           phase: this.rand(0, Math.PI * 2),
           color: this.pick([
             this.palette.accent,
@@ -885,6 +1272,31 @@
             "#fb7185",
             "#22d3ee"
           ])
+        });
+      }
+    }
+
+    generateSparks() {
+      for (let i = 0; i < this.density(140); i++) {
+        this.items.sparks.push({
+          x: this.rand(0, this.width),
+          y: this.rand(0, this.height),
+          r: this.rand(1, 5),
+          h: this.rand(0, 360),
+          phase: this.rand(0, Math.PI * 2),
+          speed: this.rand(20, 120)
+        });
+      }
+    }
+
+    generateIcons() {
+      for (let i = 0; i < this.density(60); i++) {
+        this.items.icons.push({
+          x: this.rand(0, this.width),
+          y: this.rand(0, this.height),
+          s: this.rand(8, 28),
+          phase: this.rand(0, Math.PI * 2),
+          speed: this.rand(15, 80)
         });
       }
     }
@@ -917,29 +1329,43 @@
       if (p.styles.voxel) this.drawVoxelWorld(t);
       else if (p.styles.pixel || p.gameMode === "pixel-arcade") this.drawPixelGame(t);
       else if (p.styles.racing || p.scene === "track") this.drawRacing(t);
-      else if (p.styles.platformer) this.drawPixelGame(t);
       else if (p.scene === "space") this.drawSpace(t);
-      else if (p.scene === "ocean") this.drawOcean(t);
+      else if (p.scene === "ocean" || p.scene === "underwater") this.drawOcean(t);
       else if (p.scene === "forest" || p.scene === "farm") this.drawForest(t);
       else if (p.scene === "desert") this.drawDesert(t);
       else if (p.scene === "mountain") this.drawMountainScene(t);
-      else if (p.scene === "room") this.drawRoom(t);
-      else if (p.scene === "dungeon") this.drawDungeon(t);
-      else if (p.scene === "city") this.drawCity(t);
+      else if (
+        p.scene === "room" ||
+        p.scene === "lab" ||
+        p.scene === "school" ||
+        p.scene === "hospital" ||
+        p.scene === "mall"
+      ) this.drawRoom(t);
+      else if (p.scene === "dungeon" || p.scene === "castle") this.drawDungeon(t);
+      else if (p.scene === "city" || p.scene === "factory") this.drawCity(t);
       else this.drawAbstract(t);
 
       if (p.objects.dragon || p.styles.fantasy) this.drawFantasyLayer(t);
-      if (p.objects.robot || p.styles.scifi) this.drawSciFiLayer(t);
+      if (p.objects.robot || p.styles.scifi || p.objects.spaceship) this.drawSciFiLayer(t);
       if (p.objects.rain) this.drawRain(t);
       if (p.objects.snow) this.drawSnow(t);
       if (p.objects.fog) this.drawFog(t);
+      if (p.objects.fire || p.effects.fire) this.drawFire(t);
+      if (p.objects.lightning || p.effects.lightning) this.drawLightning(t);
+      if (p.effects.matrix || p.styles.matrix) this.drawMatrix(t);
+      if (p.effects.hearts || p.objects.hearts) this.drawFloatingHearts(t);
+      if (p.effects.coins || p.objects.coins) this.drawCoinBurst(t);
+      if (p.effects.stars) this.drawSparkBurst(t);
 
+      this.drawCommandSubject(t);
       this.drawPromptWordLayer(t);
       this.drawParticles(t);
       this.drawStyleOverlay(t);
       this.drawGrain();
 
-      if (p.styles.cinematic) this.drawCinematicBars();
+      if (p.styles.cinematic || p.videoType === "cinematic" || p.videoType === "trailer") {
+        this.drawCinematicBars();
+      }
 
       ctx.restore();
       this.frame++;
@@ -948,18 +1374,19 @@
     camera(t) {
       const p = this.world.parsed;
       const speed = p.modifiers.speed;
-      const chaos = p.modifiers.chaos;
+      const chaos = p.modifiers.chaos + p.modifiers.shake;
       const cinematic = p.styles.cinematic ? 1 : 0.45;
 
       return {
         x: Math.sin(t * 0.55 * speed) * 8 * cinematic + Math.sin(t * 18) * chaos * 2,
         y: Math.cos(t * 0.4 * speed) * 4 * cinematic + Math.cos(t * 15) * chaos * 2,
-        zoom: 1 + Math.sin(t * 0.18) * 0.014 * cinematic
+        zoom: 1 + Math.sin(t * 0.18) * 0.014 * cinematic + p.modifiers.zoom * 0.03 * Math.sin(t * 0.9)
       };
     }
 
     drawBackground(t) {
       const ctx = this.ctx;
+      const p = this.world.parsed;
       const pal = this.world.palette;
 
       const g = ctx.createLinearGradient(0, 0, 0, this.h);
@@ -968,24 +1395,20 @@
       g.addColorStop(1, pal.skyBottom);
 
       ctx.fillStyle = g;
-      ctx.fillRect(-40, -40, this.w + 80, this.h + 80);
+      ctx.fillRect(-60, -60, this.w + 120, this.h + 120);
 
-      if (!this.world.parsed.objects.night && this.world.parsed.scene !== "space") {
+      if (!p.objects.night && p.scene !== "space") {
         this.drawSun(this.w * 0.78, this.h * 0.22, 46, pal.sun);
       }
 
-      if (this.world.parsed.objects.night || this.world.parsed.scene === "space") {
-        this.drawStars(t);
-      }
-
-      if (this.world.parsed.objects.clouds || this.world.parsed.scene !== "space") {
-        this.drawClouds(t);
-      }
+      if (p.objects.night || p.scene === "space") this.drawStars(t);
+      if (p.objects.clouds || p.scene !== "space") this.drawClouds(t);
     }
 
     drawSun(x, y, r, color) {
       const ctx = this.ctx;
       const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 4);
+
       glow.addColorStop(0, color);
       glow.addColorStop(0.36, colorWithAlpha(color, 0.34));
       glow.addColorStop(1, "rgba(255,255,255,0)");
@@ -1056,10 +1479,8 @@
 
             if (flicker > -0.15) {
               ctx.fillStyle =
-                p.styles.synthwave || p.styles.scifi
-                  ? ix % 2
-                    ? pal.accent
-                    : pal.accent2
+                p.styles.synthwave || p.styles.scifi || p.styles.cyberpunk
+                  ? ix % 2 ? pal.accent : pal.accent2
                   : "rgba(255,226,130,0.82)";
 
               ctx.fillRect(b.x + 7 + ix * 13, b.y + 8 + iy * 17, 5, 8);
@@ -1075,18 +1496,18 @@
       ctx.fillStyle = this.world.parsed.objects.rain ? "#111827" : "#1f2937";
       ctx.fillRect(0, this.h * 0.78, this.w, this.h * 0.22);
 
-      ctx.strokeStyle = this.world.parsed.styles.synthwave
-        ? "rgba(0,245,255,0.8)"
-        : "rgba(255,255,255,0.35)";
+      ctx.strokeStyle =
+        this.world.parsed.styles.synthwave || this.world.parsed.styles.cyberpunk
+          ? "rgba(0,245,255,0.8)"
+          : "rgba(255,255,255,0.35)";
+
       ctx.lineWidth = 3;
       ctx.setLineDash([34, 28]);
       ctx.lineDashOffset = -t * 70;
-
       ctx.beginPath();
       ctx.moveTo(0, this.h * 0.885);
       ctx.lineTo(this.w, this.h * 0.885);
       ctx.stroke();
-
       ctx.setLineDash([]);
     }
 
@@ -1096,6 +1517,7 @@
           ((car.x + t * car.speed * this.world.parsed.modifiers.speed) %
             (this.w + 260)) -
           130;
+
         this.drawCar(x, car.y, car.size, car.color, car.speed < 0);
       }
     }
@@ -1136,6 +1558,7 @@
           ((person.x + t * person.speed * this.world.parsed.modifiers.speed) %
             (this.w + 80)) -
           40;
+
         const bob = Math.sin(t * 6 + person.phase) * 2.2;
         this.drawPerson(x, person.y + bob, person.scale, person.coat, t + person.phase);
       }
@@ -1238,6 +1661,7 @@
 
       for (const wave of this.world.items.waves) {
         ctx.beginPath();
+
         for (let x = -20; x <= this.w + 20; x += 8) {
           const y =
             wave.y +
@@ -1261,6 +1685,7 @@
 
       for (let i = 0; i < 7; i++) {
         const yBase = this.h * (0.58 + i * 0.065);
+
         ctx.beginPath();
         ctx.moveTo(0, this.h);
 
@@ -1318,6 +1743,7 @@
       const wall = ctx.createLinearGradient(0, 0, 0, this.h);
       wall.addColorStop(0, "#44403c");
       wall.addColorStop(1, "#1c1917");
+
       ctx.fillStyle = wall;
       ctx.fillRect(0, 0, this.w, this.h * 0.68);
 
@@ -1358,8 +1784,10 @@
         const x = this.w * 0.2 + i * this.w * 0.08 + Math.sin(t * 0.4 + i) * 30;
         const y = this.h * 0.34 + Math.cos(t * 0.3 + i) * 25;
         const g = ctx.createRadialGradient(x, y, 0, x, y, 170);
+
         g.addColorStop(0, i % 2 ? colorWithAlpha(pal.accent, 0.13) : colorWithAlpha(pal.accent2, 0.12));
         g.addColorStop(1, "rgba(0,0,0,0)");
+
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, this.w, this.h);
       }
@@ -1367,6 +1795,7 @@
       const px = this.w * 0.7 + Math.sin(t * 0.2) * 20;
       const py = this.h * 0.42 + Math.cos(t * 0.17) * 12;
       const planet = ctx.createRadialGradient(px - 35, py - 35, 4, px, py, 120);
+
       planet.addColorStop(0, pal.accent);
       planet.addColorStop(0.55, pal.accent2);
       planet.addColorStop(1, "#020617");
@@ -1403,13 +1832,11 @@
         this.drawBlock(b.x, b.y, b.s, b.type);
       }
 
-      if (p.objects.cubes || p.styles.voxel) {
-        for (let i = 0; i < 18; i++) {
-          const s = 30 + (i % 5) * 7;
-          const x = (i * 89 + Math.sin(t + i) * 10) % this.w;
-          const y = this.h * 0.46 + Math.sin(t * 0.7 + i) * 35;
-          this.drawCube(x, y, s, i % 2 ? pal.accent : pal.accent2);
-        }
+      for (let i = 0; i < 18; i++) {
+        const s = 30 + (i % 5) * 7;
+        const x = (i * 89 + Math.sin(t + i) * 10) % this.w;
+        const y = this.h * 0.46 + Math.sin(t * 0.7 + i) * 35;
+        this.drawCube(x, y, s, i % 2 ? pal.accent : pal.accent2);
       }
 
       if (p.objects.people) this.drawBlockyPeople(t);
@@ -1425,6 +1852,7 @@
         sand: ["#facc15", "#ca8a04"],
         water: ["#0284c7", "#075985"]
       };
+
       const c = colors[type] || colors.dirt;
 
       ctx.fillStyle = c[0];
@@ -1486,7 +1914,6 @@
       const pixel = Math.max(4, Math.floor(this.w / 180));
 
       ctx.imageSmoothingEnabled = false;
-
       ctx.strokeStyle = "rgba(255,255,255,0.045)";
       ctx.lineWidth = 1;
 
@@ -1515,7 +1942,11 @@
       const ctx = this.ctx;
 
       for (const pl of this.world.items.platforms) {
-        ctx.fillStyle = pl.type === "metal" ? "#64748b" : pl.type === "wood" ? "#92400e" : "#22c55e";
+        ctx.fillStyle =
+          pl.type === "metal" ? "#64748b" :
+          pl.type === "wood" ? "#92400e" :
+          "#22c55e";
+
         ctx.fillRect(pl.x, pl.y, pl.w, pl.h);
 
         ctx.fillStyle = "rgba(0,0,0,0.2)";
@@ -1525,18 +1956,29 @@
 
     drawGameItems(t) {
       const ctx = this.ctx;
+      const p = this.world.parsed;
 
       if (
-        this.world.parsed.objects.coins ||
-        this.world.parsed.styles.arcade ||
-        this.world.parsed.styles.platformer ||
-        this.world.parsed.styles.pixel
+        p.objects.coins ||
+        p.styles.arcade ||
+        p.styles.platformer ||
+        p.styles.pixel ||
+        p.effects.coins
       ) {
         for (const c of this.world.items.coins) {
           const wobble = Math.sin(t * 4 + c.phase);
+
           ctx.fillStyle = "#facc15";
           ctx.beginPath();
-          ctx.ellipse(c.x, c.y, c.r * (0.35 + Math.abs(wobble) * 0.65), c.r, 0, 0, Math.PI * 2);
+          ctx.ellipse(
+            c.x,
+            c.y,
+            c.r * (0.35 + Math.abs(wobble) * 0.65),
+            c.r,
+            0,
+            0,
+            Math.PI * 2
+          );
           ctx.fill();
 
           ctx.strokeStyle = "#ca8a04";
@@ -1600,7 +2042,6 @@
       ctx.stroke();
 
       ctx.setLineDash([]);
-
       this.drawCars(t);
     }
 
@@ -1608,7 +2049,7 @@
       const ctx = this.ctx;
       const pal = this.world.palette;
 
-      for (let i = 0; i < 40; i++) {
+      for (let i = 0; i < 54; i++) {
         const angle = t * 0.42 + i * 0.57;
         const radius = 40 + i * 9;
         const x = this.w / 2 + Math.cos(angle) * radius;
@@ -1740,6 +2181,160 @@
       }
     }
 
+    drawFire(t) {
+      const ctx = this.ctx;
+
+      for (let i = 0; i < 26; i++) {
+        const x = (i * 47 + Math.sin(t + i) * 30) % this.w;
+        const y = this.h * 0.75 + Math.sin(t * 3 + i) * 20;
+        const r = 20 + Math.sin(t * 5 + i) * 10;
+
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2);
+        g.addColorStop(0, "rgba(250,204,21,0.7)");
+        g.addColorStop(0.45, "rgba(249,115,22,0.35)");
+        g.addColorStop(1, "rgba(239,68,68,0)");
+
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(x, y, r * 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    drawLightning(t) {
+      const ctx = this.ctx;
+      if (Math.sin(t * 7) < 0.35) return;
+
+      ctx.strokeStyle = "rgba(255,255,255,0.75)";
+      ctx.lineWidth = 3;
+
+      for (let i = 0; i < 3; i++) {
+        let x = this.w * (0.2 + i * 0.27);
+        let y = 0;
+
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+
+        for (let k = 0; k < 8; k++) {
+          x += Math.sin(t * 20 + i + k) * 25;
+          y += this.h * 0.08;
+          ctx.lineTo(x, y);
+        }
+
+        ctx.stroke();
+      }
+    }
+
+    drawMatrix(t) {
+      const ctx = this.ctx;
+      ctx.fillStyle = "rgba(0,255,120,0.18)";
+      ctx.font = "16px monospace";
+
+      for (let x = 0; x < this.w; x += 20) {
+        const y = (t * 80 + x * 7) % this.h;
+        ctx.fillText(String.fromCharCode(0x30A0 + ((x + y) | 0) % 96), x, y);
+      }
+    }
+
+    drawFloatingHearts(t) {
+      const ctx = this.ctx;
+
+      for (const icon of this.world.items.icons) {
+        const x = (icon.x + Math.sin(t + icon.phase) * 35) % this.w;
+        const y = (this.h - ((t * icon.speed + icon.y) % this.h));
+        const s = icon.s;
+
+        ctx.fillStyle = "rgba(236,72,153,0.38)";
+        ctx.beginPath();
+        ctx.arc(x - s * 0.25, y, s * 0.35, 0, Math.PI * 2);
+        ctx.arc(x + s * 0.25, y, s * 0.35, 0, Math.PI * 2);
+        ctx.lineTo(x, y + s * 0.9);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    drawCoinBurst(t) {
+      const ctx = this.ctx;
+
+      for (const icon of this.world.items.icons) {
+        const x = (icon.x + Math.sin(t * 2 + icon.phase) * 60 + this.w) % this.w;
+        const y = (icon.y + Math.cos(t + icon.phase) * 40 + this.h) % this.h;
+        const s = icon.s * 0.45;
+
+        ctx.fillStyle = "rgba(250,204,21,0.42)";
+        ctx.beginPath();
+        ctx.ellipse(x, y, s, s * 1.35, Math.sin(t + icon.phase), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    drawSparkBurst(t) {
+      const ctx = this.ctx;
+
+      for (const s of this.world.items.sparks) {
+        const x = (s.x + Math.sin(t + s.phase) * s.speed + this.w) % this.w;
+        const y = (s.y + Math.cos(t * 0.8 + s.phase) * s.speed + this.h) % this.h;
+
+        ctx.fillStyle = `hsla(${s.h},100%,70%,0.35)`;
+        ctx.beginPath();
+        ctx.arc(x, y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    drawCommandSubject(t) {
+      const ctx = this.ctx;
+      const p = this.world.parsed;
+      if (!p.command.requested) return;
+
+      const obj = p.command.object || "object";
+      const action = p.command.action || "idle";
+
+      const x = this.w * 0.5 + Math.sin(t * 1.5 * p.modifiers.speed) * 90;
+      const y = this.h * 0.48 + Math.cos(t * 1.2) * 35;
+      const s = 44 * p.modifiers.scale;
+
+      ctx.save();
+
+      if (p.effects.neon || p.modifiers.glow) {
+        ctx.shadowBlur = 24;
+        ctx.shadowColor = this.world.palette.accent;
+      }
+
+      if (obj === "dragon") {
+        ctx.fillStyle = "rgba(124,58,237,0.72)";
+        ctx.beginPath();
+        ctx.moveTo(x, y - s);
+        ctx.lineTo(x - s * 1.6, y + s * 0.3);
+        ctx.lineTo(x - s * 0.35, y + s * 0.1);
+        ctx.lineTo(x, y + s);
+        ctx.lineTo(x + s * 0.35, y + s * 0.1);
+        ctx.lineTo(x + s * 1.6, y + s * 0.3);
+        ctx.closePath();
+        ctx.fill();
+      } else if (obj === "robot") {
+        ctx.fillStyle = "#64748b";
+        this.roundRect(x - s * 0.5, y - s * 0.6, s, s * 1.1, 8);
+        ctx.fill();
+        ctx.fillStyle = "#22d3ee";
+        ctx.fillRect(x - s * 0.25, y - s * 0.25, s * 0.18, s * 0.18);
+        ctx.fillRect(x + s * 0.08, y - s * 0.25, s * 0.18, s * 0.18);
+      } else if (obj === "cars" || obj === "car") {
+        this.drawCar(x, y, 1.5 * p.modifiers.scale, this.world.palette.accent, false);
+      } else {
+        ctx.fillStyle = this.world.palette.accent;
+        ctx.beginPath();
+        ctx.arc(x, y, s * 0.75, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (action === "explode" || p.effects.fire) this.drawFire(t);
+      if (action === "shoot" || p.effects.lightning) this.drawLightning(t);
+
+      ctx.restore();
+    }
+
     drawPromptWordLayer(t) {
       const ctx = this.ctx;
       const p = this.world.parsed;
@@ -1787,8 +2382,8 @@
         const y = (part.y + part.vy * t * 60 + this.h) % this.h;
 
         ctx.fillStyle =
-          p.styles.synthwave || p.modifiers.glow
-            ? `hsla(${part.hue}, 100%, 70%, ${part.a})`
+          p.styles.synthwave || p.modifiers.glow || p.effects.neon
+            ? `hsla(${part.hue},100%,70%,${part.a})`
             : `rgba(255,255,255,${part.a * 0.6})`;
 
         ctx.beginPath();
@@ -1821,8 +2416,8 @@
         ctx.strokeRect(0, 0, this.w, this.h);
       }
 
-      if (p.styles.watercolor) {
-        for (let i = 0; i < 12; i++) {
+      if (p.styles.watercolor || p.modifiers.dream || p.styles.dream) {
+        for (let i = 0; i < 14; i++) {
           ctx.fillStyle = "rgba(255,255,255,0.018)";
           ctx.beginPath();
           ctx.ellipse(
@@ -1838,12 +2433,39 @@
         }
       }
 
-      if (p.styles.glitch) {
-        for (let i = 0; i < 8; i++) {
+      if (p.styles.glitch || p.effects.glitch) {
+        for (let i = 0; i < 10; i++) {
           const y = Math.random() * this.h;
           const h = Math.random() * 8 + 2;
-          ctx.fillStyle = i % 2 ? "rgba(0,255,255,0.08)" : "rgba(255,0,255,0.08)";
+
+          ctx.fillStyle = i % 2
+            ? "rgba(0,255,255,0.08)"
+            : "rgba(255,0,255,0.08)";
+
           ctx.fillRect(Math.random() * 20 - 10, y, this.w, h);
+        }
+      }
+
+      if (p.effects.scanlines || p.effects.vhs || p.styles.securityCam) {
+        ctx.fillStyle = "rgba(0,0,0,0.12)";
+        for (let y = 0; y < this.h; y += 4) {
+          ctx.fillRect(0, y, this.w, 1);
+        }
+      }
+
+      if (p.styles.blueprint) {
+        ctx.strokeStyle = "rgba(147,197,253,0.14)";
+        for (let x = 0; x < this.w; x += 32) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, this.h);
+          ctx.stroke();
+        }
+        for (let y = 0; y < this.h; y += 32) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(this.w, y);
+          ctx.stroke();
         }
       }
 
@@ -1855,6 +2477,7 @@
         this.h * 0.5,
         this.w * 0.78
       );
+
       vignette.addColorStop(0, "rgba(0,0,0,0)");
       vignette.addColorStop(1, "rgba(0,0,0,0.36)");
 
@@ -1881,10 +2504,14 @@
 
     drawGrain() {
       const ctx = this.ctx;
+      const p = this.world.parsed;
       const amount = Math.floor((this.w * this.h) / 1100);
 
       ctx.save();
-      ctx.globalAlpha = this.world.parsed.styles.pixel ? 0.025 : 0.052;
+      ctx.globalAlpha =
+        p.styles.pixel ? 0.025 :
+        p.effects.grain || p.effects.vhs ? 0.09 :
+        0.052;
 
       for (let i = 0; i < amount; i++) {
         const x = Math.random() * this.w;
@@ -1929,10 +2556,28 @@
     constructor(options = {}) {
       this.options = Object.assign({}, DEFAULTS, options);
 
-      this.options.width = Math.max(160, Math.floor(Number(this.options.width) || DEFAULTS.width));
-      this.options.height = Math.max(90, Math.floor(Number(this.options.height) || DEFAULTS.height));
-      this.options.fps = clamp(Math.floor(Number(this.options.fps) || DEFAULTS.fps), 1, 60);
-      this.options.seconds = clamp(Number(this.options.seconds) || DEFAULTS.seconds, 0.5, 60);
+      this.options.width = Math.max(
+        160,
+        Math.floor(Number(this.options.width) || DEFAULTS.width)
+      );
+
+      this.options.height = Math.max(
+        90,
+        Math.floor(Number(this.options.height) || DEFAULTS.height)
+      );
+
+      this.options.fps = clamp(
+        Math.floor(Number(this.options.fps) || DEFAULTS.fps),
+        1,
+        60
+      );
+
+      this.options.seconds = clamp(
+        Number(this.options.seconds) || DEFAULTS.seconds,
+        0.5,
+        60
+      );
+
       this.options.bitrate = Math.max(
         100000,
         Math.floor(Number(this.options.bitrate || DEFAULTS.bitrate))
@@ -1948,7 +2593,7 @@
     }
 
     async generate(prompt) {
-      const parsed = parsePrompt(prompt);
+      const parsed = parsePrompt(prompt, this.options);
       const world = new World(parsed, this.options);
       const renderer = new Renderer(this.canvas, world, this.options);
 
@@ -1958,6 +2603,7 @@
 
       if (!canRecord) {
         const frames = this.renderFramesOnly(renderer);
+
         return {
           ok: false,
           reason: "MediaRecorder or canvas.captureStream is not supported in this browser.",
@@ -2006,9 +2652,7 @@
         videoBitsPerSecond: this.options.bitrate
       };
 
-      if (mimeType) {
-        recorderOptions.mimeType = mimeType;
-      }
+      if (mimeType) recorderOptions.mimeType = mimeType;
 
       let recorder;
 
@@ -2027,9 +2671,7 @@
         let lastCapturedFrame = -1;
 
         recorder.ondataavailable = (event) => {
-          if (event.data && event.data.size > 0) {
-            chunks.push(event.data);
-          }
+          if (event.data && event.data.size > 0) chunks.push(event.data);
         };
 
         recorder.onerror = (event) => {
@@ -2086,10 +2728,7 @@
               reject(error);
             }
 
-            for (const track of stream.getTracks()) {
-              track.stop();
-            }
-
+            for (const track of stream.getTracks()) track.stop();
             return;
           }
 
@@ -2118,15 +2757,25 @@
       return new RealLifeVideoEngine(options);
     },
 
-    correctPrompt(prompt) {
-      return normalizePrompt(prompt);
+    correctPrompt(prompt, options = {}) {
+      return normalizePrompt(prompt, options);
     },
 
-    parsePrompt(prompt) {
-      return parsePrompt(prompt);
+    parsePrompt(prompt, options = {}) {
+      return parsePrompt(prompt, options);
     },
 
-    version: "3.0.0-clean-fixed"
+    dictionaries: {
+      typos: TYPO_MAP,
+      styles: STYLE_ALIASES,
+      scenes: SCENE_ALIASES,
+      objects: OBJECT_ALIASES,
+      actions: ACTION_ALIASES,
+      effects: EFFECT_ALIASES,
+      videoTypes: VIDEO_TYPE_ALIASES
+    },
+
+    version: VERSION
   };
 
   global.RealLifeVideo = RealLifeVideo;

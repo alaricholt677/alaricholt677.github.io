@@ -1761,15 +1761,12 @@ function askCopilotFile(path) {
     // Open Copilot
     openApp('copilot', {
         autoAsk: true,
-        prompt: `Analyze this ${info.type}:
-
+        prompt: `explain this file:
 Name: ${info.name}
 Path: ${info.path}
 Type: ${info.type}
 Extension: ${info.extension}
-Size: ${info.size}
-
-Explain what this file likely is and what I can do with it.`
+Size: ${info.size}`
     });
 }
 

@@ -102,6 +102,9 @@ class Spudzy {
         case "explainCode":
           reply = this.handleExplainCode(ctx);
           break;
+        case "explainFile":
+          reply = this.handleExplainFile(ctx);
+          break;
         case "fixCode":
           reply = this.handleFixCode(ctx);
           break;
@@ -736,6 +739,17 @@ class Spudzy {
       "chatbot", "canvas", "html", "css", "javascript", "page"
     ];
 
+
+if (
+  text.includes("explain this file") ||
+  text.includes("explain file") ||
+  text.includes("analyze this file") ||
+  text.includes("what does this file do") ||
+  text.includes("describe this file")
+) {
+  return "explainFile";
+}
+
     if (codeTriggers.some(word => text.includes(word))) {
       return "code";
     }
@@ -834,6 +848,36 @@ class Spudzy {
   // PAGE PLANNING
   // ===========================================================================
 
+extractFileText(text) {
+  const raw = String(text ?? "");
+  const match = raw.match(/explain\s+this\s+file\s*:\s*([\s\S]*)/i)
+    || raw.match(/explain\s+file\s*:\s*([\s\S]*)/i);
+  return match ? match[1].trim() : "";
+}
+  stripFileNoise(text) {
+  return String(text ?? "")
+    .split(/\r?\n/)
+    .filter(line => !/^(status|last modified|created|saved|size|type|filename)\s*:/i.test(line.trim()))
+    .join("\n")
+    .trim();
+}
+  handleExplainFile(ctx) {
+  const rawFileText = this.extractFileText(ctx.raw);
+  if (!rawFileText) {
+    return "Spudzy file explainer 📁 — Paste file content after `explain this file:`";
+  }
+
+  const cleaned = this.stripFileNoise(rawFileText);
+  const kind = this.detectFileKind(cleaned);
+
+  return [
+    "Spudzy file explainer 📁",
+    "",
+    `Detected file type: ${kind}`,
+    "",
+    this.explainFileByKind(cleaned, kind)
+  ].join("\n");
+}
   planHtmlPage(ctx) {
     const text = ctx.canonical;
     const tokens = ctx.tokens;

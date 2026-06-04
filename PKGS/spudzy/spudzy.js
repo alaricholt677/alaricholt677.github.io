@@ -878,6 +878,83 @@ extractFileText(text) {
     this.explainFileByKind(cleaned, kind)
   ].join("\n");
 }
+explainFileByKind(text, kind) {
+  const t = String(text ?? "");
+  const out = [];
+
+  // --- WHAT IT LIKELY DOES ---
+
+  if (kind === "html") {
+    out.push("This looks like a webpage file that builds a UI in the browser.");
+
+    if (/<form/i.test(t)) out.push("• It includes forms for user input.");
+    if (/<script/i.test(t)) out.push("• It runs JavaScript inside the page.");
+    if (/<style/i.test(t)) out.push("• It contains inline styling.");
+    if (/<canvas/i.test(t)) out.push("• It uses a canvas for graphics or animation.");
+  }
+
+  else if (kind === "javascript") {
+    out.push("This appears to be a JavaScript file that controls behavior or logic.");
+
+    if (/addEventListener/.test(t)) out.push("• It listens for user interactions.");
+    if (/localStorage/.test(t)) out.push("• It uses browser local storage.");
+    if (/fetch\s*\(/.test(t)) out.push("• It makes network/API requests.");
+    if (/class\s+\w+/.test(t)) out.push("• It defines reusable class logic.");
+    if (/document\.|window\./.test(t)) out.push("• It interacts with the webpage.");
+  }
+
+  else if (kind === "css") {
+    out.push("This is a stylesheet that controls layout and visual design.");
+
+    if (/@media/.test(t)) out.push("• It supports responsive design.");
+    if (/animation|transition/i.test(t)) out.push("• It includes animations or transitions.");
+    if (/:root/.test(t)) out.push("• It defines global CSS variables.");
+  }
+
+  else if (kind === "json") {
+    out.push("This is structured data, likely used for configuration or storage.");
+  }
+
+  else if (kind === "markdown") {
+    out.push("This looks like a markdown file used for documentation or notes.");
+
+    if (/```/.test(t)) out.push("• It includes code examples.");
+    if (/^# /m.test(t)) out.push("• It uses headings for sections.");
+  }
+
+  else if (kind === "xml/svg") {
+    out.push("This is XML-based content, likely structured data or graphics.");
+
+    if (/<svg/i.test(t)) out.push("• It represents vector graphics.");
+  }
+
+  else if (kind === "config") {
+    out.push("This appears to be a configuration-style file with key-value pairs.");
+  }
+
+  else if (kind === "log") {
+    out.push("This looks like a log file showing events, errors, or system output.");
+  }
+
+  else if (kind === "file-tree") {
+    out.push("This is a folder/file structure listing.");
+    out.push("• It shows how files are organized in a directory.");
+  }
+
+  else {
+    out.push("This appears to be general text.");
+  }
+
+  // --- SIMPLE SUMMARY ---
+
+  const lines = t.split("\n").slice(0, 3).map(l => l.trim()).filter(Boolean);
+  if (lines.length) {
+    out.push("\nPreview:");
+    lines.forEach(l => out.push("• " + l));
+  }
+
+  return out.join("\n");
+}
   planHtmlPage(ctx) {
     const text = ctx.canonical;
     const tokens = ctx.tokens;

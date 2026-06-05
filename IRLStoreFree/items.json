@@ -6,10 +6,10 @@
     "download": "https://alaricholt677.github.io/IRLStoreFree/SampleWorld.zip"
   },
   {
-    "title": "Modern House",
-    "description": "A clean modern house build for your IRL world.",
-    "icon": "https://alaricholt677.github.io/IRLStoreFree/icons/modernhouse.png",
-    "download": "https://alaricholt677.github.io/IRLStoreFree/downloads/modernhouse.zip"
+    "title": "Customizable world",
+    "description": "Look in %DirToJar%/configs/hi/playerpos/ to see a java file open it and you can customize only your pos and inventory",
+    "icon": "https://alaricholt677.github.io/IRLStoreFree/icons/customize.png",
+    "download": "https://alaricholt677.github.io/IRLStoreFree/downloads/hi.zip"
   },
   {
     "title": "City Props",

@@ -1,0 +1,780 @@
+
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>macOS Ultimate Web Experience</title>
+    <style>
+        /* --- SYSTEM VARIABLES & RESET --- */
+        :root {
+            --sys-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --wallpaper: url('https://images.unsplash.com/photo-1693222384736-23507df13123?q=80&w=2560&auto=format&fit=crop'); /* macOS Sonoma Abstract */
+            --menu-height: 28px;
+            --dock-height: 60px;
+        }
+
+        [data-theme="dark"] {
+            --glass-bg: rgba(30, 30, 30, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --glass-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            --text-main: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.7);
+            --menu-bg: rgba(20, 20, 20, 0.4);
+            --menu-hover: rgba(255, 255, 255, 0.2);
+            --app-bg: rgba(30, 30, 30, 0.95);
+            --app-header: rgba(45, 45, 45, 0.9);
+            --highlight: #007aff;
+        }
+
+        [data-theme="light"] {
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(0, 0, 0, 0.15);
+            --glass-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            --text-main: #000000;
+            --text-muted: rgba(0, 0, 0, 0.6);
+            --menu-bg: rgba(255, 255, 255, 0.4);
+            --menu-hover: rgba(0, 0, 0, 0.1);
+            --app-bg: rgba(255, 255, 255, 0.95);
+            --app-header: rgba(230, 230, 230, 0.9);
+            --highlight: #007aff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; font-family: var(--sys-font); }
+        body { width: 100vw; height: 100vh; overflow: hidden; background: #000; color: var(--text-main); }
+        input, textarea { user-select: text; }
+
+        /* --- BOOT & LOGIN SCREEN --- */
+        #boot-screen, #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.5s ease;
+        }
+        #boot-screen { background: #000; }
+        .apple-logo-boot { fill: #fff; width: 80px; height: 80px; margin-bottom: 40px; }
+        .loading-bar { width: 200px; height: 4px; background: #333; border-radius: 2px; overflow: hidden; }
+        .loading-progress { width: 0%; height: 100%; background: #fff; transition: width 2.5s ease-in-out; }
+
+        #login-screen {
+            background: var(--wallpaper) center/cover;
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            opacity: 0; pointer-events: none;
+        }
+        .login-avatar { width: 100px; height: 100px; border-radius: 50%; background: url('https://ui-avatars.com/api/?name=User&background=007aff&color=fff&size=100') center/cover; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);}
+        .login-name { font-size: 24px; font-weight: 600; margin-bottom: 20px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); color: white;}
+        .login-input { padding: 8px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.2); color: white; outline: none; backdrop-filter: blur(10px); text-align: center; }
+        .login-input::placeholder { color: rgba(255,255,255,0.6); }
+
+        /* --- OS DESKTOP ENVIRONMENT --- */
+        #os-environment {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--wallpaper) center/cover;
+            display: flex; flex-direction: column; opacity: 0; transition: opacity 1s ease;
+        }
+
+        /* Menu Bar */
+        #menu-bar {
+            height: var(--menu-height); background: var(--menu-bg); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            display: flex; justify-content: space-between; align-items: center; padding: 0 16px;
+            font-size: 13px; font-weight: 500; z-index: 9000; border-bottom: 1px solid var(--glass-border);
+        }
+        .menu-group { display: flex; align-items: center; gap: 16px; height: 100%; }
+        .menu-item { padding: 0 8px; border-radius: 4px; display: flex; align-items: center; height: 22px; cursor: default; }
+        .menu-item:hover { background: var(--menu-hover); }
+        .menu-item.bold { font-weight: 700; }
+        .icon-svg { fill: var(--text-main); width: 14px; height: 14px; }
+        
+        /* Control Center Dropdown */
+        #control-center {
+            position: absolute; top: 35px; right: 10px; width: 300px; background: var(--glass-bg);
+            backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border: 1px solid var(--glass-border);
+            border-radius: 16px; padding: 15px; box-shadow: var(--glass-shadow); z-index: 9999;
+            display: none; grid-template-columns: 1fr 1fr; gap: 10px;
+        }
+        .cc-module { background: rgba(0,0,0,0.1); border-radius: 12px; padding: 10px; display: flex; align-items: center; gap: 10px; cursor: pointer;}
+        .cc-module.active { background: var(--highlight); color: white; }
+        .cc-module-icon { width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; justify-content: center; align-items: center;}
+        
+        /* Desktop Area & Icons */
+        #desktop { flex: 1; position: relative; overflow: hidden; padding: 20px; display: flex; flex-direction: column; gap: 20px; align-items: flex-end; }
+        .desktop-icon { display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; width: 80px;}
+        .desktop-icon img, .desktop-icon svg { width: 50px; height: 50px; drop-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .desktop-icon span { font-size: 12px; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); text-align: center; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;}
+
+        /* Windows */
+        #window-container { position: absolute; top: var(--menu-height); left: 0; width: 100%; height: calc(100% - var(--menu-height)); pointer-events: none; }
+        .window {
+            position: absolute; background: var(--app-bg); border: 1px solid var(--glass-border);
+            border-radius: 10px; box-shadow: var(--glass-shadow); display: none; flex-direction: column;
+            overflow: hidden; pointer-events: auto; transform: scale(0.95); opacity: 0;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s;
+        }
+        .window.active { display: flex; transform: scale(1); opacity: 1; }
+        .window.minimized { transform: scale(0) translateY(100vh); opacity: 0; pointer-events: none; }
+        .window.fullscreen { top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; border-radius: 0; }
+        
+        .titlebar {
+            height: 38px; background: var(--app-header); display: flex; align-items: center; padding: 0 12px;
+            cursor: default; position: relative; border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        .traffic-lights { display: flex; gap: 8px; z-index: 10; }
+        .tl-btn { width: 12px; height: 12px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; position: relative; }
+        .tl-btn::after { content: ''; opacity: 0; font-size: 10px; font-weight: bold; color: rgba(0,0,0,0.6); line-height: 12px; }
+        .traffic-lights:hover .tl-btn::after { opacity: 1; }
+        .tl-close { background: #ff5f56; } .tl-close::after { content: '×'; }
+        .tl-min { background: #ffbd2e; } .tl-min::after { content: '-'; }
+        .tl-max { background: #27c93f; } .tl-max::after { content: '+'; }
+        
+        .window-title { flex: 1; text-align: center; font-size: 13px; font-weight: 600; color: var(--text-main); pointer-events: none; position: absolute; width: 100%; left: 0;}
+        .window-content { flex: 1; position: relative; display: flex; background: var(--app-bg); }
+
+        /* Dock */
+        #dock-container { position: absolute; bottom: 10px; width: 100%; display: flex; justify-content: center; z-index: 9500; pointer-events: none;}
+        #dock {
+            background: var(--glass-bg); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            padding: 8px; border-radius: 24px; display: flex; gap: 12px; border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow); pointer-events: auto; align-items: flex-end; height: 70px;
+        }
+        .dock-item {
+            width: 50px; height: 50px; border-radius: 12px; cursor: pointer; position: relative;
+            transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1); display: flex; justify-content: center; align-items: center;
+            background-size: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .dock-item:hover { transform: scale(1.3) translateY(-10px); margin: 0 10px; z-index: 10; }
+        .dock-item::after {
+            content: ''; position: absolute; bottom: -6px; width: 4px; height: 4px;
+            background: var(--text-main); border-radius: 50%; opacity: 0; transition: opacity 0.2s;
+        }
+        .dock-item.open::after { opacity: 1; }
+        .dock-tooltip {
+            position: absolute; top: -40px; background: rgba(0,0,0,0.7); color: white;
+            padding: 5px 10px; border-radius: 6px; font-size: 12px; opacity: 0; pointer-events: none; white-space: nowrap;
+        }
+        .dock-item:hover .dock-tooltip { opacity: 1; }
+
+        /* --- APP SPECIFIC STYLES --- */
+        
+        /* Finder */
+        .sidebar { width: 160px; background: rgba(0,0,0,0.05); border-right: 1px solid var(--glass-border); padding: 10px; }
+        .sidebar-item { padding: 6px 10px; border-radius: 6px; font-size: 13px; margin-bottom: 4px; cursor: pointer; color: var(--text-muted); }
+        .sidebar-item:hover, .sidebar-item.active { background: rgba(0,0,0,0.1); color: var(--text-main); }
+        .finder-main { flex: 1; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 20px; align-content: start; }
+        
+        /* Terminal */
+        #app-terminal .window-content { background: rgba(0,0,0,0.9); padding: 10px; flex-direction: column; font-family: monospace; color: #fff; }
+        #term-output { white-space: pre-wrap; font-size: 13px; overflow-y: auto; flex: 1; }
+        .term-line { display: flex; font-size: 13px; }
+        .term-prompt { color: #27c93f; margin-right: 8px; }
+        #term-input { flex: 1; background: transparent; border: none; color: #fff; outline: none; font-family: monospace; font-size: 13px; }
+
+        /* Safari */
+        #app-safari .window-content { flex-direction: column; }
+        .safari-toolbar { height: 40px; display: flex; align-items: center; padding: 0 10px; background: var(--app-header); border-bottom: 1px solid rgba(0,0,0,0.1); gap: 10px;}
+        .safari-nav-btn { background: transparent; border: none; font-size: 18px; cursor: pointer; color: var(--text-main); }
+        .safari-address { flex: 1; height: 26px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.2); background: rgba(0,0,0,0.05); padding: 0 10px; color: var(--text-main); outline: none; text-align: center;}
+        #safari-frame { flex: 1; border: none; background: white; }
+
+        /* Notes */
+        #app-notes .window-content { display: flex; }
+        .notes-list { width: 200px; border-right: 1px solid var(--glass-border); background: rgba(0,0,0,0.02); overflow-y: auto; }
+        .note-item { padding: 15px; border-bottom: 1px solid var(--glass-border); cursor: pointer; font-size: 14px; font-weight: bold; }
+        .note-item:hover { background: rgba(0,0,0,0.05); }
+        .note-item p { font-size: 12px; color: var(--text-muted); font-weight: normal; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+        #notes-area { flex: 1; background: transparent; border: none; padding: 20px; font-size: 15px; outline: none; color: var(--text-main); resize: none; }
+
+        /* Calculator */
+        #app-calculator { background: rgba(30,30,30,0.95); }
+        #app-calculator .window-content { flex-direction: column; background: transparent; }
+        .calc-display { height: 80px; display: flex; justify-content: flex-end; align-items: flex-end; padding: 10px 20px; font-size: 40px; color: white; background: transparent;}
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; flex: 1; background: #333;}
+        .calc-btn { background: #555; border: none; color: white; font-size: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: filter 0.1s;}
+        .calc-btn:active { filter: brightness(1.5); }
+        .calc-btn.op { background: #ff9f0a; }
+        .calc-btn.top { background: #a5a5a5; color: black; }
+        .calc-btn.zero { grid-column: span 2; justify-content: flex-start; padding-left: 25px; }
+
+        /* Settings */
+        .settings-sidebar { width: 200px; border-right: 1px solid var(--glass-border); padding: 10px; }
+        .settings-main { flex: 1; padding: 30px; overflow-y: auto; }
+        .wp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 10px; }
+        .wp-item { width: 100%; height: 80px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; background-size: cover; background-position: center;}
+        .wp-item:hover { border-color: var(--highlight); }
+
+        /* --- APP ICONS --- */
+        .bg-finder { background: linear-gradient(180deg, #f0f0f0 0%, #dcdcdc 50%, #4facfe 50%, #00f2fe 100%); }
+        .bg-safari { background: #fff url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="%23007aff"/><circle cx="50" cy="50" r="40" fill="white"/><path d="M45 25 L55 25 L65 75 L35 75 Z" fill="%23ff3b30" transform="rotate(45 50 50)"/><path d="M45 50 L55 50 L65 75 L35 75 Z" fill="%23ccc" transform="rotate(45 50 50)"/></svg>') center/cover; border: 1px solid #ddd;}
+        .bg-terminal { background: #1e1e1e; border: 2px solid #555; }
+        .bg-terminal::after { content: '>_'; color: #27c93f; font-family: monospace; font-size: 20px; font-weight: bold; position: relative; top: -10px;}
+        .bg-notes { background: linear-gradient(to bottom, #ffe873, #ffcc00); }
+        .bg-notes::after { content: '📝'; font-size: 24px; position: relative; top: -10px;}
+        .bg-calc { background: #333; }
+        .bg-calc::after { content: '+-='; color: white; font-size: 18px; font-weight: bold; position: relative; top: -10px;}
+        .bg-settings { background: #777; }
+        .bg-settings::after { content: '⚙️'; font-size: 24px; position: relative; top: -10px;}
+    </style>
+</head>
+<body>
+
+    <!-- BOOT SCREEN -->
+    <div id="boot-screen">
+        <svg class="apple-logo-boot" viewBox="0 0 170 170">
+            <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.92.21-9.84-1.96-14.74-6.53-3.13-2.73-7.1-7.43-11.92-14.09-5.97-8.14-11.19-17.65-15.66-28.53-4.47-10.88-6.71-21.46-6.71-31.76 0-11.45 2.8-21.11 8.41-28.98 3.68-5.35 8.32-9.52 13.91-12.51 5.59-2.99 11.45-4.49 17.58-4.49 5.36 0 11.19 1.34 17.48 4.02 6.29 2.68 10.05 4.02 11.28 4.02 1.56 0 5.6-1.57 12.12-4.71 6.52-3.13 12.63-4.44 18.33-3.92 9.5.78 17.65 4.13 24.46 10.05-5.94 4.25-9.17 9.84-9.73 16.76-.56 8.38 2.68 14.97 9.73 19.77 2.12 1.45 4.69 2.51 7.71 3.18-2.69 7.49-5.94 13.88-9.75 19.16zM116.54 30.62c-.22 5.58-2.45 10.82-6.71 15.75-4.25 4.91-9.66 8.15-16.25 9.72-.45-5.36 1.68-10.78 6.37-16.25 4.69-5.47 10.28-8.71 16.76-9.72-.11.16-.17.33-.17.5z"/>
+        </svg>
+        <div class="loading-bar"><div class="loading-progress" id="boot-progress"></div></div>
+    </div>
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen">
+        <div class="login-avatar"></div>
+        <div class="login-name">Guest User</div>
+        <input type="password" class="login-input" id="login-pass" placeholder="Press Enter to Login" autocomplete="off">
+    </div>
+
+    <!-- MAIN OS ENVIRONMENT -->
+    <div id="os-environment">
+        
+        <!-- Menu Bar -->
+        <div id="menu-bar">
+            <div class="menu-group">
+                <div class="menu-item" style="padding:0 12px;">
+                    <svg class="icon-svg" viewBox="0 0 170 170"><path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.92.21-9.84-1.96-14.74-6.53-3.13-2.73-7.1-7.43-11.92-14.09-5.97-8.14-11.19-17.65-15.66-28.53-4.47-10.88-6.71-21.46-6.71-31.76 0-11.45 2.8-21.11 8.41-28.98 3.68-5.35 8.32-9.52 13.91-12.51 5.59-2.99 11.45-4.49 17.58-4.49 5.36 0 11.19 1.34 17.48 4.02 6.29 2.68 10.05 4.02 11.28 4.02 1.56 0 5.6-1.57 12.12-4.71 6.52-3.13 12.63-4.44 18.33-3.92 9.5.78 17.65 4.13 24.46 10.05-5.94 4.25-9.17 9.84-9.73 16.76-.56 8.38 2.68 14.97 9.73 19.77 2.12 1.45 4.69 2.51 7.71 3.18-2.69 7.49-5.94 13.88-9.75 19.16zM116.54 30.62c-.22 5.58-2.45 10.82-6.71 15.75-4.25 4.91-9.66 8.15-16.25 9.72-.45-5.36 1.68-10.78 6.37-16.25 4.69-5.47 10.28-8.71 16.76-9.72-.11.16-.17.33-.17.5z"/></svg>
+                </div>
+                <div class="menu-item bold" id="menu-app-name">Finder</div>
+                <div class="menu-item">File</div>
+                <div class="menu-item">Edit</div>
+                <div class="menu-item">View</div>
+                <div class="menu-item">Go</div>
+                <div class="menu-item">Window</div>
+                <div class="menu-item">Help</div>
+            </div>
+            <div class="menu-group">
+                <div class="menu-item" id="cc-toggle">
+                    <svg class="icon-svg" viewBox="0 0 24 24"><path d="M6 13c-1.65 0-3 1.35-3 3s1.35 3 3 3 3-1.35 3-3-1.35-3-3-3zm12-9c-1.65 0-3 1.35-3 3s1.35 3 3 3 3-1.35 3-3-1.35-3-3-3zM6 4c-1.65 0-3 1.35-3 3s1.35 3 3 3 3-1.35 3-3-1.35-3-3-3zM18 13c-1.65 0-3 1.35-3 3s1.35 3 3 3 3-1.35 3-3-1.35-3-3-3z"/></svg>
+                </div>
+                <div class="menu-item" id="clock">Mon 9:41 AM</div>
+            </div>
+        </div>
+
+        <!-- Control Center -->
+        <div id="control-center">
+            <div class="cc-module active"><div class="cc-module-icon">📶</div> Wi-Fi</div>
+            <div class="cc-module active"><div class="cc-module-icon">ᛒ</div> Bluetooth</div>
+            <div class="cc-module" id="theme-toggle"><div class="cc-module-icon">🌗</div> Dark Mode</div>
+            <div class="cc-module" onclick="location.reload()"><div class="cc-module-icon">⏻</div> Restart</div>
+        </div>
+
+        <!-- Desktop Grid -->
+        <div id="desktop">
+            <div class="desktop-icon" ondblclick="OS.openApp('finder')">
+                <div style="width:50px;height:50px;border-radius:10px;" class="bg-finder"></div>
+                <span>Macintosh HD</span>
+            </div>
+            <div class="desktop-icon" ondblclick="OS.openApp('notes')">
+                <div style="width:50px;height:50px;border-radius:10px;" class="bg-notes"></div>
+                <span>Read Me.txt</span>
+            </div>
+        </div>
+
+        <!-- Window Container -->
+        <div id="window-container">
+            
+            <!-- App: Finder -->
+            <div class="window" id="app-finder" style="width: 650px; height: 400px; top: 50px; left: 100px;">
+                <div class="titlebar">
+                    <div class="traffic-lights">
+                        <div class="tl-btn tl-close" onclick="OS.closeApp('finder')"></div>
+                        <div class="tl-btn tl-min" onclick="OS.minimizeApp('finder')"></div>
+                        <div class="tl-btn tl-max" onclick="OS.maximizeApp('finder')"></div>
+                    </div>
+                    <div class="window-title">Finder</div>
+                </div>
+                <div class="window-content">
+                    <div class="sidebar">
+                        <div class="sidebar-item active">Desktop</div>
+                        <div class="sidebar-item">Applications</div>
+                        <div class="sidebar-item">Documents</div>
+                        <div class="sidebar-item">Downloads</div>
+                    </div>
+                    <div class="finder-main" id="finder-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- App: Safari -->
+            <div class="window" id="app-safari" style="width: 800px; height: 500px; top: 80px; left: 150px;">
+                <div class="titlebar">
+                    <div class="traffic-lights">
+                        <div class="tl-btn tl-close" onclick="OS.closeApp('safari')"></div>
+                        <div class="tl-btn tl-min" onclick="OS.minimizeApp('safari')"></div>
+                        <div class="tl-btn tl-max" onclick="OS.maximizeApp('safari')"></div>
+                    </div>
+                    <div class="window-title" style="display:none;">Safari</div>
+                </div>
+                <div class="window-content">
+                    <div class="safari-toolbar">
+                        <button class="safari-nav-btn" onclick="document.getElementById('safari-frame').src=document.getElementById('safari-frame').src">↻</button>
+                        <input type="text" class="safari-address" id="safari-url" value="https://en.wikipedia.org/wiki/MacOS" onkeydown="if(event.key==='Enter') OS.apps.safari.navigate()">
+                    </div>
+                    <iframe id="safari-frame" src="https://en.wikipedia.org/wiki/MacOS" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>
+                </div>
+            </div>
+
+            <!-- App: Terminal -->
+            <div class="window" id="app-terminal" style="width: 550px; height: 350px; top: 120px; left: 200px;">
+                <div class="titlebar">
+                    <div class="traffic-lights">
+                        <div class="tl-btn tl-close" onclick="OS.closeApp('terminal')"></div>
+                        <div class="tl-btn tl-min" onclick="OS.minimizeApp('terminal')"></div>
+                        <div class="tl-btn tl-max" onclick="OS.maximizeApp('terminal')"></div>
+                    </div>
+                    <div class="window-title">Terminal - bash</div>
+                </div>
+                <div class="window-content" onclick="document.getElementById('term-input').focus()">
+                    <div id="term-output">Last login: <span id="term-date"></span> on ttys000<br>Welcome to macOS Web Experience!<br>Type 'help' for commands.<br></div>
+                    <div class="term-line">
+                        <span class="term-prompt">guest@macOS ~ %</span>
+                        <input type="text" id="term-input" autocomplete="off" spellcheck="false">
+                    </div>
+                </div>
+            </div>
+
+            <!-- App: Notes -->
+            <div class="window" id="app-notes" style="width: 600px; height: 400px; top: 100px; left: 250px;">
+                <div class="titlebar">
+                    <div class="traffic-lights">
+                        <div class="tl-btn tl-close" onclick="OS.closeApp('notes')"></div>
+                        <div class="tl-btn tl-min" onclick="OS.minimizeApp('notes')"></div>
+                        <div class="tl-btn tl-max" onclick="OS.maximizeApp('notes')"></div>
+                    </div>
+                    <div class="window-title">Notes</div>
+                </div>
+                <div class="window-content">
+                    <div class="notes-list">
+                        <div class="note-item">Quick Note<p>Everything typed here is saved...</p></div>
+                    </div>
+                    <textarea id="notes-area" placeholder="Start typing... Data is saved locally."></textarea>
+                </div>
+            </div>
+
+            <!-- App: Calculator -->
+            <div class="window" id="app-calculator" style="width: 240px; height: 340px; top: 150px; left: 300px;">
+                <div class="titlebar">
+                    <div class="traffic-lights">
+                        <div class="tl-btn tl-close" onclick="OS.closeApp('calculator')"></div>
+                        <div class="tl-btn tl-min" onclick="OS.minimizeApp('calculator')"></div>
+                    </div>
+                </div>
+                <div class="window-content">
+                    <div class="calc-display" id="calc-display">0</div>
+                    <div class="calc-grid" onclick="OS.apps.calculator.handle(event)">
+                        <button class="calc-btn top">AC</button><button class="calc-btn top">+/-</button><button class="calc-btn top">%</button><button class="calc-btn op">÷</button>
+                        <button class="calc-btn">7</button><button class="calc-btn">8</button><button class="calc-btn">9</button><button class="calc-btn op">×</button>
+                        <button class="calc-btn">4</button><button class="calc-btn">5</button><button class="calc-btn">6</button><button class="calc-btn op">-</button>
+                        <button class="calc-btn">1</button><button class="calc-btn">2</button><button class="calc-btn">3</button><button class="calc-btn op">+</button>
+                        <button class="calc-btn zero">0</button><button class="calc-btn">.</button><button class="calc-btn op">=</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- App: Settings -->
+            <div class="window" id="app-settings" style="width: 550px; height: 400px; top: 180px; left: 350px;">
+                <div class="titlebar">
+                    <div class="traffic-lights">
+                        <div class="tl-btn tl-close" onclick="OS.closeApp('settings')"></div>
+                        <div class="tl-btn tl-min" onclick="OS.minimizeApp('settings')"></div>
+                        <div class="tl-btn tl-max" onclick="OS.maximizeApp('settings')"></div>
+                    </div>
+                    <div class="window-title">System Settings</div>
+                </div>
+                <div class="window-content">
+                    <div class="settings-sidebar">
+                        <div class="sidebar-item active">Wallpaper</div>
+                        <div class="sidebar-item">Appearance</div>
+                        <div class="sidebar-item">About This Mac</div>
+                    </div>
+                    <div class="settings-main">
+                        <h3>Choose Wallpaper</h3>
+                        <div class="wp-grid" id="wp-grid">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Dock -->
+        <div id="dock-container">
+            <div id="dock">
+                <div class="dock-item bg-finder" onclick="OS.openApp('finder')" id="dock-finder"><div class="dock-tooltip">Finder</div></div>
+                <div class="dock-item bg-safari" onclick="OS.openApp('safari')" id="dock-safari"><div class="dock-tooltip">Safari</div></div>
+                <div class="dock-item bg-notes" onclick="OS.openApp('notes')" id="dock-notes"><div class="dock-tooltip">Notes</div></div>
+                <div class="dock-item bg-terminal" onclick="OS.openApp('terminal')" id="dock-terminal"><div class="dock-tooltip">Terminal</div></div>
+                <div class="dock-item bg-calc" onclick="OS.openApp('calculator')" id="dock-calculator"><div class="dock-tooltip">Calculator</div></div>
+                <div class="dock-item bg-settings" onclick="OS.openApp('settings')" id="dock-settings"><div class="dock-tooltip">System Settings</div></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /**
+         * OS CORE SYSTEM
+         */
+        const OS = {
+            zIndex: 100,
+            activeApp: 'Finder',
+            apps: {},
+            fs: {}, // Virtual File System
+            
+            init() {
+                this.bootSequence();
+                this.setupClock();
+                this.setupWindows();
+                this.setupControlCenter();
+                this.initApps();
+            },
+
+            bootSequence() {
+                // Boot Progress
+                setTimeout(() => { document.getElementById('boot-progress').style.width = '100%'; }, 500);
+                
+                // Show Login Screen
+                setTimeout(() => {
+                    document.getElementById('boot-screen').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('boot-screen').style.display = 'none';
+                        document.getElementById('login-screen').style.opacity = '1';
+                        document.getElementById('login-screen').style.pointerEvents = 'auto';
+                        document.getElementById('login-pass').focus();
+                    }, 500);
+                }, 3000);
+
+                // Handle Login
+                document.getElementById('login-pass').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        document.getElementById('login-screen').style.opacity = '0';
+                        document.getElementById('login-screen').style.pointerEvents = 'none';
+                        document.getElementById('os-environment').style.opacity = '1';
+                        // Play fake startup sound if we wanted to
+                    }
+                });
+            },
+
+            setupClock() {
+                const update = () => {
+                    const now = new Date();
+                    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                    let h = now.getHours();
+                    let m = now.getMinutes();
+                    const ampm = h >= 12 ? 'PM' : 'AM';
+                    h = h % 12 || 12;
+                    m = m < 10 ? '0' + m : m;
+                    document.getElementById('clock').innerText = `${days[now.getDay()]} ${now.getMonth()+1}/${now.getDate()}  ${h}:${m} ${ampm}`;
+                };
+                setInterval(update, 1000);
+                update();
+                document.getElementById('term-date').innerText = new Date().toLocaleString();
+            },
+
+            setupControlCenter() {
+                const cc = document.getElementById('control-center');
+                const btn = document.getElementById('cc-toggle');
+                
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    cc.style.display = cc.style.display === 'grid' ? 'none' : 'grid';
+                });
+                
+                document.addEventListener('click', (e) => {
+                    if (!cc.contains(e.target) && e.target !== btn) cc.style.display = 'none';
+                });
+
+                // Theme Toggle
+                const themeBtn = document.getElementById('theme-toggle');
+                themeBtn.addEventListener('click', () => {
+                    const html = document.documentElement;
+                    if(html.getAttribute('data-theme') === 'dark') {
+                        html.setAttribute('data-theme', 'light');
+                        themeBtn.classList.remove('active');
+                    } else {
+                        html.setAttribute('data-theme', 'dark');
+                        themeBtn.classList.add('active');
+                    }
+                });
+            },
+
+            // --- Window Management ---
+            openApp(appId) {
+                const win = document.getElementById(`app-${appId}`);
+                const dock = document.getElementById(`dock-${appId}`);
+                if (!win) return;
+
+                win.classList.add('active');
+                win.classList.remove('minimized');
+                dock.classList.add('open');
+                this.focusApp(appId);
+
+                // Specific app triggers
+                if(appId === 'terminal') document.getElementById('term-input').focus();
+            },
+
+            closeApp(appId) {
+                const win = document.getElementById(`app-${appId}`);
+                const dock = document.getElementById(`dock-${appId}`);
+                win.classList.remove('active', 'fullscreen');
+                dock.classList.remove('open');
+                document.getElementById('menu-app-name').innerText = 'Finder';
+            },
+
+            minimizeApp(appId) {
+                document.getElementById(`app-${appId}`).classList.add('minimized');
+            },
+
+            maximizeApp(appId) {
+                document.getElementById(`app-${appId}`).classList.toggle('fullscreen');
+            },
+
+            focusApp(appId) {
+                const win = document.getElementById(`app-${appId}`);
+                if(!win.classList.contains('active')) return;
+                
+                this.zIndex++;
+                win.style.zIndex = this.zIndex;
+                
+                // Capitalize first letter for menu
+                const name = appId.charAt(0).toUpperCase() + appId.slice(1);
+                document.getElementById('menu-app-name').innerText = name;
+            },
+
+            setupWindows() {
+                document.querySelectorAll('.window').forEach(win => {
+                    const titlebar = win.querySelector('.titlebar');
+                    const appId = win.id.replace('app-', '');
+                    
+                    win.addEventListener('mousedown', () => this.focusApp(appId));
+                    win.addEventListener('touchstart', () => this.focusApp(appId), {passive: true});
+
+                    let isDragging = false;
+                    let offsetX, offsetY;
+
+                    const startDrag = (e) => {
+                        if (e.target.closest('.traffic-lights') || win.classList.contains('fullscreen')) return;
+                        isDragging = true;
+                        const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+                        const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+                        
+                        offsetX = clientX - win.offsetLeft;
+                        offsetY = clientY - win.offsetTop;
+                    };
+
+                    const drag = (e) => {
+                        if (!isDragging) return;
+                        e.preventDefault();
+                        const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+                        const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+                        
+                        let newY = clientY - offsetY;
+                        if (newY < 28) newY = 28; // Prevent going under menu bar
+                        
+                        win.style.left = `${clientX - offsetX}px`;
+                        win.style.top = `${newY}px`;
+                    };
+
+                    const stopDrag = () => { isDragging = false; };
+
+                    titlebar.addEventListener('mousedown', startDrag);
+                    document.addEventListener('mousemove', drag);
+                    document.addEventListener('mouseup', stopDrag);
+                    
+                    titlebar.addEventListener('touchstart', startDrag, {passive: false});
+                    document.addEventListener('touchmove', drag, {passive: false});
+                    document.addEventListener('touchend', stopDrag);
+                });
+            },
+
+            // --- Individual Apps Logic ---
+            initApps() {
+                this.apps.notes.init();
+                this.apps.terminal.init();
+                this.apps.finder.init();
+                this.apps.settings.init();
+                this.apps.safari.init();
+                // Calculator uses inline onclick events connected directly to OS.apps.calculator.handle
+            }
+        };
+
+        // --- NOTES APP ---
+        OS.apps.notes = {
+            init() {
+                const area = document.getElementById('notes-area');
+                const saved = localStorage.getItem('macos-notes');
+                if (saved) area.value = saved;
+                area.addEventListener('input', (e) => localStorage.setItem('macos-notes', e.target.value));
+            }
+        };
+
+        // --- SAFARI APP ---
+        OS.apps.safari = {
+            init() {},
+            navigate() {
+                let url = document.getElementById('safari-url').value;
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    url = 'https://' + url;
+                }
+                document.getElementById('safari-frame').src = url;
+            }
+        };
+
+        // --- TERMINAL APP ---
+        OS.apps.terminal = {
+            history: [],
+            hIndex: 0,
+            init() {
+                const input = document.getElementById('term-input');
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        const cmd = input.value.trim();
+                        this.print(`guest@macOS ~ % ${cmd}`, '#fff');
+                        input.value = '';
+                        if(cmd) {
+                            this.history.push(cmd);
+                            this.hIndex = this.history.length;
+                            this.execute(cmd);
+                        }
+                    } else if (e.key === 'ArrowUp') {
+                        if (this.hIndex > 0) input.value = this.history[--this.hIndex];
+                    } else if (e.key === 'ArrowDown') {
+                        if (this.hIndex < this.history.length - 1) input.value = this.history[++this.hIndex];
+                        else { this.hIndex = this.history.length; input.value = ''; }
+                    }
+                });
+            },
+            print(text, color='#ccc') {
+                const out = document.getElementById('term-output');
+                const span = document.createElement('span');
+                span.style.color = color;
+                span.innerHTML = text + '<br>';
+                out.appendChild(span);
+                out.scrollTop = out.scrollHeight;
+            },
+            execute(rawCmd) {
+                const args = rawCmd.split(' ');
+                const cmd = args[0].toLowerCase();
+                
+                switch(cmd) {
+                    case 'clear': document.getElementById('term-output').innerHTML = ''; break;
+                    case 'help': this.print('Commands: clear, help, echo, date, whoami, ls, uname'); break;
+                    case 'echo': this.print(args.slice(1).join(' ')); break;
+                    case 'date': this.print(new Date().toString()); break;
+                    case 'whoami': this.print('guest'); break;
+                    case 'uname': this.print('Darwin Kernel Version 23.0.0'); break;
+                    case 'ls': this.print('Applications  Desktop  Documents  Downloads  Library'); break;
+                    default: this.print(`zsh: command not found: ${cmd}`, '#ff5f56');
+                }
+            }
+        };
+
+        // --- CALCULATOR APP ---
+        OS.apps.calculator = {
+            curr: '0', prev: null, op: null, reset: false,
+            handle(e) {
+                if(!e.target.classList.contains('calc-btn')) return;
+                const val = e.target.innerText;
+                const display = document.getElementById('calc-display');
+
+                if (val >= '0' && val <= '9') {
+                    if(this.curr === '0' || this.reset) this.curr = val;
+                    else this.curr += val;
+                    this.reset = false;
+                } else if (val === '.') {
+                    if(!this.curr.includes('.')) this.curr += '.';
+                } else if (val === 'AC') {
+                    this.curr = '0'; this.prev = null; this.op = null;
+                } else if (val === '+/-') {
+                    this.curr = (parseFloat(this.curr) * -1).toString();
+                } else if (val === '%') {
+                    this.curr = (parseFloat(this.curr) / 100).toString();
+                } else if (['+', '-', '×', '÷'].includes(val)) {
+                    if(this.prev && !this.reset) this.calculate();
+                    this.prev = this.curr;
+                    this.op = val;
+                    this.reset = true;
+                } else if (val === '=') {
+                    this.calculate();
+                    this.op = null;
+                }
+                
+                // Format display length
+                let out = this.curr;
+                if(out.length > 9) out = parseFloat(out).toPrecision(9).replace(/(\.0+|0+)$/, '');
+                display.innerText = out;
+            },
+            calculate() {
+                if(!this.prev || !this.op) return;
+                let p = parseFloat(this.prev), c = parseFloat(this.curr), res = 0;
+                if(this.op === '+') res = p + c;
+                if(this.op === '-') res = p - c;
+                if(this.op === '×') res = p * c;
+                if(this.op === '÷') res = c === 0 ? 'Error' : p / c;
+                this.curr = res.toString();
+                this.reset = true;
+            }
+        };
+
+        // --- SETTINGS APP ---
+        OS.apps.settings = {
+            wallpapers: [
+                'https://images.unsplash.com/photo-1693222384736-23507df13123?q=80&w=2560&auto=format&fit=crop', // Sonoma
+                'https://images.unsplash.com/photo-1622737133809-d95047b9e673?q=80&w=2560&auto=format&fit=crop', // Big Sur
+                'https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?q=80&w=2560&auto=format&fit=crop', // Monterey
+                'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=2560&auto=format&fit=crop'  // Abstract Color
+            ],
+            init() {
+                const grid = document.getElementById('wp-grid');
+                this.wallpapers.forEach(wp => {
+                    const div = document.createElement('div');
+                    div.className = 'wp-item';
+                    div.style.backgroundImage = `url('${wp}')`;
+                    div.onclick = () => {
+                        document.documentElement.style.setProperty('--wallpaper', `url('${wp}')`);
+                        localStorage.setItem('macos-wallpaper', wp);
+                    };
+                    grid.appendChild(div);
+                });
+                
+                // Load saved wallpaper
+                const saved = localStorage.getItem('macos-wallpaper');
+                if(saved) document.documentElement.style.setProperty('--wallpaper', `url('${saved}')`);
+            }
+        };
+
+        // --- FINDER APP ---
+        OS.apps.finder = {
+            items: [
+                { name: 'Applications', icon: '📁' },
+                { name: 'Desktop', icon: '📁' },
+                { name: 'Documents', icon: '📁' },
+                { name: 'Downloads', icon: '⬇️' },
+                { name: 'Notes.txt', icon: '📝' },
+                { name: 'System.dmg', icon: '💿' }
+            ],
+            init() {
+                const grid = document.getElementById('finder-grid');
+                this.items.forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = 'desktop-icon';
+                    el.innerHTML = `<div style="font-size: 40px;">${item.icon}</div><span style="color:var(--text-main); background:transparent;">${item.name}</span>`;
+                    grid.appendChild(el);
+                });
+            }
+        };
+
+        // START OS
+        window.onload = () => OS.init();
+
+    </script>
+</body>
+</html>
+

@@ -87,6 +87,20 @@ Color: Warm beige (RGB 200,180,140)
 Shape: Cube block
 Placed like any other block.
 
+-------------------------------------------------------------
+
+# NEW BOSS SPAWNER RECIPE
+
+Ingredients:
+  3 Ash Blocks (ID 7)
+  and a torch (ID 4) (they spawn as the new tree leaves)
+
+OutPut:
+  Boss Spawner (ID 15)
+
+functionality:
+  place the block look at it and right click on it to spawn the boss click f9 till its dead for the end credits
+  
 ------------------------------------------------------------
 
 # SLEEPING SYSTEM
@@ -131,6 +145,22 @@ Day — Blue
 Sunset — Red/orange
 Night — Dark blue
 Hell — Permanent red fog
+
+------------------------------------------------------------
+
+# WEATHER
+
+Features:
+  - if the sky is clear after 60 seconds rtheres a random chance for:
+     - thunder
+     - snow
+     - or rain
+     - sometimes still a clear sky
+  to happen
+  - rain makes the sky go a bit darker
+  - thudnerstorm has the same sky dampening but with a random flash that will happen at a random time
+  - snow turns the sky a pinkish color
+  - sky modifiers apply to the hell dimensions sky like dampening or pinkish transiformatio nwill happen in either dimension, not day or night cycle tough
 
 ------------------------------------------------------------
 
@@ -211,6 +241,53 @@ Only works in Overworld.
 
 ------------------------------------------------------------
 
+# SPAWNER APPERANCE
+
+Block ID: 30
+Color: Magenta
+Shape: Cube
+Function: Right-click to spawn boss
+Works in any Dimension
+
+------------------------------------------------------------
+
+## Menus/UIs
+
+   - Main Menu
+      - Appears When The Game Window Opens
+      - Has: play button, Multiplayer Button, multiplayer VIA Win12Pages, Marketplace
+   - Multiplayer Menu
+      - Appears when you click Multiplayer in Main Menu
+      - Has: Url to World Zip field, a look for an IP Adress, join button, and back button
+   - Multiplayer Win12Pages
+      - Appears when you click Multiplayer VIA Win12Pages
+      - HAs: a url field and join and cancel
+   - Marketplace
+     - Appears When You Click MArketplace
+     - Just A tip its all free you'll see what it has.
+   - Play Menu
+     - Appears When You Click Play In Main Menu
+     - Has:
+        - Top Bar:
+          - Text: Saved Levels
+          - A Search Level Box
+        - Middle Row
+          - A List Of Exsisting Levels
+        - Bottom Controlls
+          - Create New Level BUtton
+            - Enter NAme and Options to then be met wiht yoru world
+          - Play Level
+            - Play Selected Level
+          - Edit Level
+            - LEts You Edit Level Options
+          - Rename
+            - LEts You Rename A LEvel
+          - Delete
+            - Lets You Delete Levels
+          - Back
+            - Lets You HEAD Back To MAin MEnu
+
+----------------------------------------------------------
 # CONCLUSION
 
 Your voxel engine includes:
@@ -224,5 +301,8 @@ Your voxel engine includes:
 - NPCs
 - Rendering pipeline
 - Sky system
+- Game Like Menus
+- A Full Realistic Weather System
+- And A Boss To Defeat
 
 This README documents everything currently implemented.

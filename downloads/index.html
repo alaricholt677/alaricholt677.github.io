@@ -1,239 +1,678 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title></title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<title>IRL Simulator — Wiki</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+    * { box-sizing: border-box; }
+
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        overflow-x: hidden;
+        color: #202020;
+    }
+
+    /* Parallax background container */
+    #parallax {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        overflow: hidden;
+        background: #4c8c4a;
+    }
+
+    .layer {
+        position: absolute;
+        width: 200%;
+        height: 200%;
+        opacity: 0.4;
+        background-size: 64px 64px;
+        background-repeat: repeat;
+    }
+
+    /* Blocky “voxel” style layers using gradients */
+    .layer1 {
+        background-image:
+          linear-gradient(45deg, #3b6b35 25%, #4f8c47 25%, #4f8c47 50%, #3b6b35 50%, #3b6b35 75%, #4f8c47 75%, #4f8c47 100%);
+    }
+    .layer2 {
+        background-image:
+          linear-gradient(45deg, #6b4a2f 25%, #8c6239 25%, #8c6239 50%, #6b4a2f 50%, #6b4a2f 75%, #8c6239 75%, #8c6239 100%);
+    }
+    .layer3 {
+        background-image:
+          linear-gradient(45deg, #777777 25%, #999999 25%, #999999 50%, #777777 50%, #777777 75%, #999999 75%, #999999 100%);
+    }
+
+    /* Sidebar */
+    #sidebar {
+        width: 260px;
+        background: rgba(245,245,245,0.96);
+        height: 100vh;
+        position: fixed;
+        left: 0;
+        top: 0;
+        padding: 20px;
+        border-right: 3px solid #c6c6c6;
+        overflow-y: auto;
+    }
+
+    #sidebar h2 {
+        margin-top: 0;
+        font-size: 22px;
+        color: #3c6eb4;
+    }
+
+    #sidebar input {
+        width: 100%;
+        padding: 6px;
+        margin-bottom: 10px;
+    }
+
+    #sidebar a {
+        display: block;
+        padding: 4px 0;
+        color: #1a1a1a;
+        text-decoration: none;
+        font-size: 14px;
+    }
+
+    #sidebar a:hover {
+        color: #3c6eb4;
+        text-decoration: underline;
+    }
+
+    #searchResults a {
+        font-style: italic;
+    }
+
+    /* Content */
+    #content {
+        margin-left: 260px;
+        padding: 30px;
+        min-height: 100vh;
+        background: rgba(255,255,255,0.94);
+    }
+
+    h1, h2 {
+        color: #3c6eb4;
+        border-bottom: 2px solid #d0d0d0;
+        padding-bottom: 4px;
+    }
+
+    h3 {
+        color: #3c6eb4;
+    }
+
+    pre {
+        background: #f3f3f3;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #d0d0d0;
+        overflow-x: auto;
+    }
+
+    hr {
+        border: 0;
+        border-bottom: 1px solid #d0d0d0;
+        margin: 30px 0;
+    }
+
+    .page {
+        display: none;
+    }
+
+    .page.active {
+        display: block;
+    }
+
+    ul, ol {
+        margin-top: 5px;
+    }
+
+    .infobox {
+        float: right;
+        width: 260px;
+        background: #f8f8f8;
+        border: 2px solid #c6c6c6;
+        padding: 10px;
+        margin: 10px;
+        font-size: 14px;
+    }
+
+    .infobox h3 {
+        margin-top: 0;
+        border-bottom: 1px solid #c6c6c6;
+    }
+
+    @media (max-width: 800px) {
+        #sidebar {
+            position: static;
+            width: 100%;
+            height: auto;
+            border-right: none;
+            border-bottom: 3px solid #c6c6c6;
+        }
+        #content {
+            margin-left: 0;
+        }
+        .infobox {
+            float: none;
+            width: 100%;
+        }
+    }
+</style>
 </head>
 <body>
-  <h1>Voxel IRL Simulator — Official README</h1>
 
-<h2>Overview</h2>
-This is a custom-built voxel engine featuring:
-- Full day/night cycle
-- Dynamic sky colors (Overworld + Hell)
-- Hell dimension with ash hills and red fog
-- Crafting system with a 3×3 crafting table
-- Beds you can craft, place, and sleep in
-- Water + pee survival system
-- Humans with simple AI wandering behavior
-- Chat system with commands
-- Custom 3D renderer with sky color support
+<!-- Parallax background -->
+<div id="parallax">
+    <div class="layer layer1"></div>
+    <div class="layer layer2"></div>
+    <div class="layer layer3"></div>
+</div>
 
-This README explains every block, recipe, control, mechanic, and system.
+<!-- Sidebar -->
+<div id="sidebar">
+    <h2>IRL Simulator Wiki</h2>
+    <input id="searchBox" placeholder="Search pages...">
+    <div id="searchResults"></div>
 
-------------------------------------------------------------
+    <h3>Pages</h3>
+    <a href="#" data-page="overview">Overview</a>
+    <a href="#" data-page="controls">Controls</a>
+    <a href="#" data-page="chat">Chat System</a>
+    <a href="#" data-page="blocks">Block List</a>
+    <a href="#" data-page="crafting">Crafting System</a>
+    <a href="#" data-page="bed">Bed Recipe</a>
+    <a href="#" data-page="boss">Boss Spawner Recipe</a>
+    <a href="#" data-page="sleeping">Sleeping System</a>
+    <a href="#" data-page="daynight">Day / Night Cycle</a>
+    <a href="#" data-page="weather">Weather</a>
+    <a href="#" data-page="hell">Hell Dimension</a>
+    <a href="#" data-page="humans">Humans (NPCs)</a>
+    <a href="#" data-page="waterpee">Water + Pee System</a>
+    <a href="#" data-page="saving">Saving System</a>
+    <a href="#" data-page="craftingtable">Crafting Table Appearance</a>
+    <a href="#" data-page="bedappearance">Bed Appearance</a>
+    <a href="#" data-page="spawnerappearance">Spawner Appearance</a>
+    <a href="#" data-page="menus">Menus / UIs</a>
+    <a href="#" data-page="conclusion">Conclusion</a>
+</div>
 
-<h1>CONTROLS</h1>
+<!-- Content -->
+<div id="content">
 
-Movement:
-W A S D — Move
-Space — Jump
-Shift — Sneak / slow movement
-Mouse — Look around
-Scroll Wheel — Change hotbar slot
+    <!-- Overview -->
+    <div class="page active" id="page-overview">
+        <h1>Voxel IRL Simulator — Overview</h1>
 
-Interaction:
-Left Click — Break block / attack
-Right Click — Place block / interact
-E — Open crafting table (when looking at one)
-T — Open chat
-ESC — Pause menu
+        <div class="infobox">
+            <h3>Game Info</h3>
+            <b>Type:</b> Custom-built voxel engine<br>
+            <b>Dimensions:</b> Overworld + Hell<br>
+            <b>Core Systems:</b> Survival, crafting, weather, NPCs, boss<br>
+        </div>
 
-------------------------------------------------------------
+        <p>This is a custom-built voxel engine featuring:</p>
+        <ul>
+            <li>Full day/night cycle</li>
+            <li>Dynamic sky colors (Overworld + Hell)</li>
+            <li>Hell dimension with ash hills and red fog</li>
+            <li>Crafting system with a 3×3 crafting table</li>
+            <li>Beds you can craft, place, and sleep in</li>
+            <li>Water + pee survival system</li>
+            <li>Humans with simple AI wandering behavior</li>
+            <li>Chat system with commands</li>
+            <li>Custom 3D renderer with sky color support</li>
+        </ul>
 
-<h1>CHAT SYSTEM</h1>
+        <p>This README explains every block, recipe, control, mechanic, and system.</p>
+    </div>
 
-Press T to open chat.
+    <!-- Controls -->
+    <div class="page" id="page-controls">
+        <h1>Controls</h1>
 
-Commands:
- /tp x y z — Teleport to coordinates
- /time set day — Set time to sunrise
- /time set night — Set time to midnight
- /save — Manually save the world
- /spawn — Teleport to spawn point
- /hell — Teleport to Hell dimension
- /overworld — Return to Overworld
+        <h2>Movement</h2>
+        <p>
+            W A S D — Move<br>
+            Space — Jump<br>
+            Shift — Sneak / slow movement<br>
+            Mouse — Look around<br>
+            Scroll Wheel — Change hotbar slot
+        </p>
 
-------------------------------------------------------------
+        <h2>Interaction</h2>
+        <p>
+            Left Click — Break block / attack<br>
+            Right Click — Place block / interact<br>
+            E — Open crafting table (when looking at one)<br>
+            T — Open chat<br>
+            ESC — Pause menu
+        </p>
+    </div>
 
-<h1>BLOCK LIST</h1>
+    <!-- Chat System -->
+    <div class="page" id="page-chat">
+        <h1>Chat System</h1>
+        <p>Press T to open chat.</p>
 
-ID 0 — Air  
-ID 1 — Grass  
-ID 2 — Dirt  
-ID 3 — Stone  
-ID 4 — Torch  
-ID 7 — Ash (found in Hell, used to craft beds)  
-ID 20 — Crafting Table  
-ID 30 — Bed  
+        <h2>Commands</h2>
+        <pre>
+/tp x y z — Teleport to coordinates
+/time set day — Set time to sunrise
+/time set night — Set time to midnight
+/save — Manually save the world
+/spawn — Teleport to spawn point
+/hell — Teleport to Hell dimension
+/overworld — Return to Overworld
+        </pre>
+    </div>
 
-------------------------------------------------------------
+    <!-- Block List -->
+    <div class="page" id="page-blocks">
+        <h1>Block List</h1>
+        <pre>
+ID 0 — Air
+ID 1 — Grass
+ID 2 — Dirt
+ID 3 — Stone
+ID 4 — Torch
+ID 7 — Ash (found in Hell, used to craft beds)
+ID 20 — Crafting Table
+ID 30 — Bed
+        </pre>
+    </div>
 
-<h1>CRAFTING SYSTEM</h1>
+    <!-- Crafting System -->
+    <div class="page" id="page-crafting">
+        <h1>Crafting System</h1>
+        <p>How crafting works:</p>
+        <ol>
+            <li>Right-click a crafting table.</li>
+            <li>A 3×3 grid appears.</li>
+            <li>Drag items from your hotbar into the grid.</li>
+            <li>If the recipe is valid, a result appears.</li>
+            <li>Drag the result into your inventory.</li>
+        </ol>
+    </div>
 
-How crafting works:
-1. Right-click a crafting table.
-2. A 3×3 grid appears.
-3. Drag items from your hotbar into the grid.
-4. If the recipe is valid, a result appears.
-5. Drag the result into your inventory.
+    <!-- Bed Recipe -->
+    <div class="page" id="page-bed">
+        <h1>Bed Recipe</h1>
 
-------------------------------------------------------------
+        <h2>Ingredients</h2>
+        <p>3 or more Ash blocks (ID 7)</p>
 
-<h1>BED RECIPE</h1>
+        <h2>Recipe Logic</h2>
+        <p>If the crafting grid contains 3+ Ash blocks, the output is: Bed (Block ID 30).</p>
 
-Ingredients:
-3 or more Ash blocks (ID 7)
+        <h2>Bed Appearance</h2>
+        <p>
+            Color: Warm beige (RGB 200,180,140)<br>
+            Shape: Cube block<br>
+            Placed like any other block.
+        </p>
+    </div>
 
-Recipe Logic:
-If the crafting grid contains 3+ Ash blocks, the output is:
-Bed (Block ID 30)
+    <!-- Boss Spawner Recipe -->
+    <div class="page" id="page-boss">
+        <h1>New Boss Spawner Recipe</h1>
 
-Bed Appearance:
-Color: Warm beige (RGB 200,180,140)
-Shape: Cube block
-Placed like any other block.
+        <h2>Ingredients</h2>
+        <ul>
+            <li>3 Ash Blocks (ID 7)</li>
+            <li>1 Torch (ID 4) (they spawn as the new tree leaves)</li>
+        </ul>
 
-------------------------------------------------------------
+        <h2>Output</h2>
+        <p>Boss Spawner (ID 15)</p>
 
-<h1>SLEEPING SYSTEM</h1>
+        <h2>Functionality</h2>
+        <p>
+            Place the block, look at it, and right-click on it to spawn the boss.<br>
+            Click F9 until it's dead for the end credits.
+        </p>
+    </div>
 
-How to sleep:
-1. Place a bed.
-2. Right-click the bed.
+    <!-- Sleeping System -->
+    <div class="page" id="page-sleeping">
+        <h1>Sleeping System</h1>
 
-What happens when you sleep:
-- Camera tilts downward (lying down animation)
-- Screen darkens slightly
-- All water is converted into pee
-- Water meter resets to 0
-- Pee meter increases
-- Time jumps to sunrise
-<pre>- Chat message: "&lt;System&gt; You wake up feeling... relieved."</pre>
+        <h2>How to Sleep</h2>
+        <ol>
+            <li>Place a bed.</li>
+            <li>Right-click the bed.</li>
+        </ol>
 
-Why sleep matters:
-- Skips night
-- Resets hydration cycle
-- Sets spawn point (optional)
+        <h2>What Happens When You Sleep</h2>
+        <ul>
+            <li>Camera tilts downward (lying down animation)</li>
+            <li>Screen darkens slightly</li>
+            <li>All water is converted into pee</li>
+            <li>Water meter resets to 0</li>
+            <li>Pee meter increases</li>
+            <li>Time jumps to sunrise</li>
+            <li>Chat message: "&lt;System&gt; You wake up feeling... relieved."</li>
+        </ul>
 
-------------------------------------------------------------
+        <h2>Why Sleep Matters</h2>
+        <ul>
+            <li>Skips night</li>
+            <li>Resets hydration cycle</li>
+            <li>Sets spawn point (optional)</li>
+        </ul>
+    </div>
 
-<h1>DAY / NIGHT CYCLE</h1>
+    <!-- Day / Night Cycle -->
+    <div class="page" id="page-daynight">
+        <h1>Day / Night Cycle</h1>
 
-Cycle Length:
-24000 ticks total
-60 ticks per second
-6 minutes 40 seconds per full day
+        <h2>Cycle Length</h2>
+        <p>
+            24000 ticks total<br>
+            60 ticks per second<br>
+            6 minutes 40 seconds per full day
+        </p>
 
-Phases:
+        <h2>Phases</h2>
+        <pre>
 0 — Sunrise
 6000 — Noon
 12000 — Sunset
 18000 — Midnight
 24000 → 0 — Sunrise again
+        </pre>
 
-Sky Colors:
-Sunrise — Orange
-Day — Blue
-Sunset — Red/orange
-Night — Dark blue
-Hell — Permanent red fog
+        <h2>Sky Colors</h2>
+        <ul>
+            <li>Sunrise — Orange</li>
+            <li>Day — Blue</li>
+            <li>Sunset — Red/orange</li>
+            <li>Night — Dark blue</li>
+            <li>Hell — Permanent red fog</li>
+        </ul>
+    </div>
 
-------------------------------------------------------------
+    <!-- Weather -->
+    <div class="page" id="page-weather">
+        <h1>Weather</h1>
 
-<h1>HELL DIMENSION</h1>
+        <h2>Features</h2>
+        <ul>
+            <li>If the sky is clear, after 60 seconds there's a random chance for:
+                <ul>
+                    <li>Thunder</li>
+                    <li>Snow</li>
+                    <li>Rain</li>
+                    <li>Or still a clear sky</li>
+                </ul>
+            </li>
+            <li>Rain makes the sky go a bit darker</li>
+            <li>Thunderstorm has the same sky dampening but with a random flash at a random time</li>
+            <li>Snow turns the sky a pinkish color</li>
+            <li>Sky modifiers apply to the Hell dimension sky (dampening or pinkish transformation will happen in either dimension, but not tied to day/night cycle)</li>
+        </ul>
+    </div>
 
-Features:
-- Red sky and fog
-- Ash hills
-- Ash block (ID 7)
-- No day/night cycle
-- Procedural terrain
+    <!-- Hell Dimension -->
+    <div class="page" id="page-hell">
+        <h1>Hell Dimension</h1>
 
-Travel:
-Use /hell and /overworld commands.
+        <h2>Features</h2>
+        <ul>
+            <li>Red sky and fog</li>
+            <li>Ash hills</li>
+            <li>Ash block (ID 7)</li>
+            <li>No day/night cycle</li>
+            <li>Procedural terrain</li>
+        </ul>
 
-------------------------------------------------------------
+        <h2>Travel</h2>
+        <p>Use <code>/hell</code> and <code>/overworld</code> commands.</p>
+    </div>
 
-<h1>HUMANS (NPCs)</h1>
+    <!-- Humans -->
+    <div class="page" id="page-humans">
+        <h1>Humans (NPCs)</h1>
 
-Behavior:
-- Wander around
-- Avoid Hell unless forced
-- Saved/loaded with the world
-- Rendered as dynamic entities
+        <h2>Behavior</h2>
+        <ul>
+            <li>Wander around</li>
+            <li>Avoid Hell unless forced</li>
+            <li>Saved/loaded with the world</li>
+            <li>Rendered as dynamic entities</li>
+        </ul>
+    </div>
 
-------------------------------------------------------------
+    <!-- Water + Pee System -->
+    <div class="page" id="page-waterpee">
+        <h1>Water + Pee System</h1>
 
-<h1>WATER + PEE SYSTEM</h1>
+        <h2>Water Meter</h2>
+        <ul>
+            <li>Increases when drinking</li>
+            <li>Decreases over time</li>
+            <li>If full, pee increases faster</li>
+        </ul>
 
-Water Meter:
-- Increases when drinking
-- Decreases over time
-- If full, pee increases faster
+        <h2>Pee Meter</h2>
+        <ul>
+            <li>Increases naturally</li>
+            <li>Increases a lot when sleeping</li>
+            <li>Can be drained later (bathroom block planned)</li>
+        </ul>
+    </div>
 
-Pee Meter:
-- Increases naturally
-- Increases a lot when sleeping
-- Can be drained later (bathroom block planned)
+    <!-- Saving System -->
+    <div class="page" id="page-saving">
+        <h1>Saving System</h1>
 
-------------------------------------------------------------
+        <h2>Autosave</h2>
+        <p>Runs every few minutes.</p>
 
-<h1>SAVING SYSTEM</h1>
+        <h2>Manual Save</h2>
+        <p>Use <code>/save</code>.</p>
 
-Autosave:
-Runs every few minutes.
+        <h2>Saved Data</h2>
+        <ul>
+            <li>Player position</li>
+            <li>Hotbar</li>
+            <li>Water + pee</li>
+            <li>Time of day</li>
+            <li>Humans</li>
+            <li>Overworld terrain</li>
+        </ul>
 
-Manual Save:
-Use /save
+        <p>Hell is procedural and not saved.</p>
+    </div>
 
-Saved Data:
-- Player position
-- Hotbar
-- Water + pee
-- Time of day
-- Humans
-- Overworld terrain
+    <!-- Crafting Table Appearance -->
+    <div class="page" id="page-craftingtable">
+        <h1>Crafting Table Appearance</h1>
+        <p>
+            Block ID: 20<br>
+            Color: Brown wood<br>
+            Function: Opens crafting UI when right-clicked<br>
+            Used for all recipes.
+        </p>
+    </div>
 
-Hell is procedural and not saved.
+    <!-- Bed Appearance -->
+    <div class="page" id="page-bedappearance">
+        <h1>Bed Appearance</h1>
+        <p>
+            Block ID: 30<br>
+            Color: Beige<br>
+            Shape: Cube<br>
+            Function: Right-click to sleep<br>
+            Only works in Overworld.
+        </p>
+    </div>
 
-------------------------------------------------------------
+    <!-- Spawner Appearance -->
+    <div class="page" id="page-spawnerappearance">
+        <h1>Spawner Appearance</h1>
+        <p>
+            Block ID: 30<br>
+            Color: Magenta<br>
+            Shape: Cube<br>
+            Function: Right-click to spawn boss<br>
+            Works in any Dimension.
+        </p>
+    </div>
 
-<h1>CRAFTING TABLE APPEARANCE</h1>
+    <!-- Menus / UIs -->
+    <div class="page" id="page-menus">
+        <h1>Menus / UIs</h1>
 
-Block ID: 20  
-Color: Brown wood  
-Function: Opens crafting UI when right-clicked  
-Used for all recipes.
+        <h2>Main Menu</h2>
+        <ul>
+            <li>Appears when the game window opens</li>
+            <li>Has: Play button, Multiplayer button, Multiplayer via Win12Pages, Marketplace</li>
+        </ul>
 
-------------------------------------------------------------
+        <h2>Multiplayer Menu</h2>
+        <ul>
+            <li>Appears when you click Multiplayer in Main Menu</li>
+            <li>Has: URL to world ZIP field, IP address field, Join button, Back button</li>
+        </ul>
 
-<h1>BED APPEARANCE</h1>
+        <h2>Multiplayer Win12Pages</h2>
+        <ul>
+            <li>Appears when you click Multiplayer via Win12Pages</li>
+            <li>Has: URL field, Join and Cancel buttons</li>
+        </ul>
 
-Block ID: 30  
-Color: Beige  
-Shape: Cube  
-Function: Right-click to sleep  
-Only works in Overworld.
+        <h2>Marketplace</h2>
+        <ul>
+            <li>Appears when you click Marketplace</li>
+            <li>Everything is free; contains additional content.</li>
+        </ul>
 
-------------------------------------------------------------
+        <h2>Play Menu</h2>
+        <ul>
+            <li>Appears when you click Play in Main Menu</li>
+        </ul>
 
-<h1>CONCLUSION</h1>
+        <h3>Play Menu Layout</h3>
+        <ul>
+            <li><b>Top Bar:</b>
+                <ul>
+                    <li>Text: Saved Levels</li>
+                    <li>A Search Level box</li>
+                </ul>
+            </li>
+            <li><b>Middle Row:</b>
+                <ul>
+                    <li>A list of existing levels</li>
+                </ul>
+            </li>
+            <li><b>Bottom Controls:</b>
+                <ul>
+                    <li><b>Create New Level</b> — Enter name and options, then load into your world</li>
+                    <li><b>Play Level</b> — Play selected level</li>
+                    <li><b>Edit Level</b> — Edit level options</li>
+                    <li><b>Rename</b> — Rename a level</li>
+                    <li><b>Delete</b> — Delete levels</li>
+                    <li><b>Back</b> — Return to Main Menu</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
 
-Your voxel engine includes:
-- Survival mechanics
-- Life simulation
-- Crafting
-- Sleeping
-- Day/night cycle
-- Hell dimension
-- Chat commands
-- NPCs
-- Rendering pipeline
-- Sky system
+    <!-- Conclusion -->
+    <div class="page" id="page-conclusion">
+        <h1>Conclusion</h1>
+        <p>Your voxel engine includes:</p>
+        <ul>
+            <li>Survival mechanics</li>
+            <li>Life simulation</li>
+            <li>Crafting</li>
+            <li>Sleeping</li>
+            <li>Day/night cycle</li>
+            <li>Hell dimension</li>
+            <li>Chat commands</li>
+            <li>NPCs</li>
+            <li>Rendering pipeline</li>
+            <li>Sky system</li>
+            <li>Game-like menus</li>
+            <li>A full realistic weather system</li>
+            <li>And a boss to defeat</li>
+        </ul>
+        <p>This README documents everything currently implemented.</p>
+    </div>
 
-This README documents everything currently implemented.
-<a href="irl.zip">DOWNLOAD!!!</a>
+</div>
+
+<script>
+    // Parallax scroll
+    window.addEventListener("scroll", () => {
+        const scroll = window.scrollY;
+        document.querySelector(".layer1").style.transform =
+            `translateY(${scroll * 0.1}px)`;
+        document.querySelector(".layer2").style.transform =
+            `translateY(${scroll * 0.3}px)`;
+        document.querySelector(".layer3").style.transform =
+            `translateY(${scroll * 0.6}px)`;
+    });
+
+    // Page switching
+    const links = document.querySelectorAll('#sidebar a[data-page]');
+    const pages = document.querySelectorAll('.page');
+
+    function showPage(name) {
+        pages.forEach(p => {
+            p.classList.toggle('active', p.id === 'page-' + name);
+        });
+    }
+
+    links.forEach(link => {
+        link.addEventListener('click', e => {
+            e.preventDefault();
+            const page = link.getAttribute('data-page');
+            showPage(page);
+        });
+    });
+
+    // Simple search
+    const pageNames = [
+        "overview","controls","chat","blocks","crafting","bed","boss",
+        "sleeping","daynight","weather","hell","humans","waterpee",
+        "saving","craftingtable","bedappearance","spawnerappearance",
+        "menus","conclusion"
+    ];
+
+    const searchBox = document.getElementById('searchBox');
+    const searchResults = document.getElementById('searchResults');
+
+    searchBox.addEventListener('input', () => {
+        const q = searchBox.value.toLowerCase().trim();
+        if (!q) {
+            searchResults.innerHTML = "";
+            return;
+        }
+        const matches = pageNames.filter(n => n.includes(q));
+        searchResults.innerHTML = matches.map(m =>
+            `<a href="#" data-page="${m}">${m}</a>`
+        ).join("");
+
+        // Make search results clickable
+        searchResults.querySelectorAll('a').forEach(a => {
+            a.addEventListener('click', e => {
+                e.preventDefault();
+                const page = a.getAttribute('data-page');
+                showPage(page);
+                searchBox.value = "";
+                searchResults.innerHTML = "";
+            });
+        });
+    });
+</script>
+
 </body>
 </html>

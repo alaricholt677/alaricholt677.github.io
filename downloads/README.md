@@ -286,7 +286,8 @@ Works in any Dimension
             - Lets You Delete Levels
           - Back
             - Lets You HEAD Back To MAin MEnu
-
+     - Pause Menu
+       - Click esc on your keyboard while playing to find out about it
 ----------------------------------------------------------
 # CONCLUSION
 

@@ -129,7 +129,7 @@ class Spudzy {
         case "best-vid-gen":
           reply = "try https://alaricholt677.github.io/PKGS/spudzy-vid and get videos ran by me as a video genrator FOR FREE"
           break;
-        case "aboutwork"
+        case "aboutwork":
           reply = "Oh, So i work by using your browsers js logic, uses localstorage, and is a qwb based ai portfolio, that dosent need big databases, feel free to ask your questions by using 'searxh the internet fo' then what you want an answer for."
           break;
         default:

@@ -130,7 +130,7 @@ class Spudzy {
           reply = "try https://alaricholt677.github.io/PKGS/spudzy-vid and get videos ran by me as a video genrator FOR FREE"
           break;
         case "aboutwork"
-          reply="Oh, So i work by using your browsers js logic, uses localstorage, and is a qwb based ai portfolio, that dosent need big databases, feel free to ask your questions by using 'searxh the internet fo' then what you want an answer for."
+          reply = "Oh, So i work by using your browsers js logic, uses localstorage, and is a qwb based ai portfolio, that dosent need big databases, feel free to ask your questions by using 'searxh the internet fo' then what you want an answer for."
           break;
         default:
           reply = this.handleChat(ctx);
@@ -769,7 +769,7 @@ if (
     if (text.includes("remember") || text.includes("forget")) {
       return "memory";
     }
-    if (text.includes("spudzy how do you work") || text.includes("forget")) {
+    if (text.includes("spudzy how do you work") || text.includes("how do you work")) {
       return "aboutwork";
     }
     if (text.includes("vid") || text.includes("video") || text.includes("deovi") || text.includes("vdeoi") || text.includes("vdi")) {

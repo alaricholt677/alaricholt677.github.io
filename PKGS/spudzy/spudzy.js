@@ -130,7 +130,7 @@ class Spudzy {
           reply = "try https://alaricholt677.github.io/PKGS/spudzy-vid and get videos ran by me as a video genrator FOR FREE"
           break;
         case "aboutwork":
-          reply = "Oh, So i work by using your browsers js logic, uses localstorage, and is a qwb based ai portfolio, that dosent need big databases, feel free to ask your questions by using 'searxh the internet fo' then what you want an answer for."
+          reply = "Oh, So i work by using your browsers js logic, uses localstorage, and is a web based ai portfolio, that dosent need big databases, feel free to ask your questions by using 'search the internet fo' then what you want an answer for."
           break;
         default:
           reply = this.handleChat(ctx);
@@ -484,7 +484,12 @@ class Spudzy {
       "to-do": "todo",
       "chat bot": "chatbot",
       "log in": "login",
-      "sign up": "signup"
+      "sign up": "signup",
+      "od": "do",
+      "wrok": "work",
+      "hwo": "how",
+      "yup": "you",
+      "yuo": "you"
     };
   }
 

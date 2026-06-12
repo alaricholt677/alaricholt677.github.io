@@ -79,6 +79,9 @@
       border-radius: 6px;
       color: #00ffc8;
       font-family: Consolas, monospace;
+      display: block;
+      white-space: pre-wrap;
+      margin-top: 10px;
     }
 
     ul li {
@@ -96,7 +99,7 @@
   <!-- Encoder UI -->
   <div class="card">
     <h2>Encode Text</h2>
-    <p>Type anything below and click <strong>Encode</strong> to generate your custom AlariHash‑X output.</p>
+    <p>Type anything below and click <strong>Encode</strong> to generate your irreversible AlariHash‑X output.</p>
 
     <textarea id="inputText" rows="4" placeholder="Enter text to encode..."></textarea>
     <button onclick="runEncode()">Encode</button>
@@ -107,36 +110,52 @@
 
   <!-- Tutorial -->
   <div class="card">
-    <h2>How to Use the Encoder Script in Your Own Code</h2>
+    <h2>Using the AlariHash‑X Encoder in Your Projects</h2>
 
     <p>This encoder is hosted at:</p>
     <code>https://alaricholt677.github.io/PKGS/encoder/encoder.js</code>
 
-    <h3>Using in Your Own HTML</h3>
+    <h3>Using in Your HTML / JavaScript</h3>
     <p>Add this to your HTML:</p>
     <code>
-      &lt;script src="https://alaricholt677.github.io/PKGS/encoder/encoder.js"&gt;&lt;/script&gt;
+&lt;script src="https://alaricholt677.github.io/PKGS/encoder/encoder.js"&gt;&lt;/script&gt;
     </code>
 
-    <p>Then call the encoder anywhere in your JS:</p>
+    <p>Then call the encoder in JavaScript:</p>
     <code>
-      const result = alariEncode("hello world");<br>
-      console.log(result);
+const result = alariEncode("hello world");
+console.log(result);
     </code>
 
     <h3>Using in Python</h3>
-    <p>Recreate the same logic in Python like this:</p>
+    <p>Install the official PyPI package:</p>
+    <code>pip install alarihash</code>
 
+    <p>Then use it like this:</p>
     <code>
-      from encoder import alari_encode<br><br>
-      print( alari_encode("hello world") )
-    </code>
+from alarihash.encoder import alari_encode
 
-    <p>(Or copy the Python version from the GitHub repo.)</p>
+print( alari_encode("hello world") )
+    </code>
 
     <h3>Output Format</h3>
     <p>The encoder always returns:</p>
-    <code>alaricholt677.encoded$[hex value]</code>
+    <code>alaricholt677.encoded$[16‑digit hex value]</code>
+
+    <h3>Database Field Naming</h3>
+    <p>Recommended field names:</p>
+    <ul>
+      <li>PasswordAlariHash</li>
+      <li>PasswordAlaricholt677Hash</li>
+      <li>UserPasswordAlariHashX</li>
+    </ul>
+
+    <h3>Important Notes</h3>
+    <ul>
+      <li>This is a <strong>hash</strong>, not encryption.</li>
+      <li>It is <strong>irreversible</strong> — the original input cannot be recovered.</li>
+      <li>Output length is always fixed, no matter the input size.</li>
+    </ul>
   </div>
 
 </div>

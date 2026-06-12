@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AlariHash‑X Encoder</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0b0d10;
+      color: #e8e8e8;
+      font-family: "Inter", sans-serif;
+    }
+
+    header {
+      background: linear-gradient(135deg, #00eaff, #0077ff);
+      padding: 30px;
+      text-align: center;
+      color: #000;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: #111418;
+      padding: 25px;
+      border-radius: 12px;
+      border: 1px solid #1f242a;
+      margin-bottom: 30px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    }
+
+    h2 {
+      margin-top: 0;
+      color: #00eaff;
+      font-size: 24px;
+    }
+
+    textarea, input {
+      width: 100%;
+      padding: 14px;
+      background: #0f1216;
+      border: 1px solid #222831;
+      border-radius: 8px;
+      color: #00ffc8;
+      font-size: 16px;
+      margin-top: 10px;
+      font-family: "Consolas", monospace;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 12px 24px;
+      background: #00eaff;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #00bcd4;
+    }
+
+    code {
+      background: #1a1f25;
+      padding: 4px 6px;
+      border-radius: 6px;
+      color: #00ffc8;
+      font-family: Consolas, monospace;
+    }
+
+    ul li {
+      margin-bottom: 6px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>AlariHash‑X Encoder</header>
+
+<div class="container">
+
+  <!-- Encoder UI -->
+  <div class="card">
+    <h2>Encode Text</h2>
+    <p>Type anything below and click <strong>Encode</strong> to generate your custom AlariHash‑X output.</p>
+
+    <textarea id="inputText" rows="4" placeholder="Enter text to encode..."></textarea>
+    <button onclick="runEncode()">Encode</button>
+
+    <h3 style="margin-top:25px;">Output</h3>
+    <input id="outputText" readonly placeholder="Your encoded output will appear here...">
+  </div>
+
+  <!-- Tutorial -->
+  <div class="card">
+    <h2>How to Use the Encoder Script in Your Own Code</h2>
+
+    <p>This encoder is hosted at:</p>
+    <code>https://alaricholt677.github.io/PKGS/encoder/encoder.js</code>
+
+    <h3>Using in Your Own HTML</h3>
+    <p>Add this to your HTML:</p>
+    <code>
+      &lt;script src="https://alaricholt677.github.io/PKGS/encoder/encoder.js"&gt;&lt;/script&gt;
+    </code>
+
+    <p>Then call the encoder anywhere in your JS:</p>
+    <code>
+      const result = alariEncode("hello world");<br>
+      console.log(result);
+    </code>
+
+    <h3>Using in Python</h3>
+    <p>Recreate the same logic in Python like this:</p>
+
+    <code>
+      from encoder import alari_encode<br><br>
+      print( alari_encode("hello world") )
+    </code>
+
+    <p>(Or copy the Python version from the GitHub repo.)</p>
+
+    <h3>Output Format</h3>
+    <p>The encoder always returns:</p>
+    <code>alaricholt677.encoded$[hex value]</code>
+  </div>
+
+</div>
+
+<!-- Load your encoder -->
+<script src="https://alaricholt677.github.io/PKGS/encoder/encoder.js"></script>
+
+<script>
+  function runEncode() {
+    const input = document.getElementById("inputText").value;
+
+    if (typeof alariEncode !== "function") {
+      alert("Encoder failed to load. Check the GitHub URL.");
+      return;
+    }
+
+    const result = alariEncode(input);
+    document.getElementById("outputText").value = result;
+  }
+</script>
+
+</body>
+</html>

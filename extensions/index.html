@@ -103,6 +103,15 @@ function downloadWizard() {
     document.getElementById("fileCard").classList.add("hidden");
     document.getElementById("doneCard").classList.remove("hidden");
 }
+function install() {
+    const link = document.createElement("a");
+    link.href = "installer.py";
+    link.download = "installer.py";
+    link.click();
+
+    document.getElementById("fileCard").classList.add("hidden");
+    document.getElementById("doneCard").classList.remove("hidden");
+}
 </script>
 
 </head>
@@ -123,6 +132,7 @@ function downloadWizard() {
         <button onclick="chooseOS('windows')">Windows</button>
         <button onclick="chooseOS('linux')">Linux</button>
         <button onclick="chooseOS('mac')">macOS</button>
+        <button onclick="install()">Or install emualtor extension for windows</button>
     </div>
 </div>
 

@@ -1,10 +1,16 @@
 @echo off
 setlocal ENABLEDELAYEDEXPANSION
 
+rem ============================================
+rem Config
+rem ============================================
 set "EMU_BASE=%LOCALAPPDATA%\EmulatorPackages"
 set "PKG_INDEX_URL=https://alaricholt677.github.io/emupkgs/pkgs.json"
 set "SELF_URL=https://alaricholt677.github.io/emupkgs/emu.bat"
 
+rem ============================================
+rem Argument parsing
+rem ============================================
 if "%~1"=="" goto :usage
 
 if /I "%~1"=="install" (
@@ -24,6 +30,9 @@ if /I "%~1"=="update" (
 
 goto :usage
 
+rem ============================================
+rem Usage
+rem ============================================
 :usage
 echo.
 echo Usage:
@@ -34,6 +43,9 @@ echo   emu update self
 echo.
 exit /b 1
 
+rem ============================================
+rem Setup EmulatorPackages root
+rem ============================================
 :setupfolder
 if exist "%EMU_BASE%" (
     echo [EMU] Folder already exists: "%EMU_BASE%"
@@ -47,6 +59,9 @@ if errorlevel 1 (
 echo [EMU] Created package root: "%EMU_BASE%"
 exit /b 0
 
+rem ============================================
+rem Helpers
+rem ============================================
 :check_folder
 if not exist "%EMU_BASE%" (
     echo [EMU] ERROR: "%EMU_BASE%" does not exist.
@@ -66,6 +81,9 @@ if errorlevel 1 (
 )
 goto :eof
 
+rem ============================================
+rem Install package
+rem ============================================
 :install
 call :check_folder
 call :check_online
@@ -79,17 +97,18 @@ if exist "%PKG_DIR%" (
 )
 
 echo [EMU] Resolving package "%PKG_NAME%" from index...
+
 set "PKG_URL="
 
-for /f "usebackq delims=" %%I in (`powershell -NoProfile -Command ^
-  "$j = Invoke-RestMethod '%PKG_INDEX_URL%';" ^
-  "$p = $j.pkgs ^| Where-Object { $_.name -eq '%PKG_NAME%' };" ^
-  "if ($p) { $p.url }"`) do (
+for /f "usebackq tokens=* delims=" %%I in (`
+    powershell -NoProfile -Command ^
+      "(Invoke-RestMethod '%PKG_INDEX_URL%').pkgs ^| Where-Object name -eq '%PKG_NAME%' ^| Select-Object -ExpandProperty url"
+`) do (
     set "PKG_URL=%%I"
 )
 
 if not defined PKG_URL (
-    echo [EMU] ERROR: Package "%PKG_NAME%" not found in index.
+    echo [EMU] ERROR: Package "%PKG_NAME%" not found in index or URL missing.
     exit /b 1
 )
 
@@ -114,6 +133,9 @@ powershell -NoProfile -Command "Expand-Archive -LiteralPath '%TMP_ZIP%' -Destina
 echo [EMU] Installed %PKG_NAME% to "%PKG_DIR%"
 exit /b 0
 
+rem ============================================
+rem Uninstall package
+rem ============================================
 :uninstall
 call :check_folder
 
@@ -135,6 +157,9 @@ if errorlevel 1 (
 echo [EMU] Uninstalled "%PKG_NAME%".
 exit /b 0
 
+rem ============================================
+rem Self-update
+rem ============================================
 :updateself
 call :check_online
 
@@ -158,9 +183,13 @@ echo [EMU] Scheduling self-update...
     echo timeout /t 2 ^>nul
     echo copy /y "%SELF_NEW%" "%SELF_CUR%" ^>nul
     echo del /f /q "%SELF_NEW%" ^>nul
+    echo del /f /q "%%~f0" ^>nul
 ) > "%SELF_DIR%emu_update_tmp.bat"
 
 start "" "%SELF_DIR%emu_update_tmp.bat"
+
+echo [EMU] Self-update initiated. New version will replace this emu.bat shortly.
+exit /b 0
 
 echo [EMU] Self-update initiated. New version will replace this emu.bat shortly.
 exit /b 0

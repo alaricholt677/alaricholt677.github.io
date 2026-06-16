@@ -1,0 +1,46 @@
+{
+  "pkgs": [
+    {
+      "name": "OS",
+      "version": "1.0.0",
+      "url": "https://alaricholt677.github.io/emupkgs/OS.zip",
+      "description": "Core OS plugin providing base DSL transforms.",
+      "dependencies": []
+    },
+    {
+      "name": "Windows95",
+      "version": "1.0.0",
+      "url": "https://alaricholt677.github.io/emupkgs/Windows95.zip",
+      "description": "Windows 95 UI layer plugin.",
+      "dependencies": ["OS"]
+    },
+    {
+      "name": "Graphics",
+      "version": "1.0.0",
+      "url": "https://alaricholt677.github.io/emupkgs/Graphics.zip",
+      "description": "Graphics rendering helpers.",
+      "dependencies": []
+    },
+    {
+      "name": "UI",
+      "version": "1.0.0",
+      "url": "https://alaricholt677.github.io/emupkgs/UI.zip",
+      "description": "UI widgets and layout plugin.",
+      "dependencies": ["Graphics"]
+    },
+    {
+      "name": "Terminal",
+      "version": "1.0.0",
+      "url": "https://alaricholt677.github.io/emupkgs/Terminal.zip",
+      "description": "Terminal emulator plugin.",
+      "dependencies": []
+    },
+    {
+      "name": "Notepad",
+      "version": "1.0.0",
+      "url": "https://alaricholt677.github.io/emupkgs/Notepad.zip",
+      "description": "Simple text editor plugin.",
+      "dependencies": ["UI"]
+    }
+  ]
+}

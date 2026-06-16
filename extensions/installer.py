@@ -10,7 +10,7 @@ import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 import winreg
 
-EMULATOR_ZIP_URL = "https://alaricholt677.github.io/extension/custom/emulator.zip"
+EMULATOR_ZIP_URL = "https://alaricholt677.github.io/extensions/custom/emulator.zip"
 ICON_URL = "https://img.icons8.com/?size=100&id=qxQNCYAbz0tt&format=png&color=000000"  # should be .ico
 EMULATOR_ROOT = Path(r"C:\emulator")
 CMDS_DIR = EMULATOR_ROOT / "cmds"

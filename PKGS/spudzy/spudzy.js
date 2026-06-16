@@ -132,9 +132,6 @@ class Spudzy {
         case "aboutwork":
           reply = "Oh, So i work by using your browsers js logic, uses localstorage, and is a web based ai portfolio, that dosent need big databases, feel free to ask your questions by using 'search the internet fo' then what you want an answer for."
           break;
-        case "command":
-         reply = await this.handleCommand(ctx);
-         break;
         default:
           reply = this.handleChat(ctx);
           break;
@@ -145,84 +142,7 @@ class Spudzy {
 
     return this.saveAndReturn(input, reply, ctx);
   }
-async handleCommand(ctx) {
-  const instructions = this.extractCommandInstructions(ctx.raw);
 
-  if (!instructions.length) {
-    return "Spudzy command mode 🥔 — I saw command symbols, but I could not understand the command.";
-  }
-
-  const replies = [];
-
-  for (const instruction of instructions) {
-    const commandCtx = this.analyze(instruction.commandText, {
-      ...ctx.options,
-      fromCommand: true,
-      commandInstruction: instruction
-    });
-
-    // Force the intended command intent.
-    // This prevents the command parser from accidentally looping.
-    commandCtx.intent = instruction.intent;
-    commandCtx.commandInstruction = instruction;
-
-    let reply = "";
-
-    try {
-      switch (commandCtx.intent) {
-        case "search":
-          reply = await this.handleSearch(commandCtx);
-          break;
-
-        case "code":
-          reply = this.handleCode(commandCtx);
-          break;
-
-        case "explainCode":
-          reply = this.handleExplainCode(commandCtx);
-          break;
-
-        case "explainFile":
-          reply = this.handleExplainFile(commandCtx);
-          break;
-
-        case "fixCode":
-          reply = this.handleFixCode(commandCtx);
-          break;
-
-        case "math":
-          reply = this.handleMath(commandCtx);
-          break;
-
-        case "memory":
-          reply = this.handleMemory(commandCtx);
-          break;
-
-        case "summarize":
-          reply = this.handleSummarize(commandCtx);
-          break;
-
-        case "story":
-          reply = this.handleStory(commandCtx);
-          break;
-
-        case "roast":
-          reply = this.handleRoast(commandCtx);
-          break;
-
-        default:
-          reply = this.handleChat(commandCtx);
-          break;
-      }
-    } catch (error) {
-      reply = "Spudzy command error: " + (error && error.message ? error.message : "Unknown error");
-    }
-
-    replies.push(reply);
-  }
-
-  return replies.join("\n\n---\n\n");
-}
   saveAndReturn(user, bot, meta = {}) {
     this.history.push({
       user,
@@ -801,36 +721,6 @@ async handleCommand(ctx) {
     ) {
       return "search";
     }
-
-    
-  // NEW: command-instruction detector
-  // Supports:
-  // <<make html: neon portfolio>>
-  // // search: JavaScript canvas
-  // /fix-code const x =
-  const instructions = this.extractCommandInstructions(input);
-
-  if (instructions.length > 0) {
-    const replies = [];
-
-    for (const instruction of instructions) {
-      const commandCtx = this.analyze(instruction.commandText, {
-        ...options,
-        commandInstruction: instruction
-      });
-
-      commandCtx.commandInstruction = instruction;
-      commandCtx.intent = instruction.intent || commandCtx.intent;
-
-      const commandReply = await this.runIntent(commandCtx);
-
-      replies.push(commandReply);
-    }
-
-    const finalReply = replies.join("\n\n---\n\n");
-
-    return "command";
-  }
 
     if (
       text.includes("explain this code") ||

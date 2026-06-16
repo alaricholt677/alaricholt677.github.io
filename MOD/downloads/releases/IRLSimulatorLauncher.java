@@ -1,14 +1,18 @@
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.*;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
-import java.awt.event.*;
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import javax.imageio.ImageIO;
@@ -64,10 +68,35 @@ public class Launcher extends JFrame {
     private JButton instSideButton;
     private JButton skinsSideButton;
     private JButton patchSideButton;
+    private JButton settingsSideButton;
     private JButton aboutSideButton;
 
     private JComboBox<String> patchVersionBox;
     private JTextArea patchNotesArea;
+
+    // Settings
+    private boolean showLogWindowOnLaunch = true;
+    private String languageCode = "en-US";
+
+    private LogWindow currentLogWindow;
+
+    private PrintStream originalOut;
+    private PrintStream originalErr;
+
+    // --- Entry point ---
+    public static void main(String[] args) {
+        Thread.setDefaultUncaughtExceptionHandler(new GlobalErrorHandler());
+        SwingUtilities.invokeLater(() -> {
+            try {
+                Launcher l = new Launcher();
+                l.setVisible(true);
+            } catch (Throwable t) {
+                Thread.UncaughtExceptionHandler h = Thread.getDefaultUncaughtExceptionHandler();
+                if (h != null) h.uncaughtException(Thread.currentThread(), t);
+                else t.printStackTrace();
+            }
+        });
+    }
 
     public Launcher() {
         initDataDir();
@@ -82,6 +111,9 @@ public class Launcher extends JFrame {
                 saveSettings();
             }
         });
+
+        originalOut = System.out;
+        originalErr = System.err;
     }
 
     private void initDataDir() {
@@ -98,7 +130,6 @@ public class Launcher extends JFrame {
         setLayout(new BorderLayout());
         getContentPane().setBackground(BG_DARK);
 
-        // --- Left Sidebar ---
         JPanel sidebar = new JPanel();
         sidebar.setPreferredSize(new Dimension(230, 700));
         sidebar.setBackground(BG_DARK);
@@ -139,6 +170,7 @@ public class Launcher extends JFrame {
         instSideButton = createSidebarButton("INSTALLATIONS", false);
         skinsSideButton = createSidebarButton("SKINS", false);
         patchSideButton = createSidebarButton("PATCH NOTES", false);
+        settingsSideButton = createSidebarButton("SETTINGS", false);
         aboutSideButton = createSidebarButton("ABOUT", false);
 
         sideButtons.add(homeSideButton);
@@ -148,6 +180,8 @@ public class Launcher extends JFrame {
         sideButtons.add(skinsSideButton);
         sideButtons.add(Box.createVerticalStrut(8));
         sideButtons.add(patchSideButton);
+        sideButtons.add(Box.createVerticalStrut(8));
+        sideButtons.add(settingsSideButton);
         sideButtons.add(Box.createVerticalStrut(8));
         sideButtons.add(aboutSideButton);
 
@@ -171,7 +205,6 @@ public class Launcher extends JFrame {
 
         add(sidebar, BorderLayout.WEST);
 
-        // --- Right Main Area ---
         JPanel mainArea = new DottedBackgroundPanel();
         mainArea.setLayout(new BorderLayout());
         mainArea.setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -233,6 +266,7 @@ public class Launcher extends JFrame {
         centerCardContainer.add(createInstallationsPanel(), "inst");
         centerCardContainer.add(createSkinsPanel(), "skins");
         centerCardContainer.add(createPatchNotesPanel(), "patch");
+        centerCardContainer.add(createSettingsPanel(), "settings");
         centerCardContainer.add(createAboutPanel(), "about");
 
         mainArea.add(centerCardContainer, BorderLayout.CENTER);
@@ -330,14 +364,11 @@ public class Launcher extends JFrame {
         instSideButton.addActionListener(e -> switchSection("inst", instSideButton));
         skinsSideButton.addActionListener(e -> switchSection("skins", skinsSideButton));
         patchSideButton.addActionListener(e -> switchSection("patch", patchSideButton));
+        settingsSideButton.addActionListener(e -> switchSection("settings", settingsSideButton));
         aboutSideButton.addActionListener(e -> switchSection("about", aboutSideButton));
     }
 
     private void applyLoadedState() {
-        // Window size from settings
-        // (already applied via setSize in loadSettings if present)
-
-        // Active installation
         if (activeInstallation == null && installationModel.getSize() > 0) {
             activeInstallation = installationModel.getElementAt(0);
         }
@@ -345,7 +376,6 @@ public class Launcher extends JFrame {
             installationList.setSelectedValue(activeInstallation, true);
         }
 
-        // Active skin
         if (activeSkin == null && skinModel.getSize() > 0) {
             activeSkin = skinModel.getElementAt(0);
         }
@@ -354,16 +384,15 @@ public class Launcher extends JFrame {
             updateSkinPreview();
         }
 
-        // Patch notes version
         if (patchVersionBox != null && lastPatchNotesVersion != null) {
             patchVersionBox.setSelectedItem(lastPatchNotesVersion);
         }
 
-        // Last tab
         JButton target = homeSideButton;
         if ("inst".equals(lastTabKey)) target = instSideButton;
         else if ("skins".equals(lastTabKey)) target = skinsSideButton;
         else if ("patch".equals(lastTabKey)) target = patchSideButton;
+        else if ("settings".equals(lastTabKey)) target = settingsSideButton;
         else if ("about".equals(lastTabKey)) target = aboutSideButton;
         switchSection(lastTabKey, target);
     }
@@ -390,7 +419,7 @@ public class Launcher extends JFrame {
         lastTabKey = key;
         centerCards.show(centerCardContainer, key);
 
-        JButton[] all = {homeSideButton, instSideButton, skinsSideButton, patchSideButton, aboutSideButton};
+        JButton[] all = {homeSideButton, instSideButton, skinsSideButton, patchSideButton, settingsSideButton, aboutSideButton};
         for (JButton b : all) {
             if (b == activeButton) {
                 b.setForeground(TEXT_PRIMARY);
@@ -492,10 +521,10 @@ public class Launcher extends JFrame {
             b.setFont(new Font("SansSerif", Font.PLAIN, 11));
         }
 
-        addBtn.addActionListener(e -> { addInstallation(); saveInstallations(); });
-        editBtn.addActionListener(e -> { editInstallation(); saveInstallations(); });
-        delBtn.addActionListener(e -> { deleteInstallation(); saveInstallations(); });
-        setActiveBtn.addActionListener(e -> { setActiveInstallation(); saveSettings(); });
+        addBtn.addActionListener(e -> { safeRun(this::addInstallation); saveInstallations(); });
+        editBtn.addActionListener(e -> { safeRun(this::editInstallation); saveInstallations(); });
+        delBtn.addActionListener(e -> { safeRun(this::deleteInstallation); saveInstallations(); });
+        setActiveBtn.addActionListener(e -> { safeRun(this::setActiveInstallation); saveSettings(); });
 
         buttons.add(addBtn);
         buttons.add(editBtn);
@@ -511,7 +540,7 @@ public class Launcher extends JFrame {
         msSignInButton.setForeground(Color.WHITE);
         msSignInButton.setFont(new Font("SansSerif", Font.BOLD, 11));
         msSignInButton.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
-        msSignInButton.addActionListener(e -> { simulateMicrosoftSignIn(); saveProfile(); });
+        msSignInButton.addActionListener(e -> { safeRun(this::simulateMicrosoftSignIn); saveProfile(); });
 
         msPanel.add(msSignInButton);
 
@@ -595,6 +624,18 @@ public class Launcher extends JFrame {
         setStatus("Active installation set to: " + inst.name);
     }
 
+    private void simulateMicrosoftSignIn() {
+        String name = JOptionPane.showInputDialog(this,
+                "Enter Microsoft profile name:", currentUsername);
+        if (name != null && !name.trim().isEmpty()) {
+            currentUsername = name.trim();
+            isSignedInWithMicrosoft = true;
+            profileNameLabel.setText(currentUsername);
+            profileTagLabel.setText("PROFILE: " + currentUsername.toUpperCase());
+            setStatus("Signed in as " + currentUsername + " (simulated)");
+        }
+    }
+
     // --- Skins Panel ---
     private JPanel createSkinsPanel() {
         JPanel panel = new JPanel(new BorderLayout());
@@ -636,9 +677,9 @@ public class Launcher extends JFrame {
             b.setFont(new Font("SansSerif", Font.PLAIN, 11));
         }
 
-        addSkinBtn.addActionListener(e -> { addSkin(); saveSkins(); });
-        setActiveSkinBtn.addActionListener(e -> { setActiveSkin(); saveSettings(); });
-        removeSkinBtn.addActionListener(e -> { removeSkin(); saveSkins(); saveSettings(); });
+        addSkinBtn.addActionListener(e -> { safeRun(this::addSkin); saveSkins(); });
+        setActiveSkinBtn.addActionListener(e -> { safeRun(this::setActiveSkin); saveSettings(); });
+        removeSkinBtn.addActionListener(e -> { safeRun(this::removeSkin); saveSkins(); saveSettings(); });
 
         leftButtons.add(addSkinBtn);
         leftButtons.add(setActiveSkinBtn);
@@ -718,8 +759,7 @@ public class Launcher extends JFrame {
                 skinPreviewLabel.setText("");
             }
         } catch (IOException e) {
-            skinPreviewLabel.setIcon(null);
-            skinPreviewLabel.setText("Failed to load skin preview.");
+            throw new RuntimeException("Failed to load skin preview: " + activeSkin.path, e);
         }
     }
 
@@ -737,6 +777,25 @@ public class Launcher extends JFrame {
         title.setFont(new Font("SansSerif", Font.BOLD, 14));
         card.add(title, BorderLayout.NORTH);
 
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        top.setOpaque(false);
+        top.add(new JLabel("Version:"));
+
+        patchVersionBox = new JComboBox<>(new String[]{
+                "IRL Simulator 1.1.0 - The Grox Update",
+                "IRL Simulator 1.0.1 - Hotfix",
+                "IRL Simulator 1.0.0 - Initial Release"
+        });
+        patchVersionBox.setSelectedItem(lastPatchNotesVersion);
+        patchVersionBox.addActionListener(e -> {
+            lastPatchNotesVersion = (String) patchVersionBox.getSelectedItem();
+            updatePatchNotesText();
+            saveSettings();
+        });
+        top.add(patchVersionBox);
+
+        card.add(top, BorderLayout.NORTH);
+
         patchNotesArea = new JTextArea();
         patchNotesArea.setEditable(false);
         patchNotesArea.setLineWrap(true);
@@ -744,41 +803,119 @@ public class Launcher extends JFrame {
         patchNotesArea.setForeground(TEXT_SECONDARY);
         patchNotesArea.setBackground(new Color(20, 20, 20));
         patchNotesArea.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        patchNotesArea.setBorder(new EmptyBorder(8, 8, 8, 8));
 
-        patchVersionBox = new JComboBox<>(new String[]{
-            "IRL Simulator 1.1.0 - The Grox Update",
-            "IRL Simulator 1.0.0 - Initial Release"
-        });
+        updatePatchNotesText();
 
-        patchVersionBox.addActionListener(e -> {
-            String sel = (String) patchVersionBox.getSelectedItem();
-            if (sel != null && sel.startsWith("IRL Simulator 1.1.0")) {
-                patchNotesArea.setText(
-                    "IRL Simulator 1.1.0 - The Grox Update\n\n" +
-                    "- Added official Grox Launcher integration.\n" +
-                    "- Auto-downloads core files from the Grox CDN.\n" +
-                    "- Added Revenge Purple default skin.\n" +
-                    "- Improved multiplayer server presets.\n" +
-                    "- Various stability and civilization tweaks."
-                );
-            } else {
-                patchNotesArea.setText(
-                    "IRL Simulator 1.0.0 - Initial Release\n\n" +
-                    "- First public build of IRL Simulator.\n" +
-                    "- Core world simulation.\n" +
-                    "- Basic multiplayer support.\n" +
-                    "- Default player profile: Grox."
-                );
-            }
-            lastPatchNotesVersion = sel;
+        card.add(new JScrollPane(patchNotesArea), BorderLayout.CENTER);
+
+        panel.add(card, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private void updatePatchNotesText() {
+        String v = lastPatchNotesVersion;
+        String text;
+        if (v == null) v = "";
+        if (v.startsWith("IRL Simulator 1.1.0")) {
+            text = """
+                   THE GROX UPDATE
+
+                   - New Grox-themed launcher UI
+                   - Auto-download and management of IRL Simulator files
+                   - Grox Revenge default skin
+                   - Improved multiplayer presets
+                   """;
+        } else if (v.startsWith("IRL Simulator 1.0.1")) {
+            text = """
+                   HOTFIX 1.0.1
+
+                   - Fixed minor UI glitches
+                   - Improved error handling and logging
+                   - Small performance tweaks
+                   """;
+        } else {
+            text = """
+                   INITIAL RELEASE 1.0.0
+
+                   - First public build of IRL Simulator
+                   - Basic launcher and single-player runtime
+                   """;
+        }
+        patchNotesArea.setText(text);
+        patchNotesArea.setCaretPosition(0);
+    }
+
+    // --- Settings Panel ---
+    private JPanel createSettingsPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+
+        JPanel card = new JPanel();
+        card.setBackground(BG_CARD);
+        card.setBorder(new EmptyBorder(20, 20, 20, 20));
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+
+        JLabel title = new JLabel("SETTINGS");
+        title.setForeground(TEXT_PRIMARY);
+        title.setFont(new Font("SansSerif", Font.BOLD, 16));
+
+        card.add(title);
+        card.add(Box.createVerticalStrut(12));
+
+        JPanel langPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        langPanel.setOpaque(false);
+        langPanel.add(new JLabel("Language:"));
+        JComboBox<String> langBox = new JComboBox<>(new String[]{"en-US", "en-GB", "de-DE", "fr-FR"});
+        langBox.setSelectedItem(languageCode);
+        langBox.addActionListener(e -> {
+            languageCode = (String) langBox.getSelectedItem();
             saveSettings();
         });
+        langPanel.add(langBox);
+        card.add(langPanel);
+        card.add(Box.createVerticalStrut(8));
 
-        patchVersionBox.setSelectedItem(lastPatchNotesVersion);
+        JPanel msPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        msPanel.setOpaque(false);
+        JLabel msLabel = new JLabel("Microsoft account: " + (isSignedInWithMicrosoft ? currentUsername : "Not signed in"));
+        msLabel.setForeground(TEXT_SECONDARY);
+        msPanel.add(msLabel);
+        JButton msButton = new JButton("Change / Sign in");
+        msButton.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        msButton.addActionListener(e -> {
+            simulateMicrosoftSignIn();
+            msLabel.setText("Microsoft account: " + (isSignedInWithMicrosoft ? currentUsername : "Not signed in"));
+            saveProfile();
+        });
+        msPanel.add(msButton);
+        card.add(msPanel);
+        card.add(Box.createVerticalStrut(8));
 
-        card.add(patchVersionBox, BorderLayout.SOUTH);
-        card.add(new JScrollPane(patchNotesArea), BorderLayout.CENTER);
+        JCheckBox logCheck = new JCheckBox("Show game log in new window on launch", showLogWindowOnLaunch);
+        logCheck.setOpaque(false);
+        logCheck.setForeground(TEXT_PRIMARY);
+        logCheck.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        logCheck.addActionListener(e -> {
+            showLogWindowOnLaunch = logCheck.isSelected();
+            saveSettings();
+        });
+        card.add(logCheck);
+        card.add(Box.createVerticalStrut(12));
+
+        JTextArea info = new JTextArea(
+                "When enabled, pressing PLAY will open a separate log window.\n" +
+                "The log window shows everything the game prints, with filters for:\n" +
+                "  • INFO\n  • WARN\n  • ERROR\n  • DEBUG\n\n" +
+                "Any uncaught game error (like ConcurrentModificationException) will trigger\n" +
+                "the global error popup with full stack trace, but the launcher stays open."
+        );
+        info.setEditable(false);
+        info.setOpaque(false);
+        info.setForeground(TEXT_SECONDARY);
+        info.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        info.setLineWrap(true);
+        info.setWrapStyleWord(true);
+        card.add(info);
 
         panel.add(card, BorderLayout.CENTER);
         return panel;
@@ -791,199 +928,196 @@ public class Launcher extends JFrame {
 
         JPanel card = new JPanel();
         card.setBackground(BG_CARD);
-        card.setBorder(new EmptyBorder(16, 16, 16, 16));
+        card.setBorder(new EmptyBorder(20, 20, 20, 20));
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
 
         JLabel title = new JLabel("ABOUT IRL SIMULATOR LAUNCHER");
         title.setForeground(TEXT_PRIMARY);
-        title.setFont(new Font("SansSerif", Font.BOLD, 14));
+        title.setFont(new Font("SansSerif", Font.BOLD, 16));
 
-        JLabel build = new JLabel("Build: " + BUILD_ID);
+        JLabel build = new JLabel(BUILD_ID);
         build.setForeground(TEXT_SECONDARY);
         build.setFont(new Font("SansSerif", Font.PLAIN, 12));
 
-        JLabel javaVer = new JLabel("Java: " + System.getProperty("java.version"));
-        javaVer.setForeground(TEXT_SECONDARY);
-        javaVer.setFont(new Font("SansSerif", Font.PLAIN, 12));
-
-        JLabel os = new JLabel("OS: " + System.getProperty("os.name") + " " + System.getProperty("os.version"));
-        os.setForeground(TEXT_SECONDARY);
-        os.setFont(new Font("SansSerif", Font.PLAIN, 12));
-
-        JTextArea lore = new JTextArea(
-            "Grox Civilization Runtime\n\n" +
-            "This launcher is a custom, Grox-themed front-end for IRL Simulator.\n" +
-            "It manages installations, skins, patch notes, and profile identity.\n\n" +
-            "Designed to feel familiar to Minecraft players, but with its own\n" +
-            "visual identity and Grox lore baked in."
+        JTextArea body = new JTextArea(
+                "Grox official launcher for IRL Simulator.\n\n" +
+                "• Manages installations and skins\n" +
+                "• Handles auto-downloads and updates\n" +
+                "• Runs the game in the same JVM so any uncaught error\n" +
+                "  (including ConcurrentModificationException) is captured by\n" +
+                "  the global error popup.\n\n" +
+                "• Optional live log window that shows everything the game prints,\n" +
+                "  with filters for INFO / WARN / ERROR / DEBUG.\n\n" +
+                "The launcher itself never auto-closes on errors; only the game thread dies."
         );
-        lore.setEditable(false);
-        lore.setOpaque(false);
-        lore.setForeground(TEXT_SECONDARY);
-        lore.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        lore.setLineWrap(true);
-        lore.setWrapStyleWord(true);
+        body.setEditable(false);
+        body.setOpaque(false);
+        body.setForeground(TEXT_SECONDARY);
+        body.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        body.setLineWrap(true);
+        body.setWrapStyleWord(true);
 
         card.add(title);
-        card.add(Box.createVerticalStrut(8));
+        card.add(Box.createVerticalStrut(4));
         card.add(build);
-        card.add(javaVer);
-        card.add(os);
         card.add(Box.createVerticalStrut(12));
-        card.add(lore);
+        card.add(body);
 
         panel.add(card, BorderLayout.CENTER);
         return panel;
     }
 
-    // --- Microsoft Sign-In (Simulated) ---
-    private void simulateMicrosoftSignIn() {
-        String name = JOptionPane.showInputDialog(
-            this,
-            "Enter your Microsoft gamertag / name:",
-            "Sign in with Microsoft (Simulated)",
-            JOptionPane.PLAIN_MESSAGE
-        );
-        if (name != null && !name.trim().isEmpty()) {
-            currentUsername = name.trim();
-            isSignedInWithMicrosoft = true;
-            SwingUtilities.invokeLater(() -> {
-                profileNameLabel.setText(currentUsername);
-                profileTagLabel.setText("PROFILE: " + currentUsername.toUpperCase());
-                statusLabel.setText("Signed in as " + currentUsername + " (simulated).");
-            });
-        }
-    }
-
-    // --- Launch Flow ---
+    // --- Launch logic: SAME JVM, CLASSLOADER, LOG WINDOW, ERROR POPUP ---
     private void startLaunchThread() {
         Thread t = new Thread(() -> {
             try {
-                if (activeInstallation == null) {
-                    setStatus("No active installation. Set one in Installations.");
-                    JOptionPane.showMessageDialog(this,
-                            "No active installation selected.\nSet one in the Installations tab.",
-                            "Launch Error", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-                setStatus("Checking installation: " + activeInstallation.name);
-                File jar = new File(activeInstallation.path);
-                if (!jar.exists()) {
-                    downloadAndExtract();
-                }
-                launchGame();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                setStatus("Error: " + ex.getMessage());
-                SwingUtilities.invokeLater(() ->
-                    JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage(),
-                                                  "Launch Error", JOptionPane.ERROR_MESSAGE)
-                );
+                runGameExecutor();
+            } catch (Throwable ex) {
+                handleGlobalException(ex);
             }
-        });
-        t.setDaemon(true);
+        }, "IRL-Launch-Thread");
         t.start();
     }
 
-    private void downloadAndExtract() throws IOException {
+    private void runGameExecutor() throws Exception {
         SwingUtilities.invokeLater(() -> {
             progressBar.setVisible(true);
             progressBar.setValue(0);
-            progressBar.setString("Downloading irl.zip...");
+            setStatus("Preparing launch...");
         });
 
-        Path zipPath = Paths.get("irl_temp.zip");
+        if (activeInstallation == null) {
+            throw new IllegalStateException("No active installation selected.");
+        }
 
-        try (InputStream in = new URL(DOWNLOAD_URL).openStream()) {
-            Files.copy(in, zipPath, StandardCopyOption.REPLACE_EXISTING);
+        Path workDir = Paths.get(".").toAbsolutePath().normalize();
+        Path jarPath = workDir.resolve(activeInstallation.path);
+
+        if (!Files.exists(jarPath)) {
+            setStatus("Downloading IRL Simulator...");
+            downloadAndExtractZip(DOWNLOAD_URL, workDir);
+        }
+
+        if (!Files.exists(jarPath)) {
+            throw new FileNotFoundException("IRLSimulator.jar not found after download.");
         }
 
         SwingUtilities.invokeLater(() -> {
             progressBar.setValue(40);
-            progressBar.setString("Extracting files...");
+            setStatus("Building launch arguments...");
         });
 
-        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipPath.toFile()))) {
-            ZipEntry entry;
-            byte[] buffer = new byte[8192];
-            while ((entry = zis.getNextEntry()) != null) {
-                File outFile = new File(entry.getName());
-                if (entry.isDirectory()) {
-                    outFile.mkdirs();
-                } else {
-                    File parent = outFile.getParentFile();
-                    if (parent != null) parent.mkdirs();
-                    try (FileOutputStream fos = new FileOutputStream(outFile)) {
-                        int len;
-                        while ((len = zis.read(buffer)) > 0) {
-                            fos.write(buffer, 0, len);
-                        }
-                    }
-                }
+        String pathToClasses = workDir.toString();
+        String name = currentUsername;
+
+        String skinDir;
+        if (activeSkin != null && activeSkin.path != null) {
+            File skinFile = new File(activeSkin.path);
+            File parent = skinFile.getParentFile();
+            if (parent == null || !parent.exists() || !parent.isDirectory()) {
+                File fallback = new File("skins/selected");
+                fallback.mkdirs();
+                skinDir = fallback.getAbsolutePath();
+            } else {
+                skinDir = parent.getAbsolutePath();
             }
+        } else {
+            File def = new File("skins/default");
+            def.mkdirs();
+            skinDir = def.getAbsolutePath();
         }
 
-        Files.deleteIfExists(zipPath);
+        File sdCheck = new File(skinDir);
+        if (!sdCheck.exists() || !sdCheck.isDirectory()) {
+            throw new RuntimeException("BOOT FAILURE: Skin Directory not found (resolved to: " + skinDir + ")");
+        }
+
+        String version = "1.1.0";
+
+        String[] args = new String[]{
+                "--PathToClasses", pathToClasses,
+                "--Name",          name,
+                "--skinDir",       skinDir,
+                "--version",       version
+        };
+
+        SwingUtilities.invokeLater(() -> {
+            progressBar.setValue(70);
+            setStatus("Launching IRL Simulator (same JVM)...");
+        });
+
+        if (showLogWindowOnLaunch) {
+            SwingUtilities.invokeLater(() -> {
+                currentLogWindow = new LogWindow();
+                currentLogWindow.setVisible(true);
+            });
+        } else {
+            currentLogWindow = null;
+        }
+
+        SwingUtilities.invokeAndWait(() -> {
+            PrintStream newOut = new PrintStream(new LogOutputStream(originalOut, currentLogWindow, false), true);
+            PrintStream newErr = new PrintStream(new LogOutputStream(originalErr, currentLogWindow, true), true);
+            System.setOut(newOut);
+            System.setErr(newErr);
+        });
+
+        URLClassLoader cl = new URLClassLoader(
+                new URL[]{jarPath.toUri().toURL()},
+                Launcher.class.getClassLoader()
+        );
+
+        Thread gameThread = new Thread(() -> {
+            try {
+                Class<?> mainClass = cl.loadClass("main.Main");
+                Method m = mainClass.getMethod("main", String[].class);
+                m.invoke(null, (Object) args);
+            } catch (InvocationTargetException ite) {
+                Throwable cause = ite.getCause() != null ? ite.getCause() : ite;
+                handleGlobalException(cause);
+            } catch (Throwable t) {
+                handleGlobalException(t);
+            } finally {
+                System.setOut(originalOut);
+                System.setErr(originalErr);
+                SwingUtilities.invokeLater(() -> setStatus("Game stopped. You can close this or launch again."));
+            }
+        }, "IRL-Game-Main");
+
+        gameThread.setUncaughtExceptionHandler(Thread.getDefaultUncaughtExceptionHandler());
+        gameThread.start();
 
         SwingUtilities.invokeLater(() -> {
             progressBar.setValue(100);
-            progressBar.setString("Installation complete.");
+            setStatus("IRL Simulator running.");
         });
-        setStatus("Installation complete.");
     }
 
-private void launchGame() throws IOException {
-    setStatus("Preparing profile and skin...");
+    private void downloadAndExtractZip(String url, Path targetDir) throws IOException {
+        Path tempZip = Files.createTempFile("irl_download", ".zip");
+        try (InputStream in = new URL(url).openStream()) {
+            Files.copy(in, tempZip, StandardCopyOption.REPLACE_EXISTING);
+        }
 
-    File skinDir = new File("skins");
-    skinDir.mkdirs();
-
-    File targetSkin = new File(skinDir, "default.png");
-
-    if (activeSkin != null && activeSkin.path != null) {
-        Files.copy(Paths.get(activeSkin.path), targetSkin.toPath(), StandardCopyOption.REPLACE_EXISTING);
-    } else {
-        BufferedImage skin = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = skin.createGraphics();
-        g.setColor(new Color(128, 0, 128));
-        g.fillRect(0, 0, 64, 64);
-        g.dispose();
-        ImageIO.write(skin, "png", targetSkin);
+        try (ZipInputStream zis = new ZipInputStream(Files.newInputStream(tempZip))) {
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                Path outPath = targetDir.resolve(entry.getName()).normalize();
+                if (!outPath.startsWith(targetDir)) {
+                    throw new IOException("Zip entry outside target dir: " + entry.getName());
+                }
+                if (entry.isDirectory()) {
+                    Files.createDirectories(outPath);
+                } else {
+                    Files.createDirectories(outPath.getParent());
+                    Files.copy(zis, outPath, StandardCopyOption.REPLACE_EXISTING);
+                }
+                zis.closeEntry();
+            }
+        } finally {
+            try { Files.deleteIfExists(tempZip); } catch (IOException ignored) {}
+        }
     }
-
-    setStatus("Launching IRL Simulator...");
-
-    String javaExec = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
-
-    List<String> cmd = new ArrayList<>();
-    cmd.add(javaExec);
-    cmd.add("-cp");
-    cmd.add(activeInstallation.path);
-    cmd.add("main.Main");
-
-    cmd.add("--PathToClasses");
-    cmd.add(".");
-
-    cmd.add("--Name");
-    cmd.add(currentUsername);
-
-    cmd.add("--skinDir");
-    cmd.add("skins");
-
-    // ⭐ NEW REQUIRED ARGUMENT
-    cmd.add("--version");
-    cmd.add(activeInstallation.version);
-
-    ProcessBuilder pb = new ProcessBuilder(cmd);
-    pb.directory(new File("."));
-    pb.inheritIO();
-    pb.start();
-
-    SwingUtilities.invokeLater(() -> {
-        progressBar.setVisible(false);
-        setStatus("Game launched. You can close the launcher.");
-    });
-}
 
     private void setStatus(String text) {
         SwingUtilities.invokeLater(() -> statusLabel.setText(text));
@@ -993,24 +1127,59 @@ private void launchGame() throws IOException {
     private void loadProfile() {
         File f = new File(DATA_DIR, PROFILE_FILE);
         if (!f.exists()) return;
-        try (BufferedReader br = new BufferedReader(new FileReader(f))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                int idx = line.indexOf('=');
-                if (idx <= 0) continue;
-                String key = line.substring(0, idx);
-                String val = line.substring(idx + 1);
-                if ("username".equals(key)) currentUsername = val;
-                else if ("signedIn".equals(key)) isSignedInWithMicrosoft = Boolean.parseBoolean(val);
-            }
+        Properties p = new Properties();
+        try (FileInputStream in = new FileInputStream(f)) {
+            p.load(in);
+            currentUsername = p.getProperty("username", currentUsername);
+            isSignedInWithMicrosoft = Boolean.parseBoolean(p.getProperty("msSignedIn", "false"));
         } catch (IOException ignored) {}
     }
 
     private void saveProfile() {
+        Properties p = new Properties();
+        p.setProperty("username", currentUsername);
+        p.setProperty("msSignedIn", Boolean.toString(isSignedInWithMicrosoft));
         File f = new File(DATA_DIR, PROFILE_FILE);
-        try (PrintWriter pw = new PrintWriter(new FileWriter(f))) {
-            pw.println("username=" + currentUsername);
-            pw.println("signedIn=" + isSignedInWithMicrosoft);
+        try (FileOutputStream out = new FileOutputStream(f)) {
+            p.store(out, "IRL Launcher Profile");
+        } catch (IOException ignored) {}
+    }
+
+    private void loadSettings() {
+        File f = new File(DATA_DIR, SETTINGS_FILE);
+        if (!f.exists()) return;
+        Properties p = new Properties();
+        try (FileInputStream in = new FileInputStream(f)) {
+            p.load(in);
+            int w = Integer.parseInt(p.getProperty("width", "1150"));
+            int h = Integer.parseInt(p.getProperty("height", "700"));
+            setSize(w, h);
+            lastTabKey = p.getProperty("lastTabKey", "home");
+            lastPatchNotesVersion = p.getProperty("lastPatchNotesVersion", lastPatchNotesVersion);
+            showLogWindowOnLaunch = Boolean.parseBoolean(p.getProperty("showLogWindowOnLaunch", "true"));
+            languageCode = p.getProperty("languageCode", "en-US");
+        } catch (Exception ignored) {}
+    }
+
+    private void saveSettings() {
+        Properties p = new Properties();
+        p.setProperty("width", Integer.toString(getWidth()));
+        p.setProperty("height", Integer.toString(getHeight()));
+        p.setProperty("lastTabKey", lastTabKey);
+        p.setProperty("lastPatchNotesVersion", lastPatchNotesVersion == null ? "" : lastPatchNotesVersion);
+        p.setProperty("showLogWindowOnLaunch", Boolean.toString(showLogWindowOnLaunch));
+        p.setProperty("languageCode", languageCode);
+
+        if (activeInstallation != null) {
+            p.setProperty("activeInstallationName", activeInstallation.name);
+        }
+        if (activeSkin != null) {
+            p.setProperty("activeSkinName", activeSkin.name);
+        }
+
+        File f = new File(DATA_DIR, SETTINGS_FILE);
+        try (FileOutputStream out = new FileOutputStream(f)) {
+            p.store(out, "IRL Launcher Settings");
         } catch (IOException ignored) {}
     }
 
@@ -1047,11 +1216,9 @@ private void launchGame() throws IOException {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split("\\|", 2);
-                if (parts.length == 2) {
-                    String name = parts[0];
-                    String path = parts[1].isEmpty() ? null : parts[1];
-                    skinModel.addElement(new SkinEntry(name, path));
-                }
+                String name = parts[0];
+                String path = parts.length > 1 && !parts[1].isEmpty() ? parts[1] : null;
+                skinModel.addElement(new SkinEntry(name, path));
             }
         } catch (IOException ignored) {}
     }
@@ -1060,92 +1227,30 @@ private void launchGame() throws IOException {
         File f = new File(DATA_DIR, SKINS_FILE);
         try (PrintWriter pw = new PrintWriter(new FileWriter(f))) {
             for (int i = 0; i < skinModel.size(); i++) {
-                SkinEntry se = skinModel.get(i);
-                String path = se.path == null ? "" : se.path;
-                pw.println(se.name + "|" + path);
+                SkinEntry s = skinModel.get(i);
+                pw.println(s.name + "|" + (s.path == null ? "" : s.path));
             }
         } catch (IOException ignored) {}
     }
 
-    private void loadSettings() {
-        File f = new File(DATA_DIR, SETTINGS_FILE);
-        if (!f.exists()) return;
-        try (BufferedReader br = new BufferedReader(new FileReader(f))) {
-            String line;
-            Integer w = null, h = null;
-            String activeInstName = null;
-            String activeSkinName = null;
-            while ((line = br.readLine()) != null) {
-                int idx = line.indexOf('=');
-                if (idx <= 0) continue;
-                String key = line.substring(0, idx);
-                String val = line.substring(idx + 1);
-                switch (key) {
-                    case "lastTab" -> lastTabKey = val;
-                    case "width" -> w = parseIntSafe(val);
-                    case "height" -> h = parseIntSafe(val);
-                    case "patchVersion" -> lastPatchNotesVersion = val;
-                    case "activeInstallation" -> activeInstName = val;
-                    case "activeSkin" -> activeSkinName = val;
-                }
-            }
-            if (w != null && h != null) {
-                setSize(w, h);
-            }
-            if (activeInstName != null) {
-                for (int i = 0; i < installationModel.size(); i++) {
-                    Installation inst = installationModel.get(i);
-                    if (inst.name.equals(activeInstName)) {
-                        activeInstallation = inst;
-                        break;
-                    }
-                }
-            }
-            if (activeSkinName != null) {
-                for (int i = 0; i < skinModel.size(); i++) {
-                    SkinEntry se = skinModel.get(i);
-                    if (se.name.equals(activeSkinName)) {
-                        activeSkin = se;
-                        break;
-                    }
-                }
-            }
-        } catch (IOException ignored) {}
-    }
-
-    private void saveSettings() {
-        File f = new File(DATA_DIR, SETTINGS_FILE);
-        try (PrintWriter pw = new PrintWriter(new FileWriter(f))) {
-            pw.println("lastTab=" + lastTabKey);
-            pw.println("width=" + getWidth());
-            pw.println("height=" + getHeight());
-            pw.println("patchVersion=" + (lastPatchNotesVersion == null ? "" : lastPatchNotesVersion));
-            pw.println("activeInstallation=" + (activeInstallation == null ? "" : activeInstallation.name));
-            pw.println("activeSkin=" + (activeSkin == null ? "" : activeSkin.name));
-        } catch (IOException ignored) {}
-    }
-
-    private Integer parseIntSafe(String s) {
-        try { return Integer.parseInt(s); } catch (NumberFormatException e) { return null; }
-    }
-
-    // --- Helpers / Inner Classes ---
-    private static class DottedBackgroundPanel extends JPanel {
-        @Override protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setColor(BG_MAIN);
-            g2.fillRect(0, 0, getWidth(), getHeight());
-            g2.setColor(new Color(255, 255, 255, 12));
-            for (int y = 0; y < getHeight(); y += 8) {
-                for (int x = 0; x < getWidth(); x += 8) {
-                    g2.fillRect(x, y, 1, 1);
-                }
-            }
-            g2.dispose();
+    private void safeRun(Runnable r) {
+        try {
+            r.run();
+        } catch (Throwable t) {
+            handleGlobalException(t);
         }
     }
 
+    private void handleGlobalException(Throwable t) {
+        Thread.UncaughtExceptionHandler h = Thread.getDefaultUncaughtExceptionHandler();
+        if (h != null) {
+            h.uncaughtException(Thread.currentThread(), t);
+        } else {
+            t.printStackTrace();
+        }
+    }
+
+    // --- Inner classes ---
     private static class Installation {
         String name;
         String version;
@@ -1158,13 +1263,13 @@ private void launchGame() throws IOException {
         }
 
         @Override public String toString() {
-            return name + "  [" + version + "]";
+            return name + "  (" + version + ")";
         }
     }
 
     private static class SkinEntry {
         String name;
-        String path; // null = default
+        String path;
 
         SkinEntry(String name, String path) {
             this.name = name;
@@ -1172,14 +1277,226 @@ private void launchGame() throws IOException {
         }
 
         @Override public String toString() {
-            return name;
+            return name + (path != null ? "  [" + path + "]" : "");
         }
     }
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            Launcher launcher = new Launcher();
-            launcher.setVisible(true);
-        });
+    private static class DottedBackgroundPanel extends JPanel {
+        @Override protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setColor(new Color(18, 18, 18));
+            g2.fillRect(0, 0, getWidth(), getHeight());
+            g2.setColor(new Color(40, 40, 40));
+            for (int y = 0; y < getHeight(); y += 12) {
+                for (int x = 0; x < getWidth(); x += 12) {
+                    g2.fill(new RoundRectangle2D.Float(x, y, 2, 2, 2, 2));
+                }
+            }
+            g2.dispose();
+        }
+    }
+
+    // --- Log window ---
+    private static class LogWindow extends JFrame {
+        private final JTextArea logArea;
+        private final JCheckBox infoBox;
+        private final JCheckBox warnBox;
+        private final JCheckBox errorBox;
+        private final JCheckBox debugBox;
+
+        private final List<LogLine> allLines = new ArrayList<>();
+
+        LogWindow() {
+            setTitle("IRL Simulator Log");
+            setSize(800, 500);
+            setLocationRelativeTo(null);
+
+            setLayout(new BorderLayout());
+
+            logArea = new JTextArea();
+            logArea.setEditable(false);
+            logArea.setFont(new Font("Consolas", Font.PLAIN, 11));
+            JScrollPane scroll = new JScrollPane(logArea);
+
+            add(scroll, BorderLayout.CENTER);
+
+            JPanel bottom = new JPanel(new BorderLayout());
+            JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 2));
+
+            infoBox = new JCheckBox("INFO", true);
+            warnBox = new JCheckBox("WARN", true);
+            errorBox = new JCheckBox("ERROR", true);
+            debugBox = new JCheckBox("DEBUG", true);
+
+            for (JCheckBox cb : new JCheckBox[]{infoBox, warnBox, errorBox, debugBox}) {
+                cb.setFont(new Font("SansSerif", Font.PLAIN, 11));
+                cb.addActionListener(e -> refreshView());
+                filters.add(cb);
+            }
+
+            bottom.add(filters, BorderLayout.WEST);
+
+            JButton copyBtn = new JButton("Copy log");
+            copyBtn.setFont(new Font("SansSerif", Font.PLAIN, 11));
+            copyBtn.addActionListener(e -> {
+                String text = logArea.getText();
+                Toolkit.getDefaultToolkit()
+                        .getSystemClipboard()
+                        .setContents(new java.awt.datatransfer.StringSelection(text), null);
+            });
+            bottom.add(copyBtn, BorderLayout.EAST);
+
+            add(bottom, BorderLayout.SOUTH);
+        }
+
+        synchronized void appendLine(String line) {
+            LogLevel level = classify(line);
+            allLines.add(new LogLine(level, line));
+            if (isVisibleFor(level)) {
+                logArea.append(line + "\n");
+                logArea.setCaretPosition(logArea.getDocument().getLength());
+            }
+        }
+
+        private LogLevel classify(String line) {
+            String l = line.toLowerCase();
+            if (l.contains("error") || l.contains("exception") || l.contains("fail")) return LogLevel.ERROR;
+            if (l.contains("warn")) return LogLevel.WARN;
+            if (l.contains("debug")) return LogLevel.DEBUG;
+            return LogLevel.INFO;
+        }
+
+        private boolean isVisibleFor(LogLevel level) {
+            return switch (level) {
+                case INFO -> infoBox.isSelected();
+                case WARN -> warnBox.isSelected();
+                case ERROR -> errorBox.isSelected();
+                case DEBUG -> debugBox.isSelected();
+            };
+        }
+
+        private synchronized void refreshView() {
+            StringBuilder sb = new StringBuilder();
+            for (LogLine ln : allLines) {
+                if (isVisibleFor(ln.level)) {
+                    sb.append(ln.text).append("\n");
+                }
+            }
+            logArea.setText(sb.toString());
+            logArea.setCaretPosition(logArea.getDocument().getLength());
+        }
+
+        private enum LogLevel { INFO, WARN, ERROR, DEBUG }
+
+        private static class LogLine {
+            final LogLevel level;
+            final String text;
+            LogLine(LogLevel level, String text) {
+                this.level = level;
+                this.text = text;
+            }
+        }
+    }
+
+    // --- Output stream that mirrors to console + log window ---
+    private static class LogOutputStream extends OutputStream {
+        private final PrintStream console;
+        private final LogWindow logWindow;
+        private final boolean isError;
+        private final StringBuilder buffer = new StringBuilder();
+
+        LogOutputStream(PrintStream console, LogWindow logWindow, boolean isError) {
+            this.console = console;
+            this.logWindow = logWindow;
+            this.isError = isError;
+        }
+
+        @Override
+        public void write(int b) {
+            char c = (char) b;
+            console.print(c);
+            if (c == '\n') {
+                flushBuffer();
+            } else {
+                buffer.append(c);
+            }
+        }
+
+        @Override
+        public void flush() {
+            console.flush();
+            flushBuffer();
+        }
+
+        private void flushBuffer() {
+            if (buffer.length() == 0) return;
+            String line = buffer.toString();
+            buffer.setLength(0);
+            if (logWindow != null) {
+                SwingUtilities.invokeLater(() -> logWindow.appendLine((isError ? "[ERR] " : "[OUT] ") + line));
+            }
+        }
+    }
+
+    // --- Global error handler (NO System.exit) ---
+    public static final class GlobalErrorHandler implements Thread.UncaughtExceptionHandler {
+
+        @Override
+        public void uncaughtException(Thread t, Throwable e) {
+            if (isIgnorable(e)) {
+                e.printStackTrace();
+                return;
+            }
+
+            StringWriter sw = new StringWriter();
+            e.printStackTrace(new PrintWriter(sw));
+            String stackText = sw.toString();
+
+            SwingUtilities.invokeLater(() -> showErrorDialog(stackText));
+
+            System.err.println(stackText);
+        }
+
+        private static boolean isIgnorable(Throwable e) {
+            String msg = (e.getMessage() == null ? "" : e.getMessage()).toLowerCase();
+
+            if (msg.contains("not found") ||
+                msg.contains("missing ui") ||
+                msg.contains("icon resource") ||
+                msg.contains("could not find file") ||
+                msg.contains("no such file or directory")) {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static void showErrorDialog(String stackText) {
+            JTextArea area = new JTextArea(stackText, 20, 80);
+            area.setEditable(false);
+            area.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11));
+
+            JScrollPane scroll = new JScrollPane(area);
+
+            JButton copyBtn = new JButton("Copy error to clipboard");
+            copyBtn.addActionListener(ev -> {
+                Toolkit.getDefaultToolkit()
+                       .getSystemClipboard()
+                       .setContents(new java.awt.datatransfer.StringSelection(stackText), null);
+            });
+
+            JPanel panel = new JPanel(new BorderLayout(8, 8));
+            panel.add(new JLabel("An unrecoverable error occurred in IRL Simulator."), BorderLayout.NORTH);
+            panel.add(scroll, BorderLayout.CENTER);
+            panel.add(copyBtn, BorderLayout.SOUTH);
+
+            JOptionPane.showMessageDialog(
+                    null,
+                    panel,
+                    "ERROR IN IRL SIMULATOR",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
     }
 }

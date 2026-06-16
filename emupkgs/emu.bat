@@ -71,12 +71,13 @@ if not exist "%EMU_BASE%" (
 goto :eof
 
 :check_online
-ping -n 1 github.com >nul 2>&1
+powershell -NoProfile -Command ^
+  "try {Invoke-WebRequest 'https://github.com' -UseBasicParsing -TimeoutSec 5 | Out-Null; exit 0} catch {exit 1}"
 if errorlevel 1 (
     echo [EMU] No network connection detected.
     echo [EMU] Opening Wi-Fi settings...
     start ms-settings:network-wifi
-    echo [EMU] Please connect to a network and retry this install/update.
+    echo [EMU] Please connect to a network and retry.
     exit /b 1
 )
 goto :eof
@@ -102,13 +103,13 @@ set "PKG_URL="
 
 for /f "usebackq tokens=* delims=" %%I in (`
     powershell -NoProfile -Command ^
-      "(Invoke-RestMethod '%PKG_INDEX_URL%').pkgs ^| Where-Object name -eq '%PKG_NAME%' ^| Select-Object -ExpandProperty url"
+      "$pkg = (Invoke-RestMethod '%PKG_INDEX_URL%').pkgs | Where-Object name -eq '%PKG_NAME%'; if ($pkg) { $pkg.url.Trim() }"
 `) do (
     set "PKG_URL=%%I"
 )
 
 if not defined PKG_URL (
-    echo [EMU] ERROR: Package "%PKG_NAME%" not found in index or URL missing.
+    echo [EMU] ERROR: Package "%PKG_NAME%" not found or URL missing.
     exit /b 1
 )
 
@@ -118,14 +119,16 @@ set "TMP_ZIP=%TEMP%\%PKG_NAME%_emu_pkg.zip"
 del /f /q "%TMP_ZIP%" >nul 2>&1
 
 echo [EMU] Downloading package...
-powershell -NoProfile -Command "Invoke-WebRequest -Uri '%PKG_URL%' -OutFile '%TMP_ZIP%'" || (
+powershell -NoProfile -Command ^
+  "Invoke-WebRequest -Uri '%PKG_URL%' -OutFile '%TMP_ZIP%'" || (
     echo [EMU] ERROR: Failed to download package.
     exit /b 1
 )
 
 echo [EMU] Extracting package...
 mkdir "%PKG_DIR%" 2>nul
-powershell -NoProfile -Command "Expand-Archive -LiteralPath '%TMP_ZIP%' -DestinationPath '%PKG_DIR%' -Force" || (
+powershell -NoProfile -Command ^
+  "Expand-Archive -LiteralPath '%TMP_ZIP%' -DestinationPath '%PKG_DIR%' -Force" || (
     echo [EMU] ERROR: Failed to extract package.
     exit /b 1
 )
@@ -147,7 +150,7 @@ if not exist "%PKG_DIR%" (
     exit /b 0
 )
 
-echo [EMU] Uninstalling "%PKG_NAME%" from "%PKG_DIR%"...
+echo [EMU] Uninstalling "%PKG_NAME%"...
 rmdir /s /q "%PKG_DIR%"
 if errorlevel 1 (
     echo [EMU] ERROR: Failed to remove "%PKG_DIR%".
@@ -164,17 +167,18 @@ rem ============================================
 call :check_online
 
 set "SELF_DIR=%~dp0"
-set "SELF_OLD=%SELF_DIR%emu_old.bat"
-set "SELF_NEW=%SELF_DIR%emu_new.bat"
 set "SELF_CUR=%SELF_DIR%emu.bat"
+set "SELF_NEW=%SELF_DIR%emu_new.bat"
+set "SELF_OLD=%SELF_DIR%emu_old.bat"
 
 echo [EMU] Downloading new emu.bat...
-powershell -NoProfile -Command "Invoke-WebRequest -Uri '%SELF_URL%' -OutFile '%SELF_NEW%'" || (
+powershell -NoProfile -Command ^
+  "Invoke-WebRequest -Uri '%SELF_URL%' -OutFile '%SELF_NEW%'" || (
     echo [EMU] ERROR: Failed to download new emu.bat.
     exit /b 1
 )
 
-echo [EMU] Keeping old version as emu_old.bat
+echo [EMU] Backing up old version as emu_old.bat
 copy /y "%SELF_CUR%" "%SELF_OLD%" >nul
 
 echo [EMU] Scheduling self-update...
@@ -188,8 +192,5 @@ echo [EMU] Scheduling self-update...
 
 start "" "%SELF_DIR%emu_update_tmp.bat"
 
-echo [EMU] Self-update initiated. New version will replace this emu.bat shortly.
-exit /b 0
-
-echo [EMU] Self-update initiated. New version will replace this emu.bat shortly.
+echo [EMU] Self-update initiated.
 exit /b 0

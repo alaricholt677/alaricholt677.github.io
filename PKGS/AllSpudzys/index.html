@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Spudzy Studio V2</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <script src="https://alaricholt677.github.io/PKGS/spudzy/spudzy.js"></script>
+  <script src="https://alaricholt677.github.io/PKGS/spudzy-vid/spudzy-vid-js.js"></script>
+
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #4B5563; border-radius: 10px; }
+
+    body {
+      background-color: #131314;
+      color: #e3e3e3;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .surface { background-color: #1e1f20; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .typing-indicator i { animation: pulse 1.5s infinite; }
+
+    #sidebar { transition: transform 0.3s ease-in-out; }
+    #chat-area, #preview-area { transition: width 0.3s ease; }
+
+    pre code {
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      background: #60A5FA;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    @media (min-width: 768px) {
+      body { font-size: 16px; }
+
+      #sidebar {
+        position: relative;
+        transform: translateX(0) !important;
+      }
+
+      #sidebar-overlay {
+        display: none !important;
+      }
+
+      #preview-area {
+        position: relative;
+        z-index: auto;
+        width: 50%;
+      }
+
+      .desktop-only {
+        display: flex !important;
+      }
+
+      .mobile-only {
+        display: none !important;
+      }
+
+      .desktop-chat-padding {
+        padding-left: 4rem;
+        padding-right: 4rem;
+      }
+
+      .desktop-max-user {
+        max-width: 70%;
+      }
+
+      .desktop-max-video {
+        max-width: 24rem;
+      }
+
+      .desktop-icon {
+        width: 2rem;
+        height: 2rem;
+      }
+
+      .desktop-preview-title {
+        max-width: 200px;
+      }
+    }
+
+    @media (max-width: 767px) {
+      .desktop-only {
+        display: none !important;
+      }
+
+      .mobile-only {
+        display: block !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="h-screen w-full flex overflow-hidden text-sm">
+
+  <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 z-20 hidden transition-opacity"></div>
+
+  <aside id="sidebar" class="surface w-72 h-full flex flex-col absolute z-30 transform -translate-x-full border-r border-gray-800 shrink-0">
+
+    <div class="p-4 flex items-center justify-between border-b border-gray-800 shrink-0">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-sparkles text-blue-400"></i>
+        <span class="font-semibold text-lg text-white">Spudzy Studio</span>
+      </div>
+
+      <button onclick="toggleSidebar()" class="mobile-only text-gray-400 hover:text-white p-2">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="flex-grow overflow-y-auto flex flex-col">
+      <div class="p-3 border-b border-gray-800 space-y-4">
+        <button onclick="navigate('#chat/new')" class="w-full bg-[#2a2b2f] hover:bg-[#33353a] text-left px-4 py-3 rounded-2xl flex items-center gap-3 transition-colors shadow-sm">
+          <i class="fa-solid fa-plus text-gray-400"></i>
+          <span class="font-medium">New Chat</span>
+        </button>
+
+        <div>
+          <div class="flex items-center justify-between px-2 mb-2">
+            <h3 class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Notebooks & Wiki</h3>
+            <button onclick="openWikiModal()" class="text-blue-400 text-xs hover:text-blue-300 transition flex items-center gap-1">
+              <i class="fa-solid fa-magnifying-glass"></i> Search
+            </button>
+          </div>
+
+          <div id="notebook-list" class="space-y-1"></div>
+        </div>
+      </div>
+
+      <div class="p-3 flex-1">
+        <div class="flex items-center justify-between px-2 mb-2">
+          <h3 class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Recent Chats</h3>
+          <button onclick="deleteCurrentChat()" class="text-gray-500 hover:text-red-400 transition text-xs" title="Delete Current">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+
+        <div id="chat-list" class="space-y-1"></div>
+      </div>
+    </div>
+
+    <div id="sidebar-console" class="border-t border-red-900/60 bg-[#1a1314] shrink-0">
+      <div class="bg-red-950/80 px-3 py-2 border-b border-red-900 flex justify-between items-center cursor-pointer" onclick="toggleConsoleBody()">
+        <span class="text-red-400 text-[11px] font-bold uppercase tracking-wider">
+          <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+          Developer Console (<span id="err-count">0</span>)
+        </span>
+
+        <button class="text-red-400 hover:text-white transition">
+          <i class="fa-solid fa-chevron-down text-xs" id="console-chevron"></i>
+        </button>
+      </div>
+
+      <div id="error-list" class="p-3 max-h-40 overflow-y-auto space-y-3 hidden bg-[#1a1314]">
+        <p class="text-[11px] text-gray-500 italic">No errors yet.</p>
+      </div>
+    </div>
+  </aside>
+
+  <main class="flex-1 flex w-full h-full relative overflow-hidden bg-[#131314]">
+
+    <div id="chat-area" class="flex-1 flex flex-col h-full relative min-w-0 border-r border-transparent">
+
+      <header class="h-14 flex items-center justify-between px-4 border-b border-gray-800 shrink-0 bg-[#131314]/90 backdrop-blur z-10">
+        <div class="flex items-center gap-3">
+          <button onclick="toggleSidebar()" class="mobile-only text-gray-400 hover:text-white p-1">
+            <i class="fa-solid fa-bars text-lg"></i>
+          </button>
+
+          <select id="model-select" class="bg-[#1e1f20] border border-gray-700 text-gray-200 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-1.5 outline-none font-medium cursor-pointer">
+            <option value="text">Spudzy Text</option>
+            <option value="video">Spudzy Video</option>
+          </select>
+        </div>
+
+        <div id="video-api-status" class="hidden text-[10px] text-gray-500 font-mono"></div>
+      </header>
+
+      <div id="chat-container" class="flex-1 overflow-y-auto p-4 desktop-chat-padding space-y-6 pb-40 scroll-smooth"></div>
+
+      <div class="absolute bottom-0 w-full bg-gradient-to-t from-[#131314] via-[#131314] to-transparent pt-12 pb-4 px-4 desktop-chat-padding z-10">
+        <div class="surface rounded-[24px] p-2 flex flex-col shadow-xl border border-gray-700 focus-within:border-gray-500 focus-within:ring-1 focus-within:ring-gray-500 transition-all relative">
+
+          <textarea
+            id="message-input"
+            rows="1"
+            placeholder="Ask Spudzy or describe a video..."
+            class="w-full bg-transparent text-gray-100 px-4 pt-3 pb-2 outline-none resize-none max-h-40 min-h-[44px]"
+            oninput="autoResize(this)"
+          ></textarea>
+
+          <div class="flex justify-between items-center px-2 pb-1">
+            <div class="flex gap-1">
+              <button onclick="openNotebookImport()" class="text-gray-400 hover:text-blue-400 p-2 rounded-full hover:bg-blue-900/20 transition" title="Import Notebook">
+                <i class="fa-solid fa-book-journal-whills"></i>
+              </button>
+            </div>
+
+            <button id="send-btn" onclick="sendMessage()" class="bg-[#2a2b2f] text-gray-400 p-2 rounded-full w-9 h-9 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all disabled:opacity-50 disabled:hover:bg-[#2a2b2f] disabled:cursor-not-allowed">
+              <i class="fa-solid fa-arrow-up"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="preview-area" class="hidden fixed inset-0 z-50 flex-col bg-white text-gray-800 shadow-2xl transition-all border-l border-gray-300">
+
+      <div class="h-14 flex items-center justify-between px-3 border-b border-gray-200 shrink-0 bg-gray-50">
+        <div class="flex items-center gap-2 overflow-hidden">
+          <button onclick="closeHtmlPreview()" class="text-gray-500 hover:text-gray-900 p-2 rounded-full hover:bg-gray-200 transition shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
+            </svg>
+          </button>
+
+          <div class="flex flex-col min-w-0">
+            <span id="preview-title" class="font-semibold text-sm truncate max-w-[150px] desktop-preview-title">index.html</span>
+            <span class="text-[10px] text-gray-400 font-mono">Live Preview</span>
+          </div>
+        </div>
+
+        <div class="desktop-only hidden items-center gap-1">
+          <button onclick="togglePreviewCode()" id="toggle-code-btn" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md font-medium transition">
+            <i class="fa-solid fa-code mr-1"></i> Code
+          </button>
+
+          <button onclick="copyPreviewCode()" id="copy-code-btn" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md font-medium transition">
+            <i class="fa-regular fa-copy mr-1"></i> Copy
+          </button>
+
+          <button onclick="shareHtml()" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md font-medium transition">
+            <i class="fa-solid fa-share-nodes"></i>
+          </button>
+
+          <button onclick="fullscreenPreview()" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md font-medium transition">
+            <i class="fa-solid fa-expand"></i>
+          </button>
+        </div>
+
+        <div class="mobile-only relative hidden">
+          <button onclick="toggleMobileMenu()" class="p-2 text-gray-600 hover:bg-gray-200 rounded-full">
+            <i class="fa-solid fa-ellipsis-vertical px-1"></i>
+          </button>
+
+          <div id="mobile-preview-menu" class="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl hidden flex-col w-36 py-1 z-50">
+            <button onclick="togglePreviewCode(); toggleMobileMenu()" id="mobile-toggle-code" class="text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+              <i class="fa-solid fa-code w-5 text-gray-400"></i> View Code
+            </button>
+
+            <button onclick="copyPreviewCode(); toggleMobileMenu()" class="text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+              <i class="fa-regular fa-copy w-5 text-gray-400"></i> Copy HTML
+            </button>
+
+            <button onclick="shareHtml(); toggleMobileMenu()" class="text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+              <i class="fa-solid fa-share-nodes w-5 text-gray-400"></i> Share
+            </button>
+
+            <button onclick="fullscreenPreview(); toggleMobileMenu()" class="text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+              <i class="fa-solid fa-expand w-5 text-gray-400"></i> Fullscreen
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-1 relative w-full h-full bg-white" id="preview-wrapper">
+        <iframe id="preview-frame" class="w-full h-full border-none" sandbox="allow-scripts allow-modals"></iframe>
+
+        <div id="code-view" class="hidden absolute inset-0 bg-[#1e1f20] text-gray-300 p-4 overflow-auto text-xs shadow-inner">
+          <pre><code id="code-content"></code></pre>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="wiki-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center hidden p-4">
+    <div class="surface w-full max-w-lg rounded-2xl shadow-2xl border border-gray-700 flex flex-col max-h-[85vh]">
+      <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-[#131314] rounded-t-2xl">
+        <h2 class="text-lg font-semibold">
+          <i class="fa-brands fa-wikipedia-w mr-2 text-gray-400"></i>Wiki Research
+        </h2>
+
+        <button onclick="closeWikiModal()" class="text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 w-8 h-8 rounded-full flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-4 bg-[#1e1f20]">
+        <div class="flex gap-2 bg-[#131314] p-1 rounded-xl border border-gray-700 focus-within:border-blue-500 transition-colors">
+          <input type="text" id="wiki-search-input" placeholder="Search a topic..." class="flex-1 bg-transparent text-white px-3 py-2 outline-none">
+
+          <button onclick="searchWiki()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white font-medium transition">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
+        </div>
+      </div>
+
+      <div id="wiki-results" class="flex-1 overflow-y-auto p-4 bg-[#1e1f20] rounded-b-2xl">
+        <div class="text-center text-gray-500 mt-8 flex flex-col items-center">
+          <i class="fa-solid fa-book-open-reader text-4xl mb-3 opacity-20"></i>
+          <p>Search Wikipedia to build your notebooks.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="import-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center hidden p-4">
+    <div class="surface w-full max-w-sm rounded-2xl shadow-2xl border border-gray-700 flex flex-col max-h-[70vh] overflow-hidden">
+      <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-[#131314]">
+        <h2 class="font-semibold">
+          <i class="fa-solid fa-download mr-2 text-blue-400"></i>Import to Chat
+        </h2>
+
+        <button onclick="closeNotebookImport()" class="text-gray-400 hover:text-white">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div id="import-list" class="flex-1 overflow-y-auto p-2 bg-[#1e1f20]"></div>
+    </div>
+  </div>
+
+  <script>
+    let errorCount = 0;
+    const errList = document.getElementById('error-list');
+    const errCountBadge = document.getElementById('err-count');
+
+    function logErrorToConsole(msg, source = "System") {
+      errorCount++;
+      errCountBadge.innerText = errorCount;
+
+      if (
+        errList.children.length === 1 &&
+        errList.children[0].innerText.includes("No errors yet")
+      ) {
+        errList.innerHTML = "";
+      }
+
+      let fixSuggestion = "Check your internet connection or reload the page.";
+      const lmsg = String(msg).toLowerCase();
+
+      if (lmsg.includes("spudzy") || lmsg.includes("undefined")) {
+        fixSuggestion = "Library failed to load. Check that the Spudzy script URLs are correct and accessible.";
+      } else if (lmsg.includes("video") || lmsg.includes("reallifevideo") || lmsg.includes("mediarecorder")) {
+        fixSuggestion = "Video generation failed. Use a browser that supports canvas.captureStream and MediaRecorder, or try a shorter prompt.";
+      } else if (lmsg.includes("quota") || lmsg.includes("localstorage")) {
+        fixSuggestion = "Browser storage is full. Delete old chats or notebooks to free up space.";
+      }
+
+      const errHtml = `
+        <div class="border-l-2 border-red-500 pl-3 py-1 mb-2">
+          <p class="text-red-400 text-xs font-mono break-words">${escapeHTML(msg)}</p>
+          <p class="text-gray-400 text-[10px] mt-1 bg-black/20 p-1.5 rounded inline-block">
+            <span class="text-yellow-500">💡 Fix:</span> ${fixSuggestion}
+          </p>
+        </div>
+      `;
+
+      errList.insertAdjacentHTML('beforeend', errHtml);
+      errList.scrollTop = errList.scrollHeight;
+
+      if (errorCount === 1) toggleConsoleBody(true);
+    }
+
+    window.onerror = function(msg, url, line) {
+      logErrorToConsole(`Line ${line}: ${msg}`, 'Global');
+      return false;
+    };
+
+    window.addEventListener('unhandledrejection', function(event) {
+      logErrorToConsole(`Promise Rejection: ${event.reason}`, 'Async');
+    });
+
+    function toggleConsoleBody(forceOpen = false) {
+      const chev = document.getElementById('console-chevron');
+
+      if (forceOpen || errList.classList.contains('hidden')) {
+        errList.classList.remove('hidden');
+        chev.classList.replace('fa-chevron-down', 'fa-chevron-up');
+      } else {
+        errList.classList.add('hidden');
+        chev.classList.replace('fa-chevron-up', 'fa-chevron-down');
+      }
+    }
+
+    let spudzyTextApi = null;
+
+    try {
+      spudzyTextApi = new Spudzy();
+    } catch(e) {
+      console.error("Spudzy Text Library init failed: " + e.message);
+    }
+
+    let chats = JSON.parse(localStorage.getItem('spudzy_v2_chats')) || [];
+    let currentChatId = null;
+    let notebooks = JSON.parse(localStorage.getItem('spudzy_v2_notebooks')) || [];
+    let isWaiting = false;
+    let currentPreviewHtml = "";
+
+    function init() {
+      updateVideoApiStatus();
+      window.addEventListener('hashchange', handleRouting);
+
+      if (!window.location.hash) {
+        if (chats.length === 0) navigate('#chat/new');
+        else navigate('#chat/' + chats[0].id);
+      } else {
+        handleRouting();
+      }
+    }
+
+    function updateVideoApiStatus() {
+      const el = document.getElementById('video-api-status');
+
+      if (!el) return;
+
+      if (window.RealLifeVideo) {
+        el.classList.remove('hidden');
+        el.textContent = `Spudzy Vid ${window.RealLifeVideo.version || "loaded"}`;
+      } else {
+        el.classList.remove('hidden');
+        el.textContent = "Spudzy Vid not loaded";
+      }
+    }
+
+    function navigate(hash) {
+      window.location.hash = hash;
+    }
+
+    function handleRouting() {
+      const hash = window.location.hash;
+
+      if (hash === '#chat/new') {
+        createNewChatInternal();
+      } else if (hash.startsWith('#chat/')) {
+        const id = hash.replace('#chat/', '');
+        const found = chats.find(c => c.id === id);
+
+        if (found) {
+          currentChatId = id;
+          closeHtmlPreview();
+          renderState();
+        } else {
+          navigate(chats.length > 0 ? '#chat/' + chats[0].id : '#chat/new');
+        }
+      }
+    }
+
+    function createNewChatInternal() {
+      const newChat = {
+        id: 'c_' + Date.now(),
+        title: 'New Conversation',
+        messages: []
+      };
+
+      chats.unshift(newChat);
+      saveState();
+      navigate('#chat/' + newChat.id);
+
+      if (window.innerWidth < 768) toggleSidebar();
+    }
+
+    function deleteCurrentChat() {
+      if (chats.length <= 1) return alert("Cannot delete your only conversation.");
+
+      if (confirm("Delete this chat?")) {
+        chats = chats.filter(c => c.id !== currentChatId);
+        saveState();
+        navigate('#chat/' + chats[0].id);
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem('spudzy_v2_chats', JSON.stringify(chats));
+        localStorage.setItem('spudzy_v2_notebooks', JSON.stringify(notebooks));
+      } catch (e) {
+        console.error("Storage Error: " + e.message);
+      }
+
+      renderSidebar();
+    }
+
+    function getCurrentChat() {
+      return chats.find(c => c.id === currentChatId);
+    }
+
+    function renderState() {
+      renderSidebar();
+      renderChat();
+    }
+
+    function renderSidebar() {
+      const noteList = document.getElementById('notebook-list');
+
+      if (notebooks.length === 0) {
+        noteList.innerHTML = `<p class="text-[10px] text-gray-600 px-2 italic">No notebooks yet.</p>`;
+      } else {
+        noteList.innerHTML = notebooks.map((n, i) => `
+          <div class="flex items-center justify-between group px-2 py-1.5 hover:bg-[#2a2b2f] rounded-lg cursor-pointer text-sm text-gray-300 transition">
+            <span class="truncate flex-1" onclick="alert('Notebook:\\n\\n' + \`${escapeForTemplate(n.content.substring(0, 300))}...\`)">
+              <i class="fa-solid fa-book-open text-[10px] mr-2 text-blue-400/70"></i>${escapeHTML(n.title)}
+            </span>
+            <button onclick="deleteNotebook(${i})" class="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 ml-2 p-1">
+              <i class="fa-solid fa-trash text-[10px]"></i>
+            </button>
+          </div>
+        `).join('');
+      }
+
+      const chatList = document.getElementById('chat-list');
+
+      chatList.innerHTML = chats.map(c => `
+        <button onclick="navigate('#chat/${c.id}')" class="w-full text-left px-3 py-2.5 rounded-xl text-sm truncate transition flex items-center ${c.id === currentChatId ? 'bg-[#33353a] text-white font-medium border border-gray-700' : 'text-gray-400 hover:bg-[#2a2b2f] hover:text-gray-200 border border-transparent'}">
+          <i class="fa-regular fa-message mr-2 opacity-50 text-[11px]"></i> ${escapeHTML(c.title)}
+        </button>
+      `).join('');
+    }
+
+    function renderChat() {
+      const container = document.getElementById('chat-container');
+      container.innerHTML = '';
+
+      const chat = getCurrentChat();
+      if (!chat) return;
+
+      if (chat.messages.length === 0) {
+        container.innerHTML = `
+          <div class="flex flex-col items-center justify-center h-full text-center text-gray-400 mt-[10vh]">
+            <div class="w-16 h-16 bg-blue-900/20 rounded-2xl flex items-center justify-center mb-5 border border-blue-500/20 shadow-lg">
+              <i class="fa-solid fa-wand-magic-sparkles text-2xl text-blue-400"></i>
+            </div>
+            <h2 class="text-2xl font-semibold text-gray-200 mb-2">Hello.</h2>
+            <p class="text-sm">Type a prompt to begin, or generate a video.</p>
+          </div>
+        `;
+        return;
+      }
+
+      chat.messages.forEach((msg, index) => {
+        const div = document.createElement('div');
+        div.className = "flex w-full flex-col gap-1 mb-4";
+
+        if (msg.role === 'user') {
+          div.innerHTML = `
+            <div class="bg-[#2a2b2f] text-gray-100 px-5 py-3 rounded-3xl rounded-br-md max-w-[85%] desktop-max-user self-end whitespace-pre-wrap leading-relaxed shadow-sm border border-gray-700/50">
+              ${escapeHTML(msg.text)}
+            </div>
+          `;
+        } else {
+          let contentHtml = "";
+
+          if (msg.type === 'video') {
+            contentHtml = `
+              <div class="relative group bg-black rounded-xl overflow-hidden shadow-lg border border-gray-700 w-full max-w-[280px] desktop-max-video aspect-video flex flex-col justify-center items-center" id="vid-wrapper-${msg.id}">
+                <div id="vid-loader-${msg.id}" class="absolute inset-0 flex flex-col items-center justify-center bg-[#1e1f20] text-blue-400 z-10">
+                  <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-2"></i>
+                  <span class="text-xs tracking-wider uppercase font-semibold">Generating Video</span>
+                  <span class="text-[10px] text-gray-500 mt-1 px-4 text-center">Canvas + MediaRecorder</span>
+                </div>
+              </div>
+            `;
+
+            setTimeout(() => generateCustomVideo(msg.data, msg.id), 100);
+          } else if (msg.type === 'html_mixed') {
+            contentHtml = `
+              ${msg.text ? `<div class="mb-3 whitespace-pre-wrap leading-relaxed text-gray-300">${escapeHTML(msg.text)}</div>` : ''}
+              <div class="bg-[#1e1f20] border border-gray-700 rounded-2xl p-3 flex items-center justify-between max-w-sm shadow-md hover:border-gray-500 transition-colors">
+                <div class="flex items-center gap-3 overflow-hidden">
+                  <div class="w-10 h-10 bg-orange-500/10 text-orange-400 rounded-xl flex items-center justify-center shrink-0 border border-orange-500/20">
+                    <i class="fa-brands fa-html5 text-xl"></i>
+                  </div>
+                  <div class="truncate">
+                    <p class="text-sm font-medium text-gray-200 truncate">${escapeHTML(msg.title)}</p>
+                    <p class="text-[10px] text-gray-500 font-mono mt-0.5">Application/HTML</p>
+                  </div>
+                </div>
+                <button onclick='openHtmlPreview(${index})' class="bg-[#2a2b2f] hover:bg-blue-600 text-gray-300 hover:text-white text-xs px-4 py-2 rounded-lg font-medium transition shrink-0 ml-2">
+                  View Pane
+                </button>
+              </div>
+            `;
+          } else {
+            contentHtml = `<div class="whitespace-pre-wrap leading-relaxed text-gray-300">${escapeHTML(msg.text)}</div>`;
+          }
+
+          div.innerHTML = `
+            <div class="flex gap-3 max-w-[95%] self-start w-full">
+              <div class="w-7 h-7 desktop-icon rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 mt-1 shadow-md border border-gray-800">
+                <i class="fa-solid fa-sparkles text-[10px] text-white"></i>
+              </div>
+              <div class="flex-1 pt-0.5 min-w-0">${contentHtml}</div>
+            </div>
+          `;
+        }
+
+        container.appendChild(div);
+      });
+
+      scrollToBottom();
+    }
+
+    function scrollToBottom() {
+      const c = document.getElementById('chat-container');
+      c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' });
+    }
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+
+      sidebar.classList.toggle('-translate-x-full');
+      overlay.classList.toggle('hidden');
+    }
+
+    function autoResize(textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.min(textarea.scrollHeight, 160) + 'px';
+
+      const btn = document.getElementById('send-btn');
+      const hasText = textarea.value.trim().length > 0;
+
+      btn.style.color = hasText ? '#fff' : '';
+      btn.style.backgroundColor = hasText ? '#2563EB' : '';
+    }
+
+    function parseAiResponse(rawText) {
+      const blockRegex = /```html\n([\s\S]*?)```/i;
+      const docRegex = /(<!DOCTYPE html>[\s\S]*?<\/html>)/i;
+
+      let htmlCode = null;
+      let remainingText = rawText;
+      let title = "index.html";
+
+      if (blockRegex.test(rawText)) {
+        htmlCode = rawText.match(blockRegex)[1];
+        remainingText = rawText.replace(blockRegex, '').trim();
+      } else if (docRegex.test(rawText)) {
+        htmlCode = rawText.match(docRegex)[1];
+        remainingText = rawText.replace(docRegex, '').trim();
+      }
+
+      if (htmlCode) {
+        const titleMatch = htmlCode.match(/<title>(.*?)<\/title>/i);
+        if (titleMatch) title = titleMatch[1];
+
+        return {
+          type: 'html_mixed',
+          text: remainingText,
+          html: htmlCode,
+          title: title
+        };
+      }
+
+      return {
+        type: 'text',
+        text: rawText
+      };
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('message-input');
+      const text = input.value.trim();
+
+      if (!text || isWaiting) return;
+
+      const modelType = document.getElementById('model-select').value;
+      const chat = getCurrentChat();
+
+      if (!chat) return;
+
+      if (chat.messages.length === 0) chat.title = text.substring(0, 25) + "...";
+
+      chat.messages.push({
+        id: Date.now(),
+        role: 'user',
+        text: text
+      });
+
+      input.value = '';
+      autoResize(input);
+
+      isWaiting = true;
+      document.getElementById('send-btn').disabled = true;
+
+      saveState();
+      renderChat();
+
+      const container = document.getElementById('chat-container');
+
+      container.insertAdjacentHTML('beforeend', `
+        <div id="temp-loading" class="flex gap-3 max-w-[95%] text-gray-200 self-start typing-indicator mt-2">
+          <div class="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-sparkles text-[10px] text-gray-400"></i>
+          </div>
+        </div>
+      `);
+
+      scrollToBottom();
+
+      try {
+        if (modelType === 'video') {
+          chat.messages.push({
+            id: 'vid_' + Date.now(),
+            role: 'ai',
+            type: 'video',
+            text: '',
+            data: text
+          });
+
+          saveState();
+          renderChat();
+        } else {
+          if (!spudzyTextApi) throw new Error("Spudzy API Object is null.");
+
+          const rawResponse = await spudzyTextApi.respond(text);
+          const parsed = parseAiResponse(rawResponse);
+
+          chat.messages.push({
+            id: Date.now(),
+            role: 'ai',
+            type: parsed.type,
+            text: parsed.text,
+            html: parsed.html,
+            title: parsed.title
+          });
+
+          saveState();
+          renderChat();
+        }
+      } catch (err) {
+        console.error(err);
+
+        chat.messages.push({
+          id: Date.now(),
+          role: 'ai',
+          type: 'text',
+          text: "A system error occurred. Check the console in the sidebar."
+        });
+
+        saveState();
+        renderChat();
+      } finally {
+        document.getElementById('temp-loading')?.remove();
+        isWaiting = false;
+        document.getElementById('send-btn').disabled = false;
+      }
+    }
+
+    async function generateCustomVideo(prompt, id) {
+      const wrapper = document.getElementById(`vid-wrapper-${id}`);
+      if (!wrapper) return;
+
+      try {
+        const api =
+          window.RealLifeVideo ||
+          window.SpudzyVid ||
+          window.SpudzyVideo ||
+          window.spudzyVid ||
+          window.spudzyVideo;
+
+        if (!api || typeof api.generate !== "function") {
+          throw new Error("Spudzy Video Library RealLifeVideo.generate is not available.");
+        }
+
+        const correctedPrompt =
+          typeof api.correctPrompt === "function"
+            ? api.correctPrompt(prompt)
+            : prompt;
+
+        const result = await api.generate(prompt, {
+          width: 960,
+          height: 540,
+          fps: 30,
+          seconds: 6,
+          bitrate: 6000000,
+          quality: 0.92,
+          appendCanvas: false,
+          returnFrames: false,
+          transparent: false,
+          debug: false
+        });
+
+        const loader = document.getElementById(`vid-loader-${id}`);
+        if (loader) loader.remove();
+
+        if (!result) {
+          throw new Error("RealLifeVideo.generate returned no result.");
+        }
+
+        const videoUrl = typeof result === "string" ? result : result.url;
+        const blob = typeof result === "object" ? result.blob : null;
+        const ok = typeof result === "object" ? result.ok : true;
+
+        if (!ok || !videoUrl) {
+          const reason =
+            typeof result === "object" && result.reason
+              ? result.reason
+              : "Video generation did not return a playable URL.";
+
+          throw new Error(reason);
+        }
+
+        const cleanPrompt = typeof result === "object" && result.correctedPrompt
+          ? result.correctedPrompt
+          : correctedPrompt;
+
+        wrapper.dataset.videoUrl = videoUrl;
+
+        wrapper.innerHTML = `
+          <video id="video-${id}" src="${videoUrl}" class="w-full h-full object-cover" playsinline loop preload="metadata"></video>
+
+          <div class="absolute top-2 left-2 right-2 flex items-start justify-between gap-2 pointer-events-none">
+            <div class="bg-black/55 border border-white/10 rounded-lg px-2 py-1 max-w-[75%] backdrop-blur-sm">
+              <p class="text-[9px] text-blue-300 uppercase tracking-wider font-bold">Spudzy Vid</p>
+              <p class="text-[10px] text-gray-200 truncate">${escapeHTML(cleanPrompt)}</p>
+            </div>
+            <div class="bg-black/55 border border-white/10 rounded-lg px-2 py-1 text-[9px] text-gray-300 backdrop-blur-sm">
+              ${escapeHTML(api.version || "v7")}
+            </div>
+          </div>
+
+          <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-8 flex flex-col gap-1 opacity-100 transition-opacity duration-300">
+            <div class="flex items-center gap-2">
+              <span id="time-${id}" class="text-[10px] text-gray-300 font-mono w-8 text-center">0:00</span>
+              <input type="range" id="progress-${id}" value="0" min="0" max="100" step="0.1" class="flex-1 h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+              <span id="duration-${id}" class="text-[10px] text-gray-400 font-mono w-8 text-center">0:00</span>
+            </div>
+
+            <div class="flex items-center justify-between px-1">
+              <button id="play-${id}" class="text-white hover:text-blue-400 transition outline-none p-1">
+                <i class="fa-solid fa-play"></i>
+              </button>
+
+              <div class="flex items-center gap-2">
+                <button id="download-${id}" class="text-white hover:text-blue-400 transition outline-none p-1" title="Download video">
+                  <i class="fa-solid fa-download"></i>
+                </button>
+
+                <button id="fs-${id}" class="text-white hover:text-blue-400 transition outline-none p-1" title="Fullscreen">
+                  <i class="fa-solid fa-expand"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        const vid = document.getElementById(`video-${id}`);
+        const playBtn = document.getElementById(`play-${id}`);
+        const progress = document.getElementById(`progress-${id}`);
+        const timeDisp = document.getElementById(`time-${id}`);
+        const durationDisp = document.getElementById(`duration-${id}`);
+        const fsBtn = document.getElementById(`fs-${id}`);
+        const downloadBtn = document.getElementById(`download-${id}`);
+
+        vid.addEventListener('loadedmetadata', () => {
+          durationDisp.innerText = formatTime(vid.duration);
+        });
+
+        vid.addEventListener('click', () => {
+          playBtn.click();
+        });
+
+        playBtn.onclick = async () => {
+          if (vid.paused) {
+            await vid.play();
+            playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+          } else {
+            vid.pause();
+            playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+          }
+        };
+
+        vid.ontimeupdate = () => {
+          if (vid.duration) {
+            progress.value = (vid.currentTime / vid.duration) * 100;
+            timeDisp.innerText = formatTime(vid.currentTime);
+          }
+        };
+
+        vid.onended = () => {
+          playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+        };
+
+        progress.oninput = (e) => {
+          if (vid.duration) {
+            vid.currentTime = (Number(e.target.value) / 100) * vid.duration;
+          }
+        };
+
+        fsBtn.onclick = () => {
+          if (vid.requestFullscreen) vid.requestFullscreen();
+          else if (vid.webkitRequestFullscreen) vid.webkitRequestFullscreen();
+        };
+
+        downloadBtn.onclick = () => {
+          const a = document.createElement('a');
+          a.href = videoUrl;
+          a.download = makeSafeFilename(cleanPrompt || "spudzy-video") + ".webm";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        };
+
+      } catch (err) {
+        console.error("Video Gen Error: " + err.message);
+
+        wrapper.innerHTML = `
+          <div class="absolute inset-0 flex flex-col items-center justify-center bg-red-950/80 text-red-400 text-xs p-4 text-center">
+            <i class="fa-solid fa-triangle-exclamation mb-2 text-xl"></i>
+            <strong class="mb-1">Generation Failed</strong>
+            <span class="text-red-200/80">${escapeHTML(err.message)}</span>
+          </div>
+        `;
+      }
+    }
+
+    function formatTime(value) {
+      if (!Number.isFinite(value)) return "0:00";
+
+      const total = Math.max(0, Math.floor(value));
+      const mins = Math.floor(total / 60);
+      const secs = total % 60;
+
+      return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+    }
+
+    function makeSafeFilename(text) {
+      return String(text || "spudzy-video")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 60) || "spudzy-video";
+    }
+
+    function openHtmlPreview(index) {
+      const msg = getCurrentChat().messages[index];
+      if (!msg || !msg.html) return;
+
+      currentPreviewHtml = msg.html;
+
+      document.getElementById('preview-title').innerText = msg.title;
+      document.getElementById('preview-frame').srcdoc = msg.html;
+      document.getElementById('code-content').innerText = msg.html;
+
+      document.getElementById('preview-frame').classList.remove('hidden');
+      document.getElementById('code-view').classList.add('hidden');
+
+      document.getElementById('toggle-code-btn').innerHTML = '<i class="fa-solid fa-code mr-1"></i> Code';
+      document.getElementById('mobile-toggle-code').innerHTML = '<i class="fa-solid fa-code w-5 text-gray-400"></i> View Code';
+
+      const prevArea = document.getElementById('preview-area');
+      prevArea.classList.remove('hidden');
+      prevArea.classList.add('flex');
+    }
+
+    function closeHtmlPreview() {
+      const previewArea = document.getElementById('preview-area');
+      const frame = document.getElementById('preview-frame');
+
+      previewArea.classList.add('hidden');
+      previewArea.classList.remove('flex');
+
+      frame.srcdoc = "";
+    }
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobile-preview-menu');
+      menu.classList.toggle('hidden');
+      menu.classList.toggle('flex');
+    }
+
+    function togglePreviewCode() {
+      const frame = document.getElementById('preview-frame');
+      const code = document.getElementById('code-view');
+      const dBtn = document.getElementById('toggle-code-btn');
+      const mBtn = document.getElementById('mobile-toggle-code');
+
+      if (code.classList.contains('hidden')) {
+        frame.classList.add('hidden');
+        code.classList.remove('hidden');
+
+        dBtn.innerHTML = '<i class="fa-regular fa-eye mr-1"></i> View';
+        mBtn.innerHTML = '<i class="fa-regular fa-eye w-5 text-gray-400"></i> Live View';
+      } else {
+        frame.classList.remove('hidden');
+        code.classList.add('hidden');
+
+        dBtn.innerHTML = '<i class="fa-solid fa-code mr-1"></i> Code';
+        mBtn.innerHTML = '<i class="fa-solid fa-code w-5 text-gray-400"></i> View Code';
+      }
+    }
+
+    function copyPreviewCode() {
+      navigator.clipboard.writeText(currentPreviewHtml).then(() => {
+        const btn = document.getElementById('copy-code-btn');
+        const original = btn.innerHTML;
+
+        btn.innerHTML = '<i class="fa-solid fa-check text-green-600 mr-1"></i> Copied';
+
+        setTimeout(() => {
+          btn.innerHTML = original;
+        }, 2000);
+      });
+    }
+
+    async function shareHtml() {
+      if (navigator.share) {
+        try {
+          const file = new File(
+            [currentPreviewHtml],
+            document.getElementById('preview-title').innerText,
+            { type: 'text/html' }
+          );
+
+          await navigator.share({
+            title: 'Spudzy Code',
+            files: [file]
+          });
+        } catch (err) {
+          navigator.share({
+            title: 'Spudzy Code',
+            text: currentPreviewHtml
+          }).catch(e => {});
+        }
+      } else {
+        alert("Sharing not supported in this browser.");
+      }
+    }
+
+    function fullscreenPreview() {
+      const wrapper = document.getElementById('preview-wrapper');
+
+      if (!document.fullscreenElement) {
+        wrapper.requestFullscreen().catch(e => console.error(e));
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    function openWikiModal() {
+      document.getElementById('wiki-modal').classList.remove('hidden');
+    }
+
+    function closeWikiModal() {
+      document.getElementById('wiki-modal').classList.add('hidden');
+    }
+
+    async function searchWiki() {
+      const query = document.getElementById('wiki-search-input').value.trim();
+      const resDiv = document.getElementById('wiki-results');
+
+      if (!query) return;
+
+      resDiv.innerHTML = `
+        <div class="text-center text-blue-400 mt-10">
+          <i class="fa-solid fa-circle-notch fa-spin text-3xl"></i>
+        </div>
+      `;
+
+      try {
+        const url = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&titles=${encodeURIComponent(query)}&format=json&origin=*`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        const pages = data.query.pages;
+        const pageId = Object.keys(pages)[0];
+
+        if (pageId == "-1") {
+          resDiv.innerHTML = `<p class="text-red-400 text-center mt-8">No results found for "${escapeHTML(query)}".</p>`;
+          return;
+        }
+
+        const title = pages[pageId].title;
+        const extract = pages[pageId].extract;
+
+        resDiv.innerHTML = `
+          <div class="bg-[#131314] p-5 rounded-xl border border-gray-700 shadow-inner">
+            <h3 class="font-bold text-white text-lg mb-2">${escapeHTML(title)}</h3>
+            <p class="text-sm text-gray-300 mb-5 leading-relaxed">${escapeHTML(extract)}</p>
+            <button onclick="saveToNotebook('${escapeForAttribute(title)}', \`${escapeForTemplate(extract).replace(/\n/g, ' ')}\`)" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium transition text-white w-full shadow-lg">
+              <i class="fa-solid fa-bookmark mr-2"></i>Save to Notebook
+            </button>
+          </div>
+        `;
+      } catch (e) {
+        console.error(e);
+        resDiv.innerHTML = `<p class="text-red-400 text-center mt-8">Failed to fetch wiki data.</p>`;
+      }
+    }
+
+    function saveToNotebook(title, content) {
+      notebooks.push({ title, content });
+      saveState();
+      closeWikiModal();
+    }
+
+    function deleteNotebook(index) {
+      if (confirm("Delete this notebook?")) {
+        notebooks.splice(index, 1);
+        saveState();
+      }
+    }
+
+    function openNotebookImport() {
+      const list = document.getElementById('import-list');
+
+      if (notebooks.length === 0) {
+        list.innerHTML = `<p class="text-center text-gray-500 py-8 text-sm">No notebooks. Search the wiki first!</p>`;
+      } else {
+        list.innerHTML = notebooks.map(n => `
+          <button onclick="importText(\`[Research Data - ${escapeForTemplate(n.title)}]: \\n${escapeForTemplate(n.content)}\`)" class="w-full text-left p-3 hover:bg-[#2a2b2f] border-b border-gray-800 last:border-0 transition">
+            <div class="font-medium text-gray-200 text-sm">
+              <i class="fa-solid fa-book-open text-blue-500 mr-2"></i>${escapeHTML(n.title)}
+            </div>
+            <div class="text-[11px] text-gray-500 truncate mt-1">${escapeHTML(n.content)}</div>
+          </button>
+        `).join('');
+      }
+
+      document.getElementById('import-modal').classList.remove('hidden');
+    }
+
+    function closeNotebookImport() {
+      document.getElementById('import-modal').classList.add('hidden');
+    }
+
+    function importText(text) {
+      const input = document.getElementById('message-input');
+
+      input.value = text + "\n\n" + input.value;
+      autoResize(input);
+      closeNotebookImport();
+      input.focus();
+    }
+
+    function escapeHTML(str) {
+      return String(str).replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+      }[tag]));
+    }
+
+    function escapeForTemplate(str) {
+      return String(str)
+        .replace(/\\/g, "\\\\")
+        .replace(/`/g, "\\`")
+        .replace(/\$\{/g, "\\${")
+        .replace(/<\/script/gi, "<\\/script");
+    }
+
+    function escapeForAttribute(str) {
+      return String(str)
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    document.getElementById('message-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>

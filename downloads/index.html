@@ -2,646 +2,1218 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>IRL Simulator — Wiki</title>
+<title>IRL Simulator — Modern Voxel Wiki</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-    * { box-sizing: border-box; }
+    * {
+        box-sizing: border-box;
+    }
+
+    :root {
+        --blue: #4aa3ff;
+        --blue2: #75d7ff;
+        --green: #58c96f;
+        --grass: #55aa55;
+        --dirt: #8b5a35;
+        --stone: #888888;
+        --hell: #b83232;
+        --ash: #444444;
+        --gold: #ffd166;
+        --magenta: #d943ff;
+        --panel: rgba(13, 18, 30, 0.82);
+        --panel2: rgba(20, 28, 46, 0.92);
+        --text: #eaf6ff;
+        --muted: #a9bdd2;
+        --border: rgba(140, 210, 255, 0.35);
+        --shadow: rgba(0, 0, 0, 0.45);
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
 
     body {
         margin: 0;
-        font-family: Arial, sans-serif;
+        min-height: 100vh;
+        font-family: "Segoe UI", Arial, sans-serif;
+        color: var(--text);
+        background: #07111f;
         overflow-x: hidden;
-        color: #202020;
     }
 
-    /* Parallax background container */
-    #parallax {
+    /* ============================================================
+       3D VOXEL BACKGROUND
+       ============================================================ */
+
+    #voxel-bg {
         position: fixed;
         inset: 0;
-        z-index: -1;
+        z-index: -5;
         overflow: hidden;
-        background: #4c8c4a;
+        background:
+            radial-gradient(circle at 70% 15%, rgba(255, 235, 120, 0.22), transparent 12%),
+            linear-gradient(#5baeff 0%, #74caff 32%, #3c8b64 58%, #1f5137 100%);
     }
 
-    .layer {
+    .sky-glow {
         position: absolute;
-        width: 200%;
-        height: 200%;
-        opacity: 0.4;
+        inset: 0;
+        background:
+            radial-gradient(circle at 50% 45%, rgba(255,255,255,0.14), transparent 35%),
+            linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.55));
+        z-index: 1;
+    }
+
+    .voxel-layer {
+        position: absolute;
+        left: -10%;
+        width: 120%;
+        height: 360px;
+        transform-style: preserve-3d;
+        pointer-events: none;
+    }
+
+    .mountains-back {
+        bottom: 230px;
+        opacity: 0.52;
+        background:
+            linear-gradient(135deg, transparent 0 35%, rgba(52,92,83,0.95) 36% 58%, transparent 59%),
+            linear-gradient(225deg, transparent 0 38%, rgba(45,82,75,0.95) 39% 63%, transparent 64%);
+        background-size: 460px 260px;
+        animation: bgDrift 24s linear infinite;
+    }
+
+    .mountains-front {
+        bottom: 135px;
+        opacity: 0.78;
+        background:
+            linear-gradient(135deg, transparent 0 33%, rgba(37,70,68,0.95) 34% 61%, transparent 62%),
+            linear-gradient(225deg, transparent 0 31%, rgba(52,89,73,0.95) 32% 64%, transparent 65%);
+        background-size: 380px 230px;
+        animation: bgDrift 18s linear infinite reverse;
+    }
+
+    .block-ground {
+        position: absolute;
+        left: -100px;
+        right: -100px;
+        bottom: -70px;
+        height: 255px;
+        z-index: 3;
+        background-image:
+            linear-gradient(45deg, rgba(255,255,255,0.08) 25%, transparent 25%),
+            linear-gradient(-45deg, rgba(0,0,0,0.16) 25%, transparent 25%),
+            linear-gradient(45deg, var(--grass) 25%, #3e8f45 25%, #3e8f45 50%, var(--grass) 50%, var(--grass) 75%, #3e8f45 75%);
         background-size: 64px 64px;
-        background-repeat: repeat;
+        transform: skewY(-4deg);
+        box-shadow: 0 -30px 70px rgba(0,0,0,0.28);
+        animation: groundShift 20s linear infinite;
     }
 
-    /* Blocky “voxel” style layers using gradients */
-    .layer1 {
-        background-image:
-          linear-gradient(45deg, #3b6b35 25%, #4f8c47 25%, #4f8c47 50%, #3b6b35 50%, #3b6b35 75%, #4f8c47 75%, #4f8c47 100%);
-    }
-    .layer2 {
-        background-image:
-          linear-gradient(45deg, #6b4a2f 25%, #8c6239 25%, #8c6239 50%, #6b4a2f 50%, #6b4a2f 75%, #8c6239 75%, #8c6239 100%);
-    }
-    .layer3 {
-        background-image:
-          linear-gradient(45deg, #777777 25%, #999999 25%, #999999 50%, #777777 50%, #777777 75%, #999999 75%, #999999 100%);
+    .floating-cube {
+        position: absolute;
+        width: 46px;
+        height: 46px;
+        background: var(--blue);
+        box-shadow:
+            12px 12px 0 rgba(0,0,0,0.28),
+            inset -9px -9px 0 rgba(0,0,0,0.22),
+            inset 9px 9px 0 rgba(255,255,255,0.16);
+        transform: rotateX(58deg) rotateZ(45deg);
+        animation: floatCube 7s ease-in-out infinite;
+        opacity: 0.65;
     }
 
-    /* Sidebar */
+    .floating-cube:nth-child(1) { left: 72%; top: 18%; background: var(--grass); animation-delay: 0s; }
+    .floating-cube:nth-child(2) { left: 83%; top: 42%; background: var(--stone); animation-delay: 1.2s; }
+    .floating-cube:nth-child(3) { left: 11%; top: 24%; background: var(--dirt); animation-delay: 2.1s; }
+    .floating-cube:nth-child(4) { left: 24%; top: 70%; background: var(--magenta); animation-delay: 3.1s; }
+
+    @keyframes bgDrift {
+        from { transform: translateX(0); }
+        to { transform: translateX(-160px); }
+    }
+
+    @keyframes groundShift {
+        from { background-position: 0 0; }
+        to { background-position: 128px 0; }
+    }
+
+    @keyframes floatCube {
+        0%, 100% { transform: translateY(0) rotateX(58deg) rotateZ(45deg); }
+        50% { transform: translateY(-24px) rotateX(58deg) rotateZ(45deg); }
+    }
+
+    /* ============================================================
+       LAYOUT
+       ============================================================ */
+
+    #app {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr);
+        min-height: 100vh;
+    }
+
     #sidebar {
-        width: 260px;
-        background: rgba(245,245,245,0.96);
-        height: 100vh;
-        position: fixed;
-        left: 0;
+        position: sticky;
         top: 0;
-        padding: 20px;
-        border-right: 3px solid #c6c6c6;
+        height: 100vh;
         overflow-y: auto;
+        padding: 18px;
+        background: rgba(8, 14, 26, 0.88);
+        backdrop-filter: blur(16px);
+        border-right: 2px solid var(--border);
+        box-shadow: 18px 0 45px rgba(0,0,0,0.28);
+        z-index: 10;
     }
 
-    #sidebar h2 {
-        margin-top: 0;
+    .brand {
+        padding: 16px;
+        margin-bottom: 16px;
+        border-radius: 18px;
+        background: linear-gradient(145deg, rgba(74,163,255,0.18), rgba(117,215,255,0.08));
+        border: 1px solid var(--border);
+        box-shadow: 0 14px 30px rgba(0,0,0,0.25);
+    }
+
+    .brand h1 {
+        margin: 0;
+        color: white;
         font-size: 22px;
-        color: #3c6eb4;
+        line-height: 1.1;
+        text-shadow: 0 0 18px rgba(117,215,255,0.4);
+        border: 0;
     }
 
-    #sidebar input {
+    .brand span {
+        display: block;
+        margin-top: 7px;
+        color: var(--muted);
+        font-size: 13px;
+    }
+
+    #searchBox {
         width: 100%;
-        padding: 6px;
-        margin-bottom: 10px;
+        padding: 12px 14px;
+        margin: 0 0 12px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        outline: none;
+        background: rgba(255,255,255,0.08);
+        color: var(--text);
+        font-size: 14px;
+    }
+
+    #searchBox::placeholder {
+        color: #9db2c8;
+    }
+
+    #searchResults {
+        margin-bottom: 12px;
+    }
+
+    .nav-title {
+        margin: 14px 0 8px;
+        color: var(--blue2);
+        font-size: 13px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
     }
 
     #sidebar a {
         display: block;
-        padding: 4px 0;
-        color: #1a1a1a;
+        margin: 6px 0;
+        padding: 10px 12px;
+        color: var(--text);
         text-decoration: none;
         font-size: 14px;
+        border-radius: 12px;
+        border: 1px solid transparent;
+        background: rgba(255,255,255,0.045);
+        transition: 0.18s ease;
     }
 
-    #sidebar a:hover {
-        color: #3c6eb4;
-        text-decoration: underline;
+    #sidebar a:hover,
+    #sidebar a.active-link {
+        color: white;
+        background: rgba(74,163,255,0.24);
+        border-color: var(--border);
+        transform: translateX(4px);
     }
 
-    #searchResults a {
-        font-style: italic;
+    #downloadLink {
+        background: linear-gradient(135deg, #3eaa5c, #62d77e) !important;
+        color: #06110a !important;
+        font-weight: bold;
+        text-align: center;
+        box-shadow: 0 12px 22px rgba(0,0,0,0.25);
     }
 
-    /* Content */
     #content {
-        margin-left: 260px;
-        padding: 30px;
-        min-height: 100vh;
-        background: rgba(255,255,255,0.94);
-    }
-
-    h1, h2 {
-        color: #3c6eb4;
-        border-bottom: 2px solid #d0d0d0;
-        padding-bottom: 4px;
-    }
-
-    h3 {
-        color: #3c6eb4;
-    }
-
-    pre {
-        background: #f3f3f3;
-        padding: 10px;
-        border-radius: 6px;
-        border: 1px solid #d0d0d0;
-        overflow-x: auto;
-    }
-
-    hr {
-        border: 0;
-        border-bottom: 1px solid #d0d0d0;
-        margin: 30px 0;
+        padding: 34px;
+        max-width: 1250px;
+        width: 100%;
     }
 
     .page {
         display: none;
+        animation: pageIn 0.28s ease both;
     }
 
     .page.active {
         display: block;
     }
 
-    ul, ol {
-        margin-top: 5px;
+    @keyframes pageIn {
+        from { opacity: 0; transform: translateY(14px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============================================================
+       TYPOGRAPHY + CARDS
+       ============================================================ */
+
+    h1, h2 {
+        color: white;
+        border-bottom: 1px solid rgba(140,210,255,0.28);
+        padding-bottom: 8px;
+        text-shadow: 0 0 18px rgba(74,163,255,0.25);
+    }
+
+    h1 {
+        font-size: clamp(32px, 5vw, 56px);
+        margin: 0 0 20px;
+    }
+
+    h2 {
+        margin-top: 30px;
+        font-size: 26px;
+    }
+
+    h3 {
+        color: var(--blue2);
+        margin-bottom: 8px;
+    }
+
+    p, li {
+        line-height: 1.65;
+        color: #d8e7f5;
+    }
+
+    .hero {
+        position: relative;
+        overflow: hidden;
+        padding: 28px;
+        border-radius: 28px;
+        background:
+            linear-gradient(135deg, rgba(74,163,255,0.22), rgba(217,67,255,0.11)),
+            rgba(10, 18, 32, 0.86);
+        border: 1px solid var(--border);
+        box-shadow: 0 22px 60px rgba(0,0,0,0.32);
+        margin-bottom: 22px;
+    }
+
+    .hero:after {
+        content: "";
+        position: absolute;
+        right: -80px;
+        top: -80px;
+        width: 240px;
+        height: 240px;
+        background: radial-gradient(circle, rgba(117,215,255,0.28), transparent 65%);
+    }
+
+    .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 16px;
+        margin: 18px 0;
+    }
+
+    .card {
+        padding: 18px;
+        border-radius: 20px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.23);
+    }
+
+    .card strong {
+        color: white;
+    }
+
+    .block-card {
+        position: relative;
+        min-height: 128px;
+    }
+
+    .cube-icon {
+        width: 58px;
+        height: 58px;
+        margin-bottom: 14px;
+        background: var(--grass);
+        box-shadow:
+            12px 12px 0 rgba(0,0,0,0.24),
+            inset -10px -10px 0 rgba(0,0,0,0.22),
+            inset 10px 10px 0 rgba(255,255,255,0.18);
+        transform: rotateX(58deg) rotateZ(45deg);
+    }
+
+    .cube-grass { background: var(--grass); }
+    .cube-dirt { background: var(--dirt); }
+    .cube-stone { background: var(--stone); }
+    .cube-torch { background: var(--gold); }
+    .cube-ash { background: var(--ash); }
+    .cube-hell { background: var(--hell); }
+    .cube-magenta { background: var(--magenta); }
+    .cube-bed { background: #c8b48c; }
+    .cube-pee { background: #fff36a; }
+
+    .tag {
+        display: inline-block;
+        margin: 4px 5px 4px 0;
+        padding: 5px 9px;
+        border-radius: 999px;
+        background: rgba(74,163,255,0.18);
+        border: 1px solid var(--border);
+        color: var(--blue2);
+        font-size: 12px;
+    }
+
+    .note {
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: rgba(255,209,102,0.12);
+        border: 1px solid rgba(255,209,102,0.35);
+        color: #ffe5a2;
+        margin: 16px 0;
+    }
+
+    .warning {
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: rgba(217,67,255,0.12);
+        border: 1px solid rgba(217,67,255,0.35);
+        color: #f1c3ff;
+        margin: 16px 0;
+    }
+
+    .command-list,
+    .plain-list {
+        display: grid;
+        gap: 8px;
+        margin: 14px 0;
+    }
+
+    .command,
+    .list-row {
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.08);
+        color: #eef8ff;
+    }
+
+    code {
+        color: #fff3a6;
+        background: rgba(0,0,0,0.35);
+        border: 1px solid rgba(255,255,255,0.08);
+        padding: 2px 6px;
+        border-radius: 6px;
     }
 
     .infobox {
         float: right;
-        width: 260px;
-        background: #f8f8f8;
-        border: 2px solid #c6c6c6;
-        padding: 10px;
-        margin: 10px;
-        font-size: 14px;
+        width: 280px;
+        margin: 0 0 18px 22px;
+        padding: 16px;
+        border-radius: 20px;
+        background: rgba(10, 18, 32, 0.9);
+        border: 1px solid var(--border);
+        box-shadow: 0 18px 34px rgba(0,0,0,0.28);
     }
 
     .infobox h3 {
         margin-top: 0;
-        border-bottom: 1px solid #c6c6c6;
     }
 
-    @media (max-width: 800px) {
+    /* ============================================================
+       INTERACTIVE EXAMPLES
+       ============================================================ */
+
+    .interactive {
+        padding: 18px;
+        margin: 20px 0;
+        border-radius: 22px;
+        background: linear-gradient(135deg, rgba(255,255,255,0.09), rgba(255,255,255,0.035));
+        border: 1px solid var(--border);
+        box-shadow: inset 0 0 30px rgba(117,215,255,0.04), 0 18px 40px rgba(0,0,0,0.25);
+    }
+
+    .controls-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 12px 0;
+    }
+
+    button,
+    select,
+    input[type="range"] {
+        font: inherit;
+    }
+
+    .wiki-btn {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 13px;
+        color: var(--text);
+        background: rgba(74,163,255,0.18);
+        cursor: pointer;
+        transition: 0.18s ease;
+    }
+
+    .wiki-btn:hover {
+        transform: translateY(-2px);
+        background: rgba(74,163,255,0.34);
+    }
+
+    select {
+        padding: 10px 13px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        color: var(--text);
+        background: #101a2b;
+    }
+
+    .preview-stage {
+        min-height: 190px;
+        border-radius: 18px;
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(#69b8ff, #397e55);
+        border: 1px solid rgba(255,255,255,0.14);
+        margin-top: 12px;
+    }
+
+    .sample-block {
+        position: absolute;
+        left: 50%;
+        top: 52%;
+        width: 72px;
+        height: 72px;
+        transform: translate(-50%, -50%) rotateX(58deg) rotateZ(45deg);
+        background: var(--grass);
+        box-shadow:
+            18px 18px 0 rgba(0,0,0,0.25),
+            inset -14px -14px 0 rgba(0,0,0,0.24),
+            inset 14px 14px 0 rgba(255,255,255,0.18);
+        transition: 0.22s ease;
+    }
+
+    .rain-drop,
+    .snow-flake {
+        position: absolute;
+        top: -20px;
+        animation: fall 1s linear infinite;
+        opacity: 0.85;
+    }
+
+    .rain-drop {
+        width: 2px;
+        height: 20px;
+        background: #b7d9ff;
+    }
+
+    .snow-flake {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: white;
+        animation-duration: 2.4s;
+    }
+
+    .flash {
+        position: absolute;
+        inset: 0;
+        background: white;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .flash.active {
+        animation: lightning 0.55s ease;
+    }
+
+    @keyframes lightning {
+        0%, 100% { opacity: 0; }
+        15% { opacity: 0.9; }
+        35% { opacity: 0.15; }
+        50% { opacity: 0.65; }
+    }
+
+    @keyframes fall {
+        to { transform: translateY(240px); }
+    }
+
+    .craft-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 54px);
+        gap: 8px;
+        margin: 12px 0;
+    }
+
+    .slot {
+        width: 54px;
+        height: 54px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(255,255,255,0.08);
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+    }
+
+    .slot .mini-cube {
+        width: 28px;
+        height: 28px;
+        transform: rotateX(58deg) rotateZ(45deg);
+        box-shadow:
+            7px 7px 0 rgba(0,0,0,0.25),
+            inset -5px -5px 0 rgba(0,0,0,0.22),
+            inset 5px 5px 0 rgba(255,255,255,0.18);
+    }
+
+    .result-box {
+        margin-top: 12px;
+        padding: 14px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: rgba(0,0,0,0.22);
+        color: white;
+    }
+
+    .flow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-top: 14px;
+    }
+
+    .flow-step {
+        padding: 12px;
+        border-radius: 16px;
+        background: rgba(74,163,255,0.16);
+        border: 1px solid var(--border);
+        min-width: 135px;
+        text-align: center;
+    }
+
+    .arrow {
+        color: var(--blue2);
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    @media (max-width: 900px) {
+        #app {
+            grid-template-columns: 1fr;
+        }
+
         #sidebar {
-            position: static;
-            width: 100%;
+            position: relative;
             height: auto;
-            border-right: none;
-            border-bottom: 3px solid #c6c6c6;
         }
+
         #content {
-            margin-left: 0;
+            padding: 20px;
         }
+
         .infobox {
             float: none;
             width: 100%;
+            margin: 0 0 18px;
         }
     }
 </style>
 </head>
+
 <body>
 
-<!-- Parallax background -->
-<div id="parallax">
-    <div class="layer layer1"></div>
-    <div class="layer layer2"></div>
-    <div class="layer layer3"></div>
+<div id="voxel-bg">
+    <div class="voxel-layer mountains-back"></div>
+    <div class="voxel-layer mountains-front"></div>
+    <div class="block-ground"></div>
+    <div class="floating-cube"></div>
+    <div class="floating-cube"></div>
+    <div class="floating-cube"></div>
+    <div class="floating-cube"></div>
+    <div class="sky-glow"></div>
 </div>
 
-<!-- Sidebar -->
-<div id="sidebar">
-    <h2>IRL Simulator Wiki</h2>
-    <input id="searchBox" placeholder="Search pages...">
-    <div id="searchResults"></div>
+<div id="app">
 
-    <h3>Pages</h3>
-    <a href="#" data-page="overview">Overview</a>
-    <a href="#" data-page="controls">Controls</a>
-    <a href="#" data-page="chat">Chat System</a>
-    <a href="#" data-page="blocks">Block List</a>
-    <a href="#" data-page="crafting">Crafting System</a>
-    <a href="#" data-page="bed">Bed Recipe</a>
-    <a href="#" data-page="boss">Boss Spawner Recipe</a>
-    <a href="#" data-page="sleeping">Sleeping System</a>
-    <a href="#" data-page="daynight">Day / Night Cycle</a>
-    <a href="#" data-page="weather">Weather</a>
-    <a href="#" data-page="hell">Hell Dimension</a>
-    <a href="#" data-page="humans">Humans (NPCs)</a>
-    <a href="#" data-page="waterpee">Water + Pee System</a>
-    <a href="#" data-page="saving">Saving System</a>
-    <a href="#" data-page="craftingtable">Crafting Table Appearance</a>
-    <a href="#" data-page="bedappearance">Bed Appearance</a>
-    <a href="#" data-page="spawnerappearance">Spawner Appearance</a>
-    <a href="#" data-page="menus">Menus / UIs</a>
-    <a href="#" data-page="conclusion">Conclusion</a>
-    <a href="irl.zip">Download</a>
-</div>
-
-<!-- Content -->
-<div id="content">
-
-    <!-- Overview -->
-    <div class="page active" id="page-overview">
-        <h1>Voxel IRL Simulator — Overview</h1>
-
-        <div class="infobox">
-            <h3>Game Info</h3>
-            <b>Type:</b> Custom-built voxel engine<br>
-            <b>Dimensions:</b> Overworld + Hell<br>
-            <b>Core Systems:</b> Survival, crafting, weather, NPCs, boss<br>
+    <aside id="sidebar">
+        <div class="brand">
+            <h1>IRL Simulator Wiki</h1>
+            <span>Modern voxel documentation</span>
         </div>
 
-        <p>This is a custom-built voxel engine featuring:</p>
-        <ul>
-            <li>Full day/night cycle</li>
-            <li>Dynamic sky colors (Overworld + Hell)</li>
-            <li>Hell dimension with ash hills and red fog</li>
-            <li>Crafting system with a 3×3 crafting table</li>
-            <li>Beds you can craft, place, and sleep in</li>
-            <li>Water + pee survival system</li>
-            <li>Humans with simple AI wandering behavior</li>
-            <li>Chat system with commands</li>
-            <li>Custom 3D renderer with sky color support</li>
-        </ul>
+        <input id="searchBox" placeholder="Search pages...">
+        <div id="searchResults"></div>
 
-        <p>This README explains every block, recipe, control, mechanic, and system.</p>
-    </div>
+        <div class="nav-title">Core Pages</div>
+        <a href="#" data-page="overview" class="active-link">Overview</a>
+        <a href="#" data-page="startup">Startup + Title</a>
+        <a href="#" data-page="controls">Controls</a>
+        <a href="#" data-page="chat">Chat System</a>
+        <a href="#" data-page="blocks">Block List</a>
+        <a href="#" data-page="crafting">Crafting System</a>
+        <a href="#" data-page="bed">Bed Recipe</a>
+        <a href="#" data-page="boss">Boss Spawner</a>
+        <a href="#" data-page="sleeping">Sleeping System</a>
+        <a href="#" data-page="daynight">Day / Night</a>
+        <a href="#" data-page="weather">Weather</a>
+        <a href="#" data-page="hell">Hell Dimension</a>
+        <a href="#" data-page="humans">Humans + Holograms</a>
+        <a href="#" data-page="waterpee">Water + Pee</a>
+        <a href="#" data-page="saving">Saving</a>
+        <a href="#" data-page="menus">Menus / UIs</a>
+        <a href="#" data-page="lan">LAN Multiplayer</a>
+        <a href="#" data-page="interactive">Interactive Examples</a>
+        <a href="#" data-page="conclusion">Conclusion</a>
 
-    <!-- Controls -->
-    <div class="page" id="page-controls">
-        <h1>Controls</h1>
+        <div class="nav-title">Download</div>
+        <a id="downloadLink" href="irl.zip">Download IRL Simulator</a>
+    </aside>
 
-        <h2>Movement</h2>
-        <p>
-            W A S D — Move<br>
-            Space — Jump<br>
-            Shift — Sneak / slow movement<br>
-            Mouse — Look around<br>
-            Scroll Wheel — Change hotbar slot
-        </p>
+    <main id="content">
 
-        <h2>Interaction</h2>
-        <p>
-            Left Click — Break block / attack<br>
-            Right Click — Place block / interact<br>
-            E — Open crafting table (when looking at one)<br>
-            T — Open chat<br>
-            ESC — Pause menu
-        </p>
-    </div>
+        <section class="page active" id="page-overview">
+            <div class="hero">
+                <h1>Voxel IRL Simulator</h1>
+                <p>A custom Java voxel survival/life-sim engine with crafting, weather, humans, Hell, LAN world downloads, boss fights, and blocky menus.</p>
+                <span class="tag">Custom 3D Renderer</span>
+                <span class="tag">Survival</span>
+                <span class="tag">Crafting</span>
+                <span class="tag">LAN</span>
+                <span class="tag">Weather</span>
+                <span class="tag">Hell Dimension</span>
+            </div>
 
-    <!-- Chat System -->
-    <div class="page" id="page-chat">
-        <h1>Chat System</h1>
-        <p>Press T to open chat.</p>
+            <div class="infobox">
+                <h3>Game Info</h3>
+                <p><strong>Type:</strong> Custom voxel engine</p>
+                <p><strong>Dimensions:</strong> Overworld + Hell</p>
+                <p><strong>Core Systems:</strong> Crafting, survival, weather, NPCs, boss, LAN</p>
+            </div>
 
-        <h2>Commands</h2>
-        <pre>
-/tp x y z — Teleport to coordinates
-/time set day — Set time to sunrise
-/time set night — Set time to midnight
-/save — Manually save the world
-/spawn — Teleport to spawn point
-/hell — Teleport to Hell dimension
-/overworld — Return to Overworld
-        </pre>
-    </div>
+            <h2>Overview</h2>
+            <p>IRL Simulator is a custom-built voxel engine with block-based terrain, dynamic sky colors, a day/night cycle, weather, crafting, beds, humans, survival meters, menus, LAN hosting, and a boss spawner system.</p>
 
-    <!-- Block List -->
-    <div class="page" id="page-blocks">
-        <h1>Block List</h1>
-        <pre>
-ID 0 — Air
-ID 1 — Grass
-ID 2 — Dirt
-ID 3 — Stone
-ID 4 — Torch
-ID 7 — Ash (found in Hell, used to craft beds)
-ID 20 — Crafting Table
-ID 30 — Bed
-        </pre>
-    </div>
+            <div class="card-grid">
+                <div class="card block-card">
+                    <div class="cube-icon cube-grass"></div>
+                    <strong>Voxel World</strong>
+                    <p>Explore generated terrain with chunks, blocks, mountains, trees, caves, and structures.</p>
+                </div>
+                <div class="card block-card">
+                    <div class="cube-icon cube-hell"></div>
+                    <strong>Hell Dimension</strong>
+                    <p>Switch to a red-sky dimension with ash, bloodrock, hellstone, fire, and spawners.</p>
+                </div>
+                <div class="card block-card">
+                    <div class="cube-icon cube-magenta"></div>
+                    <strong>Boss System</strong>
+                    <p>Craft and place a boss spawner, then right-click it to summon a boss.</p>
+                </div>
+                <div class="card block-card">
+                    <div class="cube-icon cube-pee"></div>
+                    <strong>Survival Meters</strong>
+                    <p>Manage water and pee meters while exploring, sleeping, and surviving.</p>
+                </div>
+            </div>
+        </section>
 
-    <!-- Crafting System -->
-    <div class="page" id="page-crafting">
-        <h1>Crafting System</h1>
-        <p>How crafting works:</p>
-        <ol>
-            <li>Right-click a crafting table.</li>
-            <li>A 3×3 grid appears.</li>
-            <li>Drag items from your hotbar into the grid.</li>
-            <li>If the recipe is valid, a result appears.</li>
-            <li>Drag the result into your inventory.</li>
-        </ol>
-    </div>
+        <section class="page" id="page-startup">
+            <h1>Startup + Window Title</h1>
 
-    <!-- Bed Recipe -->
-    <div class="page" id="page-bed">
-        <h1>Bed Recipe</h1>
+            <div class="card">
+                <h2>Startup Cinematic</h2>
+                <p>When the game starts, 3D voxel blocks fly into place and form the text ALARICHOLT677.</p>
+                <p>After that, the view transitions into a blocky mountain scene where the camera comes out of a mountain and fades into the main menu.</p>
+            </div>
 
-        <h2>Ingredients</h2>
-        <p>3 or more Ash blocks (ID 7)</p>
+            <div class="card">
+                <h2>Special Window Title</h2>
+                <p>The game window title uses the player name and a random splash saying.</p>
+                <p>Format: IRL SIMULATOR 3D - PlayerName | Random Saying</p>
+                <p>Examples include Powered by Java, Grox Mode Enabled, Hydrate or Diedrate, Reality is buffering, and Your GPU is crying.</p>
+            </div>
 
-        <h2>Recipe Logic</h2>
-        <p>If the crafting grid contains 3+ Ash blocks, the output is: Bed (Block ID 30).</p>
+            <div class="card">
+                <h2>Startup Arguments</h2>
+                <div class="plain-list">
+                    <div class="list-row">--PathToClasses path</div>
+                    <div class="list-row">--Name playerName</div>
+                    <div class="list-row">--skinDir directory</div>
+                    <div class="list-row">--version number</div>
+                </div>
+            </div>
+        </section>
 
-        <h2>Bed Appearance</h2>
-        <p>
-            Color: Warm beige (RGB 200,180,140)<br>
-            Shape: Cube block<br>
-            Placed like any other block.
-        </p>
-    </div>
+        <section class="page" id="page-controls">
+            <h1>Controls</h1>
 
-    <!-- Boss Spawner Recipe -->
-    <div class="page" id="page-boss">
-        <h1>New Boss Spawner Recipe</h1>
+            <div class="card-grid">
+                <div class="card">
+                    <h2>Movement</h2>
+                    <p>W — Move forward</p>
+                    <p>A — Move left</p>
+                    <p>S — Move backward</p>
+                    <p>D — Move right</p>
+                    <p>Mouse drag — Look around</p>
+                    <p>Number keys 1 through 9 — Select hotbar slot</p>
+                </div>
 
-        <h2>Ingredients</h2>
-        <ul>
-            <li>3 Ash Blocks (ID 7)</li>
-            <li>1 Torch (ID 4) (they spawn as the new tree leaves)</li>
-        </ul>
+                <div class="card">
+                    <h2>Interaction</h2>
+                    <p>B — Break selected block</p>
+                    <p>P — Place selected hotbar block</p>
+                    <p>Right Click — Interact, drink, open crafting, sleep, or spawn boss</p>
+                    <p>T — Open chat</p>
+                    <p>ESC — Pause menu</p>
+                    <p>F5 — Save current level</p>
+                    <p>F6 — Toggle follower</p>
+                    <p>F7 — Switch dimension</p>
+                </div>
+            </div>
+        </section>
 
-        <h2>Output</h2>
-        <p>Boss Spawner (ID 15)</p>
+        <section class="page" id="page-chat">
+            <h1>Chat System</h1>
+            <p>Press T to open chat, ENTER to send, and ESC to close.</p>
 
-        <h2>Functionality</h2>
-        <p>
-            Place the block, look at it, and right-click on it to spawn the boss.<br>
-            Click F9 until it's dead for the end credits.
-        </p>
-    </div>
+            <h2>Commands</h2>
+            <div class="command-list">
+                <div class="command">/help — Show commands</div>
+                <div class="command">/pos — Show current position</div>
+                <div class="command">/tp x y z — Teleport to coordinates</div>
+                <div class="command">/give id — Give selected slot a block ID</div>
+                <div class="command">/dim or /dimension — Switch dimension</div>
+                <div class="command">/follower — Toggle follower</div>
+                <div class="command">/save — Save current level</div>
+                <div class="command">/craft — Open crafting</div>
+                <div class="command">/break — Break selected block</div>
+                <div class="command">/place — Place selected block</div>
+                <div class="command">/weather clear/rain/snow/thunder/random — Change weather</div>
+            </div>
 
-    <!-- Sleeping System -->
-    <div class="page" id="page-sleeping">
-        <h1>Sleeping System</h1>
+            <div class="note">Older docs may mention /hell, /overworld, /spawn, or /time commands. The current command system uses /dim and /weather commands.</div>
+        </section>
 
-        <h2>How to Sleep</h2>
-        <ol>
-            <li>Place a bed.</li>
-            <li>Right-click the bed.</li>
-        </ol>
+        <section class="page" id="page-blocks">
+            <h1>Block List</h1>
 
-        <h2>What Happens When You Sleep</h2>
-        <ul>
-            <li>Camera tilts downward (lying down animation)</li>
-            <li>Screen darkens slightly</li>
-            <li>All water is converted into pee</li>
-            <li>Water meter resets to 0</li>
-            <li>Pee meter increases</li>
-            <li>Time jumps to sunrise</li>
-            <li>Chat message: "&lt;System&gt; You wake up feeling... relieved."</li>
-        </ul>
+            <div class="card-grid" id="blockCards"></div>
 
-        <h2>Why Sleep Matters</h2>
-        <ul>
-            <li>Skips night</li>
-            <li>Resets hydration cycle</li>
-            <li>Sets spawn point (optional)</li>
-        </ul>
-    </div>
+            <div class="interactive">
+                <h2>Interactive Block Viewer</h2>
+                <p>Select a block to preview its color and description.</p>
 
-    <!-- Day / Night Cycle -->
-    <div class="page" id="page-daynight">
-        <h1>Day / Night Cycle</h1>
+                <div class="controls-row">
+                    <select id="blockSelect"></select>
+                </div>
 
-        <h2>Cycle Length</h2>
-        <p>
-            24000 ticks total<br>
-            60 ticks per second<br>
-            6 minutes 40 seconds per full day
-        </p>
+                <div class="preview-stage">
+                    <div class="sample-block" id="sampleBlock"></div>
+                </div>
 
-        <h2>Phases</h2>
-        <pre>
-0 — Sunrise
-6000 — Noon
-12000 — Sunset
-18000 — Midnight
-24000 → 0 — Sunrise again
-        </pre>
+                <div class="result-box" id="blockInfo"></div>
+            </div>
+        </section>
 
-        <h2>Sky Colors</h2>
-        <ul>
-            <li>Sunrise — Orange</li>
-            <li>Day — Blue</li>
-            <li>Sunset — Red/orange</li>
-            <li>Night — Dark blue</li>
-            <li>Hell — Permanent red fog</li>
-        </ul>
-    </div>
+        <section class="page" id="page-crafting">
+            <h1>Crafting System</h1>
 
-    <!-- Weather -->
-    <div class="page" id="page-weather">
-        <h1>Weather</h1>
+            <div class="card-grid">
+                <div class="card">
+                    <h2>3x3 Crafting Table</h2>
+                    <p>Right-click a crafting table to open a 3x3 crafting grid.</p>
+                    <p>Drag hotbar items into the grid. If a valid recipe is detected, an output appears.</p>
+                </div>
 
-        <h2>Features</h2>
-        <ul>
-            <li>If the sky is clear, after 60 seconds there's a random chance for:
+                <div class="card">
+                    <h2>2x2 Pause Crafting</h2>
+                    <p>The pause menu includes a smaller 2x2 crafting grid for quick or special recipes.</p>
+                </div>
+            </div>
+
+            <div class="interactive">
+                <h2>Recipe Tester</h2>
+                <p>Click slots to cycle between Air, Ash, and Torch. Try 3 Ash for a Bed or 3 Ash plus 1 Torch for a Boss Spawner.</p>
+                <div class="craft-grid" id="craftGrid"></div>
+                <div class="result-box" id="craftResult">Output: Air</div>
+            </div>
+        </section>
+
+        <section class="page" id="page-bed">
+            <h1>Bed Recipe</h1>
+            <div class="card">
+                <h2>Ingredients</h2>
+                <p>3 or more Ash blocks.</p>
+                <h2>Output</h2>
+                <p>Bed, Block ID 30.</p>
+                <h2>Appearance</h2>
+                <p>Warm beige cube block.</p>
+            </div>
+        </section>
+
+        <section class="page" id="page-boss">
+            <h1>Boss Spawner</h1>
+
+            <div class="card">
+                <h2>Recipe</h2>
+                <p>3 or more Ash blocks plus 1 or more Torch blocks creates a Boss Spawner.</p>
+                <p>Output: Boss Spawner, Block ID 15.</p>
+            </div>
+
+            <div class="card">
+                <h2>Functionality</h2>
+                <p>Place the spawner, look at it, and right-click it to spawn the boss.</p>
+                <p>The spawner works in any dimension.</p>
+            </div>
+
+            <div class="warning">Correction: Boss Spawner is ID 15. Bed is ID 30. If older notes say spawner ID 30, that is outdated.</div>
+        </section>
+
+        <section class="page" id="page-sleeping">
+            <h1>Sleeping System</h1>
+
+            <div class="card">
+                <h2>How to Sleep</h2>
+                <ol>
+                    <li>Craft or find a bed.</li>
+                    <li>Place the bed.</li>
+                    <li>Right-click the bed.</li>
+                </ol>
+            </div>
+
+            <div class="card">
+                <h2>Sleep Effects</h2>
                 <ul>
-                    <li>Thunder</li>
-                    <li>Snow</li>
-                    <li>Rain</li>
-                    <li>Or still a clear sky</li>
+                    <li>Camera tilts downward.</li>
+                    <li>Sleep animation starts.</li>
+                    <li>Water meter converts into pee.</li>
+                    <li>Water resets to 0.</li>
+                    <li>Pee increases.</li>
+                    <li>Time jumps toward morning.</li>
+                    <li>Wake-up message appears.</li>
                 </ul>
-            </li>
-            <li>Rain makes the sky go a bit darker</li>
-            <li>Thunderstorm has the same sky dampening but with a random flash at a random time</li>
-            <li>Snow turns the sky a pinkish color</li>
-            <li>Sky modifiers apply to the Hell dimension sky (dampening or pinkish transformation will happen in either dimension, but not tied to day/night cycle)</li>
-        </ul>
-    </div>
+                <p>Wake-up message: &lt;System&gt; You wake up feeling... relieved.</p>
+            </div>
+        </section>
 
-    <!-- Hell Dimension -->
-    <div class="page" id="page-hell">
-        <h1>Hell Dimension</h1>
+        <section class="page" id="page-daynight">
+            <h1>Day / Night Cycle</h1>
 
-        <h2>Features</h2>
-        <ul>
-            <li>Red sky and fog</li>
-            <li>Ash hills</li>
-            <li>Ash block (ID 7)</li>
-            <li>No day/night cycle</li>
-            <li>Procedural terrain</li>
-        </ul>
+            <div class="card-grid">
+                <div class="card">
+                    <h2>Time Values</h2>
+                    <p>0 — Sunrise or morning</p>
+                    <p>6000 — Day</p>
+                    <p>12000 — Sunset</p>
+                    <p>18000 — Night</p>
+                    <p>24000 — Wraps back to 0</p>
+                </div>
 
-        <h2>Travel</h2>
-        <p>Use <code>/hell</code> and <code>/overworld</code> commands.</p>
-    </div>
+                <div class="card">
+                    <h2>Sky Colors</h2>
+                    <p>Sunrise — Orange</p>
+                    <p>Day — Blue</p>
+                    <p>Sunset — Red/orange</p>
+                    <p>Night — Dark blue</p>
+                    <p>Hell — Red sky</p>
+                </div>
+            </div>
 
-    <!-- Humans -->
-    <div class="page" id="page-humans">
-        <h1>Humans (NPCs)</h1>
+            <div class="interactive">
+                <h2>Interactive Sky Slider</h2>
+                <input type="range" id="timeSlider" min="0" max="24000" value="6000">
+                <div class="preview-stage" id="skyStage">
+                    <div class="sample-block cube-grass"></div>
+                </div>
+                <div class="result-box" id="timeInfo">Time: 6000 — Day</div>
+            </div>
+        </section>
 
-        <h2>Behavior</h2>
-        <ul>
-            <li>Wander around</li>
-            <li>Avoid Hell unless forced</li>
-            <li>Saved/loaded with the world</li>
-            <li>Rendered as dynamic entities</li>
-        </ul>
-    </div>
+        <section class="page" id="page-weather">
+            <h1>Weather</h1>
 
-    <!-- Water + Pee System -->
-    <div class="page" id="page-waterpee">
-        <h1>Water + Pee System</h1>
+            <div class="card-grid">
+                <div class="card">
+                    <h2>Clear</h2>
+                    <p>Normal sky and no weather particles.</p>
+                </div>
+                <div class="card">
+                    <h2>Rain</h2>
+                    <p>Rain particles with darker sky tint.</p>
+                </div>
+                <div class="card">
+                    <h2>Snow</h2>
+                    <p>Snow particles with lighter or pinkish sky tint.</p>
+                </div>
+                <div class="card">
+                    <h2>Thunder</h2>
+                    <p>Rain, dark sky, and random lightning flashes.</p>
+                </div>
+            </div>
 
-        <h2>Water Meter</h2>
-        <ul>
-            <li>Increases when drinking</li>
-            <li>Decreases over time</li>
-            <li>If full, pee increases faster</li>
-        </ul>
+            <div class="interactive">
+                <h2>Weather Preview</h2>
+                <div class="controls-row">
+                    <button class="wiki-btn" onclick="setWeather('clear')">Clear</button>
+                    <button class="wiki-btn" onclick="setWeather('rain')">Rain</button>
+                    <button class="wiki-btn" onclick="setWeather('snow')">Snow</button>
+                    <button class="wiki-btn" onclick="setWeather('thunder')">Thunder</button>
+                </div>
+                <div class="preview-stage" id="weatherStage">
+                    <div class="sample-block cube-grass"></div>
+                    <div class="flash" id="flash"></div>
+                </div>
+                <div class="result-box" id="weatherInfo">Weather: Clear</div>
+            </div>
+        </section>
 
-        <h2>Pee Meter</h2>
-        <ul>
-            <li>Increases naturally</li>
-            <li>Increases a lot when sleeping</li>
-            <li>Can be drained later (bathroom block planned)</li>
-        </ul>
-    </div>
+        <section class="page" id="page-hell">
+            <h1>Hell Dimension</h1>
 
-    <!-- Saving System -->
-    <div class="page" id="page-saving">
-        <h1>Saving System</h1>
+            <div class="card-grid">
+                <div class="card block-card">
+                    <div class="cube-icon cube-hell"></div>
+                    <strong>Hellstone</strong>
+                    <p>Dark red terrain block used in Hell.</p>
+                </div>
+                <div class="card block-card">
+                    <div class="cube-icon cube-ash"></div>
+                    <strong>Ash</strong>
+                    <p>Hell terrain block used for bed and boss spawner crafting.</p>
+                </div>
+                <div class="card block-card">
+                    <div class="cube-icon cube-torch"></div>
+                    <strong>Fire</strong>
+                    <p>Bright Hell visual and light source.</p>
+                </div>
+            </div>
 
-        <h2>Autosave</h2>
-        <p>Runs every few minutes.</p>
+            <p>Hell includes red sky, ash hills, bloodrock, hellstone, fire, low caverns, Hell trees, and boss spawners.</p>
+            <p>Switch dimensions using F7 or the /dim command.</p>
+        </section>
 
-        <h2>Manual Save</h2>
-        <p>Use <code>/save</code>.</p>
+        <section class="page" id="page-humans">
+            <h1>Humans + Holograms</h1>
 
-        <h2>Saved Data</h2>
-        <ul>
-            <li>Player position</li>
-            <li>Hotbar</li>
-            <li>Water + pee</li>
-            <li>Time of day</li>
-            <li>Humans</li>
-            <li>Overworld terrain</li>
-        </ul>
+            <div class="card-grid">
+                <div class="card">
+                    <h2>Humans</h2>
+                    <p>Humans are dynamic entities that can spawn in the world, save with the level, and render as entities.</p>
+                </div>
 
-        <p>Hell is procedural and not saved.</p>
-    </div>
+                <div class="card">
+                    <h2>Follower</h2>
+                    <p>Press F6 or use /follower to spawn or remove a follower.</p>
+                </div>
 
-    <!-- Crafting Table Appearance -->
-    <div class="page" id="page-craftingtable">
-        <h1>Crafting Table Appearance</h1>
-        <p>
-            Block ID: 20<br>
-            Color: Brown wood<br>
-            Function: Opens crafting UI when right-clicked<br>
-            Used for all recipes.
-        </p>
-    </div>
+                <div class="card">
+                    <h2>Holographic Human</h2>
+                    <p>The pause menu can summon a holographic copy of a random human NPC.</p>
+                </div>
+            </div>
+        </section>
 
-    <!-- Bed Appearance -->
-    <div class="page" id="page-bedappearance">
-        <h1>Bed Appearance</h1>
-        <p>
-            Block ID: 30<br>
-            Color: Beige<br>
-            Shape: Cube<br>
-            Function: Right-click to sleep<br>
-            Only works in Overworld.
-        </p>
-    </div>
+        <section class="page" id="page-waterpee">
+            <h1>Water + Pee System</h1>
 
-    <!-- Spawner Appearance -->
-    <div class="page" id="page-spawnerappearance">
-        <h1>Spawner Appearance</h1>
-        <p>
-            Block ID: 30<br>
-            Color: Magenta<br>
-            Shape: Cube<br>
-            Function: Right-click to spawn boss<br>
-            Works in any Dimension.
-        </p>
-    </div>
+            <div class="card-grid">
+                <div class="card">
+                    <h2>Water Meter</h2>
+                    <ul>
+                        <li>Increases when drinking or interacting.</li>
+                        <li>Drains over time.</li>
+                        <li>Converts into pee when sleeping.</li>
+                    </ul>
+                </div>
 
-    <!-- Menus / UIs -->
-    <div class="page" id="page-menus">
-        <h1>Menus / UIs</h1>
+                <div class="card">
+                    <h2>Pee Meter</h2>
+                    <ul>
+                        <li>Increases naturally.</li>
+                        <li>Increases when drinking.</li>
+                        <li>Increases when sleeping.</li>
+                        <li>At 100, pee overflow happens.</li>
+                    </ul>
+                </div>
+            </div>
 
-        <h2>Main Menu</h2>
-        <ul>
-            <li>Appears when the game window opens</li>
-            <li>Has: Play button, Multiplayer button, Multiplayer via Win12Pages, Marketplace</li>
-        </ul>
+            <div class="note">When pee reaches 100, pee resets, water drains, a pee block can spawn, and the game shows: &lt;System&gt; You couldn't hold it...</div>
+        </section>
 
-        <h2>Multiplayer Menu</h2>
-        <ul>
-            <li>Appears when you click Multiplayer in Main Menu</li>
-            <li>Has: URL to world ZIP field, IP address field, Join button, Back button</li>
-        </ul>
+        <section class="page" id="page-saving">
+            <h1>Saving System</h1>
 
-        <h2>Multiplayer Win12Pages</h2>
-        <ul>
-            <li>Appears when you click Multiplayer via Win12Pages</li>
-            <li>Has: URL field, Join and Cancel buttons</li>
-        </ul>
+            <div class="card-grid">
+                <div class="card">
+                    <h2>Manual Save</h2>
+                    <p>Use F5 or /save.</p>
+                </div>
 
-        <h2>Marketplace</h2>
-        <ul>
-            <li>Appears when you click Marketplace</li>
-            <li>Everything is free; contains additional content.</li>
-        </ul>
+                <div class="card">
+                    <h2>Saved Data</h2>
+                    <ul>
+                        <li>Player position</li>
+                        <li>Selected hotbar slot</li>
+                        <li>Hotbar item IDs</li>
+                        <li>Water meter</li>
+                        <li>Pee meter</li>
+                        <li>Time of day</li>
+                        <li>Overworld block data</li>
+                        <li>Human/entity data</li>
+                    </ul>
+                </div>
+            </div>
 
-        <h2>Play Menu</h2>
-        <ul>
-            <li>Appears when you click Play in Main Menu</li>
-        </ul>
+            <p>Worlds are saved inside configs/worldName.</p>
+            <p>Block data is stored in blockdata/blocks.dat.</p>
+            <p>Player data is stored in playerpos/playerpos.dat.</p>
+            <p>Human/entity data is stored in humanalive/entitiesAlive.dat.</p>
+        </section>
 
-        <h3>Play Menu Layout</h3>
-        <ul>
-            <li><b>Top Bar:</b>
-                <ul>
-                    <li>Text: Saved Levels</li>
-                    <li>A Search Level box</li>
-                </ul>
-            </li>
-            <li><b>Middle Row:</b>
-                <ul>
-                    <li>A list of existing levels</li>
-                </ul>
-            </li>
-            <li><b>Bottom Controls:</b>
-                <ul>
-                    <li><b>Create New Level</b> — Enter name and options, then load into your world</li>
-                    <li><b>Play Level</b> — Play selected level</li>
-                    <li><b>Edit Level</b> — Edit level options</li>
-                    <li><b>Rename</b> — Rename a level</li>
-                    <li><b>Delete</b> — Delete levels</li>
-                    <li><b>Back</b> — Return to Main Menu</li>
-                </ul>
-            </li>
-        </ul>
-       
-        <ul>
-         <b>
-            <h1>
-               Pause Menu:
-            </h1>
-         </b>
-           <ul>
-              <li>Opened By Clicking ESC On Your Keyboard While Playing</li>
-              <li>
-                 HAS:
-                 <ul>
-                    <li>Hotbar at TOPleft</li>
-                    <li>two buttons one for spawning house human two for opening main menu</li>
-                    <li>2x2 vrafting table</li>
-                 </ul>
-              </li>
-           </ul>
-        </ul>
-    </div>
+        <section class="page" id="page-menus">
+            <h1>Menus / UIs</h1>
 
-    <!-- Conclusion -->
-    <div class="page" id="page-conclusion">
-        <h1>Conclusion</h1>
-        <p>Your voxel engine includes:</p>
-        <ul>
-            <li>Survival mechanics</li>
-            <li>Life simulation</li>
-            <li>Crafting</li>
-            <li>Sleeping</li>
-            <li>Day/night cycle</li>
-            <li>Hell dimension</li>
-            <li>Chat commands</li>
-            <li>NPCs</li>
-            <li>Rendering pipeline</li>
-            <li>Sky system</li>
-            <li>Game-like menus</li>
-            <li>A full realistic weather system</li>
-            <li>And a boss to defeat</li>
-        </ul>
-        <p>This README documents everything currently implemented.</p>
-    </div>
+            <div class="card-grid">
+                <div class="card">
+                    <h2>Main Menu</h2>
+                    <p>Contains Play, Multiplayer, Marketplace, Multiplayer via Win12 Pages, version display, and visual background styling.</p>
+                </div>
 
+                <div class="card">
+                    <h2>Play Menu</h2>
+                    <p>Contains saved levels, search, create, play, edit, rename, delete, and back controls.</p>
+                </div>
+
+                <div class="card">
+                    <h2>Options Menu</h2>
+                    <p>Contains occlusion culling, chunk streaming, chunk meshing, render distance, confirm, and cancel.</p>
+                </div>
+
+                <div class="card">
+                    <h2>Multiplayer Menu</h2>
+                    <p>Contains IP field, world URL field, LAN list, manual entry, refresh LAN, join selected, and back.</p>
+                </div>
+
+                <div class="card">
+                    <h2>Marketplace</h2>
+                    <p>Shows free content, item cards, item details, and download/install controls.</p>
+                </div>
+
+                <div class="card">
+                    <h2>Pause Menu</h2>
+                    <p>Contains hotbar display, 2x2 crafting, output slot, Quit Game, Summon House Human, Host/Stop LAN World, and LAN status.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="page" id="page-lan">
+            <h1>LAN Multiplayer</h1>
+
+            <div class="card">
+                <h2>Hosting</h2>
+                <p>Hosting starts from the pause menu. The host enters a world folder inside configs and a port number.</p>
+                <p>Example: configs/MyWorld on port 25565.</p>
+            </div>
+
+            <div class="interactive">
+                <h2>LAN World Download Flow</h2>
+                <p>This is what happens when joining a hosted LAN world with auto-download enabled.</p>
+
+                <div class="flow">
+                    <div class="flow-step">Host picks world</div>
+                    <div class="arrow">→</div>
+                    <div class="flow-step">Server zips folder</div>
+                    <div class="arrow">→</div>
+                    <div class="flow-step">Client downloads ZIP</div>
+                    <div class="arrow">→</div>
+                    <div class="flow-step">Extracts client_world</div>
+                    <div class="arrow">→</div>
+                    <div class="flow-step">Game loads world</div>
+                </div>
+
+                <div class="controls-row">
+                    <button class="wiki-btn" id="lanDemoBtn">Run LAN Demo</button>
+                </div>
+
+                <div class="result-box" id="lanDemoResult">LAN demo ready.</div>
+            </div>
+
+            <div class="card">
+                <h2>Synced Player State</h2>
+                <p>LAN sends player ID, X, Y, Z, yaw, and pitch so remote players can appear and move.</p>
+            </div>
+        </section>
+
+        <section class="page" id="page-interactive">
+            <h1>Interactive Examples</h1>
+            <p>This page collects the interactive wiki demos.</p>
+
+            <div class="interactive">
+                <h2>Mini Block Playground</h2>
+                <p>Click a color to change the block.</p>
+                <div class="controls-row">
+                    <button class="wiki-btn" onclick="playgroundBlock('#55aa55')">Grass</button>
+                    <button class="wiki-btn" onclick="playgroundBlock('#8b5a35')">Dirt</button>
+                    <button class="wiki-btn" onclick="playgroundBlock('#888888')">Stone</button>
+                    <button class="wiki-btn" onclick="playgroundBlock('#444444')">Ash</button>
+                    <button class="wiki-btn" onclick="playgroundBlock('#d943ff')">Spawner</button>
+                </div>
+                <div class="preview-stage">
+                    <div class="sample-block" id="playgroundCube"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="page" id="page-conclusion">
+            <h1>Conclusion</h1>
+            <p>Voxel IRL Simulator currently includes:</p>
+
+            <div class="card-grid">
+                <div class="card">Custom voxel rendering</div>
+                <div class="card">Startup cinematic</div>
+                <div class="card">Special randomized title</div>
+                <div class="card">Main, play, options, multiplayer, marketplace, and pause menus</div>
+                <div class="card">LAN hosting and hosted-world downloading</div>
+                <div class="card">Survival mechanics</div>
+                <div class="card">Water and pee meters</div>
+                <div class="card">Crafting</div>
+                <div class="card">Beds and sleeping</div>
+                <div class="card">Weather</div>
+                <div class="card">Day/night cycle</div>
+                <div class="card">Hell dimension</div>
+                <div class="card">Humans and holograms</div>
+                <div class="card">Follower system</div>
+                <div class="card">Boss spawner and boss encounter support</div>
+                <div class="card">Saving and loading</div>
+                <div class="card">Chat commands</div>
+                <div class="card">Procedural terrain</div>
+            </div>
+        </section>
+
+    </main>
 </div>
 
 <script>
-    // Parallax scroll
-    window.addEventListener("scroll", () => {
-        const scroll = window.scrollY;
-        document.querySelector(".layer1").style.transform =
-            `translateY(${scroll * 0.1}px)`;
-        document.querySelector(".layer2").style.transform =
-            `translateY(${scroll * 0.3}px)`;
-        document.querySelector(".layer3").style.transform =
-            `translateY(${scroll * 0.6}px)`;
-    });
-
-    // Page switching
     const links = document.querySelectorAll('#sidebar a[data-page]');
     const pages = document.querySelectorAll('.page');
 
@@ -649,22 +1221,25 @@ ID 30 — Bed
         pages.forEach(p => {
             p.classList.toggle('active', p.id === 'page-' + name);
         });
+
+        links.forEach(a => {
+            a.classList.toggle('active-link', a.getAttribute('data-page') === name);
+        });
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     links.forEach(link => {
         link.addEventListener('click', e => {
             e.preventDefault();
-            const page = link.getAttribute('data-page');
-            showPage(page);
+            showPage(link.getAttribute('data-page'));
         });
     });
 
-    // Simple search
     const pageNames = [
-        "overview","controls","chat","blocks","crafting","bed","boss",
-        "sleeping","daynight","weather","hell","humans","waterpee",
-        "saving","craftingtable","bedappearance","spawnerappearance",
-        "menus","conclusion"
+        "overview","startup","controls","chat","blocks","crafting","bed","boss",
+        "sleeping","daynight","weather","hell","humans","waterpee","saving",
+        "menus","lan","interactive","conclusion"
     ];
 
     const searchBox = document.getElementById('searchBox');
@@ -672,26 +1247,262 @@ ID 30 — Bed
 
     searchBox.addEventListener('input', () => {
         const q = searchBox.value.toLowerCase().trim();
+
         if (!q) {
             searchResults.innerHTML = "";
             return;
         }
+
         const matches = pageNames.filter(n => n.includes(q));
+
         searchResults.innerHTML = matches.map(m =>
             `<a href="#" data-page="${m}">${m}</a>`
         ).join("");
 
-        // Make search results clickable
         searchResults.querySelectorAll('a').forEach(a => {
             a.addEventListener('click', e => {
                 e.preventDefault();
-                const page = a.getAttribute('data-page');
-                showPage(page);
+                showPage(a.getAttribute('data-page'));
                 searchBox.value = "";
                 searchResults.innerHTML = "";
             });
         });
     });
+
+    const blocks = [
+        { id: 0, name: "Air", color: "transparent", desc: "Empty space." },
+        { id: 1, name: "Grass", color: "#55aa55", desc: "Green surface terrain and leaf substitute." },
+        { id: 2, name: "Dirt", color: "#8b5a35", desc: "Brown terrain layer and simple trunk material." },
+        { id: 3, name: "Stone", color: "#888888", desc: "Gray underground terrain and structure block." },
+        { id: 4, name: "Torch", color: "#ffd166", desc: "Light source and boss spawner crafting ingredient." },
+        { id: 5, name: "Hellstone", color: "#8d2222", desc: "Dark red Hell terrain." },
+        { id: 6, name: "Bloodrock", color: "#b83232", desc: "Red Hell terrain and roof material." },
+        { id: 7, name: "Ash", color: "#444444", desc: "Dark Hell terrain block used in recipes." },
+        { id: 8, name: "Fire", color: "#ff642e", desc: "Hell fire visual and light source." },
+        { id: 15, name: "Boss Spawner", color: "#d943ff", desc: "Right-click to spawn a boss." },
+        { id: 20, name: "Crafting Table", color: "#ad7545", desc: "Opens 3x3 crafting UI." },
+        { id: 30, name: "Bed", color: "#c8b48c", desc: "Right-click to sleep." },
+        { id: 42, name: "Pee Block", color: "#fff36a", desc: "Spawned by pee overflow." }
+    ];
+
+    const blockCards = document.getElementById('blockCards');
+    const blockSelect = document.getElementById('blockSelect');
+    const sampleBlock = document.getElementById('sampleBlock');
+    const blockInfo = document.getElementById('blockInfo');
+
+    function initBlocks() {
+        if (!blockCards || !blockSelect) return;
+
+        blockCards.innerHTML = blocks.map(b => `
+            <div class="card block-card">
+                <div class="cube-icon" style="background:${b.color === 'transparent' ? '#101827' : b.color}"></div>
+                <strong>ID ${b.id} — ${b.name}</strong>
+                <p>${b.desc}</p>
+            </div>
+        `).join("");
+
+        blockSelect.innerHTML = blocks.map((b, i) =>
+            `<option value="${i}">ID ${b.id} — ${b.name}</option>`
+        ).join("");
+
+        updateBlockViewer(1);
+
+        blockSelect.addEventListener('change', () => {
+            updateBlockViewer(Number(blockSelect.value));
+        });
+    }
+
+    function updateBlockViewer(index) {
+        const b = blocks[index];
+
+        sampleBlock.style.background = b.color === "transparent" ? "#101827" : b.color;
+        sampleBlock.style.opacity = b.color === "transparent" ? "0.35" : "1";
+
+        blockInfo.innerHTML = `Selected Block: ID ${b.id} — ${b.name}<br>${b.desc}`;
+    }
+
+    initBlocks();
+
+    const craftGrid = document.getElementById('craftGrid');
+    const craftResult = document.getElementById('craftResult');
+    const craftValues = ["air", "ash", "torch"];
+    const craftState = new Array(9).fill("air");
+
+    function initCrafting() {
+        if (!craftGrid) return;
+
+        craftGrid.innerHTML = "";
+
+        for (let i = 0; i < 9; i++) {
+            const slot = document.createElement("div");
+            slot.className = "slot";
+            slot.dataset.index = i;
+            slot.dataset.value = "air";
+            slot.addEventListener("click", () => cycleSlot(slot));
+            craftGrid.appendChild(slot);
+        }
+
+        updateCraftResult();
+    }
+
+    function cycleSlot(slot) {
+        const i = Number(slot.dataset.index);
+        const current = craftValues.indexOf(craftState[i]);
+        craftState[i] = craftValues[(current + 1) % craftValues.length];
+
+        renderSlot(slot, craftState[i]);
+        updateCraftResult();
+    }
+
+    function renderSlot(slot, value) {
+        if (value === "air") {
+            slot.innerHTML = "";
+            return;
+        }
+
+        const color = value === "ash" ? "#444444" : "#ffd166";
+        slot.innerHTML = `<div class="mini-cube" style="background:${color}"></div>`;
+    }
+
+    function updateCraftResult() {
+        if (!craftResult) return;
+
+        const ash = craftState.filter(v => v === "ash").length;
+        const torch = craftState.filter(v => v === "torch").length;
+
+        if (ash >= 3 && torch >= 1) {
+            craftResult.innerHTML = "Output: Boss Spawner, ID 15";
+        } else if (ash >= 3) {
+            craftResult.innerHTML = "Output: Bed, ID 30";
+        } else {
+            craftResult.innerHTML = "Output: Air";
+        }
+    }
+
+    initCrafting();
+
+    const weatherStage = document.getElementById('weatherStage');
+    const weatherInfo = document.getElementById('weatherInfo');
+    const flash = document.getElementById('flash');
+
+    function clearWeatherParticles() {
+        if (!weatherStage) return;
+        weatherStage.querySelectorAll('.rain-drop, .snow-flake').forEach(e => e.remove());
+    }
+
+    function setWeather(type) {
+        if (!weatherStage) return;
+
+        clearWeatherParticles();
+        weatherStage.style.background = "linear-gradient(#69b8ff, #397e55)";
+
+        if (type === "clear") {
+            weatherInfo.innerHTML = "Weather: Clear — normal sky and no particles.";
+        }
+
+        if (type === "rain" || type === "thunder") {
+            weatherStage.style.background = "linear-gradient(#4c6076, #2d5c4b)";
+
+            for (let i = 0; i < 45; i++) {
+                const d = document.createElement("div");
+                d.className = "rain-drop";
+                d.style.left = Math.random() * 100 + "%";
+                d.style.animationDelay = Math.random() + "s";
+                weatherStage.appendChild(d);
+            }
+
+            weatherInfo.innerHTML = type === "rain"
+                ? "Weather: Rain — darker sky and rain particles."
+                : "Weather: Thunder — rain plus lightning flash.";
+
+            if (type === "thunder" && flash) {
+                flash.classList.remove("active");
+                void flash.offsetWidth;
+                flash.classList.add("active");
+            }
+        }
+
+        if (type === "snow") {
+            weatherStage.style.background = "linear-gradient(#f0d4ff, #8cbdd0)";
+
+            for (let i = 0; i < 36; i++) {
+                const s = document.createElement("div");
+                s.className = "snow-flake";
+                s.style.left = Math.random() * 100 + "%";
+                s.style.animationDelay = Math.random() * 2 + "s";
+                weatherStage.appendChild(s);
+            }
+
+            weatherInfo.innerHTML = "Weather: Snow — snowy particles and pinkish/icy sky tint.";
+        }
+    }
+
+    const timeSlider = document.getElementById('timeSlider');
+    const skyStage = document.getElementById('skyStage');
+    const timeInfo = document.getElementById('timeInfo');
+
+    function updateTimeSky() {
+        if (!timeSlider || !skyStage || !timeInfo) return;
+
+        const t = Number(timeSlider.value);
+        let name;
+        let bg;
+
+        if (t < 6000) {
+            name = "Sunrise";
+            bg = "linear-gradient(#ffb878, #60a9df)";
+        } else if (t < 12000) {
+            name = "Day";
+            bg = "linear-gradient(#69b8ff, #397e55)";
+        } else if (t < 18000) {
+            name = "Sunset";
+            bg = "linear-gradient(#ff8058, #395070)";
+        } else {
+            name = "Night";
+            bg = "linear-gradient(#12172f, #18243a)";
+        }
+
+        skyStage.style.background = bg;
+        timeInfo.innerHTML = `Time: ${t} — ${name}`;
+    }
+
+    if (timeSlider) {
+        timeSlider.addEventListener('input', updateTimeSky);
+        updateTimeSky();
+    }
+
+    const lanDemoBtn = document.getElementById('lanDemoBtn');
+    const lanDemoResult = document.getElementById('lanDemoResult');
+
+    if (lanDemoBtn) {
+        lanDemoBtn.addEventListener('click', () => {
+            const steps = [
+                "Host picked configs/MyWorld.",
+                "Server zipped the world folder.",
+                "Client received WORLDZIP packet.",
+                "Client extracted files into client_world.",
+                "MenuManager loaded client_world.",
+                "LAN world joined successfully."
+            ];
+
+            let i = 0;
+            lanDemoResult.innerHTML = steps[0];
+
+            const timer = setInterval(() => {
+                i++;
+                if (i >= steps.length) {
+                    clearInterval(timer);
+                    return;
+                }
+                lanDemoResult.innerHTML = steps[i];
+            }, 650);
+        });
+    }
+
+    function playgroundBlock(color) {
+        const cube = document.getElementById('playgroundCube');
+        if (cube) cube.style.background = color;
+    }
 </script>
 
 </body>

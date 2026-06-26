@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>SPUD WAVE</title>
+
+  <style>
+    :root {
+      --bg: #080203;
+      --panel: #18060a;
+      --panel2: #240910;
+      --red: #ff1744;
+      --red2: #b8002b;
+      --pink: #ff6f8f;
+      --text: #fff4f6;
+      --muted: #cfa8b0;
+      --line: rgba(255, 255, 255, 0.13);
+      --good: #77ff99;
+      --warn: #ffd166;
+      --radius: 22px;
+      --shadow: 0 20px 70px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 0%, rgba(255, 23, 68, 0.35), transparent 30%),
+        radial-gradient(circle at 90% 10%, rgba(255, 111, 143, 0.18), transparent 26%),
+        linear-gradient(180deg, #140407, #050102 75%);
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 16px;
+      background: var(--red);
+      color: white;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 12px 28px rgba(255, 23, 68, 0.22);
+    }
+
+    button:hover {
+      background: #ff3159;
+    }
+
+    button.secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--line);
+      box-shadow: none;
+    }
+
+    button.danger {
+      background: #6d001a;
+    }
+
+    button.small {
+      padding: 8px 11px;
+      font-size: 13px;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      outline: none;
+    }
+
+    textarea {
+      min-height: 130px;
+      resize: vertical;
+    }
+
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    code,
+    pre {
+      color: var(--good);
+    }
+
+    pre {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 260px 1fr 370px;
+      gap: 18px;
+      max-width: 1550px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .sidebar,
+    .main,
+    .rightbar {
+      background: rgba(24, 6, 10, 0.82);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .sidebar,
+    .rightbar {
+      position: sticky;
+      top: 18px;
+      min-height: calc(100vh - 36px);
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+      padding: 18px;
+    }
+
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 22px;
+    }
+
+    .logo {
+      width: 52px;
+      height: 52px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      font-size: 28px;
+      background: linear-gradient(135deg, var(--red), #590013);
+      box-shadow: 0 14px 34px rgba(255, 23, 68, 0.35);
+    }
+
+    .brand h1 {
+      margin: 0;
+      line-height: 0.9;
+      font-size: 27px;
+      letter-spacing: -0.06em;
+    }
+
+    .brand span {
+      color: var(--pink);
+      display: block;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      margin-top: 6px;
+    }
+
+    .nav button {
+      width: 100%;
+      margin: 6px 0;
+      text-align: left;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-start;
+      align-items: center;
+    }
+
+    .nav button.active {
+      background: var(--red);
+    }
+
+    .song-list {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .song-card {
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.07);
+      margin: 10px 0;
+      cursor: pointer;
+    }
+
+    .song-card:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .song-card strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .song-card span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .hero {
+      min-height: 255px;
+      padding: 28px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(135deg, rgba(255, 23, 68, 0.86), rgba(70, 0, 18, 0.24)),
+        radial-gradient(circle at 80% 10%, rgba(255, 255, 255, 0.24), transparent 25%);
+    }
+
+    .hero h2 {
+      font-size: clamp(42px, 8vw, 88px);
+      margin: 22px 0 12px;
+      line-height: 0.88;
+      letter-spacing: -0.08em;
+    }
+
+    .hero p {
+      max-width: 850px;
+      color: #ffe3e9;
+      margin: 0;
+      line-height: 1.45;
+    }
+
+    .top-row,
+    .mini-row,
+    .player-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .top-row {
+      justify-content: space-between;
+    }
+
+    .player-row {
+      margin-top: 22px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-size: 12px;
+      font-weight: 900;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid var(--line);
+      color: #ffe4ea;
+    }
+
+    .content {
+      padding: 22px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.055);
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 22px;
+      letter-spacing: -0.03em;
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .range-row {
+      display: grid;
+      grid-template-columns: 1fr 70px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .empty,
+    .status {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .empty {
+      padding: 12px;
+      border: 1px dashed var(--line);
+      border-radius: 14px;
+    }
+
+    .wave-code-box {
+      min-height: 270px;
+      display: grid;
+      place-items: center;
+      padding: 12px;
+      border-radius: 18px;
+      background: #130508;
+      border: 1px dashed rgba(255, 255, 255, 0.22);
+    }
+
+    #waveCanvas {
+      width: 100%;
+      max-width: 100%;
+      border-radius: 16px;
+      background: white;
+      cursor: pointer;
+      image-rendering: pixelated;
+    }
+
+    #cameraVideo {
+      width: 100%;
+      border-radius: 16px;
+      background: black;
+      display: none;
+      margin-top: 10px;
+    }
+
+    .guide li {
+      margin: 10px 0;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 1100px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar,
+      .rightbar {
+        position: static;
+        min-height: unset;
+        max-height: unset;
+      }
+    }
+
+    @media (max-width: 650px) {
+      .app {
+        padding: 10px;
+        gap: 10px;
+      }
+
+      .hero,
+      .content,
+      .sidebar,
+      .rightbar {
+        padding: 14px;
+      }
+
+      .grid2,
+      .grid3 {
+        grid-template-columns: 1fr;
+      }
+
+      .hero h2 {
+        font-size: 48px;
+      }
+
+      .player-row button,
+      .mini-row button {
+        width: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">🥔</div>
+        <div>
+          <h1>SPUD<br />WAVE</h1>
+          <span>RED MUSIC AI</span>
+        </div>
+      </div>
+
+      <div class="nav">
+        <button class="active" onclick="showTab('studio')">🎛️ Studio</button>
+        <button onclick="showTab('library')">🎵 Library</button>
+        <button onclick="showTab('guide')">📘 How to Use</button>
+      </div>
+
+      <div class="song-list">
+        <div class="mini-row">
+          <span class="pill">Saved Songs</span>
+          <button class="small secondary" onclick="newSong()">New</button>
+        </div>
+        <div id="savedSongs"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="hero">
+        <div class="top-row">
+          <span class="pill">No backend • LocalStorage • Web Audio • TTS</span>
+          <span class="pill" id="engineStatus">Checking engine...</span>
+        </div>
+
+        <h2 id="bigTitle">SPUD WAVE</h2>
+
+        <p>
+          A red Spotify-style music studio for original Spudzy songs. Make songs from prompts,
+          play them with Web Audio and TTS, save locally, and share them using custom scannable
+          WAVE CODE PNGs.
+        </p>
+
+        <div class="player-row">
+          <button onclick="playCurrent()">▶ Play</button>
+          <button class="secondary" onclick="stopCurrent()">■ Stop</button>
+          <button class="secondary" onclick="saveCurrent()">💾 Save</button>
+          <button class="secondary" onclick="exportWaveCode()">⬇ Export WAVE CODE</button>
+        </div>
+      </section>
+
+      <section class="content">
+        <div id="tab-studio">
+          <div class="panel">
+            <h3>Song Creator</h3>
+
+            <label>Song title</label>
+            <input id="songTitle" value="Spudzy Red Wave" />
+
+            <label>Prompt</label>
+            <textarea id="prompt">original red pop song, shiny synths, bouncy drums, playful chorus, cute pixel block world, happy catchy melody, no copied songs</textarea>
+
+            <div class="grid2">
+              <div>
+                <label>Signature</label>
+                <select id="signature">
+                  <option value="spudzy" selected>spudzy</option>
+                  <option value="chiptune">chiptune</option>
+                  <option value="lofi">lofi</option>
+                  <option value="trap">trap</option>
+                  <option value="edm">edm</option>
+                  <option value="ambient">ambient</option>
+                  <option value="rock">rock</option>
+                </select>
+              </div>
+
+              <div>
+                <label>Bars</label>
+                <input id="bars" type="number" min="4" max="64" value="16" />
+              </div>
+            </div>
+
+            <label>Lyrics</label>
+            <textarea id="lyrics">Spudzy rides the wave tonight
+Red lights flashing burning bright
+Every beat begins to glow
+Welcome to the Spud Wave show
+
+Call me Spudzy here we go
+Turn it up and steal the show
+Call me Spudzy loud and clear
+Best block party of the year</textarea>
+          </div>
+
+          <div class="panel">
+            <h3>TTS Voice</h3>
+
+            <div class="grid2">
+              <div>
+                <label>Available voice</label>
+                <select id="voiceName"></select>
+              </div>
+
+              <div>
+                <label>TTS enabled</label>
+                <select id="ttsEnabled">
+                  <option value="true" selected>yes</option>
+                  <option value="false">no</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid3">
+              <div>
+                <label>Rate</label>
+                <div class="range-row">
+                  <input id="ttsRate" type="range" min="0.45" max="1.55" step="0.01" value="1.08" oninput="syncRangeLabels(); regenerateWaveCode();" />
+                  <input id="ttsRateNum" type="number" min="0.45" max="1.55" step="0.01" value="1.08" oninput="syncRangeInputs();" />
+                </div>
+              </div>
+
+              <div>
+                <label>Pitch</label>
+                <div class="range-row">
+                  <input id="ttsPitch" type="range" min="0.45" max="1.8" step="0.01" value="1.25" oninput="syncRangeLabels(); regenerateWaveCode();" />
+                  <input id="ttsPitchNum" type="number" min="0.45" max="1.8" step="0.01" value="1.25" oninput="syncRangeInputs();" />
+                </div>
+              </div>
+
+              <div>
+                <label>Volume</label>
+                <div class="range-row">
+                  <input id="ttsVolume" type="range" min="0" max="1" step="0.01" value="0.95" oninput="syncRangeLabels(); regenerateWaveCode();" />
+                  <input id="ttsVolumeNum" type="number" min="0" max="1" step="0.01" value="0.95" oninput="syncRangeInputs();" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-library" class="hidden">
+          <div class="panel">
+            <h3>Your Local SPUD WAVE Library</h3>
+            <p class="status">
+              Songs save as small JSON objects in <code>localStorage</code>. WAVE CODE PNGs are not stored;
+              they regenerate from the saved song data to avoid wasting storage quota.
+            </p>
+            <div id="librarySongs"></div>
+          </div>
+        </div>
+
+        <div id="tab-guide" class="hidden">
+          <div class="panel guide">
+            <h3>How to Use SPUD WAVE</h3>
+
+            <ol>
+              <li>
+                Make sure the script line exists near the bottom of this page:
+                <pre>&lt;script src="https://alaricholt677.github.io/PKGS/music-spud/spudzy-music-ai.js"&gt;&lt;/script&gt;</pre>
+              </li>
+
+              <li>
+                Open the page on GitHub Pages or locally in your browser.
+              </li>
+
+              <li>
+                In <strong>Studio</strong>, type a title, prompt, signature, bars, lyrics,
+                and TTS settings.
+              </li>
+
+              <li>
+                Press <strong>Play</strong>. The app calls your music script like this:
+                <pre>SpudzyMusicAI.play({
+  title: "My Song",
+  prompt: "happy red chiptune song",
+  signature: "chiptune",
+  bars: 16,
+  lyrics: "Spudzy rides the wave tonight",
+  tts: true,
+  voiceName: "",
+  ttsRate: 1.08,
+  ttsPitch: 1.25,
+  ttsVolume: 0.95
+});</pre>
+              </li>
+
+              <li>
+                Press <strong>Save</strong> to save the current song in your browser.
+              </li>
+
+              <li>
+                Press <strong>Export WAVE CODE</strong> to download a PNG. The PNG contains
+                the song data in a custom grey 2D WAVE MATRIX.
+              </li>
+
+              <li>
+                To import a code, use <strong>Scanner → Upload PNG / picture</strong> and select
+                the exported WAVE CODE PNG. The app decodes it and loads the song back.
+              </li>
+
+              <li>
+                If camera scanning fails, upload the original PNG instead. Camera scans need the
+                code to be straight, close, and not blurry.
+              </li>
+            </ol>
+
+            <h3>How to Use the Script in Another Page</h3>
+
+            <p class="status">
+              If you only want to use <code>spudzy-music-ai.js</code> without the SPUD WAVE UI,
+              include the script and call <code>SpudzyMusicAI.play()</code>.
+            </p>
+
+            <pre>&lt;script src="spudzy-music-ai.js"&gt;&lt;/script&gt;
+
+&lt;button onclick="playSong()"&gt;Play&lt;/button&gt;
+&lt;button onclick="SpudzyMusicAI.stop()"&gt;Stop&lt;/button&gt;
+
+&lt;script&gt;
+async function playSong() {
+  await SpudzyMusicAI.play({
+    signature: "spudzy",
+    prompt: "original red pop song with bouncy drums",
+    bars: 16,
+    lyrics: `
+Spudzy rides the wave tonight
+Red lights flashing burning bright
+Every beat begins to glow
+Welcome to the Spud Wave show
+    `,
+    tts: true,
+    ttsRate: 1.08,
+    ttsPitch: 1.25,
+    ttsVolume: 0.95
+  });
+}
+&lt;/script&gt;</pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="rightbar">
+      <div class="panel">
+        <h3>Current WAVE CODE</h3>
+
+        <div class="wave-code-box">
+          <canvas id="waveCanvas" width="1000" height="760" title="Click to export PNG"></canvas>
+        </div>
+
+        <div class="mini-row" style="margin-top: 12px;">
+          <button class="small" onclick="exportWaveCode()">Export PNG</button>
+          <button class="small secondary" onclick="copyWaveText()">Copy WAVELINK</button>
+        </div>
+
+        <p class="status" id="waveStatus">
+          WAVE CODE regenerates from the current song data.
+        </p>
+      </div>
+
+      <div class="panel">
+        <h3>Scanner</h3>
+
+        <label>Scan mode</label>
+        <select id="scanMode" onchange="changeScanMode()">
+          <option value="upload">Upload PNG / picture</option>
+          <option value="camera">Camera scan</option>
+          <option value="text">Paste WAVELINK text</option>
+        </select>
+
+        <div id="uploadScan">
+          <label>Upload image</label>
+          <input type="file" accept="image/*" onchange="scanUploadedFile(event)" />
+        </div>
+
+        <div id="cameraScan" class="hidden">
+          <video id="cameraVideo" autoplay playsinline></video>
+          <div class="mini-row" style="margin-top: 10px;">
+            <button class="small" onclick="startCameraScan()">Start Camera</button>
+            <button class="small secondary" onclick="stopCameraScan()">Stop Camera</button>
+          </div>
+        </div>
+
+        <div id="textScan" class="hidden">
+          <label>Paste WAVELINK</label>
+          <textarea id="waveTextInput" placeholder="Paste WAVELINK:... here"></textarea>
+          <button onclick="importWaveText()">Import Text</button>
+        </div>
+
+        <p class="status" id="scanStatus">Scanner ready.</p>
+      </div>
+    </aside>
+  </div>
+
+  <script src="spudzy-music-ai.js"></script>
+
+  <script>
+    const STORAGE_KEY = "SPUD_WAVE_SONGS_V2";
+
+    let songs = [];
+    let selectedId = null;
+    let cameraStream = null;
+    let cameraLoop = null;
+
+    const els = {};
+
+    window.addEventListener("load", () => {
+      cacheEls();
+      checkEngine();
+      loadSongs();
+      populateVoices();
+      hookVoiceLoading();
+      syncRangeLabels();
+
+      if (songs.length) {
+        setForm(songs[0]);
+      } else {
+        newSong(false);
+      }
+
+      renderAll();
+      regenerateWaveCode();
+    });
+
+    function cacheEls() {
+      [
+        "engineStatus", "songTitle", "prompt", "signature", "bars", "lyrics",
+        "voiceName", "ttsEnabled", "ttsRate", "ttsPitch", "ttsVolume",
+        "ttsRateNum", "ttsPitchNum", "ttsVolumeNum", "savedSongs", "librarySongs",
+        "waveCanvas", "waveStatus", "scanStatus", "scanMode", "uploadScan",
+        "cameraScan", "textScan", "cameraVideo", "waveTextInput", "bigTitle"
+      ].forEach(id => {
+        els[id] = document.getElementById(id);
+      });
+
+      [
+        "songTitle", "prompt", "signature", "bars", "lyrics",
+        "voiceName", "ttsEnabled"
+      ].forEach(id => {
+        els[id].addEventListener("input", regenerateWaveCode);
+      });
+
+      els.waveCanvas.addEventListener("click", exportWaveCode);
+    }
+
+    function checkEngine() {
+      if (window.SpudzyMusicAI) {
+        els.engineStatus.textContent = "Engine ready";
+      } else {
+        els.engineStatus.textContent = "Missing spudzy-music-ai.js";
+      }
+    }
+
+    function showTab(name) {
+      const tabs = ["studio", "library", "guide"];
+
+      tabs.forEach(tab => {
+        document.getElementById("tab-" + tab).classList.toggle("hidden", tab !== name);
+      });
+
+      const buttons = Array.from(document.querySelectorAll(".nav button"));
+      buttons.forEach(btn => btn.classList.remove("active"));
+
+      if (name === "studio") buttons[0].classList.add("active");
+      if (name === "library") buttons[1].classList.add("active");
+      if (name === "guide") buttons[2].classList.add("active");
+
+      renderAll();
+    }
+
+    function makeId() {
+      return "song_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2);
+    }
+
+    function getCurrentSongData() {
+      return {
+        id: selectedId || makeId(),
+        title: els.songTitle.value.trim() || "Untitled Spud Wave",
+        prompt: els.prompt.value,
+        signature: els.signature.value,
+        bars: clampNumber(Number(els.bars.value || 16), 4, 64),
+        lyrics: els.lyrics.value,
+        tts: els.ttsEnabled.value === "true",
+        voiceName: els.voiceName.value,
+        ttsRate: Number(els.ttsRate.value),
+        ttsPitch: Number(els.ttsPitch.value),
+        ttsVolume: Number(els.ttsVolume.value),
+        updatedAt: Date.now()
+      };
+    }
+
+    function setForm(song) {
+      selectedId = song.id || makeId();
+
+      els.songTitle.value = song.title || "Untitled Spud Wave";
+      els.prompt.value = song.prompt || "";
+      els.signature.value = song.signature || "spudzy";
+      els.bars.value = song.bars || 16;
+      els.lyrics.value = song.lyrics || "";
+      els.ttsEnabled.value = song.tts === false ? "false" : "true";
+      els.voiceName.value = song.voiceName || "";
+      els.ttsRate.value = song.ttsRate ?? 1.08;
+      els.ttsPitch.value = song.ttsPitch ?? 1.25;
+      els.ttsVolume.value = song.ttsVolume ?? 0.95;
+
+      syncRangeLabels();
+
+      els.bigTitle.textContent = song.title || "SPUD WAVE";
+
+      regenerateWaveCode();
+    }
+
+    function loadSongs() {
+      try {
+        songs = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      } catch {
+        songs = [];
+      }
+
+      if (!Array.isArray(songs)) songs = [];
+    }
+
+    function storeSongs() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(songs));
+    }
+
+    function saveCurrent() {
+      const song = getCurrentSongData();
+      selectedId = song.id;
+
+      const index = songs.findIndex(s => s.id === song.id);
+
+      if (index >= 0) {
+        songs[index] = song;
+      } else {
+        songs.unshift(song);
+      }
+
+      storeSongs();
+      renderAll();
+      regenerateWaveCode();
+
+      els.waveStatus.textContent = "Saved locally. WAVE CODE regenerated.";
+    }
+
+    function newSong(switchTab = true) {
+      selectedId = makeId();
+
+      setForm({
+        id: selectedId,
+        title: "New Spud Wave",
+        prompt: "original red pop song, shiny synths, bouncy drums, playful chorus, cute pixel block world, no copied songs",
+        signature: "spudzy",
+        bars: 16,
+        lyrics: "Spudzy rides the wave tonight\nRed lights flashing burning bright\nEvery beat begins to glow\nWelcome to the Spud Wave show",
+        tts: true,
+        voiceName: "",
+        ttsRate: 1.08,
+        ttsPitch: 1.25,
+        ttsVolume: 0.95,
+        updatedAt: Date.now()
+      });
+
+      if (switchTab) showTab("studio");
+    }
+
+    function loadSong(id) {
+      const song = songs.find(s => s.id === id);
+      if (!song) return;
+
+      setForm(song);
+      showTab("studio");
+      renderAll();
+    }
+
+    function deleteSong(id) {
+      if (!confirm("Delete this SPUD WAVE song?")) return;
+
+      songs = songs.filter(s => s.id !== id);
+      storeSongs();
+
+      if (selectedId === id) {
+        if (songs[0]) {
+          setForm(songs[0]);
+        } else {
+          newSong(false);
+        }
+      }
+
+      renderAll();
+    }
+
+    function renderAll() {
+      renderSidebarSongs();
+      renderLibrarySongs();
+    }
+
+    function renderSidebarSongs() {
+      if (!songs.length) {
+        els.savedSongs.innerHTML = `<div class="empty">No saved songs yet.</div>`;
+        return;
+      }
+
+      els.savedSongs.innerHTML = songs.slice(0, 8).map(song => `
+        <div class="song-card" onclick="loadSong('${escapeAttr(song.id)}')">
+          <strong>${escapeHtml(song.title)}</strong>
+          <span>${escapeHtml(song.signature)} • ${new Date(song.updatedAt || Date.now()).toLocaleDateString()}</span>
+        </div>
+      `).join("");
+    }
+
+    function renderLibrarySongs() {
+      if (!songs.length) {
+        els.librarySongs.innerHTML = `<div class="empty">Your library is empty. Make a song and press Save.</div>`;
+        return;
+      }
+
+      els.librarySongs.innerHTML = songs.map(song => `
+        <div class="song-card">
+          <strong>${escapeHtml(song.title)}</strong>
+          <span>${escapeHtml(song.signature)} • ${escapeHtml((song.prompt || "").slice(0, 95))}</span>
+          <div class="mini-row" style="margin-top: 10px;">
+            <button class="small" onclick="loadSong('${escapeAttr(song.id)}')">Open</button>
+            <button class="small secondary" onclick="playSaved('${escapeAttr(song.id)}')">Play</button>
+            <button class="small secondary" onclick="exportSavedWaveCode('${escapeAttr(song.id)}')">Export Code</button>
+            <button class="small danger" onclick="deleteSong('${escapeAttr(song.id)}')">Delete</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function playCurrent() {
+      if (!window.SpudzyMusicAI) {
+        alert("Missing spudzy-music-ai.js");
+        return;
+      }
+
+      const song = getCurrentSongData();
+
+      try {
+        await SpudzyMusicAI.play(song);
+        els.waveStatus.textContent = "Playing generated song.";
+      } catch (err) {
+        alert(err.message || err);
+      }
+    }
+
+    async function playSaved(id) {
+      const song = songs.find(s => s.id === id);
+      if (!song) return;
+
+      setForm(song);
+      await playCurrent();
+    }
+
+    function stopCurrent() {
+      if (window.SpudzyMusicAI) {
+        SpudzyMusicAI.stop();
+      }
+
+      stopCameraScan();
+      els.waveStatus.textContent = "Stopped.";
+    }
+
+    function syncRangeLabels() {
+      els.ttsRateNum.value = els.ttsRate.value;
+      els.ttsPitchNum.value = els.ttsPitch.value;
+      els.ttsVolumeNum.value = els.ttsVolume.value;
+    }
+
+    function syncRangeInputs() {
+      els.ttsRate.value = els.ttsRateNum.value;
+      els.ttsPitch.value = els.ttsPitchNum.value;
+      els.ttsVolume.value = els.ttsVolumeNum.value;
+
+      regenerateWaveCode();
+    }
+
+    function populateVoices() {
+      if (!("speechSynthesis" in window)) {
+        els.voiceName.innerHTML = `<option value="">No TTS voices found</option>`;
+        return;
+      }
+
+      const voices = speechSynthesis.getVoices();
+      const current = els.voiceName.value;
+
+      const english = voices.filter(v => /^en/i.test(v.lang));
+
+      const preferredNames = [
+        "Ava", "Jenny", "Aria", "Emma", "Zira", "Guy", "Davis",
+        "Andrew", "Brian", "Mark", "David", "Nova", "Shimmer"
+      ];
+
+      const preferred = english.filter(v =>
+        preferredNames.some(name => v.name.toLowerCase().includes(name.toLowerCase()))
+      );
+
+      const rest = english.filter(v => !preferred.includes(v));
+      const finalVoices = [...preferred, ...rest];
+
+      els.voiceName.innerHTML =
+        `<option value="">Auto browser voice</option>` +
+        finalVoices.map(v => {
+          const label = `${v.name} (${v.lang})`;
+          return `<option value="${escapeAttr(v.name)}">${escapeHtml(label)}</option>`;
+        }).join("");
+
+      if (current) els.voiceName.value = current;
+    }
+
+    function hookVoiceLoading() {
+      if ("speechSynthesis" in window) {
+        speechSynthesis.onvoiceschanged = populateVoices;
+        setTimeout(populateVoices, 300);
+        setTimeout(populateVoices, 1000);
+      }
+    }
+
+    function changeScanMode() {
+      const mode = els.scanMode.value;
+
+      els.uploadScan.classList.toggle("hidden", mode !== "upload");
+      els.cameraScan.classList.toggle("hidden", mode !== "camera");
+      els.textScan.classList.toggle("hidden", mode !== "text");
+
+      if (mode !== "camera") stopCameraScan();
+    }
+
+    /* =========================================================
+       WAVE CODE ENCODING / DECODING
+       Fixed custom 2D matrix.
+       Uploading the generated PNG should decode reliably.
+       ========================================================= */
+
+    const WAVE_MAGIC = "SPUDWAVE3";
+    const WAVE_COLS = 220;
+    const WAVE_ROWS = 122;
+    const WAVE_CELL = 4;
+    const WAVE_X = 60;
+    const WAVE_Y = 220;
+
+    function makeWavePayload(song) {
+      const compact = {
+        v: 3,
+        app: "SPUDWAVE",
+        id: song.id,
+        title: song.title,
+        prompt: song.prompt,
+        signature: song.signature,
+        bars: song.bars,
+        lyrics: song.lyrics,
+        tts: song.tts,
+        voiceName: song.voiceName,
+        ttsRate: song.ttsRate,
+        ttsPitch: song.ttsPitch,
+        ttsVolume: song.ttsVolume
+      };
+
+      return "WAVELINK:" + base64UrlEncodeUtf8(JSON.stringify(compact));
+    }
+
+    function importWavePayload(text) {
+      const trimmed = String(text || "").trim();
+
+      if (!trimmed.startsWith("WAVELINK:")) {
+        throw new Error("Not a WAVELINK payload.");
+      }
+
+      const encoded = trimmed.slice("WAVELINK:".length);
+      const json = base64UrlDecodeUtf8(encoded);
+      const data = JSON.parse(json);
+
+      if (data.app !== "SPUDWAVE") {
+        throw new Error("This is not a SPUD WAVE code.");
+      }
+
+      return {
+        id: data.id || makeId(),
+        title: data.title || "Imported Spud Wave",
+        prompt: data.prompt || "",
+        signature: data.signature || "spudzy",
+        bars: data.bars || 16,
+        lyrics: data.lyrics || "",
+        tts: data.tts !== false,
+        voiceName: data.voiceName || "",
+        ttsRate: data.ttsRate ?? 1.08,
+        ttsPitch: data.ttsPitch ?? 1.25,
+        ttsVolume: data.ttsVolume ?? 0.95,
+        updatedAt: Date.now()
+      };
+    }
+
+    function base64UrlEncodeUtf8(str) {
+      const bytes = new TextEncoder().encode(str);
+      let binary = "";
+
+      for (const b of bytes) {
+        binary += String.fromCharCode(b);
+      }
+
+      return btoa(binary)
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/g, "");
+    }
+
+    function base64UrlDecodeUtf8(str) {
+      let b64 = str.replace(/-/g, "+").replace(/_/g, "/");
+
+      while (b64.length % 4) {
+        b64 += "=";
+      }
+
+      const binary = atob(b64);
+      const bytes = new Uint8Array(binary.length);
+
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+
+      return new TextDecoder().decode(bytes);
+    }
+
+    function bytesToBits(bytes) {
+      const bits = [];
+
+      for (const byte of bytes) {
+        for (let i = 7; i >= 0; i--) {
+          bits.push((byte >> i) & 1);
+        }
+      }
+
+      return bits;
+    }
+
+    function bitsToBytes(bits) {
+      const byteCount = Math.floor(bits.length / 8);
+      const bytes = new Uint8Array(byteCount);
+
+      for (let b = 0; b < byteCount; b++) {
+        let value = 0;
+
+        for (let i = 0; i < 8; i++) {
+          value = (value << 1) | bits[b * 8 + i];
+        }
+
+        bytes[b] = value;
+      }
+
+      return bytes;
+    }
+
+    function checksum32(bytes) {
+      let hash = 2166136261;
+
+      for (const b of bytes) {
+        hash ^= b;
+        hash = Math.imul(hash, 16777619);
+      }
+
+      return hash >>> 0;
+    }
+
+    function writeUint32(arr, offset, value) {
+      arr[offset] = (value >>> 24) & 255;
+      arr[offset + 1] = (value >>> 16) & 255;
+      arr[offset + 2] = (value >>> 8) & 255;
+      arr[offset + 3] = value & 255;
+    }
+
+    function readUint32(arr, offset) {
+      return (
+        ((arr[offset] << 24) >>> 0) |
+        (arr[offset + 1] << 16) |
+        (arr[offset + 2] << 8) |
+        arr[offset + 3]
+      ) >>> 0;
+    }
+
+    function buildWaveBytes(payload) {
+      const magicBytes = new TextEncoder().encode(WAVE_MAGIC);
+      const payloadBytes = new TextEncoder().encode(payload);
+      const length = payloadBytes.length;
+      const check = checksum32(payloadBytes);
+
+      const all = new Uint8Array(magicBytes.length + 4 + length + 4);
+
+      all.set(magicBytes, 0);
+      writeUint32(all, magicBytes.length, length);
+      all.set(payloadBytes, magicBytes.length + 4);
+      writeUint32(all, magicBytes.length + 4 + length, check);
+
+      return all;
+    }
+
+    function regenerateWaveCode() {
+      if (!els.waveCanvas) return;
+
+      const song = getCurrentSongData();
+      drawWaveCode(els.waveCanvas, song);
+      els.bigTitle.textContent = song.title || "SPUD WAVE";
+    }
+
+    function drawWaveCode(canvas, song) {
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width;
+      const h = canvas.height;
+
+      const payload = makeWavePayload(song);
+      const allBytes = buildWaveBytes(payload);
+      const bits = bytesToBits(allBytes);
+      const capacity = countDataCells();
+
+      ctx.clearRect(0, 0, w, h);
+
+      const grad = ctx.createLinearGradient(0, 0, w, h);
+      grad.addColorStop(0, "#ff1744");
+      grad.addColorStop(1, "#4b0012");
+
+      ctx.fillStyle = grad;
+      roundRect(ctx, 0, 0, w, h, 42);
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(255,255,255,0.1)";
+      for (let i = 0; i < 45; i++) {
+        ctx.beginPath();
+        ctx.arc((i * 89) % w, (i * 53) % h, 35 + (i % 5) * 12, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = "#fff4f6";
+      ctx.font = "900 58px Arial";
+      ctx.fillText("SPUD WAVE", 50, 78);
+
+      ctx.fillStyle = "rgba(255,255,255,0.84)";
+      ctx.font = "800 24px Arial";
+      ctx.fillText(String(song.title || "Untitled").slice(0, 42), 54, 118);
+
+      ctx.fillStyle = "rgba(255,255,255,0.62)";
+      ctx.font = "700 15px Arial";
+      ctx.fillText("WAVELINK MATRIX • custom scannable song data", 54, 150);
+
+      if (bits.length > capacity) {
+        ctx.fillStyle = "white";
+        ctx.font = "900 30px Arial";
+        ctx.fillText("WAVE CODE TOO LARGE", 54, 245);
+        ctx.font = "700 18px Arial";
+        ctx.fillText("Shorten the prompt or lyrics, then try again.", 54, 280);
+        canvas.dataset.payload = payload;
+        els.waveStatus.textContent = "WAVE CODE too large. Shorten lyrics or prompt.";
+        return;
+      }
+
+      const gridW = WAVE_COLS * WAVE_CELL;
+      const gridH = WAVE_ROWS * WAVE_CELL;
+
+      ctx.fillStyle = "#ededed";
+      roundRect(ctx, WAVE_X - 18, WAVE_Y - 18, gridW + 36, gridH + 36, 26);
+      ctx.fill();
+
+      drawFinder(ctx, 0, 0);
+      drawFinder(ctx, WAVE_COLS - 9, 0);
+      drawFinder(ctx, 0, WAVE_ROWS - 9);
+      drawTimingLines(ctx);
+
+      let bitIndex = 0;
+
+      for (let row = 0; row < WAVE_ROWS; row++) {
+        for (let col = 0; col < WAVE_COLS; col++) {
+          if (isReservedCell(col, row)) continue;
+
+          let bit;
+
+          if (bitIndex < bits.length) {
+            bit = bits[bitIndex++];
+          } else {
+            bit = ((row * 17 + col * 31) & 1);
+          }
+
+          drawCell(ctx, col, row, bit ? "#252525" : "#cfcfcf");
+        }
+      }
+
+      ctx.fillStyle = "rgba(255,255,255,0.86)";
+      ctx.font = "700 14px Arial";
+      ctx.fillText(
+        `signature: ${song.signature} • bars: ${song.bars} • bytes: ${allBytes.length}`,
+        54,
+        h - 45
+      );
+
+      canvas.dataset.payload = payload;
+      els.waveStatus.textContent = "WAVE CODE ready. Export it or scan it.";
+    }
+
+    function countDataCells() {
+      let count = 0;
+
+      for (let row = 0; row < WAVE_ROWS; row++) {
+        for (let col = 0; col < WAVE_COLS; col++) {
+          if (!isReservedCell(col, row)) count++;
+        }
+      }
+
+      return count;
+    }
+
+    function drawCell(ctx, col, row, color) {
+  ctx.fillStyle = color;
+
+  // Fill the full cell. This makes scanning much more reliable.
+  ctx.fillRect(
+    WAVE_X + col * WAVE_CELL,
+    WAVE_Y + row * WAVE_CELL,
+    WAVE_CELL,
+    WAVE_CELL
+  );
+}
+
+function readMatrixBits(data, w, h, layout) {
+  const bits = [];
+
+  for (let row = 0; row < WAVE_ROWS; row++) {
+    for (let col = 0; col < WAVE_COLS; col++) {
+      if (isReservedCell(col, row)) continue;
+
+      const cx = Math.round(layout.x + col * layout.cellX + layout.cellX * 0.5);
+      const cy = Math.round(layout.y + row * layout.cellY + layout.cellY * 0.5);
+
+      const brightness = sampleBrightness(data, w, h, cx, cy);
+
+      // Black cells are usually around 30-60.
+      // Grey cells are usually around 200+.
+      // 150 is a safer middle point.
+      bits.push(brightness < 150 ? 1 : 0);
+    }
+  }
+
+  return bits;
+}
+
+function sampleBrightness(data, w, h, cx, cy) {
+  cx = Math.max(0, Math.min(w - 1, cx));
+  cy = Math.max(0, Math.min(h - 1, cy));
+
+  const i = (cy * w + cx) * 4;
+  return (data[i] + data[i + 1] + data[i + 2]) / 3;
+}
+    function drawFinder(ctx, col, row) {
+      for (let y = 0; y < 9; y++) {
+        for (let x = 0; x < 9; x++) {
+          const edge = x === 0 || y === 0 || x === 8 || y === 8;
+          const center = x >= 3 && x <= 5 && y >= 3 && y <= 5;
+          drawCell(ctx, col + x, row + y, edge || center ? "#222" : "#ededed");
+        }
+      }
+    }
+
+    function drawTimingLines(ctx) {
+      for (let col = 10; col < WAVE_COLS - 10; col++) {
+        drawCell(ctx, col, 10, col % 2 ? "#cfcfcf" : "#222");
+      }
+
+      for (let row = 10; row < WAVE_ROWS - 10; row++) {
+        drawCell(ctx, 10, row, row % 2 ? "#cfcfcf" : "#222");
+      }
+    }
+
+    function isReservedCell(col, row) {
+      const topLeft = col < 9 && row < 9;
+      const topRight = col >= WAVE_COLS - 9 && row < 9;
+      const bottomLeft = col < 9 && row >= WAVE_ROWS - 9;
+      const timingH = row === 10;
+      const timingV = col === 10;
+
+      return topLeft || topRight || bottomLeft || timingH || timingV;
+    }
+
+    function exportWaveCode() {
+      regenerateWaveCode();
+
+      const song = getCurrentSongData();
+      const a = document.createElement("a");
+
+      a.href = els.waveCanvas.toDataURL("image/png");
+      a.download = safeFileName(song.title || "spud-wave") + "-wave-code.png";
+      a.click();
+
+      els.waveStatus.textContent = "Exported WAVE CODE PNG.";
+    }
+
+    function exportSavedWaveCode(id) {
+      const song = songs.find(s => s.id === id);
+      if (!song) return;
+
+      const temp = document.createElement("canvas");
+      temp.width = 1000;
+      temp.height = 760;
+
+      drawWaveCode(temp, song);
+
+      const a = document.createElement("a");
+      a.href = temp.toDataURL("image/png");
+      a.download = safeFileName(song.title || "spud-wave") + "-wave-code.png";
+      a.click();
+    }
+
+    function copyWaveText() {
+      const payload = makeWavePayload(getCurrentSongData());
+
+      navigator.clipboard.writeText(payload).then(() => {
+        els.waveStatus.textContent = "Copied WAVELINK text.";
+      }).catch(() => {
+        els.waveStatus.textContent = "Clipboard blocked. Use export PNG instead.";
+      });
+    }
+
+    function importWaveText() {
+      try {
+        const song = importWavePayload(els.waveTextInput.value);
+
+        selectedId = song.id;
+        setForm(song);
+        saveCurrent();
+
+        els.scanStatus.textContent = "Imported WAVELINK text.";
+      } catch (err) {
+        els.scanStatus.textContent = "Import failed: " + (err.message || err);
+      }
+    }
+
+    function scanUploadedFile(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const img = new Image();
+
+      img.onload = () => {
+        try {
+          const payload = decodeWaveCodeFromImage(img);
+          const song = importWavePayload(payload);
+
+          selectedId = song.id;
+          setForm(song);
+          saveCurrent();
+
+          els.scanStatus.textContent = "Imported WAVE CODE from uploaded image.";
+        } catch (err) {
+          els.scanStatus.textContent = "Scan failed: " + (err.message || err);
+        }
+      };
+
+      img.onerror = () => {
+        els.scanStatus.textContent = "Could not load that image.";
+      };
+
+      img.src = URL.createObjectURL(file);
+    }
+
+    async function startCameraScan() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        els.scanStatus.textContent = "Camera API is not supported in this browser.";
+        return;
+      }
+
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+          audio: false
+        });
+
+        els.cameraVideo.srcObject = cameraStream;
+        els.cameraVideo.style.display = "block";
+        els.scanStatus.textContent = "Camera scanning. Hold the WAVE CODE straight and close.";
+
+        cameraLoop = setInterval(() => {
+          try {
+            if (!els.cameraVideo.videoWidth) return;
+
+            const payload = decodeWaveCodeFromImage(els.cameraVideo);
+            const song = importWavePayload(payload);
+
+            selectedId = song.id;
+            setForm(song);
+            saveCurrent();
+
+            els.scanStatus.textContent = "Camera found and imported WAVE CODE.";
+            stopCameraScan();
+          } catch {
+            // Keep scanning silently.
+          }
+        }, 650);
+      } catch (err) {
+        els.scanStatus.textContent = "Camera failed: " + (err.message || err);
+      }
+    }
+
+    function stopCameraScan() {
+      if (cameraLoop) {
+        clearInterval(cameraLoop);
+        cameraLoop = null;
+      }
+
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+      }
+
+      if (els.cameraVideo) {
+        els.cameraVideo.srcObject = null;
+        els.cameraVideo.style.display = "none";
+      }
+    }
+
+    function decodeWaveCodeFromImage(source) {
+      const canvas = document.createElement("canvas");
+
+      const sourceW = source.videoWidth || source.naturalWidth || source.width;
+      const sourceH = source.videoHeight || source.naturalHeight || source.height;
+
+      if (!sourceW || !sourceH) {
+        throw new Error("Image has no readable size.");
+      }
+
+      canvas.width = sourceW;
+      canvas.height = sourceH;
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(source, 0, 0, sourceW, sourceH);
+
+      const image = ctx.getImageData(0, 0, sourceW, sourceH);
+      const data = image.data;
+
+      const layout = estimateMatrixLayout(sourceW, sourceH);
+      const bits = readMatrixBits(data, sourceW, sourceH, layout);
+      const bytes = bitsToBytes(bits);
+
+      const magicLength = WAVE_MAGIC.length;
+      const magic = new TextDecoder().decode(bytes.slice(0, magicLength));
+
+      if (magic !== WAVE_MAGIC) {
+        throw new Error("Found image, but WAVE header was not valid.");
+      }
+
+      const length = readUint32(bytes, magicLength);
+
+      if (!length || length > 12000) {
+        throw new Error("Invalid WAVELINK length.");
+      }
+
+      const start = magicLength + 4;
+      const end = start + length;
+      const checkStart = end;
+
+      if (checkStart + 4 > bytes.length) {
+        throw new Error("WAVE CODE data is incomplete.");
+      }
+
+      const payloadBytes = bytes.slice(start, end);
+      const expected = readUint32(bytes, checkStart);
+      const actual = checksum32(payloadBytes);
+
+      if (expected !== actual) {
+        throw new Error("Checksum failed. Upload the original PNG or scan closer.");
+      }
+
+      const payload = new TextDecoder().decode(payloadBytes);
+
+      if (!payload.startsWith("WAVELINK:")) {
+        throw new Error("Decoded data was not a WAVELINK.");
+      }
+
+      return payload;
+    }
+
+    function estimateMatrixLayout(w, h) {
+      // The generated PNG is 1000 x 760. These ratios let the scanner
+      // read the same code even if the uploaded image was resized.
+      const scaleX = w / 1000;
+      const scaleY = h / 760;
+
+      return {
+        x: WAVE_X * scaleX,
+        y: WAVE_Y * scaleY,
+        cellX: WAVE_CELL * scaleX,
+        cellY: WAVE_CELL * scaleY
+      };
+    }
+
+    /* =========================================================
+       UTILITIES
+       ========================================================= */
+
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function safeFileName(name) {
+      return String(name || "spud-wave")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || "spud-wave";
+    }
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function escapeAttr(str) {
+      return escapeHtml(str).replaceAll("`", "&#096;");
+    }
+
+    function clampNumber(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+  </script>
+</body>
+</html>

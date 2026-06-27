@@ -4,14 +4,14 @@
       "name": "OS",
       "version": "1.0.0",
       "url": "https://alaricholt677.github.io/emupkgs/OS.zip",
-      "description": "Core OS plugin providing base DSL transforms.",
+      "description": "Core OS scripting package for the emulator.\n\nInstall:\n  emu install OS\n\nWhat it does:\nAdds a simple scripting language (DSL) so you can write programs using commands instead of Python.\n\nYou can use commands like:\n  window \"My App\"\n  say \"Hello World\"\n  if x == 1\n  while i < 10\n  writefile \"file.txt\" \"data\"\n  readfile \"file.txt\"\n\nExample .emulator file:\n  import OS;\n\n  window \"Main Window\"\n  say \"Booting system...\"\n\n  x = 1\n\n  if x == 1\n      say \"Condition met\"\n  else\n      say \"Condition failed\"\n\n  i = 0\n  while i < 3\n      say i\n      i = i + 1\n\n  writefile \"test.txt\" \"Hello\"\n  readfile \"test.txt\"\n\nThis package is the base system for building apps, logic, and scripts inside the emulator.",
       "dependencies": []
     },
     {
       "name": "Flask",
       "version": "1.0.0",
       "url": "https://alaricholt677.github.io/emupkgs/Flask.zip",
-      "description": "A Server Hoster",
+      "description": "Flask server hosting package for the emulator.\n\nInstall:\n  emu install Flask\n\nAlso install Python dependency:\n  pip install flask\n\nWhat it does:\nLets you run web servers and APIs from your emulator scripts.\n\nYou can write full Flask apps or run external files.\n\nExample .emulator file:\n  import Flask;\n\n  @app.route(\"/\")\n  def home():\n      return \"Server running\"\n\nOr run a full server file:\n  import Flask;\n\n  exec(open(\"server.py\").read())\n\nExample server.py:\n  from flask import Flask\n  app = Flask(__name__)\n\n  @app.route(\"/\")\n  def home():\n      return \"Hello from Flask\"\n\n  if __name__ == \"__main__\":\n      app.run()\n\nThis package is used for hosting games, APIs, and web apps like BlockVerse.",
       "dependencies": []
     }
   ]

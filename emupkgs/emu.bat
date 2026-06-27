@@ -205,78 +205,146 @@ call :check_folder
 call :check_online
 
 set "PKG_NAME=%~2"
+set "INSTALL_PS=%TEMP%\emu_install_%RANDOM%_%RANDOM%.ps1"
 
 echo [EMU] Installing "%PKG_NAME%" and dependencies...
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$ErrorActionPreference='Stop';" ^
-  "$IndexUrl='%PKG_INDEX_URL%';" ^
-  "$Base='%EMU_BASE%';" ^
-  "$RootName='%PKG_NAME%';" ^
-  "function W($m){ Write-Host ('[EMU] ' + $m) }" ^
-  "function GetPkg($idx,$name){ return $idx.pkgs | Where-Object { $_.name -ieq $name } | Select-Object -First 1 }" ^
-  "function NormalizePkg($name,$extract,$dest){" ^
-  "  if(Test-Path -LiteralPath $dest){ Remove-Item -LiteralPath $dest -Recurse -Force };" ^
-  "  New-Item -ItemType Directory -Force -Path $dest | Out-Null;" ^
-  "  $case1=Join-Path $extract (Join-Path $name (Join-Path $name '__init__.py'));" ^
-  "  $case2=Join-Path $extract (Join-Path $name '__init__.py');" ^
-  "  $case3=Join-Path $extract '__init__.py';" ^
-  "  if(Test-Path -LiteralPath $case1){" ^
-  "    Copy-Item -Path (Join-Path $extract (Join-Path $name '*')) -Destination $dest -Recurse -Force;" ^
-  "  } elseif(Test-Path -LiteralPath $case2){" ^
-  "    $inner=Join-Path $dest $name;" ^
-  "    New-Item -ItemType Directory -Force -Path $inner | Out-Null;" ^
-  "    Copy-Item -Path (Join-Path (Join-Path $extract $name) '*') -Destination $inner -Recurse -Force;" ^
-  "  } elseif(Test-Path -LiteralPath $case3){" ^
-  "    $inner=Join-Path $dest $name;" ^
-  "    New-Item -ItemType Directory -Force -Path $inner | Out-Null;" ^
-  "    Copy-Item -Path (Join-Path $extract '*') -Destination $inner -Recurse -Force;" ^
-  "  } else {" ^
-  "    Copy-Item -Path (Join-Path $extract '*') -Destination $dest -Recurse -Force;" ^
-  "  };" ^
-  "  $expected=Join-Path $dest (Join-Path $name '__init__.py');" ^
-  "  if(Test-Path -LiteralPath $expected){ W ('Verified loader path: ' + $expected) } else { W ('WARNING: Expected loader path not found: ' + $expected) };" ^
-  "}" ^
-  "function InstallRec($idx,$name,$stack){" ^
-  "  $lower=$name.ToLower();" ^
-  "  if($stack -contains $lower){ throw ('Dependency loop detected: ' + (($stack + $lower) -join ' -> ')) };" ^
-  "  $pkg=GetPkg $idx $name;" ^
-  "  if(-not $pkg){ throw ('Package not found in index: ' + $name) };" ^
-  "  $real=[string]$pkg.name;" ^
-  "  $dest=Join-Path $Base $real;" ^
-  "  if(Test-Path -LiteralPath $dest){ W ($real + ' already installed.'); return };" ^
-  "  if($pkg.dependencies){" ^
-  "    foreach($dep in $pkg.dependencies){" ^
-  "      if($dep){ W ('Installing dependency for ' + $real + ': ' + $dep); InstallRec $idx ([string]$dep) ($stack + $lower) }" ^
-  "    }" ^
-  "  };" ^
-  "  $url=[string]$pkg.url;" ^
-  "  if(-not $url){ throw ('Package URL missing for: ' + $real) };" ^
-  "  $tmpZip=Join-Path $env:TEMP ($real + '_emu_pkg.zip');" ^
-  "  $tmpExtract=Join-Path $env:TEMP ($real + '_emu_extract_' + [guid]::NewGuid().ToString());" ^
-  "  Remove-Item -LiteralPath $tmpZip -Force -ErrorAction SilentlyContinue;" ^
-  "  Remove-Item -LiteralPath $tmpExtract -Recurse -Force -ErrorAction SilentlyContinue;" ^
-  "  New-Item -ItemType Directory -Force -Path $tmpExtract | Out-Null;" ^
-  "  W ('Downloading ' + $real + ' from ' + $url);" ^
-  "  Invoke-WebRequest -Uri $url -OutFile $tmpZip -UseBasicParsing;" ^
-  "  W ('Extracting ' + $real);" ^
-  "  Expand-Archive -LiteralPath $tmpZip -DestinationPath $tmpExtract -Force;" ^
-  "  W ('Installing ' + $real + ' -> ' + $dest);" ^
-  "  NormalizePkg $real $tmpExtract $dest;" ^
-  "  Remove-Item -LiteralPath $tmpZip -Force -ErrorAction SilentlyContinue;" ^
-  "  Remove-Item -LiteralPath $tmpExtract -Recurse -Force -ErrorAction SilentlyContinue;" ^
-  "  W ('Installed ' + $real);" ^
-  "}" ^
-  "try{" ^
-  "  if(-not (Test-Path -LiteralPath $Base)){ New-Item -ItemType Directory -Force -Path $Base | Out-Null };" ^
-  "  W ('Reading package index: ' + $IndexUrl);" ^
-  "  $idx=Invoke-RestMethod -Uri $IndexUrl -UseBasicParsing;" ^
-  "  InstallRec $idx $RootName @();" ^
-  "  W 'Install complete.';" ^
-  "} catch { Write-Host ('[EMU] ERROR: ' + $_.Exception.Message); exit 1 }"
+(
+echo $ErrorActionPreference = "Stop"
+echo $IndexUrl = "%PKG_INDEX_URL%"
+echo $Base = "%EMU_BASE%"
+echo $RootName = "%PKG_NAME%"
+echo.
+echo function W($m^) {
+echo     Write-Host ("[EMU] " + $m^)
+echo }
+echo.
+echo function GetPkg($idx, $name^) {
+echo     return $idx.pkgs ^| Where-Object { $_.name -ieq $name } ^| Select-Object -First 1
+echo }
+echo.
+echo function NormalizePkg($name, $extract, $dest^) {
+echo     if (Test-Path -LiteralPath $dest^) {
+echo         Remove-Item -LiteralPath $dest -Recurse -Force
+echo     }
+echo.
+echo     New-Item -ItemType Directory -Force -Path $dest ^| Out-Null
+echo.
+echo     $case1 = Join-Path $extract "$name\$name\__init__.py"
+echo     $case2 = Join-Path $extract "$name\__init__.py"
+echo     $case3 = Join-Path $extract "__init__.py"
+echo.
+echo     if (Test-Path -LiteralPath $case1^) {
+echo         Copy-Item -Path (Join-Path $extract "$name\*"^) -Destination $dest -Recurse -Force
+echo     }
+echo     elseif (Test-Path -LiteralPath $case2^) {
+echo         $inner = Join-Path $dest $name
+echo         New-Item -ItemType Directory -Force -Path $inner ^| Out-Null
+echo         Copy-Item -Path (Join-Path $extract "$name\*"^) -Destination $inner -Recurse -Force
+echo     }
+echo     elseif (Test-Path -LiteralPath $case3^) {
+echo         $inner = Join-Path $dest $name
+echo         New-Item -ItemType Directory -Force -Path $inner ^| Out-Null
+echo         Copy-Item -Path (Join-Path $extract "*"^) -Destination $inner -Recurse -Force
+echo     }
+echo     else {
+echo         Copy-Item -Path (Join-Path $extract "*"^) -Destination $dest -Recurse -Force
+echo     }
+echo.
+echo     $expected = Join-Path $dest "$name\__init__.py"
+echo.
+echo     if (Test-Path -LiteralPath $expected^) {
+echo         W ("Verified loader path: " + $expected^)
+echo     }
+echo     else {
+echo         W ("WARNING: Expected loader path not found: " + $expected^)
+echo         W "Your ZIP may have the wrong folder structure."
+echo     }
+echo }
+echo.
+echo function InstallRec($idx, $name, $stack^) {
+echo     $lower = $name.ToLower(^)
+echo.
+echo     if ($stack -contains $lower^) {
+echo         throw ("Dependency loop detected: " + (($stack + $lower^) -join " -> "^)^)
+echo     }
+echo.
+echo     $pkg = GetPkg $idx $name
+echo.
+echo     if (-not $pkg^) {
+echo         throw ("Package not found in index: " + $name^)
+echo     }
+echo.
+echo     $real = [string]$pkg.name
+echo     $dest = Join-Path $Base $real
+echo.
+echo     if (Test-Path -LiteralPath $dest^) {
+echo         W ($real + " already installed."^)
+echo         return
+echo     }
+echo.
+echo     if ($pkg.dependencies^) {
+echo         foreach ($dep in $pkg.dependencies^) {
+echo             if ($dep^) {
+echo                 W ("Installing dependency for " + $real + ": " + $dep^)
+echo                 InstallRec $idx ([string]$dep^) ($stack + $lower^)
+echo             }
+echo         }
+echo     }
+echo.
+echo     $url = [string]$pkg.url
+echo.
+echo     if (-not $url^) {
+echo         throw ("Package URL missing for: " + $real^)
+echo     }
+echo.
+echo     $tmpZip = Join-Path $env:TEMP ($real + "_emu_pkg.zip"^)
+echo     $tmpExtract = Join-Path $env:TEMP ($real + "_emu_extract_" + [guid]::NewGuid(^).ToString(^)^)
+echo.
+echo     Remove-Item -LiteralPath $tmpZip -Force -ErrorAction SilentlyContinue
+echo     Remove-Item -LiteralPath $tmpExtract -Recurse -Force -ErrorAction SilentlyContinue
+echo.
+echo     New-Item -ItemType Directory -Force -Path $tmpExtract ^| Out-Null
+echo.
+echo     W ("Downloading " + $real + " from " + $url^)
+echo     Invoke-WebRequest -Uri $url -OutFile $tmpZip -UseBasicParsing
+echo.
+echo     W ("Extracting " + $real^)
+echo     Expand-Archive -LiteralPath $tmpZip -DestinationPath $tmpExtract -Force
+echo.
+echo     W ("Installing " + $real + " -^> " + $dest^)
+echo     NormalizePkg $real $tmpExtract $dest
+echo.
+echo     Remove-Item -LiteralPath $tmpZip -Force -ErrorAction SilentlyContinue
+echo     Remove-Item -LiteralPath $tmpExtract -Recurse -Force -ErrorAction SilentlyContinue
+echo.
+echo     W ("Installed " + $real^)
+echo }
+echo.
+echo try {
+echo     if (-not (Test-Path -LiteralPath $Base^)^) {
+echo         New-Item -ItemType Directory -Force -Path $Base ^| Out-Null
+echo     }
+echo.
+echo     W ("Reading package index: " + $IndexUrl^)
+echo     $idx = Invoke-RestMethod -Uri $IndexUrl -UseBasicParsing
+echo.
+echo     InstallRec $idx $RootName @(^)
+echo.
+echo     W "Install complete."
+echo }
+echo catch {
+echo     Write-Host ("[EMU] ERROR: " + $_.Exception.Message^)
+echo     exit 1
+echo }
+) > "%INSTALL_PS%"
 
-exit /b %ERRORLEVEL%
+powershell -NoProfile -ExecutionPolicy Bypass -File "%INSTALL_PS%"
+set "ERR=%ERRORLEVEL%"
 
+del /f /q "%INSTALL_PS%" >nul 2>&1
+
+exit /b %ERR%
 
 :uninstall
 call :check_folder
@@ -312,12 +380,18 @@ echo [EMU] Updating "%PKG_NAME%"...
 echo [EMU] This will reinstall the package and dependencies.
 
 if exist "%PKG_DIR%" (
+    echo [EMU] Removing old package folder...
     rmdir /s /q "%PKG_DIR%" >nul 2>&1
+
+    if exist "%PKG_DIR%" (
+        echo [EMU] ERROR: Could not remove "%PKG_DIR%".
+        echo [EMU] Close any running app.py, converter.py, editor, or terminal using this package.
+        exit /b 1
+    )
 )
 
 call :install install "%PKG_NAME%"
 exit /b %ERRORLEVEL%
-
 
 :updateself
 call :check_online

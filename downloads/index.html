@@ -683,6 +683,7 @@
         <a href="#" data-page="menus">Menus / UIs</a>
         <a href="#" data-page="lan">LAN Multiplayer</a>
         <a href="#" data-page="interactive">Interactive Examples</a>
+        <a href="#" data-page="theme">Theme Song</a>
         <a href="#" data-page="conclusion">Conclusion</a>
 
         <div class="nav-title">Download</div>
@@ -1184,6 +1185,26 @@
             </div>
         </section>
 
+               <section class="page" id="page-theme">
+            <h1>Theme Song</h1>
+            
+            <div class="card">
+                <h2>Official IRL Simulator Soundtrack</h2>
+                <p>Listen to the official theme song for the game. (AI Genrated)<em><strong>Note:</strong> This track is entirely <strong>AI-generated</strong>, prompted specifically to capture the blocky, atmospheric survival vibes of the IRL Simulator universe.</em></p>
+                
+                <div class="interactive" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 30px;">
+                    <!-- Decorative spinning cube for the music player -->
+                    <div class="cube-icon cube-magenta" style="margin: 0; animation: floatCube 4s ease-in-out infinite;"></div>
+                    
+                    <audio controls style="width: 100%; max-width: 450px; border-radius: 30px; outline: none;">
+                        <!-- Using video/mp4 MIME type since the file is an .mp4 container -->
+                        <source src="song.mp4" type="video/mp4">
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
+            </div>
+        </section>
+
         <section class="page" id="page-conclusion">
             <h1>Conclusion</h1>
             <p>Voxel IRL Simulator currently includes:</p>
@@ -1239,7 +1260,7 @@
     const pageNames = [
         "overview","startup","controls","chat","blocks","crafting","bed","boss",
         "sleeping","daynight","weather","hell","humans","waterpee","saving",
-        "menus","lan","interactive","conclusion"
+        "menus","lan","interactive","theme","conclusion"
     ];
 
     const searchBox = document.getElementById('searchBox');

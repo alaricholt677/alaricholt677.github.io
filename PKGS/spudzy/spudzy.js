@@ -28,49 +28,45 @@
 // Usage:
 // const spudzy = new Spudzy();
 // const reply = await spudzy.respond("make html for a neon portfolio with cards and contact form");
-
 class Spudzy {
   constructor(config = {}) {
     this.version = "9.0.0";
 
-constructor(config = {}) {
-  this.version = "9.0.0";
+    this.cfg = {
+      name: "Spudzy",
+      defaultMode: "neutral",
+      defaultPersona: "neutral",
+      maxHistory: 120,
+      maxMemory: 120,
+      enableSearch: true,
+      enableCode: true,
+      enableMath: true,
+      enableMemory: true,
+      searchLimit: 6,
+      customSearchEndpoint: null,
+      typoCorrection: true,
+      typoMaxDistance: 2,
+      typoConfidenceThreshold: 0.72,
+      debug: false,
 
-  this.cfg = {
-    name: "Spudzy",
-    defaultMode: "neutral",
-    defaultPersona: "neutral",
-    maxHistory: 120,
-    maxMemory: 120,
-    enableSearch: true,
-    enableCode: true,
-    enableMath: true,
-    enableMemory: true,
-    searchLimit: 6,
-    customSearchEndpoint: null,
-    typoCorrection: true,
-    typoMaxDistance: 2,
-    typoConfidenceThreshold: 0.72,
-    debug: false,
+      searchProviders: {
+        wikipedia: true,
+        github: true,
+        hackernews: true,
+        pypi: true,
+        itunes: true,
+        msstore: true,
+        youtube: false,
+        spotify: false
+      },
 
-    searchProviders: {
-      wikipedia: true,
-      github: true,
-      hackernews: true,
-      pypi: true,
-      itunes: true,
-      msstore: true,
-      youtube: false,
-      spotify: false
-    },
+      msStoreIndexUrl: "https://alaricholt677.github.io/msstorewin11/index.json",
+      youtubeApiKey: null,
+      spotifySearchEndpoint: null,
 
-    msStoreIndexUrl: "https://alaricholt677.github.io/msstorewin11/index.json",
-    youtubeApiKey: null,
-    spotifySearchEndpoint: null,
+      ...config
+    };
 
-    ...config
-  };
-  
     this.history = [];
     this.memory = [];
 
@@ -81,7 +77,7 @@ constructor(config = {}) {
       },
       {
         q: "can spudzy search the internet",
-        a: "Yes, Spudzy can search browser-safe public APIs like Wikipedia, GitHub repositories, and Hacker News. Full search engine scraping still needs a backend."
+        a: "Yes, Spudzy can search browser-safe public APIs like Wikipedia, GitHub repositories, Hacker News, PyPI, iTunes, and your custom MS Store JSON. YouTube and Spotify need extra API setup."
       },
       {
         q: "how do i make spudzy a real ai",

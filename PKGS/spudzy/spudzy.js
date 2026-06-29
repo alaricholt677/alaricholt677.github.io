@@ -61,7 +61,7 @@ class Spudzy {
       },
 
       msStoreIndexUrl: "https://alaricholt677.github.io/msstorewin11/index.json",
-      youtubeApiKey: AIzaSyAIKhU2dPXSBk1jt3oisbe3lcT7Cp-rsyg,
+      youtubeApiKey: "__YOUTUBE_API_KEY__",
       spotifySearchEndpoint: null,
 
       ...config

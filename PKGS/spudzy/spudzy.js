@@ -32,6 +32,8 @@ class Spudzy {
   constructor(config = {}) {
     this.version = "9.0.0";
 
+    const YOUTUBE_API_KEY = "__YOUTUBE_API_KEY__";
+
     this.cfg = {
       name: "Spudzy",
       defaultMode: "neutral",
@@ -61,7 +63,7 @@ class Spudzy {
       },
 
       msStoreIndexUrl: "https://alaricholt677.github.io/msstorewin11/index.json",
-      youtubeApiKey: "__YOUTUBE_API_KEY__",
+      youtubeApiKey: "YOUTUBE_API_KEY",
       spotifySearchEndpoint: null,
 
       ...config

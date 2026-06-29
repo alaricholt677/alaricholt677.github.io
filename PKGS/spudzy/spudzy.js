@@ -33,25 +33,44 @@ class Spudzy {
   constructor(config = {}) {
     this.version = "9.0.0";
 
-    this.cfg = {
-      name: "Spudzy",
-      defaultMode: "neutral",
-      defaultPersona: "neutral",
-      maxHistory: 120,
-      maxMemory: 120,
-      enableSearch: true,
-      enableCode: true,
-      enableMath: true,
-      enableMemory: true,
-      searchLimit: 6,
-      customSearchEndpoint: null,
-      typoCorrection: true,
-      typoMaxDistance: 2,
-      typoConfidenceThreshold: 0.72,
-      debug: false,
-      ...config
-    };
+constructor(config = {}) {
+  this.version = "9.0.0";
 
+  this.cfg = {
+    name: "Spudzy",
+    defaultMode: "neutral",
+    defaultPersona: "neutral",
+    maxHistory: 120,
+    maxMemory: 120,
+    enableSearch: true,
+    enableCode: true,
+    enableMath: true,
+    enableMemory: true,
+    searchLimit: 6,
+    customSearchEndpoint: null,
+    typoCorrection: true,
+    typoMaxDistance: 2,
+    typoConfidenceThreshold: 0.72,
+    debug: false,
+
+    searchProviders: {
+      wikipedia: true,
+      github: true,
+      hackernews: true,
+      pypi: true,
+      itunes: true,
+      msstore: true,
+      youtube: false,
+      spotify: false
+    },
+
+    msStoreIndexUrl: "https://alaricholt677.github.io/msstorewin11/index.json",
+    youtubeApiKey: null,
+    spotifySearchEndpoint: null,
+
+    ...config
+  };
+  
     this.history = [];
     this.memory = [];
 
@@ -3088,60 +3107,336 @@ detectFileKind(text) {
   // ===========================================================================
   // SEARCH
   // ===========================================================================
+// ===========================================================================
+// SEARCH
+// ===========================================================================
 
-  async handleSearch(ctx) {
-    if (!this.cfg.enableSearch) {
-      return "Spudzy search is disabled.";
-    }
-
-    const query = ctx.topic || ctx.corrected || ctx.raw;
-
-    if (!query) {
-      return "Spudzy search mode 🌐 — Tell me what to search for.";
-    }
-
-    const results = await this.searchInternet(query);
-
-    if (!results.length) {
-      return `Spudzy search mode 🌐 — I searched supported browser-friendly sources but found no useful results for "${query}".`;
-    }
-
-    return this.formatSearchResults(query, results);
+async handleSearch(ctx) {
+  if (!this.cfg.enableSearch) {
+    return "Spudzy search is disabled.";
   }
 
-  async searchInternet(query) {
-    const results = [];
+  const parsed = this.parseSearchQuery(ctx.topic || ctx.corrected || ctx.raw);
 
-    if (this.cfg.customSearchEndpoint) {
-      results.push(...await this.searchCustomEndpoint(query));
-    }
-
-    results.push(...await this.searchWikipedia(query));
-    results.push(...await this.searchGitHub(query));
-    results.push(...await this.searchHackerNews(query));
-
-    return results.filter(Boolean).slice(0, this.cfg.searchLimit);
+  if (!parsed.query) {
+    return "Spudzy search mode 🌐 — Try: search pypi pygame, search itunes minecraft, search msstore calculator, search youtube shaders, or search spotify daft punk.";
   }
 
-  async searchCustomEndpoint(query) {
+  const results = await this.searchInternet(parsed.query, parsed.provider);
+
+  if (!results.length) {
+    const label = parsed.provider ? `${parsed.provider}: ${parsed.query}` : parsed.query;
+    return `Spudzy search mode 🌐 — I searched supported sources but found no useful results for "${label}".`;
+  }
+
+  return this.formatSearchResults(
+    parsed.provider ? `${parsed.provider}: ${parsed.query}` : parsed.query,
+    results
+  );
+}
+
+parseSearchQuery(text) {
+  let q = String(text || "").trim();
+
+  q = q
+    .replace(/^search\s+the\s+internet\s+for\s+/i, "")
+    .replace(/^search\s+internet\s+for\s+/i, "")
+    .replace(/^search\s+for\s+/i, "")
+    .replace(/^search\s+/i, "")
+    .replace(/^look\s+up\s+/i, "")
+    .replace(/^google\s+/i, "")
+    .trim();
+
+  const first = q.split(/\s+/)[0]?.toLowerCase();
+
+  const aliases = {
+    pypi: "pypi",
+    python: "pypi",
+    pip: "pypi",
+
+    itunes: "itunes",
+    apple: "itunes",
+    applemusic: "itunes",
+
+    msstore: "msstore",
+    store: "msstore",
+    apps: "msstore",
+    appstore: "msstore",
+
+    youtube: "youtube",
+    yt: "youtube",
+
+    spotify: "spotify",
+
+    github: "github",
+    gh: "github",
+
+    wikipedia: "wikipedia",
+    wiki: "wikipedia",
+
+    hackernews: "hackernews",
+    hn: "hackernews"
+  };
+
+  let provider = null;
+
+  if (aliases[first]) {
+    provider = aliases[first];
+    q = q.split(/\s+/).slice(1).join(" ").trim();
+  }
+
+  return {
+    provider,
+    query: q
+  };
+}
+
+async searchInternet(query, provider = null) {
+  const results = [];
+
+  const enabled = this.cfg.searchProviders || {
+    wikipedia: true,
+    github: true,
+    hackernews: true,
+    pypi: true,
+    itunes: true,
+    msstore: true,
+    youtube: false,
+    spotify: false
+  };
+
+  const run = async fn => {
     try {
-      const res = await fetch(this.cfg.customSearchEndpoint + encodeURIComponent(query));
-      if (!res.ok) return [];
-
-      const data = await res.json();
-      if (!Array.isArray(data.results)) return [];
-
-      return data.results.map(item => ({
-        source: item.source || "Custom Search",
-        title: item.title || "Untitled",
-        text: item.text || item.snippet || "",
-        url: item.url || ""
-      }));
-    } catch {
-      return [];
+      const out = await fn.call(this, query);
+      if (Array.isArray(out)) {
+        results.push(...out);
+      }
+    } catch (error) {
+      if (this.cfg.debug) {
+        console.warn("Search provider failed:", error);
+      }
     }
+  };
+
+  if (this.cfg.customSearchEndpoint && (!provider || provider === "custom")) {
+    await run(this.searchCustomEndpoint);
   }
 
+  if ((!provider || provider === "wikipedia") && enabled.wikipedia) {
+    await run(this.searchWikipedia);
+  }
+
+  if ((!provider || provider === "github") && enabled.github) {
+    await run(this.searchGitHub);
+  }
+
+  if ((!provider || provider === "hackernews") && enabled.hackernews) {
+    await run(this.searchHackerNews);
+  }
+
+  if ((!provider || provider === "pypi") && enabled.pypi) {
+    await run(this.searchPyPI);
+  }
+
+  if ((!provider || provider === "itunes") && enabled.itunes) {
+    await run(this.searchITunes);
+  }
+
+  if ((!provider || provider === "msstore") && enabled.msstore) {
+    await run(this.searchMSStore);
+  }
+
+  if ((!provider || provider === "youtube") && enabled.youtube) {
+    await run(this.searchYouTube);
+  }
+
+  if ((!provider || provider === "spotify") && enabled.spotify) {
+    await run(this.searchSpotify);
+  }
+
+  return results.filter(Boolean).slice(0, this.cfg.searchLimit);
+}
+
+async searchPyPI(query) {
+  try {
+    const packageName = String(query || "")
+      .trim()
+      .split(/\s+/)[0]
+      .replace(/[^a-zA-Z0-9_.-]/g, "");
+
+    if (!packageName) return [];
+
+    const url = "https://pypi.org/pypi/" + encodeURIComponent(packageName) + "/json";
+    const res = await fetch(url);
+
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    const info = data.info || {};
+
+    return [{
+      source: "PyPI",
+      title: info.name || packageName,
+      text: [
+        info.summary || "Python package.",
+        info.version ? "Latest version: " + info.version : "",
+        info.author ? "Author: " + info.author : ""
+      ].filter(Boolean).join(" "),
+      url: info.project_url || info.package_url || ("https://pypi.org/project/" + encodeURIComponent(packageName) + "/")
+    }];
+  } catch {
+    return [];
+  }
+}
+
+async searchITunes(query) {
+  try {
+    const url =
+      "https://itunes.apple.com/search?term=" +
+      encodeURIComponent(query) +
+      "&country=US&media=all&limit=5";
+
+    const res = await fetch(url);
+
+    if (!res.ok) return [];
+
+    const data = await res.json();
+
+    return (data.results || []).map(item => ({
+      source: "iTunes",
+      title: item.trackName || item.collectionName || item.artistName || "iTunes Result",
+      text: [
+        item.kind || item.wrapperType || "media",
+        item.artistName ? "by " + item.artistName : "",
+        item.primaryGenreName ? "Genre: " + item.primaryGenreName : ""
+      ].filter(Boolean).join(" • "),
+      url: item.trackViewUrl || item.collectionViewUrl || item.artistViewUrl || ""
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async searchMSStore(query) {
+  try {
+    const indexUrl =
+      this.cfg.msStoreIndexUrl ||
+      "https://alaricholt677.github.io/msstorewin11/index.json";
+
+    const res = await fetch(indexUrl);
+
+    if (!res.ok) return [];
+
+    const data = await res.json();
+
+    const allApps = [
+      ...(Array.isArray(data.featured) ? data.featured : []),
+      ...(Array.isArray(data.apps) ? data.apps : [])
+    ];
+
+    const q = String(query || "").toLowerCase();
+
+    return allApps
+      .filter(app => {
+        const haystack = [
+          app.id,
+          app.name,
+          app.description,
+          app.category,
+          app.catagory,
+          app.author,
+          app.version,
+          app.size
+        ]
+          .flat()
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return haystack.includes(q);
+      })
+      .slice(0, 8)
+      .map(app => ({
+        source: "MS Store JSON",
+        title: `${app.icon || "📦"} ${app.name || app.id || "Untitled App"}`,
+        text: [
+          app.description || "App from your custom store index.",
+          app.category ? "Category: " + [].concat(app.category).join(", ") : "",
+          app.catagory ? "Category: " + app.catagory : "",
+          app.author ? "Author: " + app.author : "",
+          app.version ? "Version: " + app.version : "",
+          app.size ? "Size: " + app.size : ""
+        ].filter(Boolean).join(" • "),
+        url: indexUrl
+      }));
+  } catch {
+    return [];
+  }
+}
+
+async searchYouTube(query) {
+  try {
+    if (!this.cfg.youtubeApiKey) return [];
+
+    const url =
+      "https://www.googleapis.com/youtube/v3/search" +
+      "?part=snippet" +
+      "&type=video" +
+      "&maxResults=5" +
+      "&q=" + encodeURIComponent(query) +
+      "&key=" + encodeURIComponent(this.cfg.youtubeApiKey);
+
+    const res = await fetch(url);
+
+    if (!res.ok) return [];
+
+    const data = await res.json();
+
+    return (data.items || []).map(item => {
+      const videoId = item.id?.videoId;
+      const snip = item.snippet || {};
+
+      return {
+        source: "YouTube",
+        title: snip.title || "YouTube Video",
+        text: [
+          snip.channelTitle ? "Channel: " + snip.channelTitle : "",
+          snip.description || ""
+        ].filter(Boolean).join(" • "),
+        url: videoId ? "https://www.youtube.com/watch?v=" + videoId : ""
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+async searchSpotify(query) {
+  try {
+    if (!this.cfg.spotifySearchEndpoint) return [];
+
+    const url = this.cfg.spotifySearchEndpoint + encodeURIComponent(query);
+    const res = await fetch(url);
+
+    if (!res.ok) return [];
+
+    const data = await res.json();
+
+    const tracks = data.tracks?.items || data.items || [];
+
+    return tracks.slice(0, 5).map(track => ({
+      source: "Spotify",
+      title: track.name || "Spotify Track",
+      text: [
+        track.artists ? "Artist: " + track.artists.map(a => a.name).join(", ") : "",
+        track.album?.name ? "Album: " + track.album.name : ""
+      ].filter(Boolean).join(" • "),
+      url: track.external_urls?.spotify || ""
+    }));
+  } catch {
+    return [];
+  }
+}
   async searchWikipedia(query) {
     try {
       const url =

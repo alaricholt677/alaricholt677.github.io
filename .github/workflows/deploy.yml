@@ -34,14 +34,14 @@ jobs:
             exit 1
           fi
 
-          sed -i "s|__YOUTUBE_API_KEY__|${{ secrets.YOUTUBE_API_KEY }}|g" PKGS/spudzy/spudzy.js
+          find . -name "spudzy.js" -type f -print -exec sed -i "s|__YOUTUBE_API_KEY__|${{ secrets.YOUTUBE_API_KEY }}|g" {} \;
 
-          if grep -q "__YOUTUBE_API_KEY__" PKGS/spudzy/spudzy.js; then
-            echo "Placeholder was NOT replaced"
+          if grep -R "__YOUTUBE_API_KEY__" . --include="spudzy.js"; then
+            echo "Placeholder still exists in at least one spudzy.js"
             exit 1
           fi
 
-          echo "Placeholder was replaced successfully"
+          echo "Placeholder replaced in all spudzy.js files"
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

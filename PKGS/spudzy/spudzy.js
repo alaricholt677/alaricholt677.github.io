@@ -57,7 +57,7 @@ class Spudzy {
         itunes: true,
         msstore: true,
         youtube: true,
-        spotify: true
+        spotify: false
       },
 
       msStoreIndexUrl: "https://alaricholt677.github.io/msstorewin11/index.json",

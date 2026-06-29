@@ -11,55 +11,7 @@
       "name": "Flask",
       "version": "1.0.0",
       "url": "https://alaricholt677.github.io/emupkgs/Flask.zip",
-      "description": "Flask Server Hosting Package for the Emulator.\n
-\n
-Install:\n
-  emu install Flask\n
-\n
-Also install Python dependency:\n
-  pip install flask\n
-\n
-What it does:\n
-Lets you run real Flask web servers and APIs directly from your emulator scripts.\n
-Supports both native Flask decorators and emulator-style route syntax.\n
-You can write full Flask apps or execute external Python server files.\n
-\n
-Example .emulator file:\n
-  import Flask;\n
-\n
-  route "/":\n
-      return "Server running"\n
-\n
-  route "/hello":\n
-      return "Hello from the Flask emulator!"\n
-\n
-Using native Flask code inside .emulator:\n
-  import Flask;\n
-\n
-  @app.route("/")\n
-  def home():\n
-      return "Server running"\n
-\n
-Running an external server file:\n
-  import Flask;\n
-\n
-  exec(open("server.py").read())\n
-\n
-Example server.py:\n
-  from flask import Flask\n
-  app = Flask(__name__)\n
-\n
-  @app.route("/")\n
-  def home():\n
-      return "Hello from Flask"\n
-\n
-  if __name__ == "__main__":\n
-      app.run()\n
-\n
-Purpose:\n
-This package is used for hosting games, APIs, dashboards, and web apps like BlockVerse.\n
-It turns your emulator into a full web server environment.\n
-",
+      "description": "Flask Server Hosting Package for the Emulator.\n\nInstall:\n  emu install Flask\n\nAlso install Python dependency:\n  pip install flask\n\nWhat it does:\nLets you run real Flask web servers and APIs directly from your emulator scripts.\nSupports both native Flask decorators and emulator-style route syntax.\nYou can write full Flask apps or execute external Python server files.\n\nExample .emulator file:\n  import Flask;\n\n  route "/":\n      return "Server running"\n\n' = parenthesis\n  route /'hello':\n      return "Hello from the Flask emulator!"\n\nUsing native Flask code inside .emulator:\n  import Flask;\n\n  @app.route("/")\n  def home():\n      return "Server running"\n\nRunning an external server file:\n  import Flask;\n\n  exec(open("server.py").read())\n\nExample server.py:\n  from flask import Flask\n  app = Flask(__name__)\n\n  @app.route("/")\n  def home():\n      return "Hello from Flask"\n\n  if __name__ == "__main__":\n      app.run()\n\nPurpose:\nThis package is used for hosting games, APIs, dashboards, and web apps like BlockVerse.\nIt turns your emulator into a full web server environment.\n",
       "dependencies": []
     }
   ]

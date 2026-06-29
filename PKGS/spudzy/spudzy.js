@@ -3371,12 +3371,11 @@ async searchMSStore(query) {
 }
 async searchYouTube(query) {
   try {
-    // If no API key is configured, still return a useful YouTube search link.
-    if (!this.cfg.youtubeApiKey) {
+    if (!this.cfg.youtubeApiKey || this.cfg.youtubeApiKey === "__YOUTUBE_API_KEY__") {
       return [{
         source: "YouTube",
-        title: "YouTube search: " + query,
-        text: "YouTube API key is not configured, so Spudzy made a direct YouTube search link instead.",
+        title: "YouTube API key not injected",
+        text: "The deployed spudzy.js does not have a real YouTube API key. Check your GitHub secret name and deploy workflow.",
         url: "https://www.youtube.com/results?search_query=" + encodeURIComponent(query)
       }];
     }
@@ -3390,23 +3389,24 @@ async searchYouTube(query) {
       "&key=" + encodeURIComponent(this.cfg.youtubeApiKey);
 
     const res = await fetch(url);
+    const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
       return [{
         source: "YouTube",
         title: "YouTube API error",
-        text: "YouTube was reached, but the API returned HTTP " + res.status + ". Check your API key, restrictions, quota, or whether YouTube Data API v3 is enabled.",
+        text:
+          "HTTP " + res.status + ": " +
+          (data?.error?.message || "No detailed error message returned."),
         url: "https://www.youtube.com/results?search_query=" + encodeURIComponent(query)
       }];
     }
-
-    const data = await res.json();
 
     if (!data.items || !data.items.length) {
       return [{
         source: "YouTube",
         title: "No YouTube API results",
-        text: "YouTube was reached, but the API returned no videos for this search.",
+        text: "YouTube was reached, but no videos were returned.",
         url: "https://www.youtube.com/results?search_query=" + encodeURIComponent(query)
       }];
     }
@@ -3429,7 +3429,7 @@ async searchYouTube(query) {
     return [{
       source: "YouTube",
       title: "YouTube fetch failed",
-      text: "Spudzy could not reach YouTube from this browser. Error: " + (error?.message || "Unknown error"),
+      text: "Spudzy could not reach YouTube. Error: " + (error?.message || "Unknown error"),
       url: "https://www.youtube.com/results?search_query=" + encodeURIComponent(query)
     }];
   }

@@ -3369,10 +3369,17 @@ async searchMSStore(query) {
     return [];
   }
 }
-
 async searchYouTube(query) {
   try {
-    if (!this.cfg.youtubeApiKey) return [];
+    // If no API key is configured, still return a useful YouTube search link.
+    if (!this.cfg.youtubeApiKey) {
+      return [{
+        source: "YouTube",
+        title: "YouTube search: " + query,
+        text: "YouTube API key is not configured, so Spudzy made a direct YouTube search link instead.",
+        url: "https://www.youtube.com/results?search_query=" + encodeURIComponent(query)
+      }];
+    }
 
     const url =
       "https://www.googleapis.com/youtube/v3/search" +
@@ -3384,11 +3391,27 @@ async searchYouTube(query) {
 
     const res = await fetch(url);
 
-    if (!res.ok) return [];
+    if (!res.ok) {
+      return [{
+        source: "YouTube",
+        title: "YouTube API error",
+        text: "YouTube was reached, but the API returned HTTP " + res.status + ". Check your API key, restrictions, quota, or whether YouTube Data API v3 is enabled.",
+        url: "https://www.youtube.com/results?search_query=" + encodeURIComponent(query)
+      }];
+    }
 
     const data = await res.json();
 
-    return (data.items || []).map(item => {
+    if (!data.items || !data.items.length) {
+      return [{
+        source: "YouTube",
+        title: "No YouTube API results",
+        text: "YouTube was reached, but the API returned no videos for this search.",
+        url: "https://www.youtube.com/results?search_query=" + encodeURIComponent(query)
+      }];
+    }
+
+    return data.items.map(item => {
       const videoId = item.id?.videoId;
       const snip = item.snippet || {};
 
@@ -3402,8 +3425,13 @@ async searchYouTube(query) {
         url: videoId ? "https://www.youtube.com/watch?v=" + videoId : ""
       };
     });
-  } catch {
-    return [];
+  } catch (error) {
+    return [{
+      source: "YouTube",
+      title: "YouTube fetch failed",
+      text: "Spudzy could not reach YouTube from this browser. Error: " + (error?.message || "Unknown error"),
+      url: "https://www.youtube.com/results?search_query=" + encodeURIComponent(query)
+    }];
   }
 }
 

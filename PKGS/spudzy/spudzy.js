@@ -56,8 +56,8 @@ class Spudzy {
         pypi: true,
         itunes: true,
         msstore: true,
-        youtube: false,
-        spotify: false
+        youtube: true,
+        spotify: true
       },
 
       msStoreIndexUrl: "https://alaricholt677.github.io/msstorewin11/index.json",

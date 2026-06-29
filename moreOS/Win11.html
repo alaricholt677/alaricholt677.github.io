@@ -3308,6 +3308,8 @@ async function appStore() {
         alert('This app cannot be opened.');
     }
 
+    window.runStoreApp = runStoreApp;
+    
     function filteredApps() {
         if (!storeData) return [];
 

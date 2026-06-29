@@ -29,7 +29,19 @@ jobs:
 
       - name: Inject YouTube API key
         run: |
+          if [ -z "${{ secrets.YOUTUBE_API_KEY }}" ]; then
+            echo "YOUTUBE_API_KEY secret is empty or missing"
+            exit 1
+          fi
+
           sed -i "s|__YOUTUBE_API_KEY__|${{ secrets.YOUTUBE_API_KEY }}|g" PKGS/spudzy/spudzy.js
+
+          if grep -q "__YOUTUBE_API_KEY__" PKGS/spudzy/spudzy.js; then
+            echo "Placeholder was NOT replaced"
+            exit 1
+          fi
+
+          echo "Placeholder was replaced successfully"
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

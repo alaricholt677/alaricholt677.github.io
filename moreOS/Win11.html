@@ -4782,7 +4782,7 @@ if (document.readyState === 'loading') {
 // ===============================
 // Search
 // ===============================
- function doSearch(q) {
+function doSearch(q) {
     const res = document.getElementById('search-results');
     const prev = document.getElementById('search-preview');
     if (!res || !prev) return;
@@ -4849,7 +4849,7 @@ if (document.readyState === 'loading') {
         files.forEach(file => {
             sections.push(`
                 <div class="app-item"
-                     onclick="previewFile({name:${JSON.stringify(file.name)}, path:${JSON.stringify(file.path)}, icon:${JSON.stringify(file.icon)}, type:${JSON.stringify(file.type)}})">
+                     onclick="previewFile({name:'${file.name}', path:'${file.path}', icon:'${file.icon}', type:'${file.type}'})">
                     ${file.icon} ${file.name}
                 </div>
             `);
@@ -4859,7 +4859,7 @@ if (document.readyState === 'loading') {
     if (currentSearchFilter === 'all' || currentSearchFilter === 'web') {
         sections.push(`
             <div class="app-item"
-                 onclick="openWebSearch(${JSON.stringify(q)})">
+                 onclick="openWebSearch('${q}')">
                 🌐 Search the web for "${q}"
             </div>
         `);

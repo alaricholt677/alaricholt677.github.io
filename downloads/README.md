@@ -1268,6 +1268,23 @@ The currently implemented command set uses:
 
 ------------------------------------------------------------
 
+------------------------------------------------------------
+
+# Recent Patch Additions
+
+## Shader Integration
+* **Force-Integrated Shader Pack:** Now natively integrated into `_3DEngine.java`, providing global lighting, dynamic shadowing, and enhanced atmospheric effects across all dimensions.
+
+## New Entities
+* **Hell Devils:** Aggressive procedural entities spawning within the Hell dimension.
+* **Random Babies:** Dynamic NPC child variants that spawn naturally in the Overworld.
+
+## New Commands
+* `/summon human/boss` — Spawns another human or spawns the boss(recommended for Hell).
+* `/summon baby` — Spawns a baby NPC (Overworld).
+* `/summon holographic human` — Spawns the holographic human
+------------------------------------------------------------
+
 # Conclusion
 
 Voxel IRL Simulator currently includes:

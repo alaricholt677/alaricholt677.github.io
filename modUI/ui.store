@@ -1,0 +1,256 @@
+{
+  "title": "IRL Simulator Mod Store",
+  "message": "Download expansion packs, block packs, worlds, UI packs, shaders, and experimental add-ons for IRL Simulator.",
+  "packs": [
+    {
+      "name": "More Blocks Expansion",
+      "description": "Adds a large starter set of decorative and survival blocks for testing new building styles. Includes colored blocks, metal blocks, stone variants, glowing blocks, and simple furniture test blocks.",
+      "url": "https://alaricholt677.github.io/modUI/packs/more_blocks.zip"
+    },
+    {
+      "name": "Clouds Plus Expansion",
+      "description": "Adds extra cloud presets, heavier sky layers, soft cloud colors, and improved atmosphere options for worlds with 3D clouds enabled.",
+      "url": "https://alaricholt677.github.io/modUI/packs/clouds_plus.zip"
+    },
+    {
+      "name": "Weather Expansion",
+      "description": "Adds extra weather presets for rain, snow, thunder, fog, ash storms, red hell haze, and calm sky modes. Designed for world atmosphere testing.",
+      "url": "https://alaricholt677.github.io/modUI/packs/weather_expansion.zip"
+    },
+    {
+      "name": "Hell Dimension Expansion",
+      "description": "Adds extra hell-themed content including darker bloodrock colors, hellstone variants, ember blocks, lava-like lighting blocks, and red fog configuration files.",
+      "url": "https://alaricholt677.github.io/modUI/packs/hell_dimension.zip"
+    },
+    {
+      "name": "Human Life Expansion",
+      "description": "Adds extra human-related content such as more names, personality presets, behavior configuration examples, social interaction templates, and simple NPC test data.",
+      "url": "https://alaricholt677.github.io/modUI/packs/human_life.zip"
+    },
+    {
+      "name": "Baby Names Expansion",
+      "description": "Adds a larger pool of baby names for boys and girls, including fantasy-style, normal-style, rare-style, and simulator-style names.",
+      "url": "https://alaricholt677.github.io/modUI/packs/baby_names.zip"
+    },
+    {
+      "name": "Furniture Test Pack",
+      "description": "Adds test furniture definitions for chairs, tables, lamps, shelves, counters, beds, crates, boxes, and basic house props. Useful for testing interactable blocks later.",
+      "url": "https://alaricholt677.github.io/modUI/packs/furniture_test.zip"
+    },
+    {
+      "name": "Survival Items Expansion",
+      "description": "Adds survival-style item definitions including bottles, food items, water containers, medicine test items, and resource icons for future crafting systems.",
+      "url": "https://alaricholt677.github.io/modUI/packs/survival_items.zip"
+    },
+    {
+      "name": "Crafting Recipes Expansion",
+      "description": "Adds extra crafting recipe examples for 3x3 crafting, including block conversions, tools, furniture recipes, survival supplies, and decorative recipes.",
+      "url": "https://alaricholt677.github.io/modUI/packs/crafting_recipes.zip"
+    },
+    {
+      "name": "Hologram Expansion",
+      "description": "Adds hologram-themed assets and configuration examples for holographic humans, glowing outlines, blue transparent color presets, and futuristic UI effects.",
+      "url": "https://alaricholt677.github.io/modUI/packs/hologram_expansion.zip"
+    },
+    {
+      "name": "Boss Expansion",
+      "description": "Adds extra boss configuration examples, arena block ideas, boss color variants, attack timing presets, and experimental health scaling files.",
+      "url": "https://alaricholt677.github.io/modUI/packs/boss_expansion.zip"
+    },
+    {
+      "name": "World Generation Expansion",
+      "description": "Adds example world generation presets for hills, plains, forests, rocky terrain, weird terrain, hell terrain, and experimental biome layouts.",
+      "url": "https://alaricholt677.github.io/modUI/packs/world_generation.zip"
+    },
+    {
+      "name": "Forest Biome Pack",
+      "description": "Adds forest-themed blocks and generation examples including logs, leaves, dark leaves, bushes, grass variants, flowers, and simple nature decorations.",
+      "url": "https://alaricholt677.github.io/modUI/packs/forest_biome.zip"
+    },
+    {
+      "name": "City Props Pack",
+      "description": "Adds city-style props and block definitions for roads, sidewalk blocks, windows, signs, light posts, concrete, metal panels, and building decoration.",
+      "url": "https://alaricholt677.github.io/modUI/packs/city_props.zip"
+    },
+    {
+      "name": "House Builder Pack",
+      "description": "Adds blocks and presets made for building houses, including roof blocks, wall colors, floor materials, windows, doors, lamps, beds, and kitchen-style blocks.",
+      "url": "https://alaricholt677.github.io/modUI/packs/house_builder.zip"
+    },
+    {
+      "name": "Lighting Test Pack",
+      "description": "Adds test blocks for experimenting with light levels, glow colors, torch alternatives, lamp blocks, neon blocks, and debug lighting setups.",
+      "url": "https://alaricholt677.github.io/modUI/packs/lighting_test.zip"
+    },
+    {
+      "name": "Performance Presets Pack",
+      "description": "Adds example level option presets for low-end, balanced, high-performance, high-render-distance, and shader-heavy gameplay setups.",
+      "url": "https://alaricholt677.github.io/modUI/packs/performance_presets.zip"
+    },
+    {
+      "name": "Mobile Friendly Pack",
+      "description": "Adds lightweight world and graphics configuration examples designed for weaker tablets, older devices, and low render distance gameplay.",
+      "url": "https://alaricholt677.github.io/modUI/packs/mobile_friendly.zip"
+    },
+    {
+      "name": "Legion Ultra Preset Pack",
+      "description": "Adds high-end example settings for strong gaming PCs, including higher render distance, more clouds, richer weather, and heavier visual presets.",
+      "url": "https://alaricholt677.github.io/modUI/packs/legion_ultra_presets.zip"
+    },
+    {
+      "name": "UI Theme Blue Glass",
+      "description": "Adds a blue glass style UI theme concept for menus, buttons, panels, mod cards, chat overlays, and futuristic interface testing.",
+      "url": "https://alaricholt677.github.io/modUI/packs/ui_blue_glass.zip"
+    },
+    {
+      "name": "UI Theme Dark Blocks",
+      "description": "Adds a dark blocky UI theme concept with square panels, heavy shadows, pixel-like menu pieces, and dark survival-style colors.",
+      "url": "https://alaricholt677.github.io/modUI/packs/ui_dark_blocks.zip"
+    },
+    {
+      "name": "Chat Commands Expansion",
+      "description": "Adds command documentation and examples for testing commands like time, summon, give, dimension switching, weather, teleporting, and future commands.",
+      "url": "https://alaricholt677.github.io/modUI/packs/chat_commands.zip"
+    },
+    {
+      "name": "Expansion Pack Template",
+      "description": "A starter template for making your own IRL Simulator expansion pack. Includes example folders, manifest examples, block data examples, and readme files.",
+      "url": "https://alaricholt677.github.io/modUI/packs/expansion_template.zip"
+    },
+    {
+      "name": "Test Pack Small",
+      "description": "A tiny test pack for checking whether downloads work correctly. Use this before uploading bigger expansion packs.",
+      "url": "https://alaricholt677.github.io/modUI/packs/test_small.zip"
+    },
+    {
+      "name": "Debug Pack",
+      "description": "Adds debug notes, example data files, test blocks, test entities, and simple files for checking whether the mod store downloader works.",
+      "url": "https://alaricholt677.github.io/modUI/packs/debug_pack.zip"
+    },
+    {
+      "name": "World Pack Starter Valley",
+      "description": "Adds a starter valley world zip with simple terrain, spawn area, test blocks, humans, and basic survival testing locations.",
+      "url": "https://alaricholt677.github.io/modUI/packs/world_starter_valley.zip"
+    },
+    {
+      "name": "World Pack Hell Test",
+      "description": "Adds a hell testing world zip for checking red lighting, roof brightness, hell terrain, fire blocks, and dimension performance.",
+      "url": "https://alaricholt677.github.io/modUI/packs/world_hell_test.zip"
+    },
+    {
+      "name": "World Pack Flat Builder",
+      "description": "Adds a flat world for building, testing block colors, checking lighting behavior, and quickly comparing new block definitions.",
+      "url": "https://alaricholt677.github.io/modUI/packs/world_flat_builder.zip"
+    },
+    {
+      "name": "Sound Effects Pack",
+      "description": "Adds placeholder sound effect files for UI clicks, block breaking, block placing, weather, thunder, baby spawn messages, and dimension switching.",
+      "url": "https://alaricholt677.github.io/modUI/packs/sound_effects.zip"
+    },
+    {
+      "name": "Music Pack Ambient",
+      "description": "Adds ambient music placeholders for overworld, night, hell, menu, mountain intro, peaceful gameplay, and boss testing.",
+      "url": "https://alaricholt677.github.io/modUI/packs/music_ambient.zip"
+    },
+    {
+      "name": "Particle Effects Pack",
+      "description": "Adds particle presets for smoke, fire sparks, rain drops, snow flakes, portal particles, glowing dust, and block break particles.",
+      "url": "https://alaricholt677.github.io/modUI/packs/particle_effects.zip"
+    },
+    {
+      "name": "Portal Blocks Pack",
+      "description": "Adds portal-themed block definitions and ideas for future dimension travel, including purple portal blocks, red portal blocks, and glowing frame blocks.",
+      "url": "https://alaricholt677.github.io/modUI/packs/portal_blocks.zip"
+    },
+    {
+      "name": "Water Expansion",
+      "description": "Adds water-related test content including water color variants, bottle items, hydration testing data, and simple liquid block ideas.",
+      "url": "https://alaricholt677.github.io/modUI/packs/water_expansion.zip"
+    },
+    {
+      "name": "Pee System Expansion",
+      "description": "Adds humorous simulator-style test content for the pee and water system, including overlay notes, block color tests, and survival stat examples.",
+      "url": "https://alaricholt677.github.io/modUI/packs/pee_system.zip"
+    },
+    {
+      "name": "Animal Test Pack",
+      "description": "Adds example animal entity data for future testing, including simple names, colors, behavior notes, and spawn ideas.",
+      "url": "https://alaricholt677.github.io/modUI/packs/animal_test.zip"
+    },
+    {
+      "name": "NPC Clothes Pack",
+      "description": "Adds clothing color presets for humans and babies, including casual colors, bright colors, dark colors, and random outfit examples.",
+      "url": "https://alaricholt677.github.io/modUI/packs/npc_clothes.zip"
+    },
+    {
+      "name": "Entity Mesh Examples",
+      "description": "Adds example mesh layouts for blocky entities such as humans, babies, bosses, followers, holograms, animals, and test mobs.",
+      "url": "https://alaricholt677.github.io/modUI/packs/entity_mesh_examples.zip"
+    },
+    {
+      "name": "Follower Expansion",
+      "description": "Adds follower behavior ideas, color variants, follow distance examples, speed presets, and simple helper text for future follower upgrades.",
+      "url": "https://alaricholt677.github.io/modUI/packs/follower_expansion.zip"
+    },
+    {
+      "name": "Marketplace Compatibility Pack",
+      "description": "Adds compatibility notes and example files for connecting the Mod Store, Marketplace, and expansion pack downloader systems together.",
+      "url": "https://alaricholt677.github.io/modUI/packs/marketplace_compatibility.zip"
+    },
+    {
+      "name": "LAN World Sharing Pack",
+      "description": "Adds notes and example files for LAN world sharing, world zip transfer, downloaded world structure, and multiplayer test world packaging.",
+      "url": "https://alaricholt677.github.io/modUI/packs/lan_world_sharing.zip"
+    },
+    {
+      "name": "Save System Examples",
+      "description": "Adds example save data layouts for player position, time of day, entities, options, blocks, and future expansion pack data.",
+      "url": "https://alaricholt677.github.io/modUI/packs/save_system_examples.zip"
+    },
+    {
+      "name": "Shader Preset Concepts",
+      "description": "Adds shader quality preset ideas for low, medium, high, and auto modes. Useful if shaders remain built into the renderer but quality changes later.",
+      "url": "https://alaricholt677.github.io/modUI/packs/shader_preset_concepts.zip"
+    },
+    {
+      "name": "Render Distance Worlds",
+      "description": "Adds test worlds for comparing render distance settings, chunk loading, chunk unloading, occlusion culling, and chunk meshing behavior.",
+      "url": "https://alaricholt677.github.io/modUI/packs/render_distance_worlds.zip"
+    },
+    {
+      "name": "Occlusion Test Pack",
+      "description": "Adds test maps and notes for checking occlusion culling with walls, tunnels, caves, mountains, buildings, and hidden chunk areas.",
+      "url": "https://alaricholt677.github.io/modUI/packs/occlusion_test.zip"
+    },
+    {
+      "name": "Chunk Meshing Test Pack",
+      "description": "Adds flat block grids, wall grids, stairs, caves, and mixed block tests for checking chunk meshing and mesh rebuild behavior.",
+      "url": "https://alaricholt677.github.io/modUI/packs/chunk_meshing_test.zip"
+    },
+    {
+      "name": "Lighting Bug Test Pack",
+      "description": "Adds test worlds and blocks for checking lighting recalculation, dimension switching, red hell lighting, roof brightness, torches, and glowing blocks.",
+      "url": "https://alaricholt677.github.io/modUI/packs/lighting_bug_test.zip"
+    },
+    {
+      "name": "Time Cycle Pack",
+      "description": "Adds time-of-day testing notes and presets for midnight, sunrise, noon, sunset, and custom numeric time values.",
+      "url": "https://alaricholt677.github.io/modUI/packs/time_cycle.zip"
+    },
+    {
+      "name": "Command Test World",
+      "description": "Adds a small world made for testing slash commands such as summon, time, weather, give, tp, pos, save, craft, break, place, and dim.",
+      "url": "https://alaricholt677.github.io/modUI/packs/command_test_world.zip"
+    },
+    {
+      "name": "Creator Pack",
+      "description": "Adds a creator-focused set of templates, notes, icons, placeholder data, and folder layouts for making new IRL Simulator content.",
+      "url": "https://alaricholt677.github.io/modUI/packs/creator_pack.zip"
+    },
+    {
+      "name": "Experimental Mega Pack",
+      "description": "A large experimental bundle combining blocks, weather ideas, entity templates, UI concepts, debug files, and sample worlds for testing the mod store.",
+      "url": "https://alaricholt677.github.io/modUI/packs/experimental_mega_pack.zip"
+    }
+  ]
+}

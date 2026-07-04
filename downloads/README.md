@@ -1267,7 +1267,30 @@ The currently implemented command set uses:
 /weather  
 
 ------------------------------------------------------------
+# How Mods Work in IRL Simulator
 
+IRL Simulator mods are **downloadable expansion packs**. A modpack is usually a `.zip` file that contains a manifest and optional data files. The game can download these packs from the Mod Store, save them locally, and then let the mod loader read whatever data types the engine supports.
+
+Mods are meant to be **data-driven**. That means a modpack describes things like commands, blocks, entities, recipes, sounds, or world presets using JSON files. The game engine decides how to safely use that data.
+
+---
+
+## Basic Mod Flow
+
+The mod system works like this:
+
+```text
+ui.store
+```
+→ Mod Store / Inbox
+→ Player clicks Download
+→ Pack ZIP downloads into expansion_packs/
+→ Game reloads or loads a world
+→ Mod loader scans installed packs
+→ Loader reads pack_manifest.json
+→ Loader reads optional data files
+→ Data is registered into the game
+→ Commands/features become available if supported
 ------------------------------------------------------------
 
 # Recent Patch Additions

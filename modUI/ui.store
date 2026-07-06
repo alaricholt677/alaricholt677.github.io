@@ -7,6 +7,11 @@
       "description": "Adds a large starter set of decorative and survival blocks for testing new building styles. Includes colored blocks, metal blocks, stone variants, glowing blocks, and simple furniture test blocks.",
       "url": "https://alaricholt677.github.io/modUI/packs/more_blocks.zip"
     },
+{
+  "name": "Robot Entities Extension Pack",
+  "description": "Adds Worker Bot, Guard Bot, Broken Bot, Scout Bot, and Heavy Bot entity profiles. Includes current entities.json support plus robots.json future robot-data support.",
+  "url": "https://alaricholt677.github.io/modUI/packs/robot_entities.zip"
+},
     {
       "name": "Clouds Plus Expansion",
       "description": "Adds extra cloud presets, heavier sky layers, soft cloud colors, and improved atmosphere options for worlds with 3D clouds enabled.",
@@ -175,7 +180,7 @@
     {
       "name": "Animal Test Pack",
       "description": "Adds example animal entity data for future testing, including simple names, colors, behavior notes, and spawn ideas.",
-      "url": "https://alaricholt677.github.io/modUI/packs/animal_test.zip"
+      "url": "https://alaricholt677.github.io/modUI/packs/Animal_test.zip"
     },
     {
       "name": "NPC Clothes Pack",

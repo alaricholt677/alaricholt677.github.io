@@ -2,227 +2,687 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>IRL Simulator — Complete Wiki + Full Modding Integration Guide</title>
+<title>IRL Simulator — Complete Wiki + Extension Pack Creation Guide</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-*{box-sizing:border-box}:root{--blue:#4aa3ff;--blue2:#75d7ff;--green:#58c96f;--grass:#55aa55;--dirt:#8b5a35;--stone:#888;--hell:#b83232;--ash:#444;--gold:#ffd166;--magenta:#d943ff;--baby:#ffb7d5;--pee:#fff36a;--mod:#9bffb5;--panel:rgba(13,18,30,.86);--text:#eaf6ff;--muted:#a9bdd2;--border:rgba(140,210,255,.35)}
+*{box-sizing:border-box}
+:root{--blue:#4aa3ff;--blue2:#75d7ff;--green:#58c96f;--grass:#55aa55;--dirt:#8b5a35;--stone:#888;--hell:#b83232;--ash:#444;--gold:#ffd166;--magenta:#d943ff;--baby:#ffb7d5;--pee:#fff36a;--mod:#9bffb5;--panel:rgba(13,18,30,.88);--text:#eaf6ff;--muted:#a9bdd2;--border:rgba(140,210,255,.35);--dark:#07111f}
 html{scroll-behavior:smooth}body{margin:0;min-height:100vh;font-family:"Segoe UI",Arial,sans-serif;color:var(--text);background:#07111f;overflow-x:hidden}#voxel-bg{position:fixed;inset:0;z-index:-5;overflow:hidden;background:radial-gradient(circle at 70% 15%,rgba(255,235,120,.22),transparent 12%),linear-gradient(#5baeff 0%,#74caff 32%,#3c8b64 58%,#1f5137 100%)}.sky-glow{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0),rgba(0,0,0,.55));z-index:1}.block-ground{position:absolute;left:-100px;right:-100px;bottom:-70px;height:255px;z-index:3;background-image:linear-gradient(45deg,var(--grass) 25%,#3e8f45 25%,#3e8f45 50%,var(--grass) 50%,var(--grass) 75%,#3e8f45 75%);background-size:64px 64px;transform:skewY(-4deg);box-shadow:0 -30px 70px rgba(0,0,0,.28);animation:groundShift 20s linear infinite}.floating-cube{position:absolute;width:46px;height:46px;background:var(--blue);box-shadow:12px 12px 0 rgba(0,0,0,.28),inset -9px -9px 0 rgba(0,0,0,.22),inset 9px 9px 0 rgba(255,255,255,.16);transform:rotateX(58deg) rotateZ(45deg);animation:floatCube 7s ease-in-out infinite;opacity:.65}.floating-cube:nth-child(3){left:72%;top:18%;background:var(--grass)}.floating-cube:nth-child(4){left:83%;top:42%;background:var(--stone);animation-delay:1.2s}.floating-cube:nth-child(5){left:11%;top:24%;background:var(--dirt);animation-delay:2.1s}.floating-cube:nth-child(6){left:24%;top:70%;background:var(--magenta);animation-delay:3.1s}@keyframes groundShift{from{background-position:0 0}to{background-position:128px 0}}@keyframes floatCube{0%,100%{transform:translateY(0) rotateX(58deg) rotateZ(45deg)}50%{transform:translateY(-24px) rotateX(58deg) rotateZ(45deg)}}
-#app{display:grid;grid-template-columns:325px minmax(0,1fr);min-height:100vh}#sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;padding:18px;background:rgba(8,14,26,.90);backdrop-filter:blur(16px);border-right:2px solid var(--border);z-index:10}.brand{padding:16px;margin-bottom:16px;border-radius:18px;background:linear-gradient(145deg,rgba(74,163,255,.18),rgba(117,215,255,.08));border:1px solid var(--border)}.brand h1{margin:0;color:white;font-size:22px;line-height:1.1}.brand span{display:block;margin-top:7px;color:var(--muted);font-size:13px}#searchBox{width:100%;padding:12px 14px;margin:0 0 12px;border:1px solid var(--border);border-radius:14px;outline:none;background:rgba(255,255,255,.08);color:var(--text);font-size:14px}.nav-title{margin:14px 0 8px;color:var(--blue2);font-size:13px;letter-spacing:1px;text-transform:uppercase}#sidebar a{display:block;margin:6px 0;padding:10px 12px;color:var(--text);text-decoration:none;font-size:14px;border-radius:12px;border:1px solid transparent;background:rgba(255,255,255,.045);transition:.18s ease}#sidebar a:hover,#sidebar a.active-link{background:rgba(74,163,255,.24);border-color:var(--border);transform:translateX(4px)}#downloadLink{background:linear-gradient(135deg,#3eaa5c,#62d77e)!important;color:#06110a!important;font-weight:bold;text-align:center}
-#content{padding:34px;max-width:1320px;width:100%}.page{display:none;animation:pageIn .25s ease both}.page.active{display:block}@keyframes pageIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}h1,h2{color:white;border-bottom:1px solid rgba(140,210,255,.28);padding-bottom:8px;text-shadow:0 0 18px rgba(74,163,255,.25)}h1{font-size:clamp(32px,5vw,56px);margin:0 0 20px}h2{margin-top:30px;font-size:26px}h3{color:var(--blue2);margin-bottom:8px}p,li{line-height:1.65;color:#d8e7f5}.hero{padding:28px;border-radius:28px;background:linear-gradient(135deg,rgba(74,163,255,.22),rgba(217,67,255,.11)),rgba(10,18,32,.86);border:1px solid var(--border);box-shadow:0 22px 60px rgba(0,0,0,.32);margin-bottom:22px}.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:18px 0}.card{padding:18px;border-radius:20px;background:var(--panel);border:1px solid var(--border);box-shadow:0 15px 35px rgba(0,0,0,.23)}.mod-card{border-color:rgba(88,201,111,.45);background:linear-gradient(135deg,rgba(88,201,111,.13),rgba(74,163,255,.07)),var(--panel)}.tag{display:inline-block;margin:4px 5px 4px 0;padding:5px 9px;border-radius:999px;background:rgba(74,163,255,.18);border:1px solid var(--border);color:var(--blue2);font-size:12px}.tag.mod{background:rgba(88,201,111,.18);color:var(--mod)}.note{padding:14px 16px;border-radius:16px;background:rgba(255,209,102,.12);border:1px solid rgba(255,209,102,.35);color:#ffe5a2;margin:16px 0}.warning{padding:14px 16px;border-radius:16px;background:rgba(217,67,255,.12);border:1px solid rgba(217,67,255,.35);color:#f1c3ff;margin:16px 0}.success{padding:14px 16px;border-radius:16px;background:rgba(88,201,111,.12);border:1px solid rgba(88,201,111,.35);color:#c9ffd8;margin:16px 0}.command,.list-row{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);color:#eef8ff;margin:8px 0}code,pre{color:#fff3a6;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);border-radius:8px}code{padding:2px 6px}pre{padding:14px;overflow:auto;white-space:pre-wrap}.interactive{padding:18px;margin:20px 0;border-radius:22px;background:linear-gradient(135deg,rgba(255,255,255,.09),rgba(255,255,255,.035));border:1px solid var(--border);box-shadow:inset 0 0 30px rgba(117,215,255,.04),0 18px 40px rgba(0,0,0,.25)}.controls-row{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}.wiki-btn{border:1px solid var(--border);border-radius:12px;padding:10px 13px;color:var(--text);background:rgba(74,163,255,.18);cursor:pointer;transition:.18s ease}.wiki-btn:hover{transform:translateY(-2px);background:rgba(74,163,255,.34)}select,input[type=range]{padding:10px 13px;border-radius:12px;border:1px solid var(--border);color:var(--text);background:#101a2b}.preview-stage{min-height:220px;border-radius:18px;position:relative;overflow:hidden;background:linear-gradient(#69b8ff,#397e55);border:1px solid rgba(255,255,255,.14);margin-top:12px}.sample-block{position:absolute;left:50%;top:52%;width:72px;height:72px;transform:translate(-50%,-50%) rotateX(58deg) rotateZ(45deg);background:var(--grass);box-shadow:18px 18px 0 rgba(0,0,0,.25),inset -14px -14px 0 rgba(0,0,0,.24),inset 14px 14px 0 rgba(255,255,255,.18);transition:.22s ease}.result-box{margin-top:12px;padding:14px;border-radius:14px;border:1px solid var(--border);background:rgba(0,0,0,.22);color:white}.flow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}.flow-step{padding:12px;border-radius:16px;background:rgba(74,163,255,.16);border:1px solid var(--border);min-width:135px;text-align:center}.arrow{color:var(--blue2);font-size:24px;font-weight:bold}.store-window{position:relative;min-height:320px;border-radius:22px;overflow:hidden;background:#0b1020;border:1px solid var(--border)}.store-top{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,.06);border-bottom:1px solid var(--border)}.store-body{padding:16px}.pack-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;margin:10px 0;padding:13px;border-radius:16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1)}.spinner{width:86px;height:86px;position:relative;margin:38px auto 20px}.spin-block{position:absolute;width:20px;height:20px;background:#75d7ff;box-shadow:5px 5px 0 rgba(0,0,0,.25);animation:pulse 1.04s linear infinite}.spin-block:nth-child(1){left:33px;top:0}.spin-block:nth-child(2){left:61px;top:12px;animation-delay:.13s}.spin-block:nth-child(3){left:66px;top:43px;animation-delay:.26s}.spin-block:nth-child(4){left:43px;top:64px;animation-delay:.39s}.spin-block:nth-child(5){left:12px;top:61px;animation-delay:.52s}.spin-block:nth-child(6){left:0;top:33px;animation-delay:.65s}.spin-block:nth-child(7){left:12px;top:7px;animation-delay:.78s}.spin-block:nth-child(8){left:43px;top:12px;animation-delay:.91s}@keyframes pulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.12)}}.baby-entity,.human-entity,.mini-entity{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);animation:bob 1.4s ease-in-out infinite}.baby-entity{width:40px;height:66px}.baby-entity:before{content:"";position:absolute;left:6px;top:0;width:28px;height:26px;background:#ffd0b5;border-radius:9px}.baby-entity:after{content:"";position:absolute;left:8px;top:29px;width:24px;height:33px;background:var(--baby);border-radius:9px}.human-entity{width:42px;height:90px}.human-entity:before{content:"";position:absolute;left:7px;top:0;width:28px;height:28px;background:#ffd0b5;border-radius:9px}.human-entity:after{content:"";position:absolute;left:8px;top:31px;width:26px;height:54px;background:#4aa3ff;border-radius:9px}.holo{filter:drop-shadow(0 0 12px #75d7ff);opacity:.75}.holo:before,.holo:after{background:rgba(117,215,255,.55)!important}.mini-entity{width:80px;height:85px}.mini-entity:before{content:"";position:absolute;left:19px;top:0;width:42px;height:38px;background:#8d2222;border-radius:8px}.mini-entity:after{content:"";position:absolute;left:13px;top:40px;width:54px;height:58px;background:#d943ff;border-radius:10px}.mini-animal{position:absolute;width:95px;height:70px;left:50%;top:55%;transform:translate(-50%,-50%);animation:bob 1.4s ease-in-out infinite}.mini-animal .body{position:absolute;left:10px;top:20px;width:70px;height:38px;border-radius:9px;background:#eee;box-shadow:inset -8px -8px rgba(0,0,0,.13)}.mini-animal .head{position:absolute;left:0;top:12px;width:32px;height:30px;border-radius:8px;background:#333}.mini-animal .leg{position:absolute;top:55px;width:9px;height:18px;background:#222}.mini-animal .l1{left:22px}.mini-animal .l2{left:62px}@keyframes bob{0%,100%{translate:0 0}50%{translate:0 -8px}}.preview-panel-text{position:absolute;left:14px;right:14px;bottom:14px;padding:10px 12px;border-radius:14px;background:rgba(8,14,26,.72);border:1px solid rgba(140,210,255,.25);color:white;font-size:14px}.rain-drop,.snow-flake{position:absolute;top:-20px;animation:fall 1s linear infinite;opacity:.85}.rain-drop{width:2px;height:20px;background:#b7d9ff}.snow-flake{width:8px;height:8px;border-radius:50%;background:white;animation-duration:2.4s}@keyframes fall{to{transform:translateY(240px)}}@media(max-width:900px){#app{grid-template-columns:1fr}#sidebar{position:relative;height:auto}#content{padding:20px}}
+#app{display:grid;grid-template-columns:330px minmax(0,1fr);min-height:100vh}#sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;padding:18px;background:rgba(8,14,26,.92);backdrop-filter:blur(16px);border-right:2px solid var(--border);z-index:10}.brand{padding:16px;margin-bottom:16px;border-radius:18px;background:linear-gradient(145deg,rgba(74,163,255,.18),rgba(117,215,255,.08));border:1px solid var(--border)}.brand h1{margin:0;color:white;font-size:22px;line-height:1.1}.brand span{display:block;margin-top:7px;color:var(--muted);font-size:13px}#searchBox{width:100%;padding:12px 14px;margin:0 0 12px;border:1px solid var(--border);border-radius:14px;outline:none;background:rgba(255,255,255,.08);color:var(--text);font-size:14px}.nav-title{margin:14px 0 8px;color:var(--blue2);font-size:13px;letter-spacing:1px;text-transform:uppercase}#sidebar a{display:block;margin:6px 0;padding:10px 12px;color:var(--text);text-decoration:none;font-size:14px;border-radius:12px;border:1px solid transparent;background:rgba(255,255,255,.045);transition:.18s ease}#sidebar a:hover,#sidebar a.active-link{background:rgba(74,163,255,.24);border-color:var(--border);transform:translateX(4px)}#downloadLink{background:linear-gradient(135deg,#3eaa5c,#62d77e)!important;color:#06110a!important;font-weight:bold;text-align:center}
+#content{padding:34px;max-width:1320px;width:100%}.page{display:none;animation:pageIn .25s ease both}.page.active{display:block}@keyframes pageIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}h1,h2{color:white;border-bottom:1px solid rgba(140,210,255,.28);padding-bottom:8px;text-shadow:0 0 18px rgba(74,163,255,.25)}h1{font-size:clamp(32px,5vw,56px);margin:0 0 20px}h2{margin-top:30px;font-size:26px}h3{color:var(--blue2);margin-bottom:8px}p,li{line-height:1.65;color:#d8e7f5}.hero{padding:28px;border-radius:28px;background:linear-gradient(135deg,rgba(74,163,255,.22),rgba(217,67,255,.11)),rgba(10,18,32,.86);border:1px solid var(--border);box-shadow:0 22px 60px rgba(0,0,0,.32);margin-bottom:22px}.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:18px 0}.card{padding:18px;border-radius:20px;background:var(--panel);border:1px solid var(--border);box-shadow:0 15px 35px rgba(0,0,0,.23)}.mod-card{border-color:rgba(88,201,111,.45);background:linear-gradient(135deg,rgba(88,201,111,.13),rgba(74,163,255,.07)),var(--panel)}.tag{display:inline-block;margin:4px 5px 4px 0;padding:5px 9px;border-radius:999px;background:rgba(74,163,255,.18);border:1px solid var(--border);color:var(--blue2);font-size:12px}.tag.mod{background:rgba(88,201,111,.18);color:var(--mod)}.note{padding:14px 16px;border-radius:16px;background:rgba(255,209,102,.12);border:1px solid rgba(255,209,102,.35);color:#ffe5a2;margin:16px 0}.warning{padding:14px 16px;border-radius:16px;background:rgba(217,67,255,.12);border:1px solid rgba(217,67,255,.35);color:#f1c3ff;margin:16px 0}.success{padding:14px 16px;border-radius:16px;background:rgba(88,201,111,.12);border:1px solid rgba(88,201,111,.35);color:#c9ffd8;margin:16px 0}.command,.list-row{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);color:#eef8ff;margin:8px 0}code,pre{color:#fff3a6;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);border-radius:8px}code{padding:2px 6px}pre{padding:14px;overflow:auto;white-space:pre-wrap}.interactive{padding:18px;margin:20px 0;border-radius:22px;background:linear-gradient(135deg,rgba(255,255,255,.09),rgba(255,255,255,.035));border:1px solid var(--border);box-shadow:inset 0 0 30px rgba(117,215,255,.04),0 18px 40px rgba(0,0,0,.25)}.controls-row{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}.wiki-btn{border:1px solid var(--border);border-radius:12px;padding:10px 13px;color:var(--text);background:rgba(74,163,255,.18);cursor:pointer;transition:.18s ease}.wiki-btn:hover{transform:translateY(-2px);background:rgba(74,163,255,.34)}select,input[type=range]{padding:10px 13px;border-radius:12px;border:1px solid var(--border);color:var(--text);background:#101a2b}.preview-stage{min-height:220px;border-radius:18px;position:relative;overflow:hidden;background:linear-gradient(#69b8ff,#397e55);border:1px solid rgba(255,255,255,.14);margin-top:12px}.sample-block{position:absolute;left:50%;top:52%;width:72px;height:72px;transform:translate(-50%,-50%) rotateX(58deg) rotateZ(45deg);background:var(--grass);box-shadow:18px 18px 0 rgba(0,0,0,.25),inset -14px -14px 0 rgba(0,0,0,.24),inset 14px 14px 0 rgba(255,255,255,.18);transition:.22s ease}.result-box{margin-top:12px;padding:14px;border-radius:14px;border:1px solid var(--border);background:rgba(0,0,0,.22);color:white}.flow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}.flow-step{padding:12px;border-radius:16px;background:rgba(74,163,255,.16);border:1px solid var(--border);min-width:135px;text-align:center}.arrow{color:var(--blue2);font-size:24px;font-weight:bold}.store-window{position:relative;min-height:320px;border-radius:22px;overflow:hidden;background:#0b1020;border:1px solid var(--border)}.store-top{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,.06);border-bottom:1px solid var(--border)}.store-body{padding:16px}.pack-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;margin:10px 0;padding:13px;border-radius:16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1)}.spinner{width:86px;height:86px;position:relative;margin:38px auto 20px}.spin-block{position:absolute;width:20px;height:20px;background:#75d7ff;box-shadow:5px 5px 0 rgba(0,0,0,.25);animation:pulse 1.04s linear infinite}.spin-block:nth-child(1){left:33px;top:0}.spin-block:nth-child(2){left:61px;top:12px;animation-delay:.13s}.spin-block:nth-child(3){left:66px;top:43px;animation-delay:.26s}.spin-block:nth-child(4){left:43px;top:64px;animation-delay:.39s}.spin-block:nth-child(5){left:12px;top:61px;animation-delay:.52s}.spin-block:nth-child(6){left:0;top:33px;animation-delay:.65s}.spin-block:nth-child(7){left:12px;top:7px;animation-delay:.78s}.spin-block:nth-child(8){left:43px;top:12px;animation-delay:.91s}@keyframes pulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.12)}}.mini-animal{position:absolute;width:95px;height:70px;left:50%;top:55%;transform:translate(-50%,-50%);animation:bob 1.4s ease-in-out infinite}.mini-animal .body{position:absolute;left:10px;top:20px;width:70px;height:38px;border-radius:9px;background:#eee;box-shadow:inset -8px -8px rgba(0,0,0,.13)}.mini-animal .head{position:absolute;left:0;top:12px;width:32px;height:30px;border-radius:8px;background:#333}.mini-animal .leg{position:absolute;top:55px;width:9px;height:18px;background:#222}.mini-animal .l1{left:22px}.mini-animal .l2{left:62px}@keyframes bob{0%,100%{translate:0 0}50%{translate:0 -8px}}.preview-panel-text{position:absolute;left:14px;right:14px;bottom:14px;padding:10px 12px;border-radius:14px;background:rgba(8,14,26,.72);border:1px solid rgba(140,210,255,.25);color:white;font-size:14px}.rain-drop,.snow-flake{position:absolute;top:-20px;animation:fall 1s linear infinite;opacity:.85}.rain-drop{width:2px;height:20px;background:#b7d9ff}.snow-flake{width:8px;height:8px;border-radius:50%;background:white;animation-duration:2.4s}@keyframes fall{to{transform:translateY(240px)}}@media(max-width:900px){#app{grid-template-columns:1fr}#sidebar{position:relative;height:auto}#content{padding:20px}}
 </style>
 </head>
 <body>
 <div id="voxel-bg"><div class="block-ground"></div><div class="floating-cube"></div><div class="floating-cube"></div><div class="floating-cube"></div><div class="floating-cube"></div><div class="sky-glow"></div></div>
 <div id="app">
 <aside id="sidebar">
-<div class="brand"><h1>IRL Simulator Wiki</h1><span>Complete docs + integration modding</span></div>
+<div class="brand"><h1>IRL Simulator Wiki</h1><span>Complete docs + full extension pack guide</span></div>
 <input id="searchBox" placeholder="Search pages..."><div id="searchResults"></div>
 <div class="nav-title">Core Pages</div>
 <a href="#" data-page="overview" class="active-link">Overview</a><a href="#" data-page="startup">Startup + Title</a><a href="#" data-page="controls">Controls</a><a href="#" data-page="chat">Chat System</a><a href="#" data-page="blocks">Block List</a><a href="#" data-page="crafting">Crafting</a><a href="#" data-page="boss">Boss Spawner</a><a href="#" data-page="daynight">Day / Night</a><a href="#" data-page="weather">Weather</a><a href="#" data-page="hell">Hell Dimension</a><a href="#" data-page="entities">Humans + Babies</a><a href="#" data-page="survival">Water + Pee</a><a href="#" data-page="saving">Saving</a><a href="#" data-page="menus">Menus / UIs</a><a href="#" data-page="lan">LAN Multiplayer</a><a href="#" data-page="theme">Theme Song</a>
-<div class="nav-title">Modding Guide</div>
-<a href="#" data-page="mods">Mods Overview</a><a href="#" data-page="modstore">Mod Store / Inbox</a><a href="#" data-page="modanatomy">Pack Anatomy</a><a href="#" data-page="createpack">Create Your Own Pack</a><a href="#" data-page="uistore">Create ui.store</a><a href="#" data-page="upload">Upload / Publish</a><a href="#" data-page="installuse">Install / Use In Game</a><a href="#" data-page="integrations">Integration Types</a><a href="#" data-page="blockintegration">Block Integration</a><a href="#" data-page="entityintegration">Entity Integration</a><a href="#" data-page="itemrecipeintegration">Items + Recipes</a><a href="#" data-page="soundthemeintegration">Sounds + Theme Packs</a><a href="#" data-page="worldintegration">World + Biome Data</a><a href="#" data-page="modcommands">Mod Commands</a><a href="#" data-page="animalmod">Animal Data</a><a href="#" data-page="troubleshooting">Troubleshooting</a><a href="#" data-page="interactive">Interactive Examples</a><a href="#" data-page="conclusion">Conclusion</a>
-<div class="nav-title">Download</div><a id="downloadLink" href="irl.zip">Download IRL Simulator</a>
+<div class="nav-title">Extension Pack Guide</div>
+<a href="#" data-page="mods">Mods Overview</a><a href="#" data-page="modstore">Mod Store / Inbox</a><a href="#" data-page="readme">Full Pack README</a><a href="#" data-page="manifest">Manifest</a><a href="#" data-page="blocks-guide">Blocks</a><a href="#" data-page="commands-guide">Commands</a><a href="#" data-page="entities-guide">Entities</a><a href="#" data-page="custom-models">Custom Models</a><a href="#" data-page="ai-guide">AI + Custom AI</a><a href="#" data-page="recipes-guide">Recipes</a><a href="#" data-page="menus-guide">Custom Menus</a><a href="#" data-page="actions-guide">Actions</a><a href="#" data-page="rightclick-guide">Right Click Actions</a><a href="#" data-page="future-data">Future Data</a><a href="#" data-page="publish-guide">Publish + ui.store</a><a href="#" data-page="troubleshooting">Troubleshooting</a><a href="#" data-page="mini-pack">Complete Mini Pack</a><a href="#" data-page="interactive">Interactive Examples</a>
+<div class="nav-title">Deep Extra Modding Pages</div>
+<a href="#" data-page="all-old-new-map">All Old + New Wiki Map</a>
+<a href="#" data-page="deep-pack-structure">Deep Pack Structure</a>
+<a href="#" data-page="deep-manifest">Deep Manifest Guide</a>
+<a href="#" data-page="deep-blocks">Deep Blocks Guide</a>
+<a href="#" data-page="deep-commands">Deep Commands Guide</a>
+<a href="#" data-page="deep-actions">Deep Action System</a>
+<a href="#" data-page="deep-entities">Deep Entities Guide</a>
+<a href="#" data-page="deep-customs">Deep Custom Model Guide</a>
+<a href="#" data-page="deep-ai">Deep AI + Custom AI</a>
+<a href="#" data-page="deep-recipes">Deep Recipes Guide</a>
+<a href="#" data-page="deep-menus">Deep Menus Guide</a>
+<a href="#" data-page="deep-rightclick">Deep Right-Click Actions</a>
+<a href="#" data-page="deep-audio-theme">Audio + Theme Packs</a>
+<a href="#" data-page="deep-world-biomes">World + Biome Data</a>
+<a href="#" data-page="deep-animal-data">Animal Data</a>
+<a href="#" data-page="deep-uistore">Deep ui.store Guide</a>
+<a href="#" data-page="deep-upload">Upload / Publish Workflow</a>
+<a href="#" data-page="deep-complete-pack">Complete Everything Pack</a>
+<a href="#" data-page="deep-testing">Deep Testing Logs</a>
+<a href="#" data-page="deep-troubleshooting">Deep Troubleshooting</a>
+<div class="nav-title">Download</div><a id="downloadLink" href="downloads/irl.zip">Download IRL Simulator</a>
 </aside>
 <main id="content">
-<section class="page active" id="page-overview"><div class="hero"><h1>Voxel IRL Simulator</h1><p>A custom Java voxel survival/life-sim engine with crafting, weather, humans, babies, Hell, LAN world downloads, boss fights, blocky menus, a theme song section, and a downloadable modpack pipeline.</p><span class="tag">Custom 3D Renderer</span><span class="tag">LAN Multiplayer</span><span class="tag mod">Mods</span><span class="tag">Theme Song</span><span class="tag">Weather</span><span class="tag">Hell Dimension</span><span class="tag">Baby Spawns</span></div><div class="card-grid"><div class="card"><h2>Biggest Update #1</h2><p>LAN Multiplayer: hosting, joining, world ZIP download, extraction, and remote player sync.</p></div><div class="card mod-card"><h2>Biggest Update #2</h2><p>Mods: store UI, <code>ui.store</code>, downloadable pack zips, pack manifests, optional data, integration categories, and loader hooks.</p></div><div class="card"><h2>Engine Direction</h2><p>New engine systems can grow normally. The mod loader only needs careful updates when the pack format or supported safe actions change.</p></div></div></section>
-<section class="page" id="page-startup"><h1>Startup + Title</h1><div class="card-grid"><div class="card"><h2>Startup Cinematic</h2><p>Voxel blocks fly into place to form <strong>ALARICHOLT677</strong>, then transition through a mountain intro into the main menu.</p></div><div class="card"><h2>Window Title</h2><p>The title can include player name, version, and random splash sayings like Powered by Java, Grox Mode Enabled, Reality is buffering, or Your GPU is crying.</p></div><div class="card"><h2>Arguments</h2><p><code>--PathToClasses</code>, <code>--Name</code>, <code>--skinDir</code>, and <code>--version</code> can control startup setup.</p></div></div></section>
-<section class="page" id="page-controls"><h1>Controls</h1><div class="card-grid"><div class="card"><h2>Movement</h2><p>WASD to move, mouse drag to look, number keys 1–9 to select hotbar slots.</p></div><div class="card"><h2>Interaction</h2><p>B breaks, P places, right-click interacts, T opens chat, ESC pauses, F5 saves, F6 toggles follower, F7 switches dimension.</p></div><div class="card"><h2>F7 Safety</h2><p>F7 should use a held-key guard so holding it does not spam dimension swaps and trigger lighting/render bugs.</p></div></div></section>
-<section class="page" id="page-chat"><h1>Chat System</h1><p>Chat is opened with T. Built-in commands are part of ChatOverlay. Mod commands should be read from loaded packs, not hardcoded.</p><div class="command">/help — Show built-in commands and loaded modpack commands</div><div class="command">/mods — Show modpack commands registered by loaded packs</div><div class="command">/pos — Show position</div><div class="command">/tp x y z — Teleport</div><div class="command">/give id — Give block/item ID</div><div class="command">/dim or /dimension — Switch dimension</div><div class="command">/time 6000 or /time set noon — Set time</div><div class="command">/summon baby | human | holographic human | boss — Built-in summon commands</div><div class="command">/weather clear|rain|snow|thunder|random — Change weather</div><div class="note">Rule: if a command belongs to a pack, it should appear only after that pack registers it.</div></section>
+<section class="page active" id="page-overview"><div class="hero"><h1>Voxel IRL Simulator</h1><p>A custom Java voxel survival/life-sim engine with crafting, weather, humans, babies, Hell, LAN world downloads, boss fights, blocky menus, a theme song section, and a downloadable extension pack pipeline.</p><span class="tag">Custom 3D Renderer</span><span class="tag">LAN Multiplayer</span><span class="tag mod">Mods</span><span class="tag">Theme Song</span><span class="tag">Weather</span><span class="tag">Hell Dimension</span><span class="tag">Baby Spawns</span></div><div class="card-grid"><div class="card"><h2>Biggest Update #1</h2><p>LAN Multiplayer: hosting, joining, world ZIP download, extraction, and remote player sync.</p></div><div class="card mod-card"><h2>Biggest Update #2</h2><p>Mods: store UI, ui.store, downloadable pack zips, pack manifests, optional data, integration categories, menus, actions, custom model entities, and loader hooks.</p></div><div class="card"><h2>Engine Direction</h2><p>New engine systems can grow normally. The mod loader only needs careful updates when the pack format or supported safe actions change.</p></div></div></section>
+<section class="page" id="page-startup"><h1>Startup + Title</h1><div class="card-grid"><div class="card"><h2>Startup Cinematic</h2><p>Voxel blocks fly into place to form ALARICHOLT677, then transition through a mountain intro into the main menu.</p></div><div class="card"><h2>Window Title</h2><p>The title can include player name, version, and random splash sayings.</p></div><div class="card"><h2>Arguments</h2><p>--PathToClasses, --Name, --skinDir, and --version can control startup setup.</p></div></div></section>
+<section class="page" id="page-controls"><h1>Controls</h1><div class="card-grid"><div class="card"><h2>Movement</h2><p>WASD to move, mouse drag to look, number keys 1–9 to select hotbar slots.</p></div><div class="card"><h2>Interaction</h2><p>B breaks, P places, right-click interacts, T opens chat, ESC pauses, F5 saves, F6 toggles follower, F7 switches dimension.</p></div><div class="card"><h2>F7 Safety</h2><p>F7 should use a held-key guard so holding it does not spam dimension swaps.</p></div></div></section>
+<section class="page" id="page-chat"><h1>Chat System</h1><p>Chat is opened with T. Built-in commands are part of ChatOverlay. Mod commands are read from loaded packs.</p><div class="command">/help — Show built-in commands and loaded modpack commands</div><div class="command">/mods — Show modpack commands registered by loaded packs</div><div class="command">/pos — Show position</div><div class="command">/tp x y z — Teleport</div><div class="command">/give id — Give block/item ID</div><div class="command">/dim or /dimension — Switch dimension</div><div class="command">/time 6000 or /time set noon — Set time</div><div class="command">/summon baby | human | holographic human | boss — Built-in summon commands</div><div class="command">/weather clear|rain|snow|thunder|random — Change weather</div><div class="note">Pack commands only appear after that pack registers them.</div></section>
 <section class="page" id="page-blocks"><h1>Block List</h1><div class="interactive"><h2>Interactive Block Viewer</h2><select id="blockSelect"></select><div class="preview-stage"><div class="sample-block" id="sampleBlock"></div></div><div class="result-box" id="blockInfo"></div></div><div class="card-grid" id="blockCards"></div></section>
 <section class="page" id="page-crafting"><h1>Crafting</h1><div class="card-grid"><div class="card"><h2>3x3 Table</h2><p>Right-click a crafting table to open 3x3 crafting.</p></div><div class="card"><h2>Pause Crafting</h2><p>The pause menu can include a smaller 2x2 crafting UI.</p></div><div class="card"><h2>Known Recipes</h2><p>3 Ash creates Bed. 3 Ash plus Torch creates Boss Spawner.</p></div></div></section>
-<section class="page" id="page-boss"><h1>Boss Spawner</h1><div class="card-grid"><div class="card"><h2>Recipe</h2><p>3+ Ash and 1+ Torch creates Boss Spawner ID 15.</p></div><div class="card"><h2>Use</h2><p>Place it, look at it, and right-click it to summon the harmful boss.</p></div><div class="card"><h2>Magenta Lore</h2><p>The harmful boss/spawner being magenta became accidental “MOM boss” debug-lore energy.</p></div></div></section>
+<section class="page" id="page-boss"><h1>Boss Spawner</h1><div class="card-grid"><div class="card"><h2>Recipe</h2><p>3+ Ash and 1+ Torch creates Boss Spawner ID 15.</p></div><div class="card"><h2>Use</h2><p>Place it, look at it, and right-click it to summon the harmful boss.</p></div><div class="card"><h2>Magenta Lore</h2><p>The harmful boss/spawner being magenta became accidental debug-lore energy.</p></div></div></section>
 <section class="page" id="page-daynight"><h1>Day / Night</h1><div class="card-grid"><div class="card"><h2>Time Values</h2><p>0 sunrise, 6000 day, 12000 sunset, 18000 night, 24000 wraps.</p></div><div class="card"><h2>Command</h2><p><code>/time 6000</code> or <code>/time set noon</code>.</p></div></div><div class="interactive"><h2>Sky Slider</h2><input type="range" id="timeSlider" min="0" max="24000" value="6000"><div class="preview-stage" id="skyStage"><div class="sample-block"></div></div><div class="result-box" id="timeInfo"></div></div></section>
 <section class="page" id="page-weather"><h1>Weather</h1><div class="card-grid"><div class="card"><h2>Clear</h2><p>Normal sky, no particles.</p></div><div class="card"><h2>Rain</h2><p>Rain particles and darker sky.</p></div><div class="card"><h2>Snow</h2><p>Snow particles and icy/pinkish sky.</p></div><div class="card"><h2>Thunder</h2><p>Rain, dark sky, and lightning-style flashes.</p></div></div><div class="interactive"><h2>Weather Preview</h2><div class="controls-row"><button class="wiki-btn" onclick="setWeather('clear')">Clear</button><button class="wiki-btn" onclick="setWeather('rain')">Rain</button><button class="wiki-btn" onclick="setWeather('snow')">Snow</button><button class="wiki-btn" onclick="setWeather('thunder')">Thunder</button></div><div class="preview-stage" id="weatherStage"><div class="sample-block"></div></div><div class="result-box" id="weatherInfo">Weather: Clear</div></div></section>
 <section class="page" id="page-hell"><h1>Hell Dimension</h1><div class="card-grid"><div class="card"><h2>Blocks</h2><p>Hellstone, Bloodrock, Ash, and Fire.</p></div><div class="card"><h2>Visuals</h2><p>Red sky, dark red terrain, ash hills, fire light, and spawner danger.</p></div><div class="card"><h2>Switch</h2><p>F7 or <code>/dim</code>.</p></div></div></section>
-<section class="page" id="page-entities"><h1>Humans + Babies</h1><div class="card-grid"><div class="card"><h2>Humans</h2><p>Dynamic NPC entities rendered in the world.</p></div><div class="card"><h2>Holograms</h2><p><code>/summon holographic human</code> creates a holographic human variant.</p></div><div class="card"><h2>Babies</h2><p>Babies get random gender and random names like Haily or Elam.</p></div></div><div class="interactive"><h2>Baby Preview</h2><button class="wiki-btn" onclick="spawnBabyPreview()">Spawn baby preview</button><div class="preview-stage" id="babyStage"></div><div class="result-box" id="babyInfo">Ready.</div></div></section>
+<section class="page" id="page-entities"><h1>Humans + Babies</h1><div class="card-grid"><div class="card"><h2>Humans</h2><p>Dynamic NPC entities rendered in the world.</p></div><div class="card"><h2>Holograms</h2><p><code>/summon holographic human</code> creates a holographic human variant.</p></div><div class="card"><h2>Babies</h2><p>Babies get random gender and random names.</p></div></div><div class="interactive"><h2>Baby Preview</h2><button class="wiki-btn" onclick="spawnBabyPreview()">Spawn baby preview</button><div class="preview-stage" id="babyStage"></div><div class="result-box" id="babyInfo">Ready.</div></div></section>
 <section class="page" id="page-survival"><h1>Water + Pee</h1><div class="card-grid"><div class="card"><h2>Water</h2><p>Water increases when drinking/interacting and drains over time.</p></div><div class="card"><h2>Pee</h2><p>Pee rises naturally and can overflow.</p></div><div class="card"><h2>Overflow</h2><p>Overflow can spawn a pee block and push a system message.</p></div></div></section>
-<section class="page" id="page-saving"><h1>Saving</h1><div class="card-grid"><div class="card"><h2>Manual Save</h2><p>F5 or <code>/save</code>.</p></div><div class="card"><h2>Saved Core Data</h2><p>Player position, hotbar, water/pee, time, blocks, humans, and baby data.</p></div><div class="card mod-card"><h2>Downloaded Packs</h2><p>Downloaded expansion packs live in <code>expansion_packs/</code> and are separate from world saves.</p></div></div></section>
-<section class="page" id="page-menus"><h1>Menus / UIs</h1><div class="card-grid"><div class="card"><h2>Main Menu</h2><p>Play, Multiplayer, Marketplace, Mod Store / Inbox, and Win12 Pages.</p></div><div class="card"><h2>Level Options</h2><p>Occlusion culling, chunk streaming, chunk meshing, and render distance.</p></div><div class="card"><h2>Pause Menu</h2><p>Hotbar, crafting, Quit, Summon House Human, Host LAN World, and LAN status.</p></div><div class="card mod-card"><h2>Mod Store</h2><p>Integrated into the default window as a real menu panel.</p></div></div></section>
+<section class="page" id="page-saving"><h1>Saving</h1><div class="card-grid"><div class="card"><h2>Manual Save</h2><p>F5 or <code>/save</code>.</p></div><div class="card"><h2>Saved Core Data</h2><p>Player position, hotbar, water/pee, time, blocks, humans, and baby data.</p></div><div class="card mod-card"><h2>Downloaded Packs</h2><p>Downloaded extension packs live in <code>expansion_packs/</code> and are separate from world saves.</p></div></div></section>
+<section class="page" id="page-menus"><h1>Menus / UIs</h1><div class="card-grid"><div class="card"><h2>Main Menu</h2><p>Play, Multiplayer, Marketplace, Mod Store / Inbox, and Win12 Pages.</p></div><div class="card"><h2>Level Options</h2><p>Occlusion culling, chunk streaming, chunk meshing, and render distance.</p></div><div class="card"><h2>Pause Menu</h2><p>Hotbar, crafting, Quit, Summon House Human, Host LAN World, and LAN status.</p></div><div class="card mod-card"><h2>Mod Menus</h2><p>Extension packs can register custom menu screens with clickable safe-action buttons.</p></div></div></section>
 <section class="page" id="page-lan"><h1>LAN Multiplayer</h1><div class="card"><h2>LAN Flow</h2><p>Host picks world folder, server zips it, client downloads it, extracts it, and loads the world.</p></div><div class="flow"><div class="flow-step">Host world</div><div class="arrow">→</div><div class="flow-step">ZIP</div><div class="arrow">→</div><div class="flow-step">Download</div><div class="arrow">→</div><div class="flow-step">Extract</div><div class="arrow">→</div><div class="flow-step">Load</div></div><div class="card"><h2>Synced Player State</h2><p>LAN sends player ID, X, Y, Z, yaw, and pitch so remote players can appear and move.</p></div></section>
-<section class="page" id="page-theme"><h1>Theme Song</h1><div class="card"><h2>Official IRL Simulator Soundtrack</h2><p>The wiki includes a theme song section. Your original page used <code>magenta_stone.mp4</code> as the audio/video source.</p><div class="interactive"><div class="sample-block" style="position:relative;left:40px;top:40px;background:#d943ff;margin-bottom:90px"></div><audio controls style="width:100%;max-width:450px"><source src="magenta_stone.mp4" type="video/mp4">Your browser does not support audio.</audio></div></div><div class="card mod-card"><h2>Theme Packs</h2><p>A future modpack can provide soundtrack files through a manifest entry such as <code>audio</code> or <code>themeSong</code>, then the engine/UI can choose whether to display or play those files.</p></div></section>
-<section class="page" id="page-mods"><div class="hero"><h1>Mods / Expansion Packs</h1><p>The second biggest update after LAN Multiplayer. Mods create a downloadable content pipeline inspired by mod browsers/shops, while keeping engine features separate.</p><span class="tag mod">ui.store</span><span class="tag mod">pack_manifest.json</span><span class="tag mod">expansion_packs/</span><span class="tag mod">Mod Store</span><span class="tag mod">Pack ZIPs</span></div><div class="card-grid"><div class="card mod-card"><h2>What Mods Add</h2><p>A store browser, downloadable ZIP packs, pack metadata, optional JSON data, integration categories, and safe command registration through the loader.</p></div><div class="card"><h2>What Mods Do Not Do Automatically</h2><p>They do not magically create Java classes. They provide data. The loader and engine decide what that data means.</p></div><div class="card"><h2>Stable Boundary</h2><p>The loader only needs surgical changes when the pack format or supported safe actions change.</p></div></div><h2>Full Pipeline</h2><div class="flow"><div class="flow-step">Upload ui.store</div><div class="arrow">→</div><div class="flow-step">Upload pack zips</div><div class="arrow">→</div><div class="flow-step">Game fetches store</div><div class="arrow">→</div><div class="flow-step">Player downloads</div><div class="arrow">→</div><div class="flow-step">Pack saved locally</div><div class="arrow">→</div><div class="flow-step">Loader reads optional data</div></div></section>
-<section class="page" id="page-modstore"><h1>Mod Store / Inbox</h1><p>The Mod Store is a built-in window panel. It fetches <code>ui.store</code>, shows a block spinner while loading, and displays downloadable expansion packs.</p><div class="interactive"><h2>Store UI Demo</h2><div class="store-window"><div class="store-top"><strong>IRL Simulator Mod Store / Inbox</strong><button class="wiki-btn" onclick="runStoreDemo()">Refresh</button></div><div class="store-body" id="storeBody"></div></div><div class="result-box" id="storeStatus">Click Refresh to simulate fetching ui.store.</div></div><h2>What the Store Does</h2><ul><li>Downloads <code>ui.store</code>.</li><li>Parses the pack list.</li><li>Shows each pack as a card.</li><li>Downloads the selected zip into <code>expansion_packs/</code>.</li><li>Does not execute downloaded Java code.</li></ul></section>
-<section class="page" id="page-modanatomy"><h1>Pack Anatomy</h1><p>A modpack is a zip file with a manifest and optional data files.</p><h2>Recommended structure</h2><pre>my_pack.zip
+<section class="page" id="page-theme"><h1>Theme Song</h1><div class="card"><h2>Official IRL Simulator Soundtrack</h2><p>The wiki includes a theme song section. Your original page used <code>magenta_stone.mp4</code> as the audio/video source.</p><div class="interactive"><div class="sample-block" style="position:relative;left:40px;top:40px;background:#d943ff;margin-bottom:90px"></div><audio controls style="width:100%;max-width:450px"><source src="magenta_stone.mp4" type="video/mp4">Your browser does not support audio.</audio></div></div><div class="card mod-card"><h2>Theme Packs</h2><p>A future pack can provide soundtrack metadata through <code>theme.json</code>.</p></div></section>
+<section class="page" id="page-mods"><div class="hero"><h1>Mods / Extension Packs</h1><p>The second biggest update after LAN Multiplayer. Mods create a downloadable content pipeline inspired by mod browsers/shops, while keeping engine features separate.</p><span class="tag mod">ui.store</span><span class="tag mod">pack_manifest.json</span><span class="tag mod">expansion_packs/</span><span class="tag mod">Custom Menus</span><span class="tag mod">Custom Models</span></div><div class="card-grid"><div class="card mod-card"><h2>What Mods Add</h2><p>Store browsing, downloadable ZIP packs, metadata, optional JSON data, commands, recipes, custom menus, block/entity actions, custom AI, and custom model entities.</p></div><div class="card"><h2>What Mods Do Not Do Automatically</h2><p>They do not execute random Java classes. They provide data. The loader and engine decide what that data means.</p></div><div class="card"><h2>Stable Boundary</h2><p>The loader only needs surgical changes when the pack format or supported safe actions change.</p></div></div><h2>Full Pipeline</h2><div class="flow"><div class="flow-step">Upload ui.store</div><div class="arrow">→</div><div class="flow-step">Upload pack zips</div><div class="arrow">→</div><div class="flow-step">Game fetches store</div><div class="arrow">→</div><div class="flow-step">Player downloads</div><div class="arrow">→</div><div class="flow-step">Pack saved locally</div><div class="arrow">→</div><div class="flow-step">Loader reads data</div></div></section>
+<section class="page" id="page-modstore"><h1>Mod Store / Inbox</h1><p>The Mod Store fetches <code>ui.store</code>, shows a block spinner while loading, and displays downloadable extension packs.</p><div class="interactive"><h2>Store UI Demo</h2><div class="store-window"><div class="store-top"><strong>IRL Simulator Mod Store / Inbox</strong><button class="wiki-btn" onclick="runStoreDemo()">Refresh</button></div><div class="store-body" id="storeBody"></div></div><div class="result-box" id="storeStatus">Click Refresh to simulate fetching ui.store.</div></div></section>
+<section class="page" id="page-readme"><h1>Full Extension Pack README</h1><p>This is the full copy-paste guide. Use the other guide pages for shorter focused sections.</p><pre id="readmeBlock">IRL Simulator Extension Pack Creation Guide
+==========================================
+
+This README explains how to make an IRL Simulator extension pack / mod pack.
+
+IRL Simulator expansion packs are ZIP files placed in:
+
+expansion_packs/
+
+Each pack contains a required:
+
+pack_manifest.json
+
+and optional JSON files for blocks, entities, commands, recipes, menus, block actions, entity actions, custom AI, and future data.
+
+The mod system is data-driven. Packs do not need Java files. You create JSON data, zip it, and the engine loads it.
+
+BASIC PACK STRUCTURE
+--------------------
+
+My_Extension_Pack/
   pack_manifest.json
+  README.txt
   content/
-    commands.json
     blocks.json
     entities.json
-    items.json
-    recipes.json
-    sheep_data.json
-    sounds.json
-    theme.json
-    worldgen.json
-  assets/
-    music/
-      magenta_stone.mp4
-    sounds/
-      click.wav
-  README.txt</pre><h2>Required file</h2><div class="card mod-card"><h3>pack_manifest.json</h3><p>The main entry point. It identifies the pack and points the loader to feature files.</p></div><h2>Optional feature files</h2><div class="card-grid"><div class="card"><h3>commands</h3><p>Registers mod commands.</p></div><div class="card"><h3>blocks</h3><p>Registers block definitions.</p></div><div class="card"><h3>entities</h3><p>Registers entity definitions or data profiles.</p></div><div class="card"><h3>items / recipes</h3><p>Registers items and crafting recipes.</p></div><div class="card"><h3>audio / theme</h3><p>Registers sounds, music, or theme song metadata.</p></div><div class="card"><h3>worldgen / biomes</h3><p>Registers future terrain, biome, or spawn data.</p></div></div></section>
-<section class="page" id="page-createpack"><h1>Create Your Own Modpack</h1><p>This is the full manual process for making a pack from scratch.</p><h2>1. Make a folder</h2><pre>my_first_pack/
-  pack_manifest.json
-  content/
     commands.json
-  README.txt</pre><h2>2. Write pack_manifest.json</h2><pre>{
+    recipes.json
+    menus.json
+    block_actions.json
+    entity_actions.json
+    custom_ai.json
+    robots.json
+    lights.json
+    science.json
+  data/
+    blocks.json
+    entities.json
+    commands.json
+    recipes.json
+    menus.json
+    block_actions.json
+    entity_actions.json
+    custom_ai.json
+    robots.json
+    lights.json
+    science.json
+    info.json
+    pack_id.txt
+
+IMPORTANT ZIP RULE
+------------------
+
+Correct:
+my_pack.zip
+  pack_manifest.json
+  content/blocks.json
+
+Wrong:
+my_pack.zip
+  my_pack/pack_manifest.json
+
+pack_manifest.json must be at the root of the ZIP.
+
+SUPPORTED SYSTEMS
+-----------------
+
+blocks
+commands
+entities
+custom cube models
+recipes
+menus
+block right-click actions
+entity right-click actions
+custom AI
+future robots/lights/science data
+
+CUSTOM MODEL COMPATIBILITY TIP
+------------------------------
+
+Put "custom" before "template".
+Use "template": "blocky_humanoid".
+The entity still uses the custom mesh when customCubes is non-empty.
+
+SUPPORTED ACTIONS
+-----------------
+
+message
+say
+giveBlock
+spawnEntity
+openMenu
+closeMenu
+placeBlock
+
+FINAL CHECKLIST
+---------------
+
+[ ] pack_manifest.json is at the ZIP root.
+[ ] JSON files are inside content/.
+[ ] Optional copies are inside data/.
+[ ] Block IDs are 0-255.
+[ ] Blocks use color arrays like [255, 0, 0].
+[ ] Commands start with /.
+[ ] Entity type IDs use lowercase_with_underscores.
+[ ] Custom entities put custom before template.
+[ ] Menus have IDs.
+[ ] Button actions use supported actions.
+[ ] Right-click block IDs match registered block IDs.
+[ ] The ZIP is placed in expansion_packs/.
+[ ] Old duplicate versions are removed.
+[ ] Console shows objects registering.</pre></section>
+<section class="page" id="page-manifest"><h1>Manifest</h1><p>Every pack needs a root <code>pack_manifest.json</code>.</p><pre>{
   "packId": "my_first_pack",
   "name": "My First Pack",
   "version": "1.0.0",
-  "author": "your_name",
-  "description": "My first IRL Simulator expansion pack.",
+  "author": "YourName",
+  "description": "Adds test blocks, entities, commands, menus, and recipes.",
+  "safeMode": true,
+  "entryType": "data-pack",
   "entries": {
-    "commands": "content/commands.json"
+    "blocks": "content/blocks.json",
+    "entities": "content/entities.json",
+    "commands": "content/commands.json",
+    "recipes": "content/recipes.json",
+    "menus": "content/menus.json",
+    "blockActions": "content/block_actions.json",
+    "entityActions": "content/entity_actions.json",
+    "customAI": "content/custom_ai.json",
+    "robots": "content/robots.json",
+    "lights": "content/lights.json",
+    "science": "content/science.json"
   }
-}</pre><h2>3. Add commands.json</h2><pre>{
-  "commands": [
+}</pre></section>
+<section class="page" id="page-blocks-guide"><h1>Blocks Guide</h1><p>Blocks go in <code>content/blocks.json</code>.</p><pre>{
+  "blocks": [
     {
-      "name": "/hello_pack",
-      "usage": "/hello_pack",
-      "description": "Tests that this modpack loaded.",
-      "action": "message",
-      "target": "Hello from my first pack!"
+      "id": 140,
+      "name": "Ruby Block",
+      "solid": true,
+      "color": [190, 30, 55],
+      "emission": 0,
+      "tags": ["gem", "decorative"]
+    },
+    {
+      "id": 141,
+      "name": "Neon Blue Block",
+      "solid": true,
+      "color": [40, 180, 255],
+      "emission": 14,
+      "tags": ["light", "neon"]
     }
   ]
-}</pre><h2>4. Zip the contents</h2><p>Select the contents inside <code>my_first_pack/</code>, then create:</p><pre>my_first_pack.zip</pre><div class="warning">Do not accidentally zip one extra parent folder if your loader expects <code>pack_manifest.json</code> at the zip root.</div><h2>5. Test locally</h2><pre>expansion_packs/my_first_pack.zip</pre><p>Then load/reload a world and type:</p><pre>/mods
-/help
-/hello_pack</pre></section>
-<section class="page" id="page-uistore"><h1>Create ui.store</h1><p><code>ui.store</code> is the online store list the game fetches.</p><pre>{
+}</pre><div class="note">Block IDs must be 0-255. Color must be an RGB array.</div></section>
+<section class="page" id="page-commands-guide"><h1>Commands Guide</h1><p>Commands go in <code>content/commands.json</code>.</p><pre>{
+  "commands": [
+    {
+      "name": "/ruby",
+      "usage": "/ruby",
+      "description": "Gives Ruby Block.",
+      "action": "giveBlock",
+      "target": "Ruby Block"
+    },
+    {
+      "name": "/testmenu",
+      "usage": "/testmenu",
+      "description": "Opens the test menu.",
+      "action": "openMenu",
+      "target": "test_menu"
+    }
+  ]
+}</pre></section>
+<section class="page" id="page-entities-guide"><h1>Entities Guide</h1><p>Entities go in <code>content/entities.json</code>.</p><pre>{
+  "entities": [
+    {
+      "type": "crystal_sheep",
+      "template": "blocky_animal",
+      "displayName": "Crystal Sheep",
+      "description": "A glowing sheep from an extension pack.",
+      "animalType": "sheep",
+      "bodyColor": [145, 235, 255],
+      "headColor": [45, 45, 60],
+      "legColor": [35, 35, 45],
+      "glowColor": [120, 255, 255],
+      "preferredBlock": 68,
+      "health": 20,
+      "speed": 0.025,
+      "friendly": true,
+      "autoSpawn": true,
+      "autoSpawnChance": 0.015,
+      "autoSpawnIntervalTicks": 200,
+      "maxAlive": 4,
+      "ai": "wander"
+    }
+  ]
+}</pre></section>
+<section class="page" id="page-custom-models"><h1>Custom Models</h1><p>Custom models are cube arrays. Put <code>custom</code> before <code>template</code> for current compatibility.</p><pre>{
+  "entities": [
+    {
+      "type": "test_bot",
+      "custom": [
+        {"name":"body","pos":[-0.35,0.6,-0.25],"size":[0.7,0.8,0.5],"colorKey":"bodyColor"},
+        {"name":"head","pos":[-0.25,1.35,-0.25],"size":[0.5,0.5,0.5],"colorKey":"headColor"},
+        {"name":"eye","pos":[-0.08,1.52,-0.30],"size":[0.16,0.08,0.05],"colorKey":"glowColor"}
+      ],
+      "template": "blocky_humanoid",
+      "displayName": "Test Bot",
+      "bodyColor": [120,130,145],
+      "headColor": [170,190,210],
+      "legColor": [80,90,105],
+      "glowColor": [80,220,255],
+      "health": 30,
+      "speed": 0.025,
+      "friendly": true,
+      "autoSpawn": true,
+      "maxAlive": 3,
+      "ai": "wander"
+    }
+  ]
+}</pre></section>
+<section class="page" id="page-ai-guide"><h1>AI + Custom AI</h1><p>Built-in AI presets: none, idle, wander, follow_player, chase_player, orbit_player.</p><pre>{
+  "customAI": [
+    {
+      "entityType": "test_bot",
+      "steps": [
+        {"when":"always","action":"wander","speedMultiplier":1.0},
+        {"when":"timer","ticks":160,"action":"say","message":"&lt;Test Bot&gt; Beep."}
+      ]
+    }
+  ]
+}</pre></section>
+<section class="page" id="page-recipes-guide"><h1>Recipes Guide</h1><pre>{
+  "recipes": [
+    {"type":"shapeless","inputs":["Copper Wire","Battery Cell"],"output":"Powered Copper Wire","outputBlockId":111,"count":1},
+    {"type":"3x3","pattern":["CCC","CMC","CCC"],"keys":{"C":"Circuit Board","M":"Memory Block"},"output":"Server Rack","outputBlockId":116,"count":1}
+  ]
+}</pre></section>
+<section class="page" id="page-menus-guide"><h1>Custom Menus</h1><pre>{
+  "menus": [
+    {
+      "id": "test_menu",
+      "title": "Test Menu",
+      "lines": ["Welcome to the test menu.", "This UI came from an extension pack."],
+      "buttons": [
+        {"text":"Give Ruby Block","action":{"action":"giveBlock","target":"Ruby Block"}},
+        {"text":"Spawn Test Bot","action":{"action":"spawnEntity","target":"test_bot"}},
+        {"text":"Close","action":{"action":"closeMenu"}}
+      ]
+    }
+  ]
+}</pre></section>
+<section class="page" id="page-actions-guide"><h1>Action Objects</h1><p>Actions are used by commands, menus, block actions, entity actions, and custom AI.</p><pre>{"action":"message","message":"&lt;Mod&gt; Hello!"}
+{"action":"giveBlock","target":"Ruby Block"}
+{"action":"spawnEntity","target":"test_bot"}
+{"action":"openMenu","target":"test_menu"}
+{"action":"closeMenu"}
+{"action":"placeBlock","target":"Ruby Block"}</pre></section>
+<section class="page" id="page-rightclick-guide"><h1>Right Click Actions</h1><h2>Block actions</h2><pre>{
+  "blockActions": [
+    {"blockId":141,"onRightClick":[{"action":"openMenu","target":"test_menu"}]}
+  ]
+}</pre><h2>Entity actions</h2><pre>{
+  "entityActions": [
+    {"entityType":"test_bot","onRightClick":[{"action":"openMenu","target":"test_menu"}]}
+  ]
+}</pre></section>
+<section class="page" id="page-future-data"><h1>Future Data Files</h1><pre>{"robots":[{"type":"worker_bot","role":"worker","futureBehavior":"utility"}]}</pre><pre>{"lights":[{"block":"Electric Lamp","id":122,"emission":15,"color":[255,245,180]}]}</pre><pre>{"science":{"themes":["computer","electricity","robotics"],"notes":["Future science progression data."]}}</pre></section>
+<section class="page" id="page-publish-guide"><h1>Publish + ui.store</h1><p>Upload packs to <code>modUI/packs/</code> and list them in <code>modUI/ui.store</code>.</p><pre>{
   "title": "IRL Simulator Mod Store",
   "message": "Download expansion packs for IRL Simulator.",
   "packs": [
     {
       "name": "My First Pack",
-      "description": "A test pack that registers /hello_pack.",
+      "description": "Adds test blocks and commands.",
       "url": "https://yourname.github.io/modUI/packs/my_first_pack.zip"
     }
   ]
-}</pre><ul><li>Each pack needs a name, description, and direct zip URL.</li><li>If the URL is wrong, the pack may appear but fail to download.</li><li>The store UI fetches the file path your Java code is configured to fetch.</li></ul></section>
-<section class="page" id="page-upload"><h1>Upload / Publish Packs</h1><p>Common GitHub Pages-style layout:</p><pre>modUI/
+}</pre><div class="warning">Use plain URL strings. Do not paste HTML anchor code into ui.store.</div></section>
+<section class="page" id="page-troubleshooting"><h1>Troubleshooting</h1><div class="card-grid"><div class="card"><h2>Pack does not load</h2><p>Check that pack_manifest.json is at the ZIP root.</p></div><div class="card"><h2>Blocks show 0</h2><p>Check content/blocks.json and the top-level blocks array.</p></div><div class="card"><h2>Block skipped</h2><p>Check id 0-255 and color [r,g,b].</p></div><div class="card"><h2>customCubes=0</h2><p>Put custom before template and use template blocky_humanoid.</p></div><div class="card"><h2>Menu does not show</h2><p>Check runModAction openMenu support and modMenuOverlay.draw in paintComponent.</p></div><div class="card"><h2>Right click does nothing</h2><p>Check block ID and engine right-click action hook.</p></div></div></section>
+<section class="page" id="page-mini-pack"><h1>Complete Mini Pack</h1><pre>My_Test_Pack/
+  pack_manifest.json
+  content/
+    blocks.json
+    entities.json
+    commands.json
+    menus.json
+    block_actions.json</pre><pre>{
+  "packId":"my_test_pack",
+  "name":"My Test Pack",
+  "version":"1.0.0",
+  "author":"YourName",
+  "description":"A simple test pack.",
+  "safeMode":true,
+  "entryType":"data-pack",
+  "entries":{
+    "blocks":"content/blocks.json",
+    "entities":"content/entities.json",
+    "commands":"content/commands.json",
+    "menus":"content/menus.json",
+    "blockActions":"content/block_actions.json"
+  }
+}</pre></section>
+<section class="page" id="page-interactive"><h1>Interactive Examples</h1><div class="interactive"><h2>Mini Block Playground</h2><div class="controls-row"><button class="wiki-btn" onclick="playgroundBlock('#55aa55')">Grass</button><button class="wiki-btn" onclick="playgroundBlock('#8b5a35')">Dirt</button><button class="wiki-btn" onclick="playgroundBlock('#888888')">Stone</button><button class="wiki-btn" onclick="playgroundBlock('#d943ff')">Spawner</button><button class="wiki-btn" onclick="playgroundBlock('#9bffb5')">Mod Green</button></div><div class="preview-stage"><div class="sample-block" id="playgroundCube"></div></div></div><div class="interactive"><h2>Command Registry Demo</h2><button class="wiki-btn" onclick="registerDemoCommand()">Load demo command</button><button class="wiki-btn" onclick="runDemoCommand('/sheep')">Type /sheep</button><button class="wiki-btn" onclick="showDemoMods()">Type /mods</button><div class="result-box" id="modCommandOutput">No demo mod commands loaded.</div></div><div class="interactive"><h2>Animal Data Preview</h2><button class="wiki-btn" onclick="spawnAnimalPreview()">Preview random sheep data</button><div class="preview-stage" id="animalStage"><div class="mini-animal"><div class="body"></div><div class="head"></div><div class="leg l1"></div><div class="leg l2"></div></div></div><div class="result-box" id="animalInfo">Click preview to pick a random name and color.</div></div></section>
+<section class="page" id="page-all-old-new-map"><h1>All Old + New Wiki Map</h1><p>This version keeps the old/core wiki pages and adds a large developer-focused extension-pack guide. Use the left sidebar sections for old gameplay docs, then the deep pages for complete pack creation.</p><div class="card-grid"><div class="card"><h2>Old Wiki Pages</h2><p>Overview, startup, controls, chat, blocks, crafting, boss, day/night, weather, Hell, humans, babies, survival, saving, menus, LAN, theme song, and old mod store pages.</p></div><div class="card"><h2>New Wiki Pages</h2><p>Deep manifest, blocks, commands, actions, entities, custom models, AI, menus, right-click actions, audio/theme, biomes, animals, ui.store, publishing, testing, and troubleshooting.</p></div></div></section><section class="page" id="page-deep-pack-structure"><h1>Deep Pack Structure</h1><p>Full pack layout with optional compatibility copies.</p><pre>my_pack.zip
+  pack_manifest.json
+  README.txt
+  content/
+    blocks.json
+    entities.json
+    commands.json
+    recipes.json
+    menus.json
+    block_actions.json
+    entity_actions.json
+    custom_ai.json
+    robots.json
+    lights.json
+    science.json
+    theme.json
+    worldgen.json
+    biomes.json
+  data/
+    compatibility copies
+    info.json
+    pack_id.txt</pre></section><section class="page" id="page-deep-manifest"><h1>Deep Manifest Guide</h1><pre>{
+  &quot;packId&quot;: &quot;my_full_pack&quot;,
+  &quot;name&quot;: &quot;My Full Pack&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;author&quot;: &quot;YourName&quot;,
+  &quot;description&quot;: &quot;Adds blocks, entities, commands, recipes, menus, actions, custom AI, and future data.&quot;,
+  &quot;safeMode&quot;: true,
+  &quot;entryType&quot;: &quot;data-pack&quot;,
+  &quot;entries&quot;: {
+    &quot;blocks&quot;: &quot;content/blocks.json&quot;,
+    &quot;entities&quot;: &quot;content/entities.json&quot;,
+    &quot;commands&quot;: &quot;content/commands.json&quot;,
+    &quot;recipes&quot;: &quot;content/recipes.json&quot;,
+    &quot;menus&quot;: &quot;content/menus.json&quot;,
+    &quot;blockActions&quot;: &quot;content/block_actions.json&quot;,
+    &quot;entityActions&quot;: &quot;content/entity_actions.json&quot;,
+    &quot;customAI&quot;: &quot;content/custom_ai.json&quot;,
+    &quot;robots&quot;: &quot;content/robots.json&quot;,
+    &quot;lights&quot;: &quot;content/lights.json&quot;,
+    &quot;science&quot;: &quot;content/science.json&quot;
+  }
+}</pre></section><section class="page" id="page-deep-blocks"><h1>Deep Blocks Guide</h1><p>Blocks are available to commands, recipes, menus, and actions by name or numeric ID.</p><pre>{
+  &quot;blocks&quot;: [
+    {&quot;id&quot;: 140, &quot;name&quot;: &quot;Ruby Block&quot;, &quot;solid&quot;: true, &quot;color&quot;: [190, 30, 55], &quot;emission&quot;: 0, &quot;tags&quot;: [&quot;gem&quot;, &quot;decorative&quot;]},
+    {&quot;id&quot;: 141, &quot;name&quot;: &quot;Neon Console&quot;, &quot;solid&quot;: true, &quot;color&quot;: [40, 180, 255], &quot;emission&quot;: 14, &quot;tags&quot;: [&quot;computer&quot;, &quot;menu&quot;, &quot;light&quot;]},
+    {&quot;id&quot;: 142, &quot;name&quot;: &quot;Powered Console&quot;, &quot;solid&quot;: true, &quot;color&quot;: [90, 255, 160], &quot;emission&quot;: 12, &quot;tags&quot;: [&quot;computer&quot;, &quot;powered&quot;]}
+  ]
+}</pre></section><section class="page" id="page-deep-commands"><h1>Deep Commands Guide</h1><p>Commands should call safe actions. That keeps command behavior pack-driven instead of hardcoded.</p><pre>{
+  &quot;commands&quot;: [
+    {&quot;name&quot;: &quot;/mypack&quot;, &quot;usage&quot;: &quot;/mypack&quot;, &quot;description&quot;: &quot;Shows that this pack loaded.&quot;, &quot;action&quot;: &quot;message&quot;, &quot;target&quot;: &quot;My Full Pack loaded.&quot;},
+    {&quot;name&quot;: &quot;/ruby&quot;, &quot;usage&quot;: &quot;/ruby&quot;, &quot;description&quot;: &quot;Gives Ruby Block.&quot;, &quot;action&quot;: &quot;giveBlock&quot;, &quot;target&quot;: &quot;Ruby Block&quot;},
+    {&quot;name&quot;: &quot;/testbot&quot;, &quot;usage&quot;: &quot;/testbot&quot;, &quot;description&quot;: &quot;Spawns Test Bot.&quot;, &quot;action&quot;: &quot;spawnEntity&quot;, &quot;target&quot;: &quot;test_bot&quot;},
+    {&quot;name&quot;: &quot;/consolemenu&quot;, &quot;usage&quot;: &quot;/consolemenu&quot;, &quot;description&quot;: &quot;Opens Console Menu.&quot;, &quot;action&quot;: &quot;openMenu&quot;, &quot;target&quot;: &quot;console_menu&quot;}
+  ]
+}</pre></section><section class="page" id="page-deep-actions"><h1>Deep Action System</h1><p>Actions are shared by commands, menu buttons, block actions, entity actions, and AI scripts.</p><pre>{&quot;action&quot;:&quot;message&quot;,&quot;message&quot;:&quot;&lt;Mod&gt; Hello&quot;}
+{&quot;action&quot;:&quot;giveBlock&quot;,&quot;target&quot;:&quot;Ruby Block&quot;}
+{&quot;action&quot;:&quot;spawnEntity&quot;,&quot;target&quot;:&quot;test_bot&quot;}
+{&quot;action&quot;:&quot;openMenu&quot;,&quot;target&quot;:&quot;console_menu&quot;}
+{&quot;action&quot;:&quot;closeMenu&quot;}
+{&quot;action&quot;:&quot;placeBlock&quot;,&quot;target&quot;:&quot;Powered Console&quot;}</pre></section><section class="page" id="page-deep-entities"><h1>Deep Entities Guide</h1><p>Entities are safe data profiles interpreted by the engine.</p><pre>{
+  &quot;entities&quot;: [
+    {
+      &quot;type&quot;: &quot;test_bot&quot;,
+      &quot;custom&quot;: [
+        {&quot;name&quot;:&quot;body&quot;, &quot;pos&quot;:[-0.35,0.60,-0.25], &quot;size&quot;:[0.70,0.80,0.50], &quot;colorKey&quot;:&quot;bodyColor&quot;},
+        {&quot;name&quot;:&quot;head&quot;, &quot;pos&quot;:[-0.25,1.35,-0.25], &quot;size&quot;:[0.50,0.50,0.50], &quot;colorKey&quot;:&quot;headColor&quot;},
+        {&quot;name&quot;:&quot;visor&quot;, &quot;pos&quot;:[-0.16,1.53,-0.31], &quot;size&quot;:[0.32,0.08,0.06], &quot;colorKey&quot;:&quot;glowColor&quot;},
+        {&quot;name&quot;:&quot;left_arm&quot;, &quot;pos&quot;:[-0.55,0.72,-0.15], &quot;size&quot;:[0.18,0.56,0.30], &quot;colorKey&quot;:&quot;bodyColor&quot;},
+        {&quot;name&quot;:&quot;right_arm&quot;, &quot;pos&quot;:[0.37,0.72,-0.15], &quot;size&quot;:[0.18,0.56,0.30], &quot;colorKey&quot;:&quot;bodyColor&quot;},
+        {&quot;name&quot;:&quot;left_leg&quot;, &quot;pos&quot;:[-0.25,0.00,-0.14], &quot;size&quot;:[0.20,0.60,0.28], &quot;colorKey&quot;:&quot;legColor&quot;},
+        {&quot;name&quot;:&quot;right_leg&quot;, &quot;pos&quot;:[0.05,0.00,-0.14], &quot;size&quot;:[0.20,0.60,0.28], &quot;colorKey&quot;:&quot;legColor&quot;},
+        {&quot;name&quot;:&quot;red_hat&quot;, &quot;pos&quot;:[-0.20,1.85,-0.20], &quot;size&quot;:[0.40,0.18,0.40], &quot;color&quot;:[255,60,60]}
+      ],
+      &quot;template&quot;: &quot;blocky_humanoid&quot;,
+      &quot;displayName&quot;: &quot;Test Bot&quot;,
+      &quot;description&quot;: &quot;A custom cube model robot.&quot;,
+      &quot;animalType&quot;: &quot;robot&quot;,
+      &quot;bodyColor&quot;: [120, 130, 145],
+      &quot;headColor&quot;: [170, 190, 210],
+      &quot;legColor&quot;: [80, 90, 105],
+      &quot;glowColor&quot;: [80, 220, 255],
+      &quot;preferredBlock&quot;: 141,
+      &quot;health&quot;: 30,
+      &quot;speed&quot;: 0.025,
+      &quot;friendly&quot;: true,
+      &quot;autoSpawn&quot;: true,
+      &quot;autoSpawnChance&quot;: 0.02,
+      &quot;autoSpawnIntervalTicks&quot;: 180,
+      &quot;maxAlive&quot;: 3,
+      &quot;ai&quot;: &quot;wander&quot;
+    }
+  ]
+}</pre></section><section class="page" id="page-deep-customs"><h1>Deep Custom Model Guide</h1><p>Custom entities use cube arrays. Put custom before template and use blocky_humanoid for current compatibility.</p><pre>{
+  &quot;entities&quot;: [
+    {
+      &quot;type&quot;: &quot;test_bot&quot;,
+      &quot;custom&quot;: [
+        {&quot;name&quot;:&quot;body&quot;, &quot;pos&quot;:[-0.35,0.60,-0.25], &quot;size&quot;:[0.70,0.80,0.50], &quot;colorKey&quot;:&quot;bodyColor&quot;},
+        {&quot;name&quot;:&quot;head&quot;, &quot;pos&quot;:[-0.25,1.35,-0.25], &quot;size&quot;:[0.50,0.50,0.50], &quot;colorKey&quot;:&quot;headColor&quot;},
+        {&quot;name&quot;:&quot;visor&quot;, &quot;pos&quot;:[-0.16,1.53,-0.31], &quot;size&quot;:[0.32,0.08,0.06], &quot;colorKey&quot;:&quot;glowColor&quot;},
+        {&quot;name&quot;:&quot;left_arm&quot;, &quot;pos&quot;:[-0.55,0.72,-0.15], &quot;size&quot;:[0.18,0.56,0.30], &quot;colorKey&quot;:&quot;bodyColor&quot;},
+        {&quot;name&quot;:&quot;right_arm&quot;, &quot;pos&quot;:[0.37,0.72,-0.15], &quot;size&quot;:[0.18,0.56,0.30], &quot;colorKey&quot;:&quot;bodyColor&quot;},
+        {&quot;name&quot;:&quot;left_leg&quot;, &quot;pos&quot;:[-0.25,0.00,-0.14], &quot;size&quot;:[0.20,0.60,0.28], &quot;colorKey&quot;:&quot;legColor&quot;},
+        {&quot;name&quot;:&quot;right_leg&quot;, &quot;pos&quot;:[0.05,0.00,-0.14], &quot;size&quot;:[0.20,0.60,0.28], &quot;colorKey&quot;:&quot;legColor&quot;},
+        {&quot;name&quot;:&quot;red_hat&quot;, &quot;pos&quot;:[-0.20,1.85,-0.20], &quot;size&quot;:[0.40,0.18,0.40], &quot;color&quot;:[255,60,60]}
+      ],
+      &quot;template&quot;: &quot;blocky_humanoid&quot;,
+      &quot;displayName&quot;: &quot;Test Bot&quot;,
+      &quot;description&quot;: &quot;A custom cube model robot.&quot;,
+      &quot;animalType&quot;: &quot;robot&quot;,
+      &quot;bodyColor&quot;: [120, 130, 145],
+      &quot;headColor&quot;: [170, 190, 210],
+      &quot;legColor&quot;: [80, 90, 105],
+      &quot;glowColor&quot;: [80, 220, 255],
+      &quot;preferredBlock&quot;: 141,
+      &quot;health&quot;: 30,
+      &quot;speed&quot;: 0.025,
+      &quot;friendly&quot;: true,
+      &quot;autoSpawn&quot;: true,
+      &quot;autoSpawnChance&quot;: 0.02,
+      &quot;autoSpawnIntervalTicks&quot;: 180,
+      &quot;maxAlive&quot;: 3,
+      &quot;ai&quot;: &quot;wander&quot;
+    }
+  ]
+}</pre></section><section class="page" id="page-deep-ai"><h1>Deep AI + Custom AI</h1><p>Custom AI uses conditions like always, timer, near_player, and far_from_player.</p><pre>{
+  &quot;customAI&quot;: [
+    {
+      &quot;entityType&quot;: &quot;test_bot&quot;,
+      &quot;steps&quot;: [
+        {&quot;when&quot;:&quot;always&quot;, &quot;action&quot;:&quot;wander&quot;, &quot;speedMultiplier&quot;:1.0},
+        {&quot;when&quot;:&quot;timer&quot;, &quot;ticks&quot;:160, &quot;action&quot;:&quot;say&quot;, &quot;message&quot;:&quot;&lt;Test Bot&gt; Systems online.&quot;},
+        {&quot;when&quot;:&quot;near_player&quot;, &quot;range&quot;:8, &quot;action&quot;:&quot;move_to_player&quot;, &quot;speedMultiplier&quot;:1.3}
+      ]
+    }
+  ]
+}</pre></section><section class="page" id="page-deep-recipes"><h1>Deep Recipes Guide</h1><pre>{
+  &quot;recipes&quot;: [
+    {&quot;type&quot;:&quot;shapeless&quot;, &quot;inputs&quot;:[&quot;Ruby Block&quot;, &quot;Neon Console&quot;], &quot;output&quot;:&quot;Powered Console&quot;, &quot;outputBlockId&quot;:142, &quot;count&quot;:1},
+    {&quot;type&quot;:&quot;3x3&quot;, &quot;pattern&quot;:[&quot;RRR&quot;, &quot;RCR&quot;, &quot;RRR&quot;], &quot;keys&quot;:{&quot;R&quot;:&quot;Ruby Block&quot;, &quot;C&quot;:&quot;Neon Console&quot;}, &quot;output&quot;:&quot;Powered Console&quot;, &quot;outputBlockId&quot;:142, &quot;count&quot;:1}
+  ]
+}</pre></section><section class="page" id="page-deep-menus"><h1>Deep Menus Guide</h1><p>Menus create pack-driven UI with buttons.</p><pre>{
+  &quot;menus&quot;: [
+    {
+      &quot;id&quot;: &quot;console_menu&quot;,
+      &quot;title&quot;: &quot;Neon Console&quot;,
+      &quot;lines&quot;: [&quot;This menu came from a pack.&quot;, &quot;Buttons run safe engine actions.&quot;],
+      &quot;buttons&quot;: [
+        {&quot;text&quot;:&quot;Give Ruby Block&quot;, &quot;action&quot;:{&quot;action&quot;:&quot;giveBlock&quot;, &quot;target&quot;:&quot;Ruby Block&quot;}},
+        {&quot;text&quot;:&quot;Spawn Test Bot&quot;, &quot;action&quot;:{&quot;action&quot;:&quot;spawnEntity&quot;, &quot;target&quot;:&quot;test_bot&quot;}},
+        {&quot;text&quot;:&quot;Place Powered Console&quot;, &quot;action&quot;:{&quot;action&quot;:&quot;placeBlock&quot;, &quot;target&quot;:&quot;Powered Console&quot;}},
+        {&quot;text&quot;:&quot;Close&quot;, &quot;action&quot;:{&quot;action&quot;:&quot;closeMenu&quot;}}
+      ]
+    }
+  ]
+}</pre></section><section class="page" id="page-deep-rightclick"><h1>Deep Right-Click Actions</h1><h2>Block Actions</h2><pre>{
+  &quot;blockActions&quot;: [
+    {&quot;blockId&quot;:141, &quot;onRightClick&quot;:[{&quot;action&quot;:&quot;openMenu&quot;, &quot;target&quot;:&quot;console_menu&quot;}]},
+    {&quot;blockId&quot;:142, &quot;onRightClick&quot;:[{&quot;action&quot;:&quot;message&quot;, &quot;message&quot;:&quot;&lt;Console&gt; Powered and online.&quot;}]}
+  ]
+}</pre><h2>Entity Actions</h2><pre>{
+  &quot;entityActions&quot;: [
+    {&quot;entityType&quot;:&quot;test_bot&quot;, &quot;onRightClick&quot;:[{&quot;action&quot;:&quot;openMenu&quot;, &quot;target&quot;:&quot;console_menu&quot;}]}
+  ]
+}</pre></section><section class="page" id="page-deep-audio-theme"><h1>Audio + Theme Packs</h1><pre>{
+  &quot;theme&quot;: {
+    &quot;menuMusic&quot;: &quot;assets/music/magenta_stone.mp4&quot;,
+    &quot;bossMusic&quot;: &quot;assets/music/boss_theme.mp4&quot;,
+    &quot;clickSound&quot;: &quot;assets/sounds/click.wav&quot;,
+    &quot;packAccentColor&quot;: [217, 67, 255]
+  }
+}</pre></section><section class="page" id="page-deep-world-biomes"><h1>World + Biome Data</h1><pre>{
+  &quot;biomes&quot;: [
+    {&quot;name&quot;:&quot;Blue Forest&quot;, &quot;grassColor&quot;:[80,180,255], &quot;skyColor&quot;:[100,190,255], &quot;animals&quot;:[&quot;sheep&quot;], &quot;structures&quot;:[&quot;small_house&quot;]}
+  ]
+}</pre></section><section class="page" id="page-deep-animal-data"><h1>Animal Data</h1><pre>{
+  &quot;animals&quot;: [
+    {&quot;type&quot;:&quot;sheep&quot;, &quot;names&quot;:[&quot;Wooly&quot;,&quot;BaaBaa&quot;,&quot;Cloud&quot;], &quot;colors&quot;:[[235,235,235],[255,230,240],[210,240,255]]}
+  ]
+}</pre></section><section class="page" id="page-deep-uistore"><h1>Deep ui.store Guide</h1><pre>{
+  &quot;title&quot;: &quot;IRL Simulator Mod Store&quot;,
+  &quot;message&quot;: &quot;Download expansion packs for IRL Simulator.&quot;,
+  &quot;packs&quot;: [
+    {&quot;name&quot;:&quot;My Full Pack&quot;, &quot;description&quot;:&quot;Adds everything.&quot;, &quot;url&quot;:&quot;https://yourname.github.io/modUI/packs/my_full_pack.zip&quot;}
+  ]
+}</pre><div class="warning">Use plain URLs only. Do not paste HTML anchor tags into ui.store.</div></section><section class="page" id="page-deep-upload"><h1>Upload / Publish Workflow</h1><pre>modUI/
   ui.store
   packs/
-    my_first_pack.zip
-    animal_test.zip
-    more_blocks.zip</pre><h2>Browser upload</h2><ol><li>Open your GitHub Pages repository.</li><li>Create or open <code>modUI</code>.</li><li>Upload <code>ui.store</code>.</li><li>Create or open <code>modUI/packs</code>.</li><li>Upload your pack zips.</li><li>Commit changes.</li></ol><h2>Expected URLs</h2><pre>https://yourname.github.io/modUI/ui.store
-https://yourname.github.io/modUI/packs/my_first_pack.zip</pre><div class="note">Open both URLs in a browser first. If the browser cannot load/download them, the game cannot either.</div></section>
-<section class="page" id="page-installuse"><h1>Install / Use Mods In Game</h1><h2>Player flow</h2><ol><li>Open IRL Simulator.</li><li>Open <strong>Mod Store / Inbox</strong>.</li><li>Wait for the loading spinner.</li><li>Click Download on a pack.</li><li>The zip downloads into <code>expansion_packs/</code>.</li><li>Reload/load a world so the loader can read installed packs.</li><li>Use <code>/mods</code> to check registered commands.</li><li>Use <code>/help</code> to see built-in and modpack commands.</li></ol><h2>Manual install</h2><pre>1. Download pack zip manually.
-2. Put it in expansion_packs/.
-3. Start or reload the game.
-4. Load a world.
-5. Type /mods.</pre><p>A pack only does something if the engine has a loader/safe action for that data type.</p></section>
-<section class="page" id="page-integrations"><h1>Integration Types</h1><p>This page lists the kinds of things the game can register from packs if the loader supports them.</p><div class="card-grid"><div class="card mod-card"><h2>Blocks</h2><p>IDs, names, colors, solidity, and light emission.</p></div><div class="card mod-card"><h2>Entities</h2><p>Entity profiles, display names, colors, base templates, and spawn data.</p></div><div class="card mod-card"><h2>Items</h2><p>Item IDs, names, icons, stack sizes, and usage behavior keys.</p></div><div class="card mod-card"><h2>Recipes</h2><p>Crafting grid patterns, inputs, outputs, and counts.</p></div><div class="card mod-card"><h2>Commands</h2><p>Command name, usage, description, safe action, and target.</p></div><div class="card mod-card"><h2>Audio / Theme</h2><p>Music files, sound effects, menu theme, boss theme, and ambience metadata.</p></div><div class="card mod-card"><h2>World / Biomes</h2><p>Terrain presets, biome names, spawn lists, colors, and generation options.</p></div><div class="card mod-card"><h2>UI Themes</h2><p>Colors, panel styles, accent colors, and menu metadata.</p></div></div></section>
-<section class="page" id="page-blockintegration"><h1>Block Integration</h1><p>A block pack can describe blocks. The game can register them if the block loader supports the file format.</p><h2>Example blocks.json</h2><pre>{
-  "blocks": [
-    {
-      "id": 80,
-      "name": "Ruby Block",
-      "solid": true,
-      "color": [180, 20, 45],
-      "emission": 0
-    },
-    {
-      "id": 81,
-      "name": "Neon Blue",
-      "solid": true,
-      "color": [40, 140, 255],
-      "emission": 12
-    }
-  ]
-}</pre><h2>What the engine uses it for</h2><ul><li><code>id</code> becomes the block ID for <code>/give</code> and placement.</li><li><code>color</code> can be used by Chunk material color rendering.</li><li><code>emission</code> can be used by Voxel light emission.</li><li><code>solid</code> can be used by collision and block rules.</li></ul><div class="warning">A block data file does not automatically work unless the engine has a block registry and the render/light/collision systems check it.</div></section>
-<section class="page" id="page-entityintegration"><h1>Entity Integration</h1><p>An entity pack should register entity data, not random Java classes. The engine decides what templates it supports.</p><h2>Example entities.json</h2><pre>{
-  "entities": [
-    {
-      "type": "crystal_golem",
-      "template": "blocky_humanoid",
-      "displayName": "Crystal Golem",
-      "bodyColor": [120, 220, 255],
-      "headColor": [180, 245, 255],
-      "health": 40,
-      "speed": 0.018
-    }
-  ]
-}</pre><h2>How it can work</h2><ul><li><code>type</code> is the entity key.</li><li><code>template</code> says which engine-side generic entity shape to use.</li><li>Colors customize the mesh.</li><li>Stats customize behavior if the engine supports them.</li></ul><div class="note">This keeps modpacks data-driven. The pack describes a golem; the engine provides the actual safe entity implementation.</div></section>
-<section class="page" id="page-itemrecipeintegration"><h1>Items + Recipes</h1><h2>Example items.json</h2><pre>{
-  "items": [
-    {
-      "id": 120,
-      "name": "Ruby Shard",
-      "stackSize": 64,
-      "color": [255, 60, 90]
-    }
-  ]
-}</pre><h2>Example recipes.json</h2><pre>{
-  "recipes": [
-    {
-      "type": "3x3",
-      "pattern": ["RRR", "RRR", "RRR"],
-      "keys": { "R": "Ruby Shard" },
-      "output": "Ruby Block",
-      "count": 1
-    }
-  ]
-}</pre><h2>What the game needs</h2><ul><li>An item registry.</li><li>A recipe registry.</li><li>Crafting UI logic that checks registered recipes.</li><li>A mapping between item names/IDs and block outputs.</li></ul></section>
-<section class="page" id="page-soundthemeintegration"><h1>Sounds + Theme Packs</h1><p>This is the missing theme-song/mod audio part.</p><h2>Example theme.json</h2><pre>{
-  "theme": {
-    "menuMusic": "assets/music/magenta_stone.mp4",
-    "bossMusic": "assets/music/boss_mom_theme.mp4",
-    "clickSound": "assets/sounds/click.wav",
-    "packAccentColor": [217, 67, 255]
+    my_full_pack.zip
+    robot_entities_custom_model_pack.zip
+    computer_electricity_science_extension_pack_refixed.zip</pre></section><section class="page" id="page-deep-complete-pack"><h1>Complete Everything Pack</h1><h2>pack_manifest.json</h2><pre>{
+  &quot;packId&quot;: &quot;my_full_pack&quot;,
+  &quot;name&quot;: &quot;My Full Pack&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;author&quot;: &quot;YourName&quot;,
+  &quot;description&quot;: &quot;Adds blocks, entities, commands, recipes, menus, actions, custom AI, and future data.&quot;,
+  &quot;safeMode&quot;: true,
+  &quot;entryType&quot;: &quot;data-pack&quot;,
+  &quot;entries&quot;: {
+    &quot;blocks&quot;: &quot;content/blocks.json&quot;,
+    &quot;entities&quot;: &quot;content/entities.json&quot;,
+    &quot;commands&quot;: &quot;content/commands.json&quot;,
+    &quot;recipes&quot;: &quot;content/recipes.json&quot;,
+    &quot;menus&quot;: &quot;content/menus.json&quot;,
+    &quot;blockActions&quot;: &quot;content/block_actions.json&quot;,
+    &quot;entityActions&quot;: &quot;content/entity_actions.json&quot;,
+    &quot;customAI&quot;: &quot;content/custom_ai.json&quot;,
+    &quot;robots&quot;: &quot;content/robots.json&quot;,
+    &quot;lights&quot;: &quot;content/lights.json&quot;,
+    &quot;science&quot;: &quot;content/science.json&quot;
   }
-}</pre><h2>Example manifest entry</h2><pre>{
-  "entries": {
-    "theme": "content/theme.json"
-  }
-}</pre><h2>How it can be used</h2><ul><li>The menu can display the pack's theme song.</li><li>The Mod Store can preview music if the file exists.</li><li>The engine can choose menu music or boss music from loaded theme metadata.</li><li>Sounds can be referenced by name instead of hardcoding paths.</li></ul><div class="warning">Large audio/video files can be heavy. Keep file sizes reasonable if hosting on GitHub Pages.</div></section>
-<section class="page" id="page-worldintegration"><h1>World + Biome Data</h1><p>World/biome packs can describe future generation settings.</p><h2>Example worldgen.json</h2><pre>{
-  "worldgen": {
-    "terrain": "hills",
-    "surfaceBlock": "Grass",
-    "undergroundBlock": "Stone",
-    "treeChance": 0.08,
-    "spawnAnimals": ["sheep"]
-  }
-}</pre><h2>Example biomes.json</h2><pre>{
-  "biomes": [
+}</pre><h2>blocks.json</h2><pre>{
+  &quot;blocks&quot;: [
+    {&quot;id&quot;: 140, &quot;name&quot;: &quot;Ruby Block&quot;, &quot;solid&quot;: true, &quot;color&quot;: [190, 30, 55], &quot;emission&quot;: 0, &quot;tags&quot;: [&quot;gem&quot;, &quot;decorative&quot;]},
+    {&quot;id&quot;: 141, &quot;name&quot;: &quot;Neon Console&quot;, &quot;solid&quot;: true, &quot;color&quot;: [40, 180, 255], &quot;emission&quot;: 14, &quot;tags&quot;: [&quot;computer&quot;, &quot;menu&quot;, &quot;light&quot;]},
+    {&quot;id&quot;: 142, &quot;name&quot;: &quot;Powered Console&quot;, &quot;solid&quot;: true, &quot;color&quot;: [90, 255, 160], &quot;emission&quot;: 12, &quot;tags&quot;: [&quot;computer&quot;, &quot;powered&quot;]}
+  ]
+}</pre><h2>commands.json</h2><pre>{
+  &quot;commands&quot;: [
+    {&quot;name&quot;: &quot;/mypack&quot;, &quot;usage&quot;: &quot;/mypack&quot;, &quot;description&quot;: &quot;Shows that this pack loaded.&quot;, &quot;action&quot;: &quot;message&quot;, &quot;target&quot;: &quot;My Full Pack loaded.&quot;},
+    {&quot;name&quot;: &quot;/ruby&quot;, &quot;usage&quot;: &quot;/ruby&quot;, &quot;description&quot;: &quot;Gives Ruby Block.&quot;, &quot;action&quot;: &quot;giveBlock&quot;, &quot;target&quot;: &quot;Ruby Block&quot;},
+    {&quot;name&quot;: &quot;/testbot&quot;, &quot;usage&quot;: &quot;/testbot&quot;, &quot;description&quot;: &quot;Spawns Test Bot.&quot;, &quot;action&quot;: &quot;spawnEntity&quot;, &quot;target&quot;: &quot;test_bot&quot;},
+    {&quot;name&quot;: &quot;/consolemenu&quot;, &quot;usage&quot;: &quot;/consolemenu&quot;, &quot;description&quot;: &quot;Opens Console Menu.&quot;, &quot;action&quot;: &quot;openMenu&quot;, &quot;target&quot;: &quot;console_menu&quot;}
+  ]
+}</pre><h2>entities.json</h2><pre>{
+  &quot;entities&quot;: [
     {
-      "name": "Blue Forest",
-      "grassColor": [80, 180, 255],
-      "skyColor": [100, 190, 255],
-      "animals": ["sheep"],
-      "structures": ["small_house"]
+      &quot;type&quot;: &quot;test_bot&quot;,
+      &quot;custom&quot;: [
+        {&quot;name&quot;:&quot;body&quot;, &quot;pos&quot;:[-0.35,0.60,-0.25], &quot;size&quot;:[0.70,0.80,0.50], &quot;colorKey&quot;:&quot;bodyColor&quot;},
+        {&quot;name&quot;:&quot;head&quot;, &quot;pos&quot;:[-0.25,1.35,-0.25], &quot;size&quot;:[0.50,0.50,0.50], &quot;colorKey&quot;:&quot;headColor&quot;},
+        {&quot;name&quot;:&quot;visor&quot;, &quot;pos&quot;:[-0.16,1.53,-0.31], &quot;size&quot;:[0.32,0.08,0.06], &quot;colorKey&quot;:&quot;glowColor&quot;},
+        {&quot;name&quot;:&quot;left_arm&quot;, &quot;pos&quot;:[-0.55,0.72,-0.15], &quot;size&quot;:[0.18,0.56,0.30], &quot;colorKey&quot;:&quot;bodyColor&quot;},
+        {&quot;name&quot;:&quot;right_arm&quot;, &quot;pos&quot;:[0.37,0.72,-0.15], &quot;size&quot;:[0.18,0.56,0.30], &quot;colorKey&quot;:&quot;bodyColor&quot;},
+        {&quot;name&quot;:&quot;left_leg&quot;, &quot;pos&quot;:[-0.25,0.00,-0.14], &quot;size&quot;:[0.20,0.60,0.28], &quot;colorKey&quot;:&quot;legColor&quot;},
+        {&quot;name&quot;:&quot;right_leg&quot;, &quot;pos&quot;:[0.05,0.00,-0.14], &quot;size&quot;:[0.20,0.60,0.28], &quot;colorKey&quot;:&quot;legColor&quot;},
+        {&quot;name&quot;:&quot;red_hat&quot;, &quot;pos&quot;:[-0.20,1.85,-0.20], &quot;size&quot;:[0.40,0.18,0.40], &quot;color&quot;:[255,60,60]}
+      ],
+      &quot;template&quot;: &quot;blocky_humanoid&quot;,
+      &quot;displayName&quot;: &quot;Test Bot&quot;,
+      &quot;description&quot;: &quot;A custom cube model robot.&quot;,
+      &quot;animalType&quot;: &quot;robot&quot;,
+      &quot;bodyColor&quot;: [120, 130, 145],
+      &quot;headColor&quot;: [170, 190, 210],
+      &quot;legColor&quot;: [80, 90, 105],
+      &quot;glowColor&quot;: [80, 220, 255],
+      &quot;preferredBlock&quot;: 141,
+      &quot;health&quot;: 30,
+      &quot;speed&quot;: 0.025,
+      &quot;friendly&quot;: true,
+      &quot;autoSpawn&quot;: true,
+      &quot;autoSpawnChance&quot;: 0.02,
+      &quot;autoSpawnIntervalTicks&quot;: 180,
+      &quot;maxAlive&quot;: 3,
+      &quot;ai&quot;: &quot;wander&quot;
     }
   ]
-}</pre><p>These files only work if the world generator is coded to read registry data.</p></section>
-<section class="page" id="page-modcommands"><h1>Mod Commands</h1><p>Mod commands should come from downloaded packs, not hardcoded ChatOverlay registrations.</p><div class="flow"><div class="flow-step">Pack ZIP</div><div class="arrow">→</div><div class="flow-step">commands JSON</div><div class="arrow">→</div><div class="flow-step">ModRegistry</div><div class="arrow">→</div><div class="flow-step">ChatOverlay lookup</div><div class="arrow">→</div><div class="flow-step">Engine safe action</div></div><h2>Example</h2><pre>{
-  "commands": [
+}</pre><h2>recipes.json</h2><pre>{
+  &quot;recipes&quot;: [
+    {&quot;type&quot;:&quot;shapeless&quot;, &quot;inputs&quot;:[&quot;Ruby Block&quot;, &quot;Neon Console&quot;], &quot;output&quot;:&quot;Powered Console&quot;, &quot;outputBlockId&quot;:142, &quot;count&quot;:1},
+    {&quot;type&quot;:&quot;3x3&quot;, &quot;pattern&quot;:[&quot;RRR&quot;, &quot;RCR&quot;, &quot;RRR&quot;], &quot;keys&quot;:{&quot;R&quot;:&quot;Ruby Block&quot;, &quot;C&quot;:&quot;Neon Console&quot;}, &quot;output&quot;:&quot;Powered Console&quot;, &quot;outputBlockId&quot;:142, &quot;count&quot;:1}
+  ]
+}</pre><h2>menus.json</h2><pre>{
+  &quot;menus&quot;: [
     {
-      "name": "/sheep",
-      "usage": "/sheep",
-      "description": "Summons a sheep using Animal Test Pack data.",
-      "action": "message",
-      "target": "Animal Test Pack command loaded."
+      &quot;id&quot;: &quot;console_menu&quot;,
+      &quot;title&quot;: &quot;Neon Console&quot;,
+      &quot;lines&quot;: [&quot;This menu came from a pack.&quot;, &quot;Buttons run safe engine actions.&quot;],
+      &quot;buttons&quot;: [
+        {&quot;text&quot;:&quot;Give Ruby Block&quot;, &quot;action&quot;:{&quot;action&quot;:&quot;giveBlock&quot;, &quot;target&quot;:&quot;Ruby Block&quot;}},
+        {&quot;text&quot;:&quot;Spawn Test Bot&quot;, &quot;action&quot;:{&quot;action&quot;:&quot;spawnEntity&quot;, &quot;target&quot;:&quot;test_bot&quot;}},
+        {&quot;text&quot;:&quot;Place Powered Console&quot;, &quot;action&quot;:{&quot;action&quot;:&quot;placeBlock&quot;, &quot;target&quot;:&quot;Powered Console&quot;}},
+        {&quot;text&quot;:&quot;Close&quot;, &quot;action&quot;:{&quot;action&quot;:&quot;closeMenu&quot;}}
+      ]
     }
   ]
-}</pre><div class="interactive"><h2>Command Registry Demo</h2><button class="wiki-btn" onclick="registerDemoCommand()">Load demo command from pack</button><button class="wiki-btn" onclick="runDemoCommand('/sheep')">Type /sheep</button><button class="wiki-btn" onclick="showDemoMods()">Type /mods</button><div class="result-box" id="modCommandOutput">No demo mod commands loaded.</div></div></section>
-<section class="page" id="page-animalmod"><h1>Animal Data</h1><p>Animal data is a profile/database entry. It does not spawn anything by itself.</p><h2>Example</h2><pre>{
-  "animals": [
+}</pre><h2>block_actions.json</h2><pre>{
+  &quot;blockActions&quot;: [
+    {&quot;blockId&quot;:141, &quot;onRightClick&quot;:[{&quot;action&quot;:&quot;openMenu&quot;, &quot;target&quot;:&quot;console_menu&quot;}]},
+    {&quot;blockId&quot;:142, &quot;onRightClick&quot;:[{&quot;action&quot;:&quot;message&quot;, &quot;message&quot;:&quot;&lt;Console&gt; Powered and online.&quot;}]}
+  ]
+}</pre><h2>entity_actions.json</h2><pre>{
+  &quot;entityActions&quot;: [
+    {&quot;entityType&quot;:&quot;test_bot&quot;, &quot;onRightClick&quot;:[{&quot;action&quot;:&quot;openMenu&quot;, &quot;target&quot;:&quot;console_menu&quot;}]}
+  ]
+}</pre><h2>custom_ai.json</h2><pre>{
+  &quot;customAI&quot;: [
     {
-      "type": "sheep",
-      "names": ["Wooly", "BaaBaa", "Cloud", "Fluffy"],
-      "colors": [[235,235,235], [255,230,240], [210,240,255]]
+      &quot;entityType&quot;: &quot;test_bot&quot;,
+      &quot;steps&quot;: [
+        {&quot;when&quot;:&quot;always&quot;, &quot;action&quot;:&quot;wander&quot;, &quot;speedMultiplier&quot;:1.0},
+        {&quot;when&quot;:&quot;timer&quot;, &quot;ticks&quot;:160, &quot;action&quot;:&quot;say&quot;, &quot;message&quot;:&quot;&lt;Test Bot&gt; Systems online.&quot;},
+        {&quot;when&quot;:&quot;near_player&quot;, &quot;range&quot;:8, &quot;action&quot;:&quot;move_to_player&quot;, &quot;speedMultiplier&quot;:1.3}
+      ]
     }
   ]
-}</pre><h2>Meaning</h2><ul><li><code>type</code> is the animal key/name.</li><li><code>names</code> is a random name pool.</li><li><code>colors</code> is a list of RGB colors.</li><li>A command or world system must reference the animal type before the data matters.</li></ul><div class="interactive"><h2>Animal Data Preview</h2><button class="wiki-btn" onclick="spawnAnimalPreview()">Preview random sheep data</button><div class="preview-stage" id="animalStage"><div class="mini-animal"><div class="body"></div><div class="head"></div><div class="leg l1"></div><div class="leg l2"></div></div></div><div class="result-box" id="animalInfo">Click preview to pick a random name and color from animal data.</div></div></section>
-<section class="page" id="page-troubleshooting"><h1>Troubleshooting Mods</h1><div class="card-grid"><div class="card"><h2>/mods says no commands</h2><ul><li>Check that the zip is in <code>expansion_packs/</code>.</li><li>Check that the pack has command data.</li><li>Check that the loader runs when a world loads.</li><li>Check that your command file path matches the manifest or loader expectation.</li></ul></div><div class="card"><h2>Download fails</h2><ul><li>Open the pack URL in a browser.</li><li>Make sure the zip exists online.</li><li>Make sure <code>ui.store</code> has the correct URL.</li></ul></div><div class="card"><h2>Pack loads but does nothing</h2><ul><li>The pack may only contain data.</li><li>The engine may not support that data type yet.</li><li>The command action may not be implemented.</li></ul></div><div class="card"><h2>Wrong zip structure</h2><ul><li><code>pack_manifest.json</code> should be at the zip root if your loader expects root manifest.</li><li>Do not accidentally zip one extra parent folder.</li></ul></div></div></section>
-<section class="page" id="page-interactive"><h1>Interactive Examples</h1><div class="interactive"><h2>Mini Block Playground</h2><div class="controls-row"><button class="wiki-btn" onclick="playgroundBlock('#55aa55')">Grass</button><button class="wiki-btn" onclick="playgroundBlock('#8b5a35')">Dirt</button><button class="wiki-btn" onclick="playgroundBlock('#888888')">Stone</button><button class="wiki-btn" onclick="playgroundBlock('#d943ff')">Spawner</button><button class="wiki-btn" onclick="playgroundBlock('#9bffb5')">Mod Green</button></div><div class="preview-stage"><div class="sample-block" id="playgroundCube"></div></div></div></section>
-<section class="page" id="page-conclusion"><h1>Conclusion</h1><p>IRL Simulator now has custom voxel rendering, LAN multiplayer, survival stats, babies, commands, dimensions, menus, theme music documentation, and a mod distribution/integration pipeline.</p><div class="card-grid"><div class="card">Custom voxel rendering</div><div class="card">Startup cinematic</div><div class="card">Main/play/options/multiplayer/marketplace/mod store/pause menus</div><div class="card">LAN hosting and world downloading</div><div class="card">Water and pee meters</div><div class="card">Crafting</div><div class="card">Weather and day/night</div><div class="card">Hell dimension</div><div class="card">Humans, holograms, babies</div><div class="card">Boss spawner</div><div class="card">Theme song section</div><div class="card mod-card">Blocks, entities, items, recipes, commands, audio, themes, and world data can be registered if the loader supports them</div></div></section>
+}</pre></section><section class="page" id="page-deep-testing"><h1>Deep Testing Logs</h1><pre>[Mods] Loading pack: my_full_pack.zip
+[Mods] Found block objects: 3
+[Mods] Registered block 140 = Ruby Block
+[Mods] Found entity objects: 1
+[Mods] Registered entity test_bot template=blocky_humanoid ai=wander customCubes=8 autoSpawn=true
+[Mods] Found command objects: 4
+[Mods] Found menu objects: 1
+[Mods] Registered menu console_menu buttons=4
+[Mods] Found block action objects: 2
+[Mods] Found custom AI objects: 1</pre></section><section class="page" id="page-deep-troubleshooting"><h1>Deep Troubleshooting</h1><div class="card-grid"><div class="card"><h2>Pack skipped</h2><p>pack_manifest.json is missing or not at ZIP root.</p></div><div class="card"><h2>Blocks = 0</h2><p>Check blocks.json path and top-level blocks array.</p></div><div class="card"><h2>customCubes = 0</h2><p>Put custom before template and use blocky_humanoid.</p></div><div class="card"><h2>Menu does not show</h2><p>Check openMenu support and modMenuOverlay.draw.</p></div><div class="card"><h2>Command does nothing</h2><p>Check chatRunModCommand routes into runModAction.</p></div><div class="card"><h2>Right click does nothing</h2><p>Check blockId/entityType and engine hooks.</p></div></div></section>
 </main></div>
 <script>
 const links=document.querySelectorAll('#sidebar a[data-page]'),pages=document.querySelectorAll('.page');function showPage(name){pages.forEach(p=>p.classList.toggle('active',p.id==='page-'+name));links.forEach(a=>a.classList.toggle('active-link',a.getAttribute('data-page')===name));window.scrollTo({top:0,behavior:'smooth'})}links.forEach(link=>link.addEventListener('click',e=>{e.preventDefault();showPage(link.dataset.page)}));const pageNames=[...links].map(a=>a.dataset.page);const searchBox=document.getElementById('searchBox'),searchResults=document.getElementById('searchResults');searchBox.addEventListener('input',()=>{const q=searchBox.value.toLowerCase().trim();if(!q){searchResults.innerHTML='';return}const matches=pageNames.filter(n=>n.includes(q));searchResults.innerHTML=matches.map(m=>`<a href="#" data-page="${m}">${m}</a>`).join('');searchResults.querySelectorAll('a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();showPage(a.dataset.page);searchBox.value='';searchResults.innerHTML=''}))});
 const blocks=[{id:0,name:'Air',color:'#101827',desc:'Empty space.'},{id:1,name:'Grass',color:'#55aa55',desc:'Green surface terrain.'},{id:2,name:'Dirt',color:'#8b5a35',desc:'Brown terrain layer.'},{id:3,name:'Stone',color:'#888888',desc:'Gray underground terrain.'},{id:4,name:'Torch',color:'#ffd166',desc:'Light source and boss spawner crafting ingredient.'},{id:5,name:'Hellstone',color:'#8d2222',desc:'Dark red Hell terrain.'},{id:6,name:'Bloodrock',color:'#b83232',desc:'Red Hell terrain and roof material.'},{id:7,name:'Ash',color:'#444444',desc:'Hell terrain block used in recipes.'},{id:8,name:'Fire',color:'#ff642e',desc:'Hell fire visual and light source.'},{id:15,name:'Boss Spawner',color:'#d943ff',desc:'Right-click to spawn boss.'},{id:20,name:'Crafting Table',color:'#ad7545',desc:'Opens 3x3 crafting UI.'},{id:30,name:'Bed',color:'#c8b48c',desc:'Right-click to sleep.'},{id:42,name:'Pee Block',color:'#fff36a',desc:'Spawned by pee overflow.'},{id:'mod',name:'Mod Block Example',color:'#9bffb5',desc:'Example color for future data-driven mod blocks.'}];const blockCards=document.getElementById('blockCards'),blockSelect=document.getElementById('blockSelect'),sampleBlock=document.getElementById('sampleBlock'),blockInfo=document.getElementById('blockInfo');function initBlocks(){if(!blockCards||!blockSelect)return;blockCards.innerHTML=blocks.map(b=>`<div class="card"><div class="sample-block" style="position:relative;left:34px;top:28px;width:46px;height:46px;background:${b.color};margin-bottom:44px"></div><strong>ID ${b.id} — ${b.name}</strong><p>${b.desc}</p></div>`).join('');blockSelect.innerHTML=blocks.map((b,i)=>`<option value="${i}">ID ${b.id} — ${b.name}</option>`).join('');blockSelect.addEventListener('change',()=>updateBlockViewer(+blockSelect.value));updateBlockViewer(1)}function updateBlockViewer(i){const b=blocks[i];sampleBlock.style.background=b.color;blockInfo.innerHTML=`Selected: ID ${b.id} — ${b.name}<br>${b.desc}`}initBlocks();
 const timeSlider=document.getElementById('timeSlider'),skyStage=document.getElementById('skyStage'),timeInfo=document.getElementById('timeInfo');function updateTimeSky(){if(!timeSlider)return;const t=+timeSlider.value;let name,bg;if(t<6000){name='Sunrise';bg='linear-gradient(#ffb878,#60a9df)'}else if(t<12000){name='Day';bg='linear-gradient(#69b8ff,#397e55)'}else if(t<18000){name='Sunset';bg='linear-gradient(#ff8058,#395070)'}else{name='Night';bg='linear-gradient(#12172f,#18243a)'}skyStage.style.background=bg;timeInfo.innerHTML=`Time: ${t} — ${name}`}if(timeSlider){timeSlider.addEventListener('input',updateTimeSky);updateTimeSky()}
 function clearWeatherParticles(){const st=document.getElementById('weatherStage');if(!st)return;st.querySelectorAll('.rain-drop,.snow-flake').forEach(e=>e.remove())}function setWeather(type){const st=document.getElementById('weatherStage'),info=document.getElementById('weatherInfo');clearWeatherParticles();st.style.background='linear-gradient(#69b8ff,#397e55)';if(type==='clear'){info.innerHTML='Weather: Clear';return}if(type==='rain'||type==='thunder'){st.style.background=type==='thunder'?'linear-gradient(#1f2937,#334155)':'linear-gradient(#4c6076,#2d5c4b)';for(let i=0;i<42;i++){let d=document.createElement('div');d.className='rain-drop';d.style.left=Math.random()*100+'%';d.style.animationDelay=Math.random()+'s';st.appendChild(d)}info.innerHTML=type==='thunder'?'Weather: Thunder':'Weather: Rain'}if(type==='snow'){st.style.background='linear-gradient(#f0d4ff,#8cbdd0)';for(let i=0;i<35;i++){let s=document.createElement('div');s.className='snow-flake';s.style.left=Math.random()*100+'%';s.style.animationDelay=Math.random()*2+'s';st.appendChild(s)}info.innerHTML='Weather: Snow'}}
-const boys=['Elam','Noah','Liam','Milo','Kai'],girls=['Haily','Ava','Mia','Luna','Zoe'];function spawnBabyPreview(){const stage=document.getElementById('babyStage'),info=document.getElementById('babyInfo');const gender=Math.random()<.5?'Boy':'Girl';const name=(gender==='Boy'?boys:girls)[Math.floor(Math.random()*5)];stage.innerHTML=`<div class="baby-entity"></div><div class="preview-panel-text">${name} • ${gender}</div>`;info.innerHTML=`Spawned baby preview: ${name}, ${gender}.`}function playgroundBlock(c){let cube=document.getElementById('playgroundCube');if(cube)cube.style.background=c}
-function runStoreDemo(){const body=document.getElementById('storeBody'),status=document.getElementById('storeStatus');body.innerHTML='<div class="spinner"><div class="spin-block"></div><div class="spin-block"></div><div class="spin-block"></div><div class="spin-block"></div><div class="spin-block"></div><div class="spin-block"></div><div class="spin-block"></div><div class="spin-block"></div></div><p style="text-align:center">Loading...<br>Attempting to fetch alaricholt677.github.io/modUI/ui.store</p>';status.innerHTML='Fetching ui.store...';setTimeout(()=>{body.innerHTML=['Animal Test Pack','More Blocks Expansion','Entity Mesh Examples','Sound Effects Pack','Music Pack Ambient','World Generation Expansion','Performance Presets Pack'].map(p=>`<div class="pack-row"><div><strong>${p}</strong><br><span style="color:#a9bdd2">Downloadable expansion pack zip.</span></div><button class="wiki-btn">Download</button></div>`).join('');status.innerHTML='Store loaded. Packs would download to expansion_packs/.'},1200)}
+const boys=['Elam','Noah','Liam','Milo','Kai'],girls=['Haily','Ava','Mia','Luna','Zoe'];function spawnBabyPreview(){const stage=document.getElementById('babyStage'),info=document.getElementById('babyInfo');const gender=Math.random()<.5?'Boy':'Girl';const name=(gender==='Boy'?boys:girls)[Math.floor(Math.random()*5)];stage.innerHTML=`<div style="position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);width:40px;height:66px"><div style="position:absolute;left:6px;top:0;width:28px;height:26px;background:#ffd0b5;border-radius:9px"></div><div style="position:absolute;left:8px;top:29px;width:24px;height:33px;background:#ffb7d5;border-radius:9px"></div></div><div class="preview-panel-text">${name} • ${gender}</div>`;info.innerHTML=`Spawned baby preview: ${name}, ${gender}.`}function playgroundBlock(c){let cube=document.getElementById('playgroundCube');if(cube)cube.style.background=c}
+function runStoreDemo(){const body=document.getElementById('storeBody'),status=document.getElementById('storeStatus');body.innerHTML='<div class="spinner"><div class="spin-block"></div><div class="spin-block"></div><div class="spin-block"></div><div class="spin-block"></div><div class="spin-block"></div><div class="spin-block"></div><div class="spin-block"></div><div class="spin-block"></div></div><p style="text-align:center">Loading...<br>Attempting to fetch modUI/ui.store</p>';status.innerHTML='Fetching ui.store...';setTimeout(()=>{body.innerHTML=['Animal Test Pack','Light Blocks + Light Entities Pack','Robot Entities Custom Model Pack','Computer + Electricity + Science Extension Pack','More Blocks Expansion'].map(p=>`<div class="pack-row"><div><strong>${p}</strong><br><span style="color:#a9bdd2">Downloadable extension pack zip.</span></div><button class="wiki-btn">Download</button></div>`).join('');status.innerHTML='Store loaded. Packs would download to expansion_packs/.'},1200)}
 let demoCommands={};function registerDemoCommand(){demoCommands['/sheep']={usage:'/sheep',description:'Summons a sheep using Animal Test Pack data.',action:'message',target:'Animal Test Pack command loaded from commands.json.'};document.getElementById('modCommandOutput').innerHTML='<Mod> /sheep registered from demo pack.'}function runDemoCommand(cmd){const o=document.getElementById('modCommandOutput');if(demoCommands[cmd])o.innerHTML=`<Mod> ${demoCommands[cmd].target}`;else o.innerHTML='Unknown command. No modpack command registered.'}function showDemoMods(){const o=document.getElementById('modCommandOutput');const vals=Object.values(demoCommands);o.innerHTML=vals.length?vals.map(c=>`<Mod> ${c.usage} — ${c.description}`).join('<br>'):'No demo mod commands loaded.'}
 const animalNames=['Wooly','BaaBaa','Cloud','Fluffy','Cotton','Snowball','Blocky','Chunk'];const animalColors=['rgb(235,235,235)','rgb(220,220,210)','rgb(180,180,170)','rgb(255,230,240)','rgb(210,240,255)','rgb(230,255,220)'];function spawnAnimalPreview(){const name=animalNames[Math.floor(Math.random()*animalNames.length)],color=animalColors[Math.floor(Math.random()*animalColors.length)],stage=document.getElementById('animalStage'),info=document.getElementById('animalInfo');stage.innerHTML=`<div class="mini-animal"><div class="body" style="background:${color}"></div><div class="head"></div><div class="leg l1"></div><div class="leg l2"></div></div><div class="preview-panel-text">type: sheep • name: ${name}</div>`;info.innerHTML=`Picked animal type sheep, name ${name}, color ${color}.`}
 </script>

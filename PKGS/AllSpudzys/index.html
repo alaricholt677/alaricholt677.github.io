@@ -3,1191 +3,232 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Spudzy Studio V2</title>
-
+  <title>Spudzy Studio V5 — Everything</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <script src="https://alaricholt677.github.io/PKGS/spudzy/spudzy.js"></script>
   <script src="https://alaricholt677.github.io/PKGS/spudzy-vid/spudzy-vid-js.js"></script>
-
+  <script src="https://alaricholt677.github.io/PKGS/music-spud/spudzy-music-ai.js"></script>
   <style>
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #4B5563; border-radius: 10px; }
-
-    body {
-      background-color: #131314;
-      color: #e3e3e3;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-
-    .surface { background-color: #1e1f20; }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-
-    .typing-indicator i { animation: pulse 1.5s infinite; }
-
-    #sidebar { transition: transform 0.3s ease-in-out; }
-    #chat-area, #preview-area { transition: width 0.3s ease; }
-
-    pre code {
-      font-family: monospace;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-    }
-
-    input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 12px;
-      height: 12px;
-      background: #60A5FA;
-      border-radius: 50%;
-      cursor: pointer;
-    }
-
-    @media (min-width: 768px) {
-      body { font-size: 16px; }
-
-      #sidebar {
-        position: relative;
-        transform: translateX(0) !important;
-      }
-
-      #sidebar-overlay {
-        display: none !important;
-      }
-
-      #preview-area {
-        position: relative;
-        z-index: auto;
-        width: 50%;
-      }
-
-      .desktop-only {
-        display: flex !important;
-      }
-
-      .mobile-only {
-        display: none !important;
-      }
-
-      .desktop-chat-padding {
-        padding-left: 4rem;
-        padding-right: 4rem;
-      }
-
-      .desktop-max-user {
-        max-width: 70%;
-      }
-
-      .desktop-max-video {
-        max-width: 24rem;
-      }
-
-      .desktop-icon {
-        width: 2rem;
-        height: 2rem;
-      }
-
-      .desktop-preview-title {
-        max-width: 200px;
-      }
-    }
-
-    @media (max-width: 767px) {
-      .desktop-only {
-        display: none !important;
-      }
-
-      .mobile-only {
-        display: block !important;
-      }
-    }
+    :root{--bg:#131314;--surface:#1e1f20;--panel:#17181b;--border:#374151;--text:#e5e7eb;--muted:#9ca3af;--blue:#2563eb;--purple:#7c3aed;--red:#ef4444}
+    *{box-sizing:border-box}body{margin:0;height:100vh;overflow:hidden;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}.surface{background:var(--surface)}.glass{background:linear-gradient(180deg,rgba(31,41,55,.85),rgba(17,24,39,.96));border:1px solid rgba(148,163,184,.18);box-shadow:0 20px 60px rgba(0,0,0,.35)}::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-thumb{background:#4b5563;border-radius:999px}.asset-card:hover,.note-row:hover{border-color:#60a5fa;transform:translateY(-1px)}.pill{border-radius:999px}.soft{border:1px solid var(--border);background:#111827}.btn{border-radius:12px;padding:.55rem .8rem;font-weight:700}.btn-blue{background:#2563eb}.btn-gray{background:#374151}.btn-purple{background:#7c3aed}.btn-red{background:#7f1d1d}@media(min-width:980px){#sidebar{position:relative;transform:translateX(0)!important}#sidebar-overlay{display:none!important}#asset-sidebar{position:relative;transform:translateX(0)!important}.desktop-pad{padding-left:4rem;padding-right:4rem}.mobile-only{display:none!important}}@media(max-width:979px){.desktop-only{display:none!important}}
   </style>
 </head>
+<body class="flex text-sm">
+  <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 z-20 hidden"></div>
 
-<body class="h-screen w-full flex overflow-hidden text-sm">
-
-  <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 z-20 hidden transition-opacity"></div>
-
-  <aside id="sidebar" class="surface w-72 h-full flex flex-col absolute z-30 transform -translate-x-full border-r border-gray-800 shrink-0">
-
-    <div class="p-4 flex items-center justify-between border-b border-gray-800 shrink-0">
-      <div class="flex items-center gap-2">
-        <i class="fa-solid fa-sparkles text-blue-400"></i>
-        <span class="font-semibold text-lg text-white">Spudzy Studio</span>
-      </div>
-
-      <button onclick="toggleSidebar()" class="mobile-only text-gray-400 hover:text-white p-2">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
+  <aside id="sidebar" class="surface w-80 h-full flex flex-col absolute z-30 transform -translate-x-full border-r border-gray-800 shrink-0">
+    <div class="p-4 border-b border-gray-800 flex items-center justify-between">
+      <div class="font-bold text-lg"><i class="fa-solid fa-sparkles text-blue-400 mr-2"></i>Spudzy Studio V5</div>
+      <button onclick="toggleSidebar()" class="mobile-only"><i class="fa-solid fa-xmark"></i></button>
     </div>
 
-    <div class="flex-grow overflow-y-auto flex flex-col">
-      <div class="p-3 border-b border-gray-800 space-y-4">
-        <button onclick="navigate('#chat/new')" class="w-full bg-[#2a2b2f] hover:bg-[#33353a] text-left px-4 py-3 rounded-2xl flex items-center gap-3 transition-colors shadow-sm">
-          <i class="fa-solid fa-plus text-gray-400"></i>
-          <span class="font-medium">New Chat</span>
-        </button>
-
-        <div>
-          <div class="flex items-center justify-between px-2 mb-2">
-            <h3 class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Notebooks & Wiki</h3>
-            <button onclick="openWikiModal()" class="text-blue-400 text-xs hover:text-blue-300 transition flex items-center gap-1">
-              <i class="fa-solid fa-magnifying-glass"></i> Search
-            </button>
-          </div>
-
-          <div id="notebook-list" class="space-y-1"></div>
-        </div>
-      </div>
-
-      <div class="p-3 flex-1">
-        <div class="flex items-center justify-between px-2 mb-2">
-          <h3 class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Recent Chats</h3>
-          <button onclick="deleteCurrentChat()" class="text-gray-500 hover:text-red-400 transition text-xs" title="Delete Current">
-            <i class="fa-solid fa-trash"></i>
-          </button>
-        </div>
-
-        <div id="chat-list" class="space-y-1"></div>
-      </div>
+    <div class="p-3 border-b border-gray-800 space-y-3">
+      <button onclick="navigate('#chat/new')" class="w-full bg-[#2a2b2f] hover:bg-[#33353a] px-4 py-3 rounded-2xl text-left"><i class="fa-solid fa-plus mr-2"></i>New Chat</button>
+      <input id="chat-search" oninput="renderSidebar()" placeholder="Search chat names + contents..." class="w-full soft rounded-xl px-3 py-2 outline-none" />
     </div>
 
-    <div id="sidebar-console" class="border-t border-red-900/60 bg-[#1a1314] shrink-0">
-      <div class="bg-red-950/80 px-3 py-2 border-b border-red-900 flex justify-between items-center cursor-pointer" onclick="toggleConsoleBody()">
-        <span class="text-red-400 text-[11px] font-bold uppercase tracking-wider">
-          <i class="fa-solid fa-triangle-exclamation mr-1"></i>
-          Developer Console (<span id="err-count">0</span>)
-        </span>
-
-        <button class="text-red-400 hover:text-white transition">
-          <i class="fa-solid fa-chevron-down text-xs" id="console-chevron"></i>
-        </button>
+    <div class="p-3 border-b border-gray-800 space-y-2">
+      <div class="flex justify-between items-center px-2"><h3 class="text-[11px] font-bold text-gray-400 uppercase">Full Notebooks</h3><button onclick="openWikiModal()" class="text-blue-400 text-xs"><i class="fa-solid fa-search"></i> Wiki</button></div>
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="openNotebookEditor()" class="btn btn-gray text-xs"><i class="fa-solid fa-plus mr-1"></i>New Note</button>
+        <button onclick="openNotebookImport()" class="btn btn-gray text-xs"><i class="fa-solid fa-file-import mr-1"></i>Import</button>
+        <button onclick="exportNotebooks()" class="btn btn-gray text-xs"><i class="fa-solid fa-file-export mr-1"></i>Export</button>
+        <button onclick="document.getElementById('notebook-json-file').click()" class="btn btn-gray text-xs"><i class="fa-solid fa-upload mr-1"></i>Load JSON</button>
       </div>
+      <input id="notebook-json-file" type="file" accept="application/json" class="hidden" onchange="importNotebookJsonFile(event)" />
+      <input id="notebook-search" oninput="renderNotebooks()" placeholder="Search notebooks..." class="w-full soft rounded-xl px-3 py-2 outline-none" />
+      <div id="notebook-list" class="max-h-56 overflow-y-auto space-y-1"></div>
+    </div>
 
-      <div id="error-list" class="p-3 max-h-40 overflow-y-auto space-y-3 hidden bg-[#1a1314]">
-        <p class="text-[11px] text-gray-500 italic">No errors yet.</p>
-      </div>
+    <div class="p-3 flex-1 overflow-y-auto">
+      <div class="flex justify-between px-2 mb-2"><h3 class="text-[11px] font-bold text-gray-400 uppercase">Chats</h3><button onclick="deleteCurrentChat()" class="text-gray-500 hover:text-red-400"><i class="fa-solid fa-trash"></i></button></div>
+      <div id="chat-list" class="space-y-1"></div>
+    </div>
+
+    <div class="border-t border-red-900/60">
+      <div onclick="toggleConsoleBody()" class="bg-red-950/80 px-3 py-2 flex justify-between cursor-pointer"><span class="text-red-400 text-[11px] font-bold">Console (<span id="err-count">0</span>)</span><i id="console-chevron" class="fa-solid fa-chevron-down text-red-400 text-xs"></i></div>
+      <div id="error-list" class="hidden p-3 max-h-40 overflow-y-auto bg-[#1a1314]"><p class="text-[11px] text-gray-500 italic">No errors yet.</p></div>
     </div>
   </aside>
 
-  <main class="flex-1 flex w-full h-full relative overflow-hidden bg-[#131314]">
-
-    <div id="chat-area" class="flex-1 flex flex-col h-full relative min-w-0 border-r border-transparent">
-
-      <header class="h-14 flex items-center justify-between px-4 border-b border-gray-800 shrink-0 bg-[#131314]/90 backdrop-blur z-10">
-        <div class="flex items-center gap-3">
-          <button onclick="toggleSidebar()" class="mobile-only text-gray-400 hover:text-white p-1">
-            <i class="fa-solid fa-bars text-lg"></i>
-          </button>
-
-          <select id="model-select" class="bg-[#1e1f20] border border-gray-700 text-gray-200 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-1.5 outline-none font-medium cursor-pointer">
-            <option value="text">Spudzy Text</option>
-            <option value="video">Spudzy Video</option>
-          </select>
+  <main class="flex-1 flex min-w-0 h-full">
+    <section class="flex-1 flex flex-col relative min-w-0">
+      <header class="h-14 px-4 border-b border-gray-800 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
+          <button onclick="toggleSidebar()" class="mobile-only"><i class="fa-solid fa-bars"></i></button>
+          <select id="model-select" onchange="updateInputPlaceholder()" class="surface border border-gray-700 rounded-lg px-3 py-1.5 outline-none"><option value="text">Spudzy Text / HTML</option><option value="image">Spudzy Image</option><option value="video">Spudzy Video</option><option value="music">Spudzy Music</option></select>
+          <select id="music-signature" class="hidden surface border border-gray-700 rounded-lg px-3 py-1.5 outline-none"><option value="spudzy">spudzy</option><option value="chiptune">chiptune</option><option value="lofi">lofi</option><option value="trap">trap</option><option value="edm">edm</option><option value="ambient">ambient</option><option value="rock">rock</option></select>
         </div>
-
-        <div id="video-api-status" class="hidden text-[10px] text-gray-500 font-mono"></div>
+        <div id="api-status" class="text-[10px] text-gray-500 font-mono truncate"></div>
       </header>
 
-      <div id="chat-container" class="flex-1 overflow-y-auto p-4 desktop-chat-padding space-y-6 pb-40 scroll-smooth"></div>
+      <div id="chat-container" class="flex-1 overflow-y-auto p-4 desktop-pad space-y-6 pb-48"></div>
 
-      <div class="absolute bottom-0 w-full bg-gradient-to-t from-[#131314] via-[#131314] to-transparent pt-12 pb-4 px-4 desktop-chat-padding z-10">
-        <div class="surface rounded-[24px] p-2 flex flex-col shadow-xl border border-gray-700 focus-within:border-gray-500 focus-within:ring-1 focus-within:ring-gray-500 transition-all relative">
-
-          <textarea
-            id="message-input"
-            rows="1"
-            placeholder="Ask Spudzy or describe a video..."
-            class="w-full bg-transparent text-gray-100 px-4 pt-3 pb-2 outline-none resize-none max-h-40 min-h-[44px]"
-            oninput="autoResize(this)"
-          ></textarea>
-
-          <div class="flex justify-between items-center px-2 pb-1">
-            <div class="flex gap-1">
-              <button onclick="openNotebookImport()" class="text-gray-400 hover:text-blue-400 p-2 rounded-full hover:bg-blue-900/20 transition" title="Import Notebook">
-                <i class="fa-solid fa-book-journal-whills"></i>
-              </button>
-            </div>
-
-            <button id="send-btn" onclick="sendMessage()" class="bg-[#2a2b2f] text-gray-400 p-2 rounded-full w-9 h-9 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all disabled:opacity-50 disabled:hover:bg-[#2a2b2f] disabled:cursor-not-allowed">
-              <i class="fa-solid fa-arrow-up"></i>
-            </button>
+      <div class="absolute bottom-0 w-full bg-gradient-to-t from-[#131314] via-[#131314] to-transparent pt-12 pb-4 px-4 desktop-pad">
+        <div class="surface rounded-[24px] p-2 border border-gray-700">
+          <textarea id="message-input" rows="1" oninput="autoResize(this)" class="w-full bg-transparent outline-none resize-none max-h-40 min-h-[44px] px-4 pt-3" placeholder="Ask Spudzy or paste escaped HTML..."></textarea>
+          <textarea id="lyrics-input" rows="3" class="hidden w-full bg-[#131314] border border-gray-700 rounded-xl px-4 py-2 mb-2" placeholder="Optional lyrics for music mode..."></textarea>
+          <div class="flex justify-between px-2 pb-1">
+            <div class="flex gap-1"><button onclick="openAssetLibrary()" class="text-gray-400 hover:text-blue-400 p-2" title="Asset Library"><i class="fa-solid fa-box-archive"></i></button><button onclick="saveCurrentPromptAsNotebook()" class="text-gray-400 hover:text-blue-400 p-2" title="Save prompt to notebook"><i class="fa-solid fa-bookmark"></i></button></div>
+            <button id="send-btn" onclick="sendMessage()" class="bg-blue-600 text-white rounded-full w-9 h-9 disabled:opacity-50"><i class="fa-solid fa-arrow-up"></i></button>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div id="preview-area" class="hidden fixed inset-0 z-50 flex-col bg-white text-gray-800 shadow-2xl transition-all border-l border-gray-300">
-
-      <div class="h-14 flex items-center justify-between px-3 border-b border-gray-200 shrink-0 bg-gray-50">
-        <div class="flex items-center gap-2 overflow-hidden">
-          <button onclick="closeHtmlPreview()" class="text-gray-500 hover:text-gray-900 p-2 rounded-full hover:bg-gray-200 transition shrink-0">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
-            </svg>
-          </button>
-
-          <div class="flex flex-col min-w-0">
-            <span id="preview-title" class="font-semibold text-sm truncate max-w-[150px] desktop-preview-title">index.html</span>
-            <span class="text-[10px] text-gray-400 font-mono">Live Preview</span>
-          </div>
-        </div>
-
-        <div class="desktop-only hidden items-center gap-1">
-          <button onclick="togglePreviewCode()" id="toggle-code-btn" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md font-medium transition">
-            <i class="fa-solid fa-code mr-1"></i> Code
-          </button>
-
-          <button onclick="copyPreviewCode()" id="copy-code-btn" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md font-medium transition">
-            <i class="fa-regular fa-copy mr-1"></i> Copy
-          </button>
-
-          <button onclick="shareHtml()" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md font-medium transition">
-            <i class="fa-solid fa-share-nodes"></i>
-          </button>
-
-          <button onclick="fullscreenPreview()" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md font-medium transition">
-            <i class="fa-solid fa-expand"></i>
-          </button>
-        </div>
-
-        <div class="mobile-only relative hidden">
-          <button onclick="toggleMobileMenu()" class="p-2 text-gray-600 hover:bg-gray-200 rounded-full">
-            <i class="fa-solid fa-ellipsis-vertical px-1"></i>
-          </button>
-
-          <div id="mobile-preview-menu" class="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl hidden flex-col w-36 py-1 z-50">
-            <button onclick="togglePreviewCode(); toggleMobileMenu()" id="mobile-toggle-code" class="text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-              <i class="fa-solid fa-code w-5 text-gray-400"></i> View Code
-            </button>
-
-            <button onclick="copyPreviewCode(); toggleMobileMenu()" class="text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-              <i class="fa-regular fa-copy w-5 text-gray-400"></i> Copy HTML
-            </button>
-
-            <button onclick="shareHtml(); toggleMobileMenu()" class="text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-              <i class="fa-solid fa-share-nodes w-5 text-gray-400"></i> Share
-            </button>
-
-            <button onclick="fullscreenPreview(); toggleMobileMenu()" class="text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-              <i class="fa-solid fa-expand w-5 text-gray-400"></i> Fullscreen
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex-1 relative w-full h-full bg-white" id="preview-wrapper">
-        <iframe id="preview-frame" class="w-full h-full border-none" sandbox="allow-scripts allow-modals"></iframe>
-
-        <div id="code-view" class="hidden absolute inset-0 bg-[#1e1f20] text-gray-300 p-4 overflow-auto text-xs shadow-inner">
-          <pre><code id="code-content"></code></pre>
-        </div>
-      </div>
-    </div>
+    <aside id="asset-sidebar" class="surface w-96 h-full flex flex-col absolute right-0 z-30 transform translate-x-full border-l border-gray-800 shrink-0">
+      <div class="p-4 border-b border-gray-800 flex justify-between"><div><h2 class="font-bold">Asset Library</h2><p class="text-[10px] text-gray-500">Regenerates every chat revisit • no stored data links</p></div><button onclick="closeAssetLibrary()"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="p-3 space-y-2 border-b border-gray-800"><input id="asset-search" oninput="renderAssetLibrary()" placeholder="Search item, prompt, group, chat..." class="w-full soft rounded-xl px-3 py-2"/><select id="asset-type-filter" onchange="renderAssetLibrary()" class="w-full soft rounded-xl px-3 py-2"><option value="all">All assets</option><option value="image">Images</option><option value="music">Music</option><option value="video">Videos</option><option value="html">HTML</option></select><button onclick="rebuildAssetLibrary(); regenerateCurrentChatAssets(true)" class="w-full bg-blue-600 rounded-xl px-3 py-2 font-bold">Rescan + Force Regenerate</button></div>
+      <div id="asset-list" class="flex-1 overflow-y-auto p-3 space-y-3"></div>
+    </aside>
   </main>
 
-  <div id="wiki-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center hidden p-4">
-    <div class="surface w-full max-w-lg rounded-2xl shadow-2xl border border-gray-700 flex flex-col max-h-[85vh]">
-      <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-[#131314] rounded-t-2xl">
-        <h2 class="text-lg font-semibold">
-          <i class="fa-brands fa-wikipedia-w mr-2 text-gray-400"></i>Wiki Research
-        </h2>
+  <div id="preview-modal" class="fixed inset-0 bg-black/80 backdrop-blur z-[70] hidden items-center justify-center p-4"><div class="glass rounded-2xl w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden"><div class="p-4 border-b border-gray-700 flex justify-between"><div><h3 id="preview-title" class="font-bold">Preview</h3><p id="preview-subtitle" class="text-xs text-gray-400"></p></div><button onclick="closePreview()"><i class="fa-solid fa-xmark"></i></button></div><div id="preview-body" class="p-4 overflow-y-auto"></div></div></div>
 
-        <button onclick="closeWikiModal()" class="text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 w-8 h-8 rounded-full flex items-center justify-center transition">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
+  <div id="wiki-modal" class="fixed inset-0 bg-black/80 backdrop-blur z-[75] hidden items-center justify-center p-4"><div class="surface w-full max-w-2xl rounded-2xl border border-gray-700 max-h-[85vh] flex flex-col"><div class="p-4 border-b border-gray-700 flex justify-between"><h2 class="font-bold"><i class="fa-brands fa-wikipedia-w mr-2"></i>Wiki Research</h2><button onclick="closeWikiModal()"><i class="fa-solid fa-xmark"></i></button></div><div class="p-4"><div class="flex gap-2 soft rounded-xl p-1"><input id="wiki-search-input" class="flex-1 bg-transparent px-3 outline-none" placeholder="Search a topic..."/><button onclick="searchWiki()" class="bg-blue-600 px-4 py-2 rounded-lg"><i class="fa-solid fa-search"></i></button></div></div><div id="wiki-results" class="flex-1 overflow-y-auto p-4"><p class="text-center text-gray-500 mt-8">Search Wikipedia to build notebooks.</p></div></div></div>
 
-      <div class="p-4 bg-[#1e1f20]">
-        <div class="flex gap-2 bg-[#131314] p-1 rounded-xl border border-gray-700 focus-within:border-blue-500 transition-colors">
-          <input type="text" id="wiki-search-input" placeholder="Search a topic..." class="flex-1 bg-transparent text-white px-3 py-2 outline-none">
+  <div id="import-modal" class="fixed inset-0 bg-black/80 backdrop-blur z-[75] hidden items-center justify-center p-4"><div class="surface w-full max-w-md rounded-2xl border border-gray-700 max-h-[75vh] flex flex-col"><div class="p-4 border-b border-gray-700 flex justify-between"><h2 class="font-bold">Import Notebook</h2><button onclick="closeNotebookImport()"><i class="fa-solid fa-xmark"></i></button></div><div id="import-list" class="flex-1 overflow-y-auto p-2"></div></div></div>
 
-          <button onclick="searchWiki()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white font-medium transition">
-            <i class="fa-solid fa-magnifying-glass"></i>
-          </button>
-        </div>
-      </div>
+  <div id="notebook-editor-modal" class="fixed inset-0 bg-black/80 backdrop-blur z-[80] hidden items-center justify-center p-4"><div class="surface w-full max-w-2xl rounded-2xl border border-gray-700 max-h-[86vh] flex flex-col"><div class="p-4 border-b border-gray-700 flex justify-between"><h2 id="note-editor-title" class="font-bold">Notebook</h2><button onclick="closeNotebookEditor()"><i class="fa-solid fa-xmark"></i></button></div><div class="p-4 space-y-3"><input id="note-title-input" class="w-full soft rounded-xl px-3 py-2" placeholder="Notebook title"/><textarea id="note-content-input" rows="12" class="w-full soft rounded-xl px-3 py-2" placeholder="Notebook content"></textarea><input id="note-tags-input" class="w-full soft rounded-xl px-3 py-2" placeholder="tags, comma separated"/><div class="flex gap-2"><button onclick="saveNotebookFromEditor()" class="btn btn-blue">Save Notebook</button><button onclick="closeNotebookEditor()" class="btn btn-gray">Cancel</button></div></div></div></div>
 
-      <div id="wiki-results" class="flex-1 overflow-y-auto p-4 bg-[#1e1f20] rounded-b-2xl">
-        <div class="text-center text-gray-500 mt-8 flex flex-col items-center">
-          <i class="fa-solid fa-book-open-reader text-4xl mb-3 opacity-20"></i>
-          <p>Search Wikipedia to build your notebooks.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="import-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center hidden p-4">
-    <div class="surface w-full max-w-sm rounded-2xl shadow-2xl border border-gray-700 flex flex-col max-h-[70vh] overflow-hidden">
-      <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-[#131314]">
-        <h2 class="font-semibold">
-          <i class="fa-solid fa-download mr-2 text-blue-400"></i>Import to Chat
-        </h2>
-
-        <button onclick="closeNotebookImport()" class="text-gray-400 hover:text-white">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div id="import-list" class="flex-1 overflow-y-auto p-2 bg-[#1e1f20]"></div>
-    </div>
-  </div>
-
+  <script type="module">import { ImageSpudHighPriest } from "https://alaricholt677.github.io/PKGS/Image-spud/Imagener.js"; window.ImageSpudHighPriest = ImageSpudHighPriest;</script>
   <script>
-    let errorCount = 0;
-    const errList = document.getElementById('error-list');
-    const errCountBadge = document.getElementById('err-count');
+    const IMAGE_URL="https://alaricholt677.github.io/PKGS/Image-spud/Imagener.js", CHAT_KEY="spudzy_v5_chats", ASSET_KEY="spudzy_v5_assets", NOTE_KEY="spudzy_v5_notebooks", TAU=Math.PI*2;
+    let chats=safeJson(localStorage.getItem(CHAT_KEY),[]), assets=safeJson(localStorage.getItem(ASSET_KEY),[]), notebooks=safeJson(localStorage.getItem(NOTE_KEY),[]), currentChatId=null, imagePriest=null, spudzyTextApi=null, isWaiting=false, isRegeneratingAssets=false, errorCount=0, editingNotebookId=null, lastRegeneratedChatId=null;
+    const runtimeAssetUrls = new Map(); // transient only: regenerated image/audio/video URLs are not persisted
+    try{ if(window.Spudzy) spudzyTextApi=new Spudzy(); }catch(e){console.warn(e)}
 
-    function logErrorToConsole(msg, source = "System") {
-      errorCount++;
-      errCountBadge.innerText = errorCount;
+    function safeJson(raw,fallback){try{return raw?JSON.parse(raw):fallback}catch{return fallback}} function uid(p="id"){return p+"_"+Date.now()+"_"+Math.random().toString(36).slice(2,8)} function clamp(v,a,b){return Math.max(a,Math.min(b,v))} function esc(s){return String(s??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]))} function escAttr(s){return esc(s)} function stripGeneratedLinks(obj){const copy=JSON.parse(JSON.stringify(obj));const wipe=o=>{if(!o||typeof o!=='object')return;if(Array.isArray(o)){o.forEach(wipe);return;}for(const k of Object.keys(o)){if(['imageUrl','coverUrl','audioUrl','videoUrl'].includes(k))delete o[k];else wipe(o[k]);}};wipe(copy);return copy} function saveAll(){localStorage.setItem(CHAT_KEY,JSON.stringify(stripGeneratedLinks(chats)));localStorage.setItem(ASSET_KEY,JSON.stringify(stripGeneratedLinks(assets)));localStorage.setItem(NOTE_KEY,JSON.stringify(notebooks))} function getCurrentChat(){return chats.find(c=>c.id===currentChatId)} function setRuntimeUrl(id,key,value){if(!id)return;const cur=runtimeAssetUrls.get(id)||{};cur[key]=value;runtimeAssetUrls.set(id,cur)} function getRuntimeUrl(id,key,fallback=''){return (runtimeAssetUrls.get(id)||{})[key]||fallback}
+    function logError(msg){errorCount++;document.getElementById('err-count').textContent=errorCount;const l=document.getElementById('error-list');if(l.textContent.includes('No errors'))l.innerHTML='';l.insertAdjacentHTML('beforeend',`<div class="border-l-2 border-red-500 pl-3 py-1"><p class="text-red-400 text-xs font-mono break-words">${esc(msg)}</p></div>`);toggleConsoleBody(true)} window.onerror=(m,u,line)=>{logError(`Line ${line}: ${m}`);return false}; window.addEventListener('unhandledrejection',e=>logError('Promise: '+e.reason));
 
-      if (
-        errList.children.length === 1 &&
-        errList.children[0].innerText.includes("No errors yet")
-      ) {
-        errList.innerHTML = "";
+    function init(){rebuildAssetLibrary();updateApiStatus();updateInputPlaceholder();window.addEventListener('hashchange',handleRouting);document.getElementById('message-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}}); if(!location.hash) navigate(chats.length?'#chat/'+chats[0].id:'#chat/new'); else handleRouting()} function updateApiStatus(){document.getElementById('api-status').textContent=`Text ${window.Spudzy?'loaded':'missing'} • Image ${window.ImageSpudHighPriest?'loaded':'loading'} • Music ${window.SpudzyMusicAI?'loaded':'missing'}`; if(!window.ImageSpudHighPriest)setTimeout(updateApiStatus,700)}
+    function updateInputPlaceholder(){const m=document.getElementById('model-select').value;document.getElementById('lyrics-input').classList.toggle('hidden',m!=='music');document.getElementById('music-signature').classList.toggle('hidden',m!=='music');document.getElementById('message-input').placeholder=m==='image'?'Describe an image...':m==='video'?'Describe a video...':m==='music'?'Describe a song...':'Ask Spudzy or paste escaped HTML...'}
+    function navigate(h){location.hash=h} function handleRouting(){if(location.hash==='#chat/new')return createChat(); if(location.hash.startsWith('#chat/')){const id=location.hash.replace('#chat/','');if(chats.find(c=>c.id===id)){currentChatId=id;renderAll();setTimeout(()=>regenerateCurrentChatAssets(true),80)}else navigate(chats.length?'#chat/'+chats[0].id:'#chat/new')}} function createChat(){const c={id:uid('chat'),title:'New Conversation',messages:[]};chats.unshift(c);currentChatId=c.id;saveAll();location.hash='#chat/'+c.id;renderAll()} function deleteCurrentChat(){if(chats.length<=1)return alert('Cannot delete your only chat.');if(confirm('Delete this chat?')){chats=chats.filter(c=>c.id!==currentChatId);currentChatId=chats[0].id;saveAll();navigate('#chat/'+currentChatId)}}
+    function renderAll(){renderSidebar();renderNotebooks();renderChat();renderAssetLibrary()} function renderSidebar(){const q=(document.getElementById('chat-search')?.value||'').toLowerCase(),list=document.getElementById('chat-list');const f=chats.filter(c=>!q||c.title.toLowerCase().includes(q)||JSON.stringify(c.messages).toLowerCase().includes(q));list.innerHTML=f.map(c=>`<button onclick="navigate('#chat/${c.id}')" class="w-full text-left px-3 py-2.5 rounded-xl truncate ${c.id===currentChatId?'bg-[#33353a] text-white':'text-gray-400 hover:bg-[#2a2b2f]'}"><i class="fa-regular fa-message mr-2"></i>${esc(c.title)}</button>`).join('')||'<p class="text-xs text-gray-500 p-2">No chats found.</p>'}
+    function renderChat(){const box=document.getElementById('chat-container'),chat=getCurrentChat();box.innerHTML='';if(!chat)return;if(!chat.messages.length){box.innerHTML='<div class="h-full flex flex-col items-center justify-center text-gray-400"><div class="text-5xl mb-4">✨</div><h2 class="text-2xl text-gray-200 font-bold">Hello.</h2><p>Choose Text/HTML, Image, Video, or Music.</p></div>';return} chat.messages.forEach(m=>{const row=document.createElement('div');row.className='mb-4';row.innerHTML=m.role==='user'?`<div class="bg-[#2a2b2f] px-5 py-3 rounded-3xl rounded-br-md max-w-[85%] ml-auto whitespace-pre-wrap">${esc(m.text)}</div>`:`<div class="flex gap-3"><div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center shrink-0"><i class="fa-solid fa-sparkles text-xs"></i></div><div class="flex-1 min-w-0">${renderAi(m)}</div></div>`;box.appendChild(row)});box.scrollTo({top:box.scrollHeight,behavior:'smooth'})}
+    function renderAi(m){if(m.type==='image')return`<div data-msg-id="${m.id}" class="space-y-3"><p>${esc(m.text)}</p><div data-regen-status class="hidden text-xs text-blue-300">Regenerating image...</div><img data-regenerated-image src="${getRuntimeUrl(m.assetId,'imageUrl',m.imageUrl||'')}" class="max-w-sm w-full rounded-2xl border border-gray-700 bg-black"><div class="flex gap-2"><button onclick="previewAsset('${m.assetId}')" class="btn btn-gray text-xs">Preview</button><a data-image-download href="${getRuntimeUrl(m.assetId,'imageUrl',m.imageUrl||'')}" download="spudzy-image.png" class="btn btn-blue text-xs">Download</a></div></div>`; if(m.type==='music')return musicPlayer(m); if(m.type==='html')return`<div class="bg-[#1e1f20] border border-gray-700 rounded-2xl p-3 max-w-sm"><p class="font-semibold">${esc(m.title||'HTML Asset')}</p><p class="text-xs text-gray-400 mt-1">${esc(m.text||'HTML app saved. Canvas fixed if needed.')}</p><div class="flex gap-2 mt-2"><button onclick="previewAsset('${m.assetId}')" class="btn btn-blue text-xs">Live Preview</button><button onclick="downloadHtmlAsset('${m.assetId}')" class="btn btn-gray text-xs">Download HTML</button></div></div>`; if(m.type==='video')return`<div><p>${esc(m.text||'Video asset created.')}</p><div id="vid-${m.id}" class="max-w-sm aspect-video bg-black rounded-2xl border border-gray-700 flex items-center justify-center text-blue-300">Generating video...</div></div>`;return`<div class="whitespace-pre-wrap text-gray-300">${esc(m.text)}</div>`}
+    function musicPlayer(m){return`<div class="glass rounded-[28px] p-4 max-w-xl" data-msg-id="${m.id}"><div data-regen-status class="hidden text-xs text-blue-300 mb-2">Regenerating cover + music...</div><div class="flex gap-4"><img data-regenerated-cover src="${getRuntimeUrl(m.assetId,'coverUrl',m.coverUrl||'')}" class="w-28 h-28 rounded-2xl object-cover"><div class="flex-1 min-w-0"><p class="text-[10px] uppercase tracking-widest text-blue-300 font-bold">Spudzy Music AI</p><h3 class="text-xl font-bold truncate">${esc(m.title)}</h3><p class="text-xs text-gray-400 truncate">${esc(m.prompt)}</p><audio data-regenerated-audio src="${getRuntimeUrl(m.assetId,'audioUrl',m.audioUrl||'')}" controls class="w-full mt-3"></audio></div></div><div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2"><button onclick="playMusicAsset('${m.assetId}')" class="btn btn-blue text-xs">Play Live</button><a href="${getRuntimeUrl(m.assetId,'audioUrl',m.audioUrl||'')}" download="${esc(m.title)}.wav" class="btn btn-gray text-xs text-center">Music</a><a href="${getRuntimeUrl(m.assetId,'coverUrl',m.coverUrl||'')}" download="${esc(m.title)}-cover.png" class="btn btn-gray text-xs text-center">Cover</a><button onclick="downloadMusicBundle('${m.assetId}')" class="btn btn-purple text-xs">Cover + Music MP4</button></div></div>`}
+
+    async function sendMessage(){const input=document.getElementById('message-input'),text=input.value.trim();if(!text||isWaiting)return;const mode=document.getElementById('model-select').value,chat=getCurrentChat();if(!chat)return;if(!chat.messages.length)chat.title=text.slice(0,32)+(text.length>32?'...':'');chat.messages.push({id:uid('msg'),role:'user',text});input.value='';autoResize(input);isWaiting=true;document.getElementById('send-btn').disabled=true;saveAll();renderChat();try{if(mode==='image')await handleImage(text,chat);else if(mode==='music')await handleMusic(text,chat);else if(mode==='video')await handleVideo(text,chat);else await handleText(text,chat)}catch(e){console.error(e);chat.messages.push({id:uid('msg'),role:'ai',type:'text',text:'Error: '+e.message})}finally{isWaiting=false;document.getElementById('send-btn').disabled=false;saveAll();rebuildAssetLibrary();renderAll()}}
+    async function getImagePriest(){if(!window.ImageSpudHighPriest){const mod=await import(IMAGE_URL);window.ImageSpudHighPriest=mod.ImageSpudHighPriest||mod.default} if(!imagePriest)imagePriest=new window.ImageSpudHighPriest();return imagePriest}
+    async function handleImage(prompt,chat){const r=await(await getImagePriest()).generate(prompt),imageUrl=r.dataUri||r;const a=addAsset({type:'image',name:prompt.slice(0,40)||'Image',group:'images',prompt,chatId:chat.id,meta:r.promptSpec||{},regen:{kind:'image',prompt}});setRuntimeUrl(a.id,'imageUrl',imageUrl);chat.messages.push({id:uid('msg'),role:'ai',type:'image',text:'Image generated and saved to Asset Library. It will regenerate on revisit.',prompt,assetId:a.id})}
+    async function handleMusic(prompt,chat){const lyrics=document.getElementById('lyrics-input').value.trim(),signature=document.getElementById('music-signature').value;const result=await generateMusicAsset(prompt,lyrics,signature);const a=addAsset({type:'music',name:result.name,group:'music',prompt,lyrics,signature,chatId:chat.id,meta:result.meta,regen:result.regen});setRuntimeUrl(a.id,'coverUrl',result.coverUrl);setRuntimeUrl(a.id,'audioUrl',result.audioUrl);chat.messages.push({id:uid('msg'),role:'ai',type:'music',title:result.name,prompt,lyrics,signature,assetId:a.id})}
+    async function handleVideo(prompt,chat){const a=addAsset({type:'video',name:prompt.slice(0,40)||'Video',group:'videos',prompt,chatId:chat.id,videoUrl:null,regen:{kind:'video',prompt}});const id=uid('msg');chat.messages.push({id,role:'ai',type:'video',text:'Video requested and saved as an asset placeholder.',data:prompt,assetId:a.id});setTimeout(()=>generateVideoInto(a.id,prompt),150)}
+    async function handleText(prompt,chat){let response=prompt;if(spudzyTextApi?.respond&&!parseHtmlResponse(prompt))response=await spudzyTextApi.respond(prompt);const parsed=parseHtmlResponse(response);if(parsed?.html){const fixed=fixGeneratedHtml(parsed.html),title=extractHtmlTitle(fixed);const a=addAsset({type:'html',name:title,group:'html',prompt,chatId:chat.id,html:fixed,text:parsed.text||'HTML app generated.',regen:{kind:'html',source:parsed.html,prompt}});chat.messages.push({id:uid('msg'),role:'ai',type:'html',title,text:'HTML app saved. Canvas was fixed if the code referenced demoCanvas.',html:fixed,assetId:a.id})}else chat.messages.push({id:uid('msg'),role:'ai',type:'text',text:response})}
+
+    function decodeMaybeEscapedHtml(raw){let t=String(raw||'').replace(/<br\s*\/?\s*>/gi,'\n');const ta=document.createElement('textarea');ta.innerHTML=t;return ta.value} function parseHtmlResponse(raw){const d=decodeMaybeEscapedHtml(raw);const f=d.match(/```html\s*([\s\S]*?)```/i);if(f)return{html:f[1].trim(),text:d.replace(f[0],'').trim()};const doc=d.match(/<!DOCTYPE html>[\s\S]*?<\/html>/i);if(doc)return{html:doc[0].trim(),text:d.replace(doc[0],'').trim()};const tag=d.match(/<html[\s\S]*?<\/html>/i);if(tag)return{html:'<!DOCTYPE html>\n'+tag[0].trim(),text:d.replace(tag[0],'').trim()};return null} function extractHtmlTitle(h){return (String(h).match(/<title>(.*?)<\/title>/i)||[])[1]||'index.html'}
+    function fixGeneratedHtml(input){let code=decodeMaybeEscapedHtml(input).trim();if(!/^<!DOCTYPE html>/i.test(code))code='<!DOCTYPE html>\n'+code;if(code.includes('getElementById("demoCanvas")')&&!/id=["']demoCanvas["']/i.test(code)){const sec='\n<section class="section" id="demo">\n  <h2 class="section-title">Live Canvas Demo</h2>\n  <p class="section-lead">This canvas was added because the script references demoCanvas.</p>\n  <div class="canvas-wrap"><canvas id="demoCanvas"></canvas></div>\n</section>\n';if(code.includes('<section class="section" id="contact">'))code=code.replace('<section class="section" id="contact">',sec+'\n<section class="section" id="contact">');else if(code.includes('<footer>'))code=code.replace('<footer>',sec+'\n<footer>');else code=code.replace('</body>',sec+'\n</body>')}return code}
+    function addAsset(asset){const full={id:uid('asset'),createdAt:Date.now(),updatedAt:Date.now(),...asset};assets.unshift(full);saveAll();return full} function rebuildAssetLibrary(){const known=new Set(assets.map(a=>a.id));for(const c of chats)for(const m of c.messages||[])if(m.assetId&&!known.has(m.assetId))assets.push({id:m.assetId,type:m.type,name:m.title||m.text||'Recovered Asset',group:m.type+'s',chatId:c.id,createdAt:Date.now(),updatedAt:Date.now(),html:m.html,prompt:m.prompt||m.text||'',regen:{kind:m.type,prompt:m.prompt||m.text||''}});saveAll();renderAssetLibrary()}
+    function renderAssetLibrary(){const q=(document.getElementById('asset-search')?.value||'').toLowerCase(),type=document.getElementById('asset-type-filter')?.value||'all',list=document.getElementById('asset-list');if(!list)return;const found=assets.filter(a=>(type==='all'||a.type===type)&&(!q||JSON.stringify(a).toLowerCase().includes(q)||(chats.find(c=>c.id===a.chatId)?.title||'').toLowerCase().includes(q)));list.innerHTML=found.map(assetCard).join('')||'<p class="text-xs text-gray-500 p-2">No assets found.</p>'} function assetCard(a){const chatName=chats.find(c=>c.id===a.chatId)?.title||'Unknown chat',thumb=a.type==='music'?getRuntimeUrl(a.id,'coverUrl',a.coverUrl||''):a.type==='image'?getRuntimeUrl(a.id,'imageUrl',a.imageUrl||''):'';return`<div onclick="previewAsset('${a.id}')" class="asset-card cursor-pointer rounded-2xl border border-gray-700 p-3 bg-[#17181b]"><div class="flex gap-3">${thumb?`<img src="${thumb}" class="w-14 h-14 rounded-xl object-cover bg-black">`:`<div class="w-14 h-14 rounded-xl bg-gray-800 flex items-center justify-center"><i class="fa-solid fa-${a.type==='video'?'video':a.type==='html'?'code':'box'}"></i></div>`}<div class="min-w-0"><p class="font-semibold truncate">${esc(a.name)}</p><p class="text-[10px] text-gray-500 truncate">${esc(a.group)} • ${esc(chatName)}</p><p class="text-xs text-gray-400 truncate">${esc(a.prompt||'')}</p></div></div></div>`}
+    function previewAsset(id){const a=assets.find(x=>x.id===id);if(!a)return;document.getElementById('preview-title').textContent=a.name||'Asset';document.getElementById('preview-subtitle').textContent=`${a.type} • ${a.group||''} • updated ${new Date(a.updatedAt||a.createdAt).toLocaleTimeString()}`;const b=document.getElementById('preview-body');if(a.type==='image')b.innerHTML=`<img src="${getRuntimeUrl(a.id,'imageUrl',a.imageUrl||'')}" class="w-full rounded-2xl bg-black"><a href="${getRuntimeUrl(a.id,'imageUrl',a.imageUrl||'')}" download="${esc(a.name)}.png" class="inline-block mt-3 btn btn-blue">Download Image</a>`;else if(a.type==='music')b.innerHTML=musicPlayer({...a,assetId:a.id,title:a.name});else if(a.type==='html')b.innerHTML=`<div class="space-y-3"><div class="flex gap-2"><button onclick="downloadHtmlAsset('${a.id}')" class="btn btn-blue">Download HTML</button><button onclick="copyHtmlAsset('${a.id}')" class="btn btn-gray">Copy Code</button></div><iframe sandbox="allow-scripts allow-modals allow-forms allow-same-origin" srcdoc="${escAttr(a.html||'')}" class="w-full h-[70vh] bg-white rounded-2xl border border-gray-700"></iframe></div>`;else if(a.type==='video')b.innerHTML=a.videoUrl?`<video src="${a.videoUrl}" controls class="w-full rounded-2xl bg-black"></video>`:'<p>Video placeholder. It will regenerate when the video library is available.</p>';else b.innerHTML=`<pre>${esc(JSON.stringify(a,null,2))}</pre>`;document.getElementById('preview-modal').classList.remove('hidden');document.getElementById('preview-modal').classList.add('flex')}
+    function closePreview(){document.getElementById('preview-modal').classList.add('hidden');document.getElementById('preview-modal').classList.remove('flex')} function openAssetLibrary(){document.getElementById('asset-sidebar').classList.remove('translate-x-full');renderAssetLibrary()} function closeAssetLibrary(){document.getElementById('asset-sidebar').classList.add('translate-x-full')}
+    function downloadHtmlAsset(id){const a=assets.find(x=>x.id===id);if(!a)return;const url=URL.createObjectURL(new Blob([a.html||''],{type:'text/html'}));const link=document.createElement('a');link.href=url;link.download=makeSafeFilename(a.name||'index')+'.html';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)} async function copyHtmlAsset(id){const a=assets.find(x=>x.id===id);if(a)await navigator.clipboard.writeText(a.html||'')}
+
+    async function generateMusicAsset(prompt,lyrics,signature){let coverUrl=createFallbackCover(prompt,signature),coverSpec={fallback:true};try{const cover=await(await getImagePriest()).generate('album cover art for '+prompt,{width:768,height:768});coverUrl=cover.dataUri||coverUrl;coverSpec=cover.promptSpec||coverSpec}catch(e){console.warn(e)}const audioUrl=await createProceduralWav(prompt,lyrics,signature);try{window.SpudzyMusicAI?.play({prompt,signature,lyrics})}catch{}const title=titleFromPrompt(prompt,'Spudzy Track');return{type:'music',name:title,group:'music',prompt,lyrics,signature,coverUrl,audioUrl,meta:{coverSpec},regen:{kind:'music',prompt,lyrics,signature}}}
+    function createFallbackCover(prompt,signature){const c=document.createElement('canvas');c.width=768;c.height=768;const x=c.getContext('2d'),seed=hashCode(prompt+signature),r=seed&255,g=(seed>>8)&255,b=(seed>>16)&255;const gr=x.createLinearGradient(0,0,768,768);gr.addColorStop(0,`rgb(${r},${g},${b})`);gr.addColorStop(1,`rgb(${(b+90)%255},${(r+120)%255},${(g+150)%255})`);x.fillStyle=gr;x.fillRect(0,0,768,768);x.fillStyle='rgba(0,0,0,.38)';x.fillRect(0,0,768,768);x.fillStyle='white';x.font='bold 54px system-ui';x.textAlign='center';wrapCanvasText(x,titleFromPrompt(prompt,'Spudzy Track'),384,340,620,60);x.font='24px system-ui';x.fillText('Spudzy Music • '+signature,384,520);return c.toDataURL('image/png',.96)} function wrapCanvasText(ctx,text,x,y,max,lineH){let line='';for(const w of String(text).split(/\s+/)){const test=line?line+' '+w:w;if(ctx.measureText(test).width>max&&line){ctx.fillText(line,x,y);line=w;y+=lineH}else line=test}if(line)ctx.fillText(line,x,y)}
+    async function createProceduralWav(prompt,lyrics,signature){const sr=44100,sec=12,total=sr*sec,data=new Float32Array(total),seed=hashCode(prompt+lyrics+signature),bpm=signature==='lofi'?78:signature==='edm'?128:signature==='trap'?144:signature==='ambient'?64:118,beat=60/bpm,root=220*Math.pow(2,(seed%12)/12),scale=[0,2,3,5,7,8,10,12];for(let i=0;i<total;i++){const t=i/sr,bar=Math.floor(t/(beat*4)),step=Math.floor((t/beat)*2)%8,note=root*Math.pow(2,scale[(step+bar)%scale.length]/12);let v=0;v+=Math.sin(TAU*note*t)*.12*envBeat(t,beat*.9);v+=Math.sin(TAU*(root/2)*t)*.18*envBeat(t,beat*1.8);if(signature!=='ambient')v+=kick(t,beat)*.45+hat(t,beat)*.08;if(signature==='chiptune')v+=Math.sign(Math.sin(TAU*note*2*t))*.05*envBeat(t,beat*.45);data[i]=clamp(v,-.95,.95)}return wavDataUri(data,sr,1)} function envBeat(t,l){return Math.exp(-((t%l)/l)*4)} function kick(t,beat){const x=t%beat;return x<.15?Math.sin(TAU*(90-50*x/.15)*t)*Math.exp(-x*24):0} function hat(t,beat){const x=t%(beat/2);return x<.025?(Math.random()*2-1)*Math.exp(-x*80):0} function hashCode(s){let h=0;for(let i=0;i<String(s).length;i++)h=(Math.imul(31,h)+String(s).charCodeAt(i))|0;return h>>>0} function wavDataUri(samples,sr,ch){const bytes=new ArrayBuffer(44+samples.length*2),v=new DataView(bytes);writeStr(v,0,'RIFF');v.setUint32(4,36+samples.length*2,true);writeStr(v,8,'WAVE');writeStr(v,12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,ch,true);v.setUint32(24,sr,true);v.setUint32(28,sr*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);writeStr(v,36,'data');v.setUint32(40,samples.length*2,true);let o=44;for(const s of samples){v.setInt16(o,clamp(s,-1,1)*32767,true);o+=2}let bin='';const u8=new Uint8Array(bytes);for(let i=0;i<u8.length;i+=0x8000){bin+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000))}return URL.createObjectURL(new Blob([bytes],{type:'audio/wav'}))} function writeStr(v,o,s){for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))} function titleFromPrompt(p,f){return(p||f).split(/\s+/).slice(0,6).join(' ')||f}
+    async function downloadMusicBundle(id){const a=assets.find(x=>x.id===id);if(!a)return;try{const r=await createCoverMusicMp4({...a,coverUrl:getRuntimeUrl(a.id,'coverUrl',a.coverUrl||''),audioUrl:getRuntimeUrl(a.id,'audioUrl',a.audioUrl||'')}),link=document.createElement('a');link.href=r.url;link.download=`${makeSafeFilename(a.name||'spudzy-music')}.${r.extension}`;link.click();setTimeout(()=>URL.revokeObjectURL(r.url),4000)}catch(e){alert('Cover + music video export failed: '+e.message)}} async function createCoverMusicMp4(a){if(!window.MediaRecorder)throw new Error('MediaRecorder not supported');const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=720;const ctx=canvas.getContext('2d'),AC=window.AudioContext||window.webkitAudioContext,audioCtx=new AC(),res=await fetch(a.audioUrl),buf=await audioCtx.decodeAudioData(await res.arrayBuffer()),dest=audioCtx.createMediaStreamDestination(),src=audioCtx.createBufferSource();src.buffer=buf;src.connect(dest);const stream=new MediaStream([...canvas.captureStream(30).getVideoTracks(),...dest.stream.getAudioTracks()]),types=['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus','video/webm'],mimeType=types.find(t=>MediaRecorder.isTypeSupported(t))||'video/webm',ext=mimeType.includes('mp4')?'mp4':'webm',chunks=[],rec=new MediaRecorder(stream,{mimeType,videoBitsPerSecond:6000000,audioBitsPerSecond:192000}),cover=await loadImage(a.coverUrl),audioPeaks=buildAudioPeaks(buf,Math.ceil(buf.duration*30)),start=performance.now(),dur=Math.max(1000,buf.duration*1000);rec.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data)};const done=new Promise((ok,fail)=>{rec.onerror=()=>fail(rec.error);rec.onstop=ok});function frame(){const t=Math.min(1,(performance.now()-start)/dur);drawMusicVideoFrame(ctx,canvas.width,canvas.height,cover,a,t,audioPeaks);if(t<1)requestAnimationFrame(frame)}frame();rec.start(250);src.start();src.onended=()=>setTimeout(()=>{if(rec.state!=='inactive')rec.stop()},250);await done;stream.getTracks().forEach(t=>t.stop());audioCtx.close().catch(()=>{});return{url:URL.createObjectURL(new Blob(chunks,{type:mimeType})),extension:ext,mimeType}} function loadImage(src){return new Promise((ok,fail)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>fail(new Error('cover load failed'));i.src=src})}
+    function buildAudioPeaks(buffer,count){const ch=buffer.getChannelData(0),peaks=[],step=Math.max(1,Math.floor(ch.length/count));let max=0;for(let i=0;i<count;i++){let sum=0,peak=0,start=i*step,end=Math.min(ch.length,start+step);for(let j=start;j<end;j++){const v=Math.abs(ch[j]);sum+=v*v;if(v>peak)peak=v}const rms=Math.sqrt(sum/Math.max(1,end-start));const value=Math.min(1,rms*.95+peak*.55);peaks.push(value);if(value>max)max=value}return peaks.map((v,i)=>{const prev=peaks[Math.max(0,i-1)]||v,next=peaks[Math.min(peaks.length-1,i+1)]||v;return max?((prev+v*2+next)/4)/max:0})}
+    function getAudioEnergy(peaks,t){if(!peaks||!peaks.length)return .5+.5*Math.sin(t*Math.PI*42);const pos=t*(peaks.length-1),i=Math.floor(pos),f=pos-i,a=peaks[Math.max(0,Math.min(peaks.length-1,i))]||0,b=peaks[Math.max(0,Math.min(peaks.length-1,i+1))]||a;return a+(b-a)*f}
+    function getBarEnergy(peaks,t,bar,total){if(!peaks||!peaks.length)return Math.abs(Math.sin(t*34+bar*.63));const base=t*(peaks.length-1)+(bar-total/2)*1.35;const i=Math.max(0,Math.min(peaks.length-1,Math.floor(base)));const near=peaks[i]||0;const ripple=.18*Math.abs(Math.sin(t*28+bar*.49));return Math.min(1,near*.88+ripple)}
+    function drawMusicVideoFrame(ctx,w,h,cover,a,t,audioPeaks){
+      ctx.clearRect(0,0,w,h);
+      const seed=hashCode((a.name||'music')+(a.prompt||''));
+      const hue=Math.floor((t*360+seed%360)%360);
+      const audioEnergy=getAudioEnergy(audioPeaks,t);
+      const pulse=.35+.65*audioEnergy;
+      const beat=audioEnergy;
+      const bg=ctx.createRadialGradient(w*.28,h*.18,40,w*.55,h*.62,w*.95);
+      bg.addColorStop(0,`hsl(${hue},88%,30%)`);
+      bg.addColorStop(.38,`hsl(${(hue+70)%360},82%,16%)`);
+      bg.addColorStop(1,`hsl(${(hue+165)%360},90%,8%)`);
+      ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+
+      // blurred cover glow
+      ctx.save();ctx.globalAlpha=.18+.08*pulse;ctx.filter='blur(34px) saturate(1.35)';ctx.drawImage(cover,-110,-180,w+220,h+360);ctx.restore();
+
+      // winding disk/rings background
+      ctx.save();ctx.translate(w*.5,h*.5);ctx.rotate(t*Math.PI*2*.35);
+      for(let i=0;i<78;i++){
+        const r=70+i*8+beat*18;
+        const start=t*Math.PI*4+i*.23;
+        const len=Math.PI*(.38+(i%9)*.035);
+        ctx.beginPath();
+        ctx.strokeStyle=`hsla(${(hue+i*4)%360},95%,70%,${.025+(i%6)*.012})`;
+        ctx.lineWidth=1.2+(i%4)*.55;
+        ctx.arc(0,0,r,start,start+len);
+        ctx.stroke();
+      }
+      for(let i=0;i<34;i++){
+        const ang=t*Math.PI*2+i*.55;
+        const r=210+Math.sin(t*9+i)*95;
+        ctx.fillStyle=`hsla(${(hue+i*11)%360},100%,70%,.16)`;
+        ctx.beginPath();ctx.arc(Math.cos(ang)*r,Math.sin(ang)*r,2+(i%4),0,TAU);ctx.fill();
+      }
+      ctx.restore();
+
+      // glass curved card / cover container
+      const cardX=78,cardY=104,cardW=500,cardH=520,rad=46;
+      ctx.save();
+      roundRect(ctx,cardX,cardY,cardW,cardH,rad,'rgba(3,7,18,.48)');
+      ctx.strokeStyle='rgba(255,255,255,.20)';ctx.lineWidth=2;strokeRoundRect(ctx,cardX,cardY,cardW,cardH,rad);
+      ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=34;
+      roundRect(ctx,cardX+42,cardY+38,416,416,38,'rgba(0,0,0,.35)');
+      ctx.clip();ctx.drawImage(cover,cardX+42,cardY+38,416,416);ctx.restore();
+
+      // fake media button that always visually reacts in exported video frames
+      const bx=cardX+212,by=cardY+468,br=42;
+      ctx.save();ctx.beginPath();ctx.arc(bx,by,br,0,TAU);ctx.fillStyle='rgba(255,255,255,.14)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.30)';ctx.stroke();
+      ctx.fillStyle='white';
+      if(Math.sin(t*Math.PI*10)>-.12){ // looks mostly like playing
+        ctx.beginPath();ctx.moveTo(bx-10,by-17);ctx.lineTo(bx-10,by+17);ctx.lineTo(bx+18,by);ctx.closePath();ctx.fill();
+      }else{ // flickers to pause icon in the recorded animation, so pausing often catches a pause mark
+        ctx.fillRect(bx-14,by-17,9,34);ctx.fillRect(bx+6,by-17,9,34);
+      }
+      ctx.restore();
+
+      // title + prompt + lyrics
+      ctx.textAlign='left';ctx.fillStyle='white';ctx.font='800 58px system-ui,-apple-system,Segoe UI,sans-serif';
+      wrapVideoText(ctx,a.name||'Spudzy Track',640,166,560,62,2);
+      ctx.font='24px system-ui,-apple-system,Segoe UI,sans-serif';ctx.fillStyle='rgba(255,255,255,.70)';
+      wrapVideoText(ctx,a.prompt||'Spudzy Music',644,306,560,34,3);
+      ctx.fillStyle=`hsla(${(hue+70)%360},100%,78%,.96)`;ctx.font='700 20px system-ui';ctx.fillText(`Spudzy Music AI • ${a.signature||'spudzy'}`,644,428);
+      const lyric=(a.lyrics||'').split(/\n+/).map(x=>x.trim()).filter(Boolean);
+      if(lyric.length){
+        const line=lyric[Math.floor(t*lyric.length*2)%lyric.length];
+        ctx.fillStyle='rgba(255,255,255,.90)';ctx.font='700 28px system-ui';
+        wrapVideoText(ctx,'“'+line+'”',644,474,540,36,2);
       }
 
-      let fixSuggestion = "Check your internet connection or reload the page.";
-      const lmsg = String(msg).toLowerCase();
+      // cool progress bar with glow and moving knob
+      const px=644,py=616,pw=520,ph=16;
+      roundRect(ctx,px,py,pw,ph,12,'rgba(255,255,255,.16)');
+      const grd=ctx.createLinearGradient(px,py,px+pw,py);
+      grd.addColorStop(0,`hsl(${hue},100%,62%)`);grd.addColorStop(.5,`hsl(${(hue+80)%360},100%,65%)`);grd.addColorStop(1,`hsl(${(hue+170)%360},100%,62%)`);
+      ctx.save();ctx.shadowColor=`hsl(${(hue+80)%360},100%,65%)`;ctx.shadowBlur=18;roundRect(ctx,px,py,pw*t,ph,12,grd);ctx.restore();
+      ctx.beginPath();ctx.fillStyle='white';ctx.shadowColor='rgba(255,255,255,.8)';ctx.shadowBlur=14;ctx.arc(px+pw*t,py+ph/2,13+beat*2,0,TAU);ctx.fill();ctx.shadowBlur=0;
 
-      if (lmsg.includes("spudzy") || lmsg.includes("undefined")) {
-        fixSuggestion = "Library failed to load. Check that the Spudzy script URLs are correct and accessible.";
-      } else if (lmsg.includes("video") || lmsg.includes("reallifevideo") || lmsg.includes("mediarecorder")) {
-        fixSuggestion = "Video generation failed. Use a browser that supports canvas.captureStream and MediaRecorder, or try a shorter prompt.";
-      } else if (lmsg.includes("quota") || lmsg.includes("localstorage")) {
-        fixSuggestion = "Browser storage is full. Delete old chats or notebooks to free up space.";
-      }
-
-      const errHtml = `
-        <div class="border-l-2 border-red-500 pl-3 py-1 mb-2">
-          <p class="text-red-400 text-xs font-mono break-words">${escapeHTML(msg)}</p>
-          <p class="text-gray-400 text-[10px] mt-1 bg-black/20 p-1.5 rounded inline-block">
-            <span class="text-yellow-500">💡 Fix:</span> ${fixSuggestion}
-          </p>
-        </div>
-      `;
-
-      errList.insertAdjacentHTML('beforeend', errHtml);
-      errList.scrollTop = errList.scrollHeight;
-
-      if (errorCount === 1) toggleConsoleBody(true);
-    }
-
-    window.onerror = function(msg, url, line) {
-      logErrorToConsole(`Line ${line}: ${msg}`, 'Global');
-      return false;
-    };
-
-    window.addEventListener('unhandledrejection', function(event) {
-      logErrorToConsole(`Promise Rejection: ${event.reason}`, 'Async');
-    });
-
-    function toggleConsoleBody(forceOpen = false) {
-      const chev = document.getElementById('console-chevron');
-
-      if (forceOpen || errList.classList.contains('hidden')) {
-        errList.classList.remove('hidden');
-        chev.classList.replace('fa-chevron-down', 'fa-chevron-up');
-      } else {
-        errList.classList.add('hidden');
-        chev.classList.replace('fa-chevron-up', 'fa-chevron-down');
+      // equalizer bars
+      for(let i=0;i<42;i++){
+        const e=getBarEnergy(audioPeaks,t,i,42);
+        const bh=14+e*112+(i%5)*3;
+        const alpha=.20+e*.58;
+        ctx.fillStyle=`hsla(${(hue+i*6)%360},100%,68%,${alpha})`;
+        roundRect(ctx,644+i*12,700-bh,7,bh,4,ctx.fillStyle);
       }
     }
-
-    let spudzyTextApi = null;
-
-    try {
-      spudzyTextApi = new Spudzy();
-    } catch(e) {
-      console.error("Spudzy Text Library init failed: " + e.message);
-    }
-
-    let chats = JSON.parse(localStorage.getItem('spudzy_v2_chats')) || [];
-    let currentChatId = null;
-    let notebooks = JSON.parse(localStorage.getItem('spudzy_v2_notebooks')) || [];
-    let isWaiting = false;
-    let currentPreviewHtml = "";
-
-    function init() {
-      updateVideoApiStatus();
-      window.addEventListener('hashchange', handleRouting);
-
-      if (!window.location.hash) {
-        if (chats.length === 0) navigate('#chat/new');
-        else navigate('#chat/' + chats[0].id);
-      } else {
-        handleRouting();
-      }
-    }
-
-    function updateVideoApiStatus() {
-      const el = document.getElementById('video-api-status');
-
-      if (!el) return;
-
-      if (window.RealLifeVideo) {
-        el.classList.remove('hidden');
-        el.textContent = `Spudzy Vid ${window.RealLifeVideo.version || "loaded"}`;
-      } else {
-        el.classList.remove('hidden');
-        el.textContent = "Spudzy Vid not loaded";
-      }
-    }
-
-    function navigate(hash) {
-      window.location.hash = hash;
-    }
-
-    function handleRouting() {
-      const hash = window.location.hash;
-
-      if (hash === '#chat/new') {
-        createNewChatInternal();
-      } else if (hash.startsWith('#chat/')) {
-        const id = hash.replace('#chat/', '');
-        const found = chats.find(c => c.id === id);
-
-        if (found) {
-          currentChatId = id;
-          closeHtmlPreview();
-          renderState();
-        } else {
-          navigate(chats.length > 0 ? '#chat/' + chats[0].id : '#chat/new');
-        }
-      }
-    }
-
-    function createNewChatInternal() {
-      const newChat = {
-        id: 'c_' + Date.now(),
-        title: 'New Conversation',
-        messages: []
-      };
-
-      chats.unshift(newChat);
-      saveState();
-      navigate('#chat/' + newChat.id);
-
-      if (window.innerWidth < 768) toggleSidebar();
-    }
-
-    function deleteCurrentChat() {
-      if (chats.length <= 1) return alert("Cannot delete your only conversation.");
-
-      if (confirm("Delete this chat?")) {
-        chats = chats.filter(c => c.id !== currentChatId);
-        saveState();
-        navigate('#chat/' + chats[0].id);
-      }
-    }
-
-    function saveState() {
-      try {
-        localStorage.setItem('spudzy_v2_chats', JSON.stringify(chats));
-        localStorage.setItem('spudzy_v2_notebooks', JSON.stringify(notebooks));
-      } catch (e) {
-        console.error("Storage Error: " + e.message);
-      }
-
-      renderSidebar();
-    }
-
-    function getCurrentChat() {
-      return chats.find(c => c.id === currentChatId);
-    }
-
-    function renderState() {
-      renderSidebar();
-      renderChat();
-    }
-
-    function renderSidebar() {
-      const noteList = document.getElementById('notebook-list');
-
-      if (notebooks.length === 0) {
-        noteList.innerHTML = `<p class="text-[10px] text-gray-600 px-2 italic">No notebooks yet.</p>`;
-      } else {
-        noteList.innerHTML = notebooks.map((n, i) => `
-          <div class="flex items-center justify-between group px-2 py-1.5 hover:bg-[#2a2b2f] rounded-lg cursor-pointer text-sm text-gray-300 transition">
-            <span class="truncate flex-1" onclick="alert('Notebook:\\n\\n' + \`${escapeForTemplate(n.content.substring(0, 300))}...\`)">
-              <i class="fa-solid fa-book-open text-[10px] mr-2 text-blue-400/70"></i>${escapeHTML(n.title)}
-            </span>
-            <button onclick="deleteNotebook(${i})" class="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 ml-2 p-1">
-              <i class="fa-solid fa-trash text-[10px]"></i>
-            </button>
-          </div>
-        `).join('');
-      }
-
-      const chatList = document.getElementById('chat-list');
-
-      chatList.innerHTML = chats.map(c => `
-        <button onclick="navigate('#chat/${c.id}')" class="w-full text-left px-3 py-2.5 rounded-xl text-sm truncate transition flex items-center ${c.id === currentChatId ? 'bg-[#33353a] text-white font-medium border border-gray-700' : 'text-gray-400 hover:bg-[#2a2b2f] hover:text-gray-200 border border-transparent'}">
-          <i class="fa-regular fa-message mr-2 opacity-50 text-[11px]"></i> ${escapeHTML(c.title)}
-        </button>
-      `).join('');
-    }
-
-    function renderChat() {
-      const container = document.getElementById('chat-container');
-      container.innerHTML = '';
-
-      const chat = getCurrentChat();
-      if (!chat) return;
-
-      if (chat.messages.length === 0) {
-        container.innerHTML = `
-          <div class="flex flex-col items-center justify-center h-full text-center text-gray-400 mt-[10vh]">
-            <div class="w-16 h-16 bg-blue-900/20 rounded-2xl flex items-center justify-center mb-5 border border-blue-500/20 shadow-lg">
-              <i class="fa-solid fa-wand-magic-sparkles text-2xl text-blue-400"></i>
-            </div>
-            <h2 class="text-2xl font-semibold text-gray-200 mb-2">Hello.</h2>
-            <p class="text-sm">Type a prompt to begin, or generate a video.</p>
-          </div>
-        `;
-        return;
-      }
-
-      chat.messages.forEach((msg, index) => {
-        const div = document.createElement('div');
-        div.className = "flex w-full flex-col gap-1 mb-4";
-
-        if (msg.role === 'user') {
-          div.innerHTML = `
-            <div class="bg-[#2a2b2f] text-gray-100 px-5 py-3 rounded-3xl rounded-br-md max-w-[85%] desktop-max-user self-end whitespace-pre-wrap leading-relaxed shadow-sm border border-gray-700/50">
-              ${escapeHTML(msg.text)}
-            </div>
-          `;
-        } else {
-          let contentHtml = "";
-
-          if (msg.type === 'video') {
-            contentHtml = `
-              <div class="relative group bg-black rounded-xl overflow-hidden shadow-lg border border-gray-700 w-full max-w-[280px] desktop-max-video aspect-video flex flex-col justify-center items-center" id="vid-wrapper-${msg.id}">
-                <div id="vid-loader-${msg.id}" class="absolute inset-0 flex flex-col items-center justify-center bg-[#1e1f20] text-blue-400 z-10">
-                  <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-2"></i>
-                  <span class="text-xs tracking-wider uppercase font-semibold">Generating Video</span>
-                  <span class="text-[10px] text-gray-500 mt-1 px-4 text-center">Canvas + MediaRecorder</span>
-                </div>
-              </div>
-            `;
-
-            setTimeout(() => generateCustomVideo(msg.data, msg.id), 100);
-          } else if (msg.type === 'html_mixed') {
-            contentHtml = `
-              ${msg.text ? `<div class="mb-3 whitespace-pre-wrap leading-relaxed text-gray-300">${escapeHTML(msg.text)}</div>` : ''}
-              <div class="bg-[#1e1f20] border border-gray-700 rounded-2xl p-3 flex items-center justify-between max-w-sm shadow-md hover:border-gray-500 transition-colors">
-                <div class="flex items-center gap-3 overflow-hidden">
-                  <div class="w-10 h-10 bg-orange-500/10 text-orange-400 rounded-xl flex items-center justify-center shrink-0 border border-orange-500/20">
-                    <i class="fa-brands fa-html5 text-xl"></i>
-                  </div>
-                  <div class="truncate">
-                    <p class="text-sm font-medium text-gray-200 truncate">${escapeHTML(msg.title)}</p>
-                    <p class="text-[10px] text-gray-500 font-mono mt-0.5">Application/HTML</p>
-                  </div>
-                </div>
-                <button onclick='openHtmlPreview(${index})' class="bg-[#2a2b2f] hover:bg-blue-600 text-gray-300 hover:text-white text-xs px-4 py-2 rounded-lg font-medium transition shrink-0 ml-2">
-                  View Pane
-                </button>
-              </div>
-            `;
-          } else {
-            contentHtml = `<div class="whitespace-pre-wrap leading-relaxed text-gray-300">${escapeHTML(msg.text)}</div>`;
-          }
-
-          div.innerHTML = `
-            <div class="flex gap-3 max-w-[95%] self-start w-full">
-              <div class="w-7 h-7 desktop-icon rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 mt-1 shadow-md border border-gray-800">
-                <i class="fa-solid fa-sparkles text-[10px] text-white"></i>
-              </div>
-              <div class="flex-1 pt-0.5 min-w-0">${contentHtml}</div>
-            </div>
-          `;
-        }
-
-        container.appendChild(div);
-      });
-
-      scrollToBottom();
-    }
-
-    function scrollToBottom() {
-      const c = document.getElementById('chat-container');
-      c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' });
-    }
-
-    function toggleSidebar() {
-      const sidebar = document.getElementById('sidebar');
-      const overlay = document.getElementById('sidebar-overlay');
-
-      sidebar.classList.toggle('-translate-x-full');
-      overlay.classList.toggle('hidden');
-    }
-
-    function autoResize(textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = Math.min(textarea.scrollHeight, 160) + 'px';
-
-      const btn = document.getElementById('send-btn');
-      const hasText = textarea.value.trim().length > 0;
-
-      btn.style.color = hasText ? '#fff' : '';
-      btn.style.backgroundColor = hasText ? '#2563EB' : '';
-    }
-
-    function parseAiResponse(rawText) {
-      const blockRegex = /```html\n([\s\S]*?)```/i;
-      const docRegex = /(<!DOCTYPE html>[\s\S]*?<\/html>)/i;
-
-      let htmlCode = null;
-      let remainingText = rawText;
-      let title = "index.html";
-
-      if (blockRegex.test(rawText)) {
-        htmlCode = rawText.match(blockRegex)[1];
-        remainingText = rawText.replace(blockRegex, '').trim();
-      } else if (docRegex.test(rawText)) {
-        htmlCode = rawText.match(docRegex)[1];
-        remainingText = rawText.replace(docRegex, '').trim();
-      }
-
-      if (htmlCode) {
-        const titleMatch = htmlCode.match(/<title>(.*?)<\/title>/i);
-        if (titleMatch) title = titleMatch[1];
-
-        return {
-          type: 'html_mixed',
-          text: remainingText,
-          html: htmlCode,
-          title: title
-        };
-      }
-
-      return {
-        type: 'text',
-        text: rawText
-      };
-    }
-
-    async function sendMessage() {
-      const input = document.getElementById('message-input');
-      const text = input.value.trim();
-
-      if (!text || isWaiting) return;
-
-      const modelType = document.getElementById('model-select').value;
-      const chat = getCurrentChat();
-
-      if (!chat) return;
-
-      if (chat.messages.length === 0) chat.title = text.substring(0, 25) + "...";
-
-      chat.messages.push({
-        id: Date.now(),
-        role: 'user',
-        text: text
-      });
-
-      input.value = '';
-      autoResize(input);
-
-      isWaiting = true;
-      document.getElementById('send-btn').disabled = true;
-
-      saveState();
-      renderChat();
-
-      const container = document.getElementById('chat-container');
-
-      container.insertAdjacentHTML('beforeend', `
-        <div id="temp-loading" class="flex gap-3 max-w-[95%] text-gray-200 self-start typing-indicator mt-2">
-          <div class="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center shrink-0">
-            <i class="fa-solid fa-sparkles text-[10px] text-gray-400"></i>
-          </div>
-        </div>
-      `);
-
-      scrollToBottom();
-
-      try {
-        if (modelType === 'video') {
-          chat.messages.push({
-            id: 'vid_' + Date.now(),
-            role: 'ai',
-            type: 'video',
-            text: '',
-            data: text
-          });
-
-          saveState();
-          renderChat();
-        } else {
-          if (!spudzyTextApi) throw new Error("Spudzy API Object is null.");
-
-          const rawResponse = await spudzyTextApi.respond(text);
-          const parsed = parseAiResponse(rawResponse);
-
-          chat.messages.push({
-            id: Date.now(),
-            role: 'ai',
-            type: parsed.type,
-            text: parsed.text,
-            html: parsed.html,
-            title: parsed.title
-          });
-
-          saveState();
-          renderChat();
-        }
-      } catch (err) {
-        console.error(err);
-
-        chat.messages.push({
-          id: Date.now(),
-          role: 'ai',
-          type: 'text',
-          text: "A system error occurred. Check the console in the sidebar."
-        });
-
-        saveState();
-        renderChat();
-      } finally {
-        document.getElementById('temp-loading')?.remove();
-        isWaiting = false;
-        document.getElementById('send-btn').disabled = false;
-      }
-    }
-
-    async function generateCustomVideo(prompt, id) {
-      const wrapper = document.getElementById(`vid-wrapper-${id}`);
-      if (!wrapper) return;
-
-      try {
-        const api =
-          window.RealLifeVideo ||
-          window.SpudzyVid ||
-          window.SpudzyVideo ||
-          window.spudzyVid ||
-          window.spudzyVideo;
-
-        if (!api || typeof api.generate !== "function") {
-          throw new Error("Spudzy Video Library RealLifeVideo.generate is not available.");
-        }
-
-        const correctedPrompt =
-          typeof api.correctPrompt === "function"
-            ? api.correctPrompt(prompt)
-            : prompt;
-
-        const result = await api.generate(prompt, {
-          width: 960,
-          height: 540,
-          fps: 30,
-          seconds: 6,
-          bitrate: 6000000,
-          quality: 0.92,
-          appendCanvas: false,
-          returnFrames: false,
-          transparent: false,
-          debug: false
-        });
-
-        const loader = document.getElementById(`vid-loader-${id}`);
-        if (loader) loader.remove();
-
-        if (!result) {
-          throw new Error("RealLifeVideo.generate returned no result.");
-        }
-
-        const videoUrl = typeof result === "string" ? result : result.url;
-        const blob = typeof result === "object" ? result.blob : null;
-        const ok = typeof result === "object" ? result.ok : true;
-
-        if (!ok || !videoUrl) {
-          const reason =
-            typeof result === "object" && result.reason
-              ? result.reason
-              : "Video generation did not return a playable URL.";
-
-          throw new Error(reason);
-        }
-
-        const cleanPrompt = typeof result === "object" && result.correctedPrompt
-          ? result.correctedPrompt
-          : correctedPrompt;
-
-        wrapper.dataset.videoUrl = videoUrl;
-
-        wrapper.innerHTML = `
-          <video id="video-${id}" src="${videoUrl}" class="w-full h-full object-cover" playsinline loop preload="metadata"></video>
-
-          <div class="absolute top-2 left-2 right-2 flex items-start justify-between gap-2 pointer-events-none">
-            <div class="bg-black/55 border border-white/10 rounded-lg px-2 py-1 max-w-[75%] backdrop-blur-sm">
-              <p class="text-[9px] text-blue-300 uppercase tracking-wider font-bold">Spudzy Vid</p>
-              <p class="text-[10px] text-gray-200 truncate">${escapeHTML(cleanPrompt)}</p>
-            </div>
-            <div class="bg-black/55 border border-white/10 rounded-lg px-2 py-1 text-[9px] text-gray-300 backdrop-blur-sm">
-              ${escapeHTML(api.version || "v7")}
-            </div>
-          </div>
-
-          <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-8 flex flex-col gap-1 opacity-100 transition-opacity duration-300">
-            <div class="flex items-center gap-2">
-              <span id="time-${id}" class="text-[10px] text-gray-300 font-mono w-8 text-center">0:00</span>
-              <input type="range" id="progress-${id}" value="0" min="0" max="100" step="0.1" class="flex-1 h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer">
-              <span id="duration-${id}" class="text-[10px] text-gray-400 font-mono w-8 text-center">0:00</span>
-            </div>
-
-            <div class="flex items-center justify-between px-1">
-              <button id="play-${id}" class="text-white hover:text-blue-400 transition outline-none p-1">
-                <i class="fa-solid fa-play"></i>
-              </button>
-
-              <div class="flex items-center gap-2">
-                <button id="download-${id}" class="text-white hover:text-blue-400 transition outline-none p-1" title="Download video">
-                  <i class="fa-solid fa-download"></i>
-                </button>
-
-                <button id="fs-${id}" class="text-white hover:text-blue-400 transition outline-none p-1" title="Fullscreen">
-                  <i class="fa-solid fa-expand"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-        `;
-
-        const vid = document.getElementById(`video-${id}`);
-        const playBtn = document.getElementById(`play-${id}`);
-        const progress = document.getElementById(`progress-${id}`);
-        const timeDisp = document.getElementById(`time-${id}`);
-        const durationDisp = document.getElementById(`duration-${id}`);
-        const fsBtn = document.getElementById(`fs-${id}`);
-        const downloadBtn = document.getElementById(`download-${id}`);
-
-        vid.addEventListener('loadedmetadata', () => {
-          durationDisp.innerText = formatTime(vid.duration);
-        });
-
-        vid.addEventListener('click', () => {
-          playBtn.click();
-        });
-
-        playBtn.onclick = async () => {
-          if (vid.paused) {
-            await vid.play();
-            playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-          } else {
-            vid.pause();
-            playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
-          }
-        };
-
-        vid.ontimeupdate = () => {
-          if (vid.duration) {
-            progress.value = (vid.currentTime / vid.duration) * 100;
-            timeDisp.innerText = formatTime(vid.currentTime);
-          }
-        };
-
-        vid.onended = () => {
-          playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
-        };
-
-        progress.oninput = (e) => {
-          if (vid.duration) {
-            vid.currentTime = (Number(e.target.value) / 100) * vid.duration;
-          }
-        };
-
-        fsBtn.onclick = () => {
-          if (vid.requestFullscreen) vid.requestFullscreen();
-          else if (vid.webkitRequestFullscreen) vid.webkitRequestFullscreen();
-        };
-
-        downloadBtn.onclick = () => {
-          const a = document.createElement('a');
-          a.href = videoUrl;
-          a.download = makeSafeFilename(cleanPrompt || "spudzy-video") + ".webm";
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-        };
-
-      } catch (err) {
-        console.error("Video Gen Error: " + err.message);
-
-        wrapper.innerHTML = `
-          <div class="absolute inset-0 flex flex-col items-center justify-center bg-red-950/80 text-red-400 text-xs p-4 text-center">
-            <i class="fa-solid fa-triangle-exclamation mb-2 text-xl"></i>
-            <strong class="mb-1">Generation Failed</strong>
-            <span class="text-red-200/80">${escapeHTML(err.message)}</span>
-          </div>
-        `;
-      }
-    }
-
-    function formatTime(value) {
-      if (!Number.isFinite(value)) return "0:00";
-
-      const total = Math.max(0, Math.floor(value));
-      const mins = Math.floor(total / 60);
-      const secs = total % 60;
-
-      return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
-    }
-
-    function makeSafeFilename(text) {
-      return String(text || "spudzy-video")
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "")
-        .slice(0, 60) || "spudzy-video";
-    }
-
-    function openHtmlPreview(index) {
-      const msg = getCurrentChat().messages[index];
-      if (!msg || !msg.html) return;
-
-      currentPreviewHtml = msg.html;
-
-      document.getElementById('preview-title').innerText = msg.title;
-      document.getElementById('preview-frame').srcdoc = msg.html;
-      document.getElementById('code-content').innerText = msg.html;
-
-      document.getElementById('preview-frame').classList.remove('hidden');
-      document.getElementById('code-view').classList.add('hidden');
-
-      document.getElementById('toggle-code-btn').innerHTML = '<i class="fa-solid fa-code mr-1"></i> Code';
-      document.getElementById('mobile-toggle-code').innerHTML = '<i class="fa-solid fa-code w-5 text-gray-400"></i> View Code';
-
-      const prevArea = document.getElementById('preview-area');
-      prevArea.classList.remove('hidden');
-      prevArea.classList.add('flex');
-    }
-
-    function closeHtmlPreview() {
-      const previewArea = document.getElementById('preview-area');
-      const frame = document.getElementById('preview-frame');
-
-      previewArea.classList.add('hidden');
-      previewArea.classList.remove('flex');
-
-      frame.srcdoc = "";
-    }
-
-    function toggleMobileMenu() {
-      const menu = document.getElementById('mobile-preview-menu');
-      menu.classList.toggle('hidden');
-      menu.classList.toggle('flex');
-    }
-
-    function togglePreviewCode() {
-      const frame = document.getElementById('preview-frame');
-      const code = document.getElementById('code-view');
-      const dBtn = document.getElementById('toggle-code-btn');
-      const mBtn = document.getElementById('mobile-toggle-code');
-
-      if (code.classList.contains('hidden')) {
-        frame.classList.add('hidden');
-        code.classList.remove('hidden');
-
-        dBtn.innerHTML = '<i class="fa-regular fa-eye mr-1"></i> View';
-        mBtn.innerHTML = '<i class="fa-regular fa-eye w-5 text-gray-400"></i> Live View';
-      } else {
-        frame.classList.remove('hidden');
-        code.classList.add('hidden');
-
-        dBtn.innerHTML = '<i class="fa-solid fa-code mr-1"></i> Code';
-        mBtn.innerHTML = '<i class="fa-solid fa-code w-5 text-gray-400"></i> View Code';
-      }
-    }
-
-    function copyPreviewCode() {
-      navigator.clipboard.writeText(currentPreviewHtml).then(() => {
-        const btn = document.getElementById('copy-code-btn');
-        const original = btn.innerHTML;
-
-        btn.innerHTML = '<i class="fa-solid fa-check text-green-600 mr-1"></i> Copied';
-
-        setTimeout(() => {
-          btn.innerHTML = original;
-        }, 2000);
-      });
-    }
-
-    async function shareHtml() {
-      if (navigator.share) {
-        try {
-          const file = new File(
-            [currentPreviewHtml],
-            document.getElementById('preview-title').innerText,
-            { type: 'text/html' }
-          );
-
-          await navigator.share({
-            title: 'Spudzy Code',
-            files: [file]
-          });
-        } catch (err) {
-          navigator.share({
-            title: 'Spudzy Code',
-            text: currentPreviewHtml
-          }).catch(e => {});
-        }
-      } else {
-        alert("Sharing not supported in this browser.");
-      }
-    }
-
-    function fullscreenPreview() {
-      const wrapper = document.getElementById('preview-wrapper');
-
-      if (!document.fullscreenElement) {
-        wrapper.requestFullscreen().catch(e => console.error(e));
-      } else {
-        document.exitFullscreen();
-      }
-    }
-
-    function openWikiModal() {
-      document.getElementById('wiki-modal').classList.remove('hidden');
-    }
-
-    function closeWikiModal() {
-      document.getElementById('wiki-modal').classList.add('hidden');
-    }
-
-    async function searchWiki() {
-      const query = document.getElementById('wiki-search-input').value.trim();
-      const resDiv = document.getElementById('wiki-results');
-
-      if (!query) return;
-
-      resDiv.innerHTML = `
-        <div class="text-center text-blue-400 mt-10">
-          <i class="fa-solid fa-circle-notch fa-spin text-3xl"></i>
-        </div>
-      `;
-
-      try {
-        const url = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&titles=${encodeURIComponent(query)}&format=json&origin=*`;
-        const response = await fetch(url);
-        const data = await response.json();
-
-        const pages = data.query.pages;
-        const pageId = Object.keys(pages)[0];
-
-        if (pageId == "-1") {
-          resDiv.innerHTML = `<p class="text-red-400 text-center mt-8">No results found for "${escapeHTML(query)}".</p>`;
-          return;
-        }
-
-        const title = pages[pageId].title;
-        const extract = pages[pageId].extract;
-
-        resDiv.innerHTML = `
-          <div class="bg-[#131314] p-5 rounded-xl border border-gray-700 shadow-inner">
-            <h3 class="font-bold text-white text-lg mb-2">${escapeHTML(title)}</h3>
-            <p class="text-sm text-gray-300 mb-5 leading-relaxed">${escapeHTML(extract)}</p>
-            <button onclick="saveToNotebook('${escapeForAttribute(title)}', \`${escapeForTemplate(extract).replace(/\n/g, ' ')}\`)" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium transition text-white w-full shadow-lg">
-              <i class="fa-solid fa-bookmark mr-2"></i>Save to Notebook
-            </button>
-          </div>
-        `;
-      } catch (e) {
-        console.error(e);
-        resDiv.innerHTML = `<p class="text-red-400 text-center mt-8">Failed to fetch wiki data.</p>`;
-      }
-    }
-
-    function saveToNotebook(title, content) {
-      notebooks.push({ title, content });
-      saveState();
-      closeWikiModal();
-    }
-
-    function deleteNotebook(index) {
-      if (confirm("Delete this notebook?")) {
-        notebooks.splice(index, 1);
-        saveState();
-      }
-    }
-
-    function openNotebookImport() {
-      const list = document.getElementById('import-list');
-
-      if (notebooks.length === 0) {
-        list.innerHTML = `<p class="text-center text-gray-500 py-8 text-sm">No notebooks. Search the wiki first!</p>`;
-      } else {
-        list.innerHTML = notebooks.map(n => `
-          <button onclick="importText(\`[Research Data - ${escapeForTemplate(n.title)}]: \\n${escapeForTemplate(n.content)}\`)" class="w-full text-left p-3 hover:bg-[#2a2b2f] border-b border-gray-800 last:border-0 transition">
-            <div class="font-medium text-gray-200 text-sm">
-              <i class="fa-solid fa-book-open text-blue-500 mr-2"></i>${escapeHTML(n.title)}
-            </div>
-            <div class="text-[11px] text-gray-500 truncate mt-1">${escapeHTML(n.content)}</div>
-          </button>
-        `).join('');
-      }
-
-      document.getElementById('import-modal').classList.remove('hidden');
-    }
-
-    function closeNotebookImport() {
-      document.getElementById('import-modal').classList.add('hidden');
-    }
-
-    function importText(text) {
-      const input = document.getElementById('message-input');
-
-      input.value = text + "\n\n" + input.value;
-      autoResize(input);
-      closeNotebookImport();
-      input.focus();
-    }
-
-    function escapeHTML(str) {
-      return String(str).replace(/[&<>'"]/g, tag => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        "'": '&#39;',
-        '"': '&quot;'
-      }[tag]));
-    }
-
-    function escapeForTemplate(str) {
-      return String(str)
-        .replace(/\\/g, "\\\\")
-        .replace(/`/g, "\\`")
-        .replace(/\$\{/g, "\\${")
-        .replace(/<\/script/gi, "<\\/script");
-    }
-
-    function escapeForAttribute(str) {
-      return String(str)
-        .replace(/\\/g, "\\\\")
-        .replace(/'/g, "\\'")
-        .replace(/"/g, "&quot;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-    }
-
-    document.getElementById('message-input').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
-
+    function roundRect(ctx,x,y,w,h,r,fillStyle){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();if(fillStyle!==undefined){ctx.fillStyle=fillStyle;}ctx.fill()}
+    function strokeRoundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();ctx.stroke()}
+    function wrapVideoText(ctx,text,x,y,maxWidth,lineHeight,maxLines){const words=String(text||'').split(/\s+/);let line='',lines=0;for(const word of words){const test=line?line+' '+word:word;if(ctx.measureText(test).width>maxWidth&&line){ctx.fillText(line,x,y);line=word;y+=lineHeight;lines++;if(lines>=maxLines-1)break}else line=test}if(line&&lines<maxLines)ctx.fillText(line,x,y)} function makeSafeFilename(t){return String(t||'spudzy').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,70)||'spudzy'}
+    function playMusicAsset(id){const a=assets.find(x=>x.id===id);if(a&&window.SpudzyMusicAI)window.SpudzyMusicAI.play({prompt:a.prompt,lyrics:a.lyrics,signature:a.signature})} async function generateVideoInto(assetId,prompt){const box=document.getElementById('vid-'+(getCurrentChat()?.messages.find(m=>m.assetId===assetId)?.id||'')),api=window.RealLifeVideo||window.SpudzyVid||window.SpudzyVideo||window.spudzyVid||window.spudzyVideo;if(!api?.generate){if(box)box.textContent='Video library unavailable.';return}try{const r=await api.generate(prompt,{seconds:5,width:960,height:540}),url=typeof r==='string'?r:r.url,a=assets.find(x=>x.id===assetId);if(a){a.updatedAt=Date.now();setRuntimeUrl(a.id,'videoUrl',url)}saveAll();if(box)box.innerHTML=`<video src="${url}" controls class="w-full h-full rounded-2xl"></video>`}catch(e){if(box)box.textContent='Video failed: '+e.message}}
+    async function regenerateCurrentChatAssets(force=true){if(isRegeneratingAssets)return;const chat=getCurrentChat();if(!chat)return;const targets=chat.messages.filter(m=>['image','music','html','video'].includes(m.type));if(!targets.length)return;isRegeneratingAssets=true;try{for(const m of targets){if(m.type==='image')await regenerateImage(m);else if(m.type==='music')await regenerateMusic(m);else if(m.type==='html')regenerateHtml(m);else if(m.type==='video')await generateVideoInto(m.assetId,m.data||m.prompt||m.text||'video')}saveAll();renderAssetLibrary()}catch(e){logError('Asset regeneration failed: '+e.message)}finally{isRegeneratingAssets=false}}
+    async function regenerateImage(m){const box=document.querySelector(`[data-msg-id="${m.id}"]`);box?.querySelector('[data-regen-status]')?.classList.remove('hidden');try{const prompt=m.prompt||m.text||'image',r=await(await getImagePriest()).generate(prompt),url=r.dataUri||r;setRuntimeUrl(m.assetId,'imageUrl',url);const a=assets.find(x=>x.id===m.assetId);if(a){a.prompt=prompt;a.updatedAt=Date.now();a.meta=r.promptSpec||a.meta}const img=box?.querySelector('[data-regenerated-image]'),dl=box?.querySelector('[data-image-download]');if(img)img.src=url;if(dl)dl.href=url}finally{box?.querySelector('[data-regen-status]')?.classList.add('hidden')}} async function regenerateMusic(m){const box=document.querySelector(`[data-msg-id="${m.id}"]`);box?.querySelector('[data-regen-status]')?.classList.remove('hidden');try{const result=await generateMusicAsset(m.prompt||m.title||'music',m.lyrics||'',m.signature||'spudzy');setRuntimeUrl(m.assetId,'coverUrl',result.coverUrl);setRuntimeUrl(m.assetId,'audioUrl',result.audioUrl);const a=assets.find(x=>x.id===m.assetId);if(a)Object.assign(a,{type:'music',name:result.name,group:'music',prompt:result.prompt,lyrics:result.lyrics,signature:result.signature,meta:result.meta,regen:result.regen,updatedAt:Date.now()});const ci=box?.querySelector('[data-regenerated-cover]'),au=box?.querySelector('[data-regenerated-audio]');if(ci)ci.src=result.coverUrl;if(au){au.src=result.audioUrl;au.load()}}finally{box?.querySelector('[data-regen-status]')?.classList.add('hidden')}} function regenerateHtml(m){const fixed=fixGeneratedHtml(m.html||m.prompt||'');m.html=fixed;const a=assets.find(x=>x.id===m.assetId);if(a){a.html=fixed;a.updatedAt=Date.now()}}
+
+    function renderNotebooks(){const q=(document.getElementById('notebook-search')?.value||'').toLowerCase(),l=document.getElementById('notebook-list');if(!l)return;const found=notebooks.filter(n=>!q||JSON.stringify(n).toLowerCase().includes(q));l.innerHTML=found.length?found.map(n=>{const i=notebooks.findIndex(x=>x.id===n.id);return`<div class="note-row flex items-center justify-between px-2 py-1.5 border border-transparent rounded-lg"><button onclick="previewNotebook(${i})" class="truncate text-left flex-1"><i class="fa-solid fa-book-open text-blue-400 mr-2 text-xs"></i>${esc(n.title)}</button><button onclick="openNotebookEditor('${n.id}')" class="text-blue-400 mx-1"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="deleteNotebook(${i})" class="text-red-500"><i class="fa-solid fa-trash text-xs"></i></button></div>`}).join(''):'<p class="text-[10px] text-gray-600 px-2 italic">No notebooks yet.</p>'} function openNotebookEditor(id=null){editingNotebookId=id;const n=notebooks.find(x=>x.id===id)||{title:'',content:'',tags:[]};document.getElementById('note-title-input').value=n.title||'';document.getElementById('note-content-input').value=n.content||'';document.getElementById('note-tags-input').value=(n.tags||[]).join(', ');document.getElementById('notebook-editor-modal').classList.remove('hidden');document.getElementById('notebook-editor-modal').classList.add('flex')} function closeNotebookEditor(){document.getElementById('notebook-editor-modal').classList.add('hidden');document.getElementById('notebook-editor-modal').classList.remove('flex');editingNotebookId=null} function saveNotebookFromEditor(){const title=document.getElementById('note-title-input').value.trim()||'Untitled Notebook',content=document.getElementById('note-content-input').value,tags=document.getElementById('note-tags-input').value.split(',').map(x=>x.trim()).filter(Boolean);if(editingNotebookId){const n=notebooks.find(x=>x.id===editingNotebookId);Object.assign(n,{title,content,tags,updatedAt:Date.now()})}else notebooks.unshift({id:uid('note'),title,content,tags,source:'manual',createdAt:Date.now(),updatedAt:Date.now()});saveAll();renderNotebooks();closeNotebookEditor()} function saveCurrentPromptAsNotebook(){const val=document.getElementById('message-input').value.trim();if(!val)return alert('Type something first.');notebooks.unshift({id:uid('note'),title:val.slice(0,40)||'Prompt Note',content:val,tags:['prompt'],source:'prompt',createdAt:Date.now(),updatedAt:Date.now()});saveAll();renderNotebooks()}
+    function openWikiModal(){document.getElementById('wiki-modal').classList.remove('hidden');document.getElementById('wiki-modal').classList.add('flex')} function closeWikiModal(){document.getElementById('wiki-modal').classList.add('hidden');document.getElementById('wiki-modal').classList.remove('flex')} async function searchWiki(){const q=document.getElementById('wiki-search-input').value.trim(),r=document.getElementById('wiki-results');if(!q)return;r.innerHTML='<p class="text-blue-400 text-center mt-8">Searching...</p>';try{const res=await fetch(`https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&titles=${encodeURIComponent(q)}&format=json&origin=*`),data=await res.json(),pages=data.query.pages,id=Object.keys(pages)[0];if(id==='-1'){r.innerHTML='<p class="text-red-400 text-center">No results.</p>';return}const title=pages[id].title,extract=pages[id].extract||'';r.innerHTML=`<div class="bg-[#131314] p-5 rounded-xl"><h3 class="font-bold mb-2">${esc(title)}</h3><p class="whitespace-pre-wrap text-gray-300">${esc(extract)}</p><button id="save-wiki-btn" class="mt-4 btn btn-blue">Save to Notebook</button></div>`;document.getElementById('save-wiki-btn').onclick=()=>saveToNotebook(title,extract,'wiki')}catch(e){r.innerHTML='<p class="text-red-400">Failed.</p>'}} function saveToNotebook(title,content,source='manual'){notebooks.unshift({id:uid('note'),title,content,tags:[source],source,createdAt:Date.now(),updatedAt:Date.now()});saveAll();renderNotebooks();closeWikiModal()} function deleteNotebook(i){if(confirm('Delete this notebook?')){notebooks.splice(i,1);saveAll();renderNotebooks()}} function previewNotebook(i){const n=notebooks[i];if(!n)return;document.getElementById('preview-title').textContent=n.title;document.getElementById('preview-subtitle').textContent='notebook • '+(n.tags||[]).join(', ');document.getElementById('preview-body').innerHTML=`<pre class="whitespace-pre-wrap text-sm bg-[#111827] p-4 rounded-2xl">${esc(n.content)}</pre><div class="flex gap-2 mt-3"><button onclick="importText(notebooks[${i}].content)" class="btn btn-blue">Import to Prompt</button><button onclick="openNotebookEditor('${n.id}')" class="btn btn-gray">Edit</button></div>`;document.getElementById('preview-modal').classList.remove('hidden');document.getElementById('preview-modal').classList.add('flex')} function openNotebookImport(){const l=document.getElementById('import-list');l.innerHTML=notebooks.length?notebooks.map((n,i)=>`<button onclick="importText(notebooks[${i}].content)" class="w-full text-left p-3 hover:bg-[#2a2b2f] border-b border-gray-800"><b>${esc(n.title)}</b><p class="text-xs text-gray-500 truncate">${esc(n.content)}</p></button>`).join(''):'<p class="text-center text-gray-500 py-8">No notebooks.</p>';document.getElementById('import-modal').classList.remove('hidden');document.getElementById('import-modal').classList.add('flex')} function closeNotebookImport(){document.getElementById('import-modal').classList.add('hidden');document.getElementById('import-modal').classList.remove('flex')} function importText(t){const i=document.getElementById('message-input');i.value=`[Research Data]:\n${t}\n\n${i.value}`;autoResize(i);closeNotebookImport();closePreview();i.focus()} function exportNotebooks(){const url=URL.createObjectURL(new Blob([JSON.stringify(notebooks,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='spudzy-notebooks.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)} async function importNotebookJsonFile(e){const f=e.target.files[0];if(!f)return;const text=await f.text();const data=JSON.parse(text);if(!Array.isArray(data))return alert('JSON must be an array.');notebooks=[...data,...notebooks];saveAll();renderNotebooks();e.target.value=''}
+    function toggleSidebar(){document.getElementById('sidebar').classList.toggle('-translate-x-full');document.getElementById('sidebar-overlay').classList.toggle('hidden')} function toggleConsoleBody(force=false){const l=document.getElementById('error-list'),c=document.getElementById('console-chevron');if(force||l.classList.contains('hidden')){l.classList.remove('hidden');c.classList.replace('fa-chevron-down','fa-chevron-up')}else{l.classList.add('hidden');c.classList.replace('fa-chevron-up','fa-chevron-down')}} function autoResize(e){e.style.height='auto';e.style.height=Math.min(e.scrollHeight,160)+'px'}
+    Object.assign(window,{navigate,deleteCurrentChat,toggleSidebar,toggleConsoleBody,autoResize,sendMessage,updateInputPlaceholder,openAssetLibrary,closeAssetLibrary,renderAssetLibrary,rebuildAssetLibrary,previewAsset,closePreview,playMusicAsset,downloadMusicBundle,regenerateCurrentChatAssets,downloadHtmlAsset,copyHtmlAsset,renderNotebooks,openWikiModal,closeWikiModal,searchWiki,saveToNotebook,deleteNotebook,previewNotebook,openNotebookImport,closeNotebookImport,importText,openNotebookEditor,closeNotebookEditor,saveNotebookFromEditor,saveCurrentPromptAsNotebook,exportNotebooks,importNotebookJsonFile});
     init();
   </script>
 </body>

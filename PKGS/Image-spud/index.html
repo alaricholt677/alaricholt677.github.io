@@ -8,38 +8,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <!-- Compatibility import map for older Image-Spud builds that still reference these namespaces. -->
-  <script type="importmap">
-  {
-    "imports": {
-      "@spudzy/native-bindings": "data:text/javascript,export const Float16Array = globalThis.Float32Array; export const WebGL2RenderingContext = globalThis.WebGL2RenderingContext || {};",
-      "@spudzy/quantum-math": "data:text/javascript,export const createLatentSpace = () => ({}); export const destroyMortalLimits = () => ({});"
-    }
-  }
-  </script>
-
-  <!-- Compatibility globals for older Image-Spud builds. The refixed build also works without these. -->
-  <script>
-    window.activePromptTokens = [];
-
-    window.lookupVocabulary = function lookupVocabulary(token) {
-      const text = String(token ?? '');
-      window.activePromptTokens.push(text);
-      const vector = new Float32Array(768);
-      const first = text.charCodeAt(0) || 1;
-      for (let i = 0; i < 768; i++) {
-        vector[i] = Math.sin(first * (i + 1));
-      }
-      return vector;
-    };
-
-    window.injectPositionalEncoding = function injectPositionalEncoding(embeddings, tokenVector, index) {
-      for (let i = 0; i < 768; i++) {
-        embeddings[index * 768 + i] = (embeddings[index * 768 + i] || 0) + (tokenVector[i] || 0) + Math.cos(index / (i + 1));
-      }
-    };
-  </script>
-
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap');
 

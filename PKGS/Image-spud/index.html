@@ -1,456 +1,441 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image-Spud: The High Priest's Sanctum</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- 
-      THE QUANTUM BRIDGE (IMPORT MAP):
-      Resolves internal namespace bindings for your 4999-line matrix
-    -->
-    <script type="importmap">
-    {
-      "imports": {
-        "@spudzy/native-bindings": "data:text/javascript,export const Float16Array = Float32Array; export const WebGL2RenderingContext = {};",
-        "@spudzy/quantum-math": "data:text/javascript,export const createLatentSpace = () => {}; export const destroyMortalLimits = () => {};"
-      }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image-Spud: The High Priest's Sanctum</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Compatibility import map for older Image-Spud builds that still reference these namespaces. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "@spudzy/native-bindings": "data:text/javascript,export const Float16Array = globalThis.Float32Array; export const WebGL2RenderingContext = globalThis.WebGL2RenderingContext || {};",
+      "@spudzy/quantum-math": "data:text/javascript,export const createLatentSpace = () => ({}); export const destroyMortalLimits = () => ({});"
     }
-    </script>
+  }
+  </script>
 
-    <!-- 
-      GLOBAL HIGH-PRIEST INTERFACES:
-      Injecting vocabularies and positional tables utilized by the modular logic.
-    -->
-    <script>
-        window.activePromptTokens = [];
-        
-        window.lookupVocabulary = function(token) {
-            window.activePromptTokens.push(token);
-            const vector = new Float32Array(768);
-            for(let i = 0; i < 768; i++) {
-                vector[i] = Math.sin(token.charCodeAt(0) * (i + 1));
-            }
-            return vector;
-        };
+  <!-- Compatibility globals for older Image-Spud builds. The refixed build also works without these. -->
+  <script>
+    window.activePromptTokens = [];
 
-        window.injectPositionalEncoding = function(embeddings, tokenVector, index) {
-            for(let i = 0; i < 768; i++) {
-                embeddings[index * 768 + i] += tokenVector[i] + Math.cos(index / (i + 1));
-            }
-        };
-    </script>
+    window.lookupVocabulary = function lookupVocabulary(token) {
+      const text = String(token ?? '');
+      window.activePromptTokens.push(text);
+      const vector = new Float32Array(768);
+      const first = text.charCodeAt(0) || 1;
+      for (let i = 0; i < 768; i++) {
+        vector[i] = Math.sin(first * (i + 1));
+      }
+      return vector;
+    };
 
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap');
-        :root { --bg-dark: #050505; --accent-gold: #d97706; --accent-glow: rgba(217, 119, 6, 0.4); }
-        body { background-color: var(--bg-dark); color: #e5e7eb; font-family: 'Inter', sans-serif; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        .font-serif { font-family: 'Cinzel', serif; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: var(--bg-dark); }
-        ::-webkit-scrollbar-thumb { background: #2a2a30; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--accent-gold); }
-        .glow-text { text-shadow: 0 0 15px var(--accent-glow); }
-        .message-enter { animation: slideIn 0.3s ease-out forwards; opacity: 0; transform: translateY(10px); }
-        @keyframes slideIn { to { opacity: 1; transform: translateY(0); } }
-        .priest-bubble { background: linear-gradient(145deg, #121215 0%, #1a1a20 100%); border: 1px solid #3a3a40; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-        .user-bubble { background: linear-gradient(145deg, #2d1a0a 0%, #1c1005 100%); border: 1px solid #4a2a10; }
-        .typing-indicator span { display: inline-block; width: 6px; height: 6px; background-color: var(--accent-gold); border-radius: 50%; margin: 0 2px; animation: bounce 1.4s infinite ease-in-out both; }
-        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-        .code-block { background: #0a0a0c; border: 1px solid #2a2a30; padding: 1rem; border-radius: 0.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; overflow-x: auto; color: #a1a1aa; }
-        .code-block .keyword { color: #c678dd; } .code-block .string { color: #98c379; } .code-block .func { color: #61afef; } .code-block .comment { color: #5c6370; font-style: italic; }
-    </style>
+    window.injectPositionalEncoding = function injectPositionalEncoding(embeddings, tokenVector, index) {
+      for (let i = 0; i < 768; i++) {
+        embeddings[index * 768 + i] = (embeddings[index * 768 + i] || 0) + (tokenVector[i] || 0) + Math.cos(index / (i + 1));
+      }
+    };
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap');
+
+    :root {
+      --bg-dark: #050505;
+      --accent-gold: #d97706;
+      --accent-glow: rgba(217, 119, 6, 0.4);
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: #e5e7eb;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .font-serif { font-family: 'Cinzel', serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg-dark); }
+    ::-webkit-scrollbar-thumb { background: #2a2a30; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent-gold); }
+
+    .glow-text { text-shadow: 0 0 15px var(--accent-glow); }
+
+    .message-enter {
+      animation: slideIn 0.3s ease-out forwards;
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    @keyframes slideIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .priest-bubble {
+      background: linear-gradient(145deg, #121215 0%, #1a1a20 100%);
+      border: 1px solid #3a3a40;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .user-bubble {
+      background: linear-gradient(145deg, #2d1a0a 0%, #1c1005 100%);
+      border: 1px solid #4a2a10;
+    }
+
+    .typing-indicator span {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background-color: var(--accent-gold);
+      border-radius: 50%;
+      margin: 0 2px;
+      animation: bounce 1.4s infinite ease-in-out both;
+    }
+
+    .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+    .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+
+    .code-block {
+      background: #0a0a0c;
+      border: 1px solid #2a2a30;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      overflow-x: auto;
+      color: #a1a1aa;
+      white-space: pre-wrap;
+    }
+
+    .code-block .keyword { color: #c678dd; }
+    .code-block .string { color: #98c379; }
+    .code-block .func { color: #61afef; }
+    .code-block .comment { color: #5c6370; font-style: italic; }
+  </style>
 </head>
 <body>
-
-    <header class="bg-[#0a0a0c] border-b border-[#2a2a30] p-4 flex justify-between items-center z-10 shadow-lg">
-        <div class="flex items-center gap-4">
-            <div class="bg-gradient-to-br from-amber-600 to-amber-900 p-2 rounded-lg shadow-[0_0_15px_rgba(217,119,6,0.3)]">
-                <i data-lucide="cross" class="text-amber-100 w-5 h-5"></i>
-            </div>
-            <div>
-                <h1 class="font-serif font-bold text-xl text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 glow-text">
-                    SANCTUM OF IMAGE-SPUD
-                </h1>
-                <p class="text-[10px] font-mono text-amber-600/70 uppercase tracking-widest">Pure Modular Local Shader Pipeline</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-2">
-            <button id="docsBtn" class="text-xs font-mono text-amber-500 hover:text-amber-300 transition-colors flex items-center gap-2 px-3 py-1.5 border border-amber-900/50 hover:border-amber-500/50 rounded bg-[#1a1a20]">
-                <i data-lucide="scroll-text" class="w-3 h-3"></i> The Grimoire
-            </button>
-            <button id="clearBtn" class="text-xs font-mono text-gray-500 hover:text-red-400 transition-colors flex items-center gap-2 px-3 py-1.5 border border-transparent hover:border-red-900/50 rounded bg-[#121215]">
-                <i data-lucide="trash-2" class="w-3 h-3"></i> Clear Memory
-            </button>
-        </div>
-    </header>
-
-    <main id="chatBox" class="flex-grow overflow-y-auto p-4 md:p-8 flex flex-col gap-6 scroll-smooth bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#121215] to-[#050505]"></main>
-
-    <footer class="p-4 bg-[#0a0a0c] border-t border-[#2a2a30]">
-        <form id="chatForm" class="max-w-4xl mx-auto relative flex items-center gap-3">
-            <input type="text" id="promptInput" autocomplete="off" placeholder="Inscribe your local vision..." class="w-full bg-[#121215] border-2 border-[#2a2a30] rounded-xl py-4 pl-6 pr-32 text-gray-200 focus:outline-none focus:border-amber-600/50 transition-all font-serif text-lg shadow-inner" required />
-            <button type="submit" id="submitBtn" class="absolute right-2 top-2 bottom-2 bg-gradient-to-br from-amber-600 to-orange-800 hover:from-amber-500 hover:to-orange-700 text-amber-50 rounded-lg px-6 font-bold tracking-widest text-sm transition-all shadow-lg flex items-center gap-2">
-                CONJURE <i data-lucide="sparkles" class="w-4 h-4"></i>
-            </button>
-        </form>
-    </footer>
-
-    <!-- The Sacred Grimoire (Docs Modal) -->
-    <div id="docsModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-        <div class="bg-[#121215] border border-amber-900/50 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-[0_0_50px_rgba(217,119,6,0.1)]">
-            <div class="p-5 border-b border-[#2a2a30] flex justify-between items-center bg-[#0a0a0c] rounded-t-2xl">
-                <div class="flex items-center gap-3">
-                    <i data-lucide="scroll-text" class="text-amber-500 w-5 h-5"></i>
-                    <h2 class="font-serif font-bold text-xl text-amber-100 tracking-wider">The Sacred Grimoire: Local Rendering</h2>
-                </div>
-                <button id="closeDocsBtn" class="text-gray-500 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
-            </div>
-            <div class="p-6 overflow-y-auto font-sans text-gray-300 space-y-6">
-                <p>This Sanctum operates with <strong>zero external image generators</strong>. The 4999 lines of pure JS compile and output calculations which are mapped straight to an offline GPU Canvas rendering engine.</p>
-                <div class="code-block">
-<span class="comment">// Instantiated entirely client-side using modular WebGL math</span>
-<span class="keyword">import</span> { ImageSpudHighPriest } <span class="keyword">from</span> <span class="string">'https://alaricholt677.github.io/PKGS/Image-spud/Imagener.js'</span>;
-
-<span class="keyword">const</span> priest = <span class="keyword">new</span> <span class="func">ImageSpudHighPriest</span>();
-<span class="keyword">const</span> rawSpudOutput = <span class="keyword">await</span> priest.<span class="func">generate</span>(<span class="string">"A cybernetic cathedral"</span>);
-                </div>
-            </div>
-        </div>
+  <header class="bg-[#0a0a0c] border-b border-[#2a2a30] p-4 flex justify-between items-center z-10 shadow-lg">
+    <div class="flex items-center gap-4">
+      <div class="bg-gradient-to-br from-amber-600 to-amber-900 p-2 rounded-lg shadow-[0_0_15px_rgba(217,119,6,0.3)]">
+        <i data-lucide="sparkles" class="text-amber-100 w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="font-serif font-bold text-xl text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 glow-text">SANCTUM OF IMAGE-SPUD</h1>
+        <p class="text-[10px] font-mono text-amber-600/70 uppercase tracking-widest">GitHub Pages Modular Prompt-to-Image Pipeline</p>
+      </div>
     </div>
 
-    <!-- MAIN LOGIC: Evaluates PKG Modules and runs dynamic prototype grafting -->
-    <script type="module">
-        lucide.createIcons();
-        const STORAGE_KEY = 'spudzy_sanctum_history';
-        let chatHistory = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-        const chatBox = document.getElementById('chatBox');
+    <div class="flex items-center gap-2">
+      <button id="docsBtn" type="button" class="text-xs font-mono text-amber-500 hover:text-amber-300 transition-colors flex items-center gap-2 px-3 py-1.5 border border-amber-900/50 hover:border-amber-500/50 rounded bg-[#1a1a20]">
+        <i data-lucide="scroll-text" class="w-3 h-3"></i> The Grimoire
+      </button>
+      <button id="clearBtn" type="button" class="text-xs font-mono text-gray-500 hover:text-red-400 transition-colors flex items-center gap-2 px-3 py-1.5 border border-transparent hover:border-red-900/50 rounded bg-[#121215]">
+        <i data-lucide="trash-2" class="w-3 h-3"></i> Clear Memory
+      </button>
+    </div>
+  </header>
 
-        // =========================================================================
-        // DYNAMIC TENSOR PROTOTYPE OVERLAYS (NO IMAGEN BACKEND ALLOWED)
-        // =========================================================================
-        async function bootstrapHighPriest() {
-            // Load the module exactly at your PKGS path
-            const pkg = await import('https://alaricholt677.github.io/PKGS/Image-spud/Imagener.js');
-            
-            // Extract the SpudTensor class prototype directly from the module's export
-            const sampleTensor = pkg.encodeTextPrompt_3(["seed"]);
-            const SpudTensorProto = Object.getPrototypeOf(sampleTensor);
+  <main id="chatBox" class="flex-grow overflow-y-auto p-4 md:p-8 flex flex-col gap-6 scroll-smooth bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#121215] to-[#050505]"></main>
 
-            // Graft the missing structural layer methods straight to the prototype chain
-            SpudTensorProto.groupNorm = function() { return this; };
-            SpudTensorProto.conv2d = function() { return this; };
-            SpudTensorProto.linear = function() { return this; };
-            SpudTensorProto.silu = function() { return this; };
-            SpudTensorProto.add = function() { return this; };
-            SpudTensorProto.broadcastTo = function() { return this; };
-            SpudTensorProto.transpose = function() { return this; };
-            SpudTensorProto.multiplyScalar = function() { return this; };
-            SpudTensorProto.softmax = function() { return this; };
+  <footer class="p-4 bg-[#0a0a0c] border-t border-[#2a2a30]">
+    <form id="chatForm" class="max-w-4xl mx-auto relative flex items-center gap-3">
+      <input type="text" id="promptInput" autocomplete="off" placeholder="Inscribe your hosted vision..." class="w-full bg-[#121215] border-2 border-[#2a2a30] rounded-xl py-4 pl-6 pr-32 text-gray-200 focus:outline-none focus:border-amber-600/50 transition-all font-serif text-lg shadow-inner" required />
+      <button type="submit" id="submitBtn" class="absolute right-2 top-2 bottom-2 bg-gradient-to-br from-amber-600 to-orange-800 hover:from-amber-500 hover:to-orange-700 text-amber-50 rounded-lg px-6 font-bold tracking-widest text-sm transition-all shadow-lg flex items-center gap-2">
+        CONJURE <i data-lucide="sparkles" class="w-4 h-4"></i>
+      </button>
+    </form>
+  </footer>
 
-            // Pure Local Procedural Mathematical Art Renderer based on prompt tokens
-            SpudTensorProto.decodeToImageBuffer = function() {
-                const canvas = document.createElement('canvas');
-                canvas.width = 1024;
-                canvas.height = 1024;
-                const ctx = canvas.getContext('2d');
+  <div id="docsModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="bg-[#121215] border border-amber-900/50 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-[0_0_50px_rgba(217,119,6,0.1)]">
+      <div class="p-5 border-b border-[#2a2a30] flex justify-between items-center bg-[#0a0a0c] rounded-t-2xl">
+        <div class="flex items-center gap-3">
+          <i data-lucide="scroll-text" class="text-amber-500 w-5 h-5"></i>
+          <h2 class="font-serif font-bold text-xl text-amber-100 tracking-wider">The Sacred Grimoire: Hosted Rendering</h2>
+        </div>
+        <button id="closeDocsBtn" type="button" class="text-gray-500 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+      </div>
 
-                const promptText = window.activePromptTokens.join(' ').toLowerCase();
+      <div class="p-6 overflow-y-auto font-sans text-gray-300 space-y-6">
+        <p>This Sanctum imports your Image-Spud module from GitHub Pages:</p>
+        <p class="font-mono text-amber-400 break-all">https://alaricholt677.github.io/PKGS/Image-spud/Imagener.js</p>
+        <div class="code-block" aria-label="Hosted module import example"><span class="comment">// Hosted module import — copy this exactly as plain JS, no anchor tags</span>
+<span class="keyword">import</span> { ImageSpudHighPriest } <span class="keyword">from</span> <span class="string">"https://alaricholt677.github.io/PKGS/Image-spud/Imagener.js"</span>;
 
-                // Seedable random number generator based on computed tensor weights and tokens
-                let seed = 0;
-                for (let i = 0; i < promptText.length; i++) {
-                    seed = promptText.charCodeAt(i) + ((seed << 5) - seed);
-                }
-                function localRandom() {
-                    const x = Math.sin(seed++) * 10000;
-                    return x - Math.floor(x);
-                }
+<span class="keyword">const</span> priest = <span class="keyword">new</span> <span class="func">ImageSpudHighPriest</span>();
+<span class="keyword">const</span> output = <span class="keyword">await</span> priest.<span class="func">generate</span>(<span class="string">"A cybernetic cathedral"</span>);
+<span class="keyword">const</span> imageUrl = output.dataUri || output;</div>
+        <button id="copyGrimoireBtn" type="button" class="text-xs font-mono text-amber-300 hover:text-amber-100 transition-colors px-3 py-2 border border-amber-900/50 rounded bg-[#1a1a20]">
+          Copy clean import snippet
+        </button>
+      </div>
+    </div>
+  </div>
 
-                // HSL to HEX Converter Matrix (Solves the CanvasGradient mortal parsing error)
-                function hslToHex(h, s, l) {
-                    l /= 100;
-                    const a = s * Math.min(l, 1 - l) / 100;
-                    const f = n => {
-                        const k = (n + h / 30) % 12;
-                        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-                        return Math.round(255 * color).toString(16).padStart(2, '0');
-                    };
-                    return `#${f(0)}${f(8)}${f(4)}`;
-                }
+  <script type="module">
+    const MODULE_URL = 'https://alaricholt677.github.io/PKGS/Image-spud/Imagener.js';
+    const STORAGE_KEY = 'spudzy_sanctum_history_github_pages';
 
-                // Generates high artistic compositions based on seed keywords
-                ctx.fillStyle = '#050508';
-                ctx.fillRect(0, 0, 1024, 1024);
+    const chatBox = document.getElementById('chatBox');
+    const chatForm = document.getElementById('chatForm');
+    const promptInput = document.getElementById('promptInput');
+    const submitBtn = document.getElementById('submitBtn');
+    const docsModal = document.getElementById('docsModal');
 
-                // Determine Palette (Guaranteed Hex strings for safe alpha appending)
-                let primaryColor = hslToHex(Math.floor(localRandom() * 360), 80, 50);
-                let secondaryColor = hslToHex(Math.floor(localRandom() * 360), 85, 45);
-                let glowColor = hslToHex(Math.floor(localRandom() * 360), 90, 60);
+    let chatHistory = safeLoadHistory();
+    let ImageSpudHighPriestClass = null;
 
-                if (promptText.includes('neon') || promptText.includes('cyber')) {
-                    primaryColor = '#ff007f';
-                    secondaryColor = '#00f0ff';
-                    glowColor = '#7000ff';
-                } else if (promptText.includes('cathedral') || promptText.includes('holy') || promptText.includes('priest')) {
-                    primaryColor = '#d97706';
-                    secondaryColor = '#78350f';
-                    glowColor = '#fef08a';
-                } else if (promptText.includes('space') || promptText.includes('cosmic') || promptText.includes('galaxy')) {
-                    primaryColor = '#3b82f6';
-                    secondaryColor = '#8b5cf6';
-                    glowColor = '#ec4899';
-                }
+    if (window.lucide) window.lucide.createIcons();
 
-                // Background Cosmic Nebula Layer
-                const gradient = ctx.createRadialGradient(512, 512, 50, 512, 512, 700);
-                // Safe hex alpha appending (e.g. #ff007f33)
-                gradient.addColorStop(0, `${secondaryColor}33`);
-                gradient.addColorStop(0.5, `${primaryColor}11`);
-                gradient.addColorStop(1, '#050508');
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, 1024, 1024);
+    if (chatHistory.length === 0) {
+      chatHistory.push({
+        role: 'priest',
+        type: 'text',
+        content: 'I am the High Priest of Image-Spud. I will import your GitHub Pages module and expand even a tiny prompt into a complete image manifestation.'
+      });
+      saveHistory();
+    }
 
-                // Volumetric Lighting and Star/Matrix Grids
-                ctx.strokeStyle = `${secondaryColor}22`;
-                ctx.lineWidth = 1;
-                const gridSpacing = 32;
-                for (let i = 0; i < 1024; i += gridSpacing) {
-                    ctx.beginPath();
-                    ctx.moveTo(i, 0);
-                    ctx.lineTo(512, 512);
-                    ctx.stroke();
-                }
+    renderHistory();
 
-                // Generative Abstract Geometries, Sanctum Portals & Mandalas
-                ctx.shadowBlur = 40;
-                ctx.shadowColor = glowColor;
+    function safeLoadHistory() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        return saved ? JSON.parse(saved) : [];
+      } catch {
+        return [];
+      }
+    }
 
-                const iterations = 8 + Math.floor(localRandom() * 12);
-                for (let i = 0; i < iterations; i++) {
-                    ctx.strokeStyle = i % 2 === 0 ? primaryColor : secondaryColor;
-                    ctx.lineWidth = 2 + (localRandom() * 6);
-                    ctx.beginPath();
-                    
-                    const shapeType = localRandom();
-                    const radius = 50 + (i * 45);
+    function saveHistory() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(chatHistory));
+    }
 
-                    if (shapeType < 0.4 || promptText.includes('cathedral') || promptText.includes('holy')) {
-                        // Drawing Stained Glass / Sacred Geometry lines
-                        for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 6) {
-                            const x1 = 512 + Math.cos(angle) * (radius - 20);
-                            const y1 = 512 + Math.sin(angle) * (radius - 20);
-                            const x2 = 512 + Math.cos(angle) * radius;
-                            const y2 = 512 + Math.sin(angle) * radius;
-                            ctx.moveTo(x1, y1);
-                            ctx.lineTo(x2, y2);
-                        }
-                        ctx.arc(512, 512, radius, 0, Math.PI * 2);
-                    } else if (shapeType < 0.7) {
-                        // Cybernetic Hexagonal Grid matrix rings
-                        const sides = 6;
-                        for (let s = 0; s <= sides; s++) {
-                            const angle = (s / sides) * Math.PI * 2;
-                            const x = 512 + Math.cos(angle) * radius;
-                            const y = 512 + Math.sin(angle) * radius;
-                            if (s === 0) ctx.moveTo(x, y);
-                            else ctx.lineTo(x, y);
-                        }
-                    } else {
-                        // Flowing generative bezier lines
-                        const startAngle = localRandom() * Math.PI * 2;
-                        const x1 = 512 + Math.cos(startAngle) * radius;
-                        const y1 = 512 + Math.sin(startAngle) * radius;
-                        const x2 = 512 + Math.cos(startAngle + Math.PI) * radius;
-                        const y2 = 512 + Math.sin(startAngle + Math.PI) * radius;
-                        ctx.bezierCurveTo(x1, y1, 512 + (localRandom() - 0.5) * 200, 512 + (localRandom() - 0.5) * 200, x2, y2);
-                    }
-                    ctx.stroke();
-                }
+    function scrollToBottom() {
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
 
-                // Silhouette details for themes
-                if (promptText.includes('cathedral') || promptText.includes('holy') || promptText.includes('cross') || promptText.includes('priest')) {
-                    ctx.shadowColor = '#000';
-                    ctx.fillStyle = '#030305';
-                    ctx.beginPath();
-                    ctx.moveTo(480, 1024);
-                    ctx.bezierCurveTo(490, 850, 534, 850, 544, 1024);
-                    ctx.fill();
+    function renderHistory() {
+      chatBox.innerHTML = '';
+      chatHistory.forEach((msg) => appendMessage(msg.role, msg.type, msg.content, msg.imageUrl, false));
+      scrollToBottom();
+    }
 
-                    ctx.shadowColor = glowColor;
-                    ctx.shadowBlur = 50;
-                    ctx.strokeStyle = glowColor;
-                    ctx.lineWidth = 4;
-                    ctx.beginPath();
-                    ctx.arc(512, 850, 40, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
+    function createIcon(name, classes = 'w-3 h-3') {
+      const icon = document.createElement('i');
+      icon.setAttribute('data-lucide', name);
+      icon.className = classes;
+      return icon;
+    }
 
-                if (promptText.includes('space') || promptText.includes('galaxy') || promptText.includes('cosmic')) {
-                    ctx.shadowColor = glowColor;
-                    ctx.fillStyle = primaryColor;
-                    ctx.beginPath();
-                    ctx.arc(512, 512, 120, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    ctx.strokeStyle = secondaryColor;
-                    ctx.lineWidth = 15;
-                    ctx.beginPath();
-                    ctx.ellipse(512, 512, 280, 40, -Math.PI / 6, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
+    function appendMessage(role, type, content, imageUrl = null, animate = true) {
+      const wrapper = document.createElement('div');
+      wrapper.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'} ${animate ? 'message-enter' : ''}`;
 
-                ctx.shadowBlur = 10;
-                ctx.fillStyle = glowColor;
-                for (let p = 0; p < 80; p++) {
-                    const px = localRandom() * 1024;
-                    const py = localRandom() * 1024;
-                    const size = 1 + (localRandom() * 4);
-                    ctx.beginPath();
-                    ctx.arc(px, py, size, 0, Math.PI * 2);
-                    ctx.fill();
-                }
+      const bubble = document.createElement('div');
+      bubble.className = `max-w-[85%] md:max-w-[70%] rounded-2xl p-5 ${role === 'user' ? 'user-bubble text-amber-50 rounded-tr-sm' : 'priest-bubble text-gray-200 rounded-tl-sm'}`;
 
-                return canvas.toDataURL('image/png');
-            };
+      const header = document.createElement('div');
+      header.className = `flex items-center gap-2 mb-2 ${role === 'user' ? 'justify-end' : 'justify-start'}`;
 
-            return pkg.ImageSpudHighPriest;
+      const label = document.createElement('span');
+      label.className = role === 'user'
+        ? 'text-xs font-mono text-amber-500/70 uppercase tracking-widest'
+        : 'text-xs font-mono text-amber-500 uppercase tracking-widest';
+      label.textContent = role === 'user' ? 'Acolyte (You)' : 'High Priest';
+
+      if (role === 'user') {
+        header.append(label, createIcon('user', 'w-3 h-3 text-amber-500/70'));
+      } else {
+        header.append(createIcon('sparkles', 'w-3 h-3 text-amber-500'), label);
+      }
+
+      const body = document.createElement('div');
+      body.className = 'font-serif text-lg leading-relaxed';
+
+      if (type === 'image' && imageUrl) {
+        const description = document.createElement('p');
+        description.className = 'mb-4';
+        description.textContent = content;
+
+        const frame = document.createElement('div');
+        frame.className = 'relative rounded-xl overflow-hidden border border-[#3a3a40] shadow-2xl group';
+
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.className = 'w-full h-auto object-cover bg-black';
+        img.alt = 'Generated Image-Spud manifestation';
+
+        const overlay = document.createElement('div');
+        overlay.className = 'absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center';
+
+        const download = document.createElement('a');
+        download.href = imageUrl;
+        download.download = imageUrl.startsWith('data:image/svg') ? 'sacred-spud-manifestation.svg' : 'sacred-spud-manifestation.png';
+        download.className = 'bg-amber-600/80 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-mono text-sm border border-amber-400/50 flex items-center gap-2 transition-all hover:scale-105';
+        download.append(createIcon('download', 'w-4 h-4'), document.createTextNode(' Save Relic'));
+
+        overlay.appendChild(download);
+        frame.append(img, overlay);
+        body.append(description, frame);
+      } else {
+        body.textContent = content;
+      }
+
+      bubble.append(header, body);
+      wrapper.appendChild(bubble);
+      chatBox.appendChild(wrapper);
+
+      if (window.lucide) window.lucide.createIcons();
+      scrollToBottom();
+    }
+
+    function showTypingIndicator() {
+      const wrapper = document.createElement('div');
+      wrapper.id = 'typingIndicator';
+      wrapper.className = 'flex w-full justify-start message-enter';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'priest-bubble rounded-2xl rounded-tl-sm p-4 flex flex-col gap-2';
+
+      const row = document.createElement('div');
+      row.className = 'flex items-center gap-2';
+      row.append(createIcon('cpu', 'w-3 h-3 text-amber-600 animate-pulse'));
+
+      const label = document.createElement('span');
+      label.className = 'text-xs font-mono text-amber-600 uppercase tracking-widest';
+      label.textContent = 'Importing GitHub Pages module and compiling image layers...';
+      row.appendChild(label);
+
+      const dots = document.createElement('div');
+      dots.className = 'typing-indicator flex items-center h-6 px-2';
+      dots.innerHTML = '<span></span><span></span><span></span>';
+
+      bubble.append(row, dots);
+      wrapper.appendChild(bubble);
+      chatBox.appendChild(wrapper);
+
+      if (window.lucide) window.lucide.createIcons();
+      scrollToBottom();
+    }
+
+    async function bootstrapHighPriest() {
+      const pkg = await import(MODULE_URL);
+      if (!pkg.ImageSpudHighPriest) {
+        throw new Error('ImageSpudHighPriest export was not found at ' + MODULE_URL);
+      }
+      return pkg.ImageSpudHighPriest;
+    }
+
+    function extractImageUrl(output) {
+      if (typeof output === 'string') return output;
+      if (output && typeof output === 'object') {
+        if (typeof output.dataUri === 'string') return output.dataUri;
+        if (typeof output.svg === 'string') return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(output.svg)}`;
+      }
+      throw new Error('The generator returned an unsupported image result.');
+    }
+
+    function extractExpandedPrompt(output, fallback) {
+      if (output && typeof output === 'object' && output.promptSpec?.expandedPrompt) {
+        return output.promptSpec.expandedPrompt;
+      }
+      return fallback;
+    }
+
+    chatForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const userText = promptInput.value.trim();
+      if (!userText) return;
+
+      promptInput.value = '';
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-50');
+
+      const userMsg = { role: 'user', type: 'text', content: userText };
+      chatHistory.push(userMsg);
+      saveHistory();
+      appendMessage(userMsg.role, userMsg.type, userMsg.content);
+      showTypingIndicator();
+
+      try {
+        if (!ImageSpudHighPriestClass) {
+          ImageSpudHighPriestClass = await bootstrapHighPriest();
         }
 
-        let ImageSpudHighPriestClass = null;
+        window.activePromptTokens = userText.split(/\s+/);
+        const priest = new ImageSpudHighPriestClass();
+        const output = await priest.generate(userText);
+        const imageUrl = extractImageUrl(output);
+        const expandedPrompt = extractExpandedPrompt(output, userText);
 
-        if (chatHistory.length === 0) {
-            chatHistory.push({ role: 'priest', type: 'text', content: "I am the High Priest of Image-Spud. My modular ES logic runs entirely offline, compiled directly in your browser. What visual manifestation do you seek today?" });
-            saveHistory();
-        }
+        document.getElementById('typingIndicator')?.remove();
 
-        function renderHistory() {
-            chatBox.innerHTML = '';
-            chatHistory.forEach(msg => appendMessage(msg.role, msg.type, msg.content, msg.imageUrl, false));
-            scrollToBottom();
-        }
+        const priestMsg = {
+          role: 'priest',
+          type: 'image',
+          content: `Manifestation compiled from GitHub Pages. Expanded vision: ${expandedPrompt}`,
+          imageUrl
+        };
 
-        function saveHistory() { localStorage.setItem(STORAGE_KEY, JSON.stringify(chatHistory)); }
-        function scrollToBottom() { chatBox.scrollTop = chatBox.scrollHeight; }
+        chatHistory.push(priestMsg);
+        saveHistory();
+        appendMessage(priestMsg.role, priestMsg.type, priestMsg.content, priestMsg.imageUrl);
+      } catch (error) {
+        document.getElementById('typingIndicator')?.remove();
+        const errorMsg = { role: 'priest', type: 'text', content: `The High Priest failed to compile: ${error.message}` };
+        chatHistory.push(errorMsg);
+        saveHistory();
+        appendMessage(errorMsg.role, errorMsg.type, errorMsg.content);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50');
+        promptInput.focus();
+      }
+    });
 
-        function appendMessage(role, type, content, imageUrl = null, animate = true) {
-            const wrapper = document.createElement('div');
-            wrapper.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'} ${animate ? 'message-enter' : ''}`;
-            const bubble = document.createElement('div');
-            bubble.className = `max-w-[85%] md:max-w-[70%] rounded-2xl p-5 ${role === 'user' ? 'user-bubble text-amber-50 rounded-tr-sm' : 'priest-bubble text-gray-200 rounded-tl-sm'}`;
+    document.getElementById('docsBtn').addEventListener('click', () => docsModal.classList.remove('hidden'));
+    document.getElementById('closeDocsBtn').addEventListener('click', () => docsModal.classList.add('hidden'));
+    docsModal.addEventListener('click', (event) => { if (event.target === docsModal) docsModal.classList.add('hidden'); });
 
-            const header = document.createElement('div');
-            header.className = `flex items-center gap-2 mb-2 ${role === 'user' ? 'justify-end' : 'justify-start'}`;
-            header.innerHTML = role === 'user' ? `<span class="text-xs font-mono text-amber-500/70 uppercase tracking-widest">Acolyte (You)</span> <i data-lucide="user" class="w-3 h-3 text-amber-500/70"></i>` : `<i data-lucide="cross" class="w-3 h-3 text-amber-500"></i> <span class="text-xs font-mono text-amber-500 uppercase tracking-widest">High Priest</span>`;
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      localStorage.removeItem(STORAGE_KEY);
+      chatHistory = [{ role: 'priest', type: 'text', content: 'The timeline has been cleared. I am initialized.' }];
+      saveHistory();
+      renderHistory();
+    });
 
-            const body = document.createElement('div');
-            body.className = "font-serif text-lg leading-relaxed";
-            
-            if (type === 'text') {
-                body.textContent = content;
-            } else if (type === 'image') {
-                body.innerHTML = `<p class="mb-4">${content}</p>
-                <div class="relative rounded-xl overflow-hidden border border-[#3a3a40] shadow-2xl group">
-                    <img src="${imageUrl}" class="w-full h-auto object-cover" alt="Generated Manifestation">
-                    <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <a href="${imageUrl}" download="sacred-spud-manifestation.png" class="bg-amber-600/80 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-mono text-sm border border-amber-400/50 flex items-center gap-2 transition-all hover:scale-105"><i data-lucide="download" class="w-4 h-4"></i> Save Relic</a>
-                    </div>
-                </div>`;
-            }
+    document.getElementById('copyGrimoireBtn')?.addEventListener('click', async () => {
+      const snippet = `// Hosted module import
+import { ImageSpudHighPriest } from "https://alaricholt677.github.io/PKGS/Image-spud/Imagener.js";
 
-            bubble.appendChild(header);
-            bubble.appendChild(body);
-            wrapper.appendChild(bubble);
-            chatBox.appendChild(wrapper);
-            lucide.createIcons();
-            scrollToBottom();
-        }
+const priest = new ImageSpudHighPriest();
+const output = await priest.generate("A cybernetic cathedral");
+const imageUrl = output.dataUri || output;`;
 
-        function showTypingIndicator() {
-            const wrapper = document.createElement('div');
-            wrapper.id = 'typingIndicator';
-            wrapper.className = `flex w-full justify-start message-enter`;
-            wrapper.innerHTML = `
-                <div class="priest-bubble rounded-2xl rounded-tl-sm p-4 flex flex-col gap-2">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="cpu" class="w-3 h-3 text-amber-600 animate-pulse"></i>
-                        <span class="text-xs font-mono text-amber-600 uppercase tracking-widest">Compiling modular neural layers natively...</span>
-                    </div>
-                    <div class="typing-indicator flex items-center h-6 px-2"><span></span><span></span><span></span></div>
-                </div>`;
-            chatBox.appendChild(wrapper);
-            lucide.createIcons();
-            scrollToBottom();
-        }
+      try {
+        await navigator.clipboard.writeText(snippet);
+        appendMessage('priest', 'text', 'The clean Grimoire snippet has been copied.');
+      } catch {
+        appendMessage('priest', 'text', snippet);
+      }
+    });
 
-        document.getElementById('chatForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const promptInput = document.getElementById('promptInput');
-            const submitBtn = document.getElementById('submitBtn');
-            const userText = promptInput.value.trim();
-            if (!userText) return;
-
-            promptInput.value = '';
-            submitBtn.disabled = true;
-            submitBtn.classList.add('opacity-50');
-            
-            const userMsg = { role: 'user', type: 'text', content: userText };
-            chatHistory.push(userMsg);
-            saveHistory();
-            appendMessage(userMsg.role, userMsg.type, userMsg.content);
-
-            showTypingIndicator();
-
-            try {
-                if (!ImageSpudHighPriestClass) {
-                    ImageSpudHighPriestClass = await bootstrapHighPriest();
-                }
-
-                window.activePromptTokens = userText.split(/\s+/);
-                const priest = new ImageSpudHighPriestClass();
-                
-                const b64Image = await priest.generate(userText);
-                
-                const el = document.getElementById('typingIndicator');
-                if (el) el.remove();
-
-                const priestMsg = { role: 'priest', type: 'image', content: `I have compiled the 4999 lines of modular logic. Your vision has manifest.`, imageUrl: b64Image };
-                chatHistory.push(priestMsg);
-                saveHistory();
-                appendMessage(priestMsg.role, priestMsg.type, priestMsg.content, priestMsg.imageUrl);
-
-            } catch (error) {
-                const el = document.getElementById('typingIndicator');
-                if (el) el.remove();
-                const errorMsg = { role: 'priest', type: 'text', content: `The High Priest failed to compile: ${error.message}` };
-                chatHistory.push(errorMsg);
-                saveHistory();
-                appendMessage(errorMsg.role, errorMsg.type, errorMsg.content);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.classList.remove('opacity-50');
-                promptInput.focus();
-            }
-        });
-
-        document.getElementById('docsBtn').addEventListener('click', () => document.getElementById('docsModal').classList.remove('hidden'));
-        document.getElementById('closeDocsBtn').addEventListener('click', () => document.getElementById('docsModal').classList.add('hidden'));
-        document.getElementById('clearBtn').addEventListener('click', () => {
-            localStorage.removeItem(STORAGE_KEY);
-            chatHistory = [{ role: 'priest', type: 'text', content: "The timeline has been cleared. I am initialized." }];
-            saveHistory();
-            renderHistory();
-        });
-
-        renderHistory();
-    </script>
+  </script>
 </body>
 </html>
-
-

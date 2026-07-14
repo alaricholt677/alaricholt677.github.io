@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Windows 12 Concept Shell - Win12_26H1_V1_Stable.iso</title>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: Segoe UI, Arial, sans-serif;
+        background: #0f1a2b;
+        color: #e6e6e6;
+    }
+    .header {
+        background: #1c2f4d;
+        padding: 20px;
+        text-align: center;
+        font-size: 28px;
+        font-weight: bold;
+    }
+    .container {
+        max-width: 900px;
+        margin: 40px auto;
+        background: #16263d;
+        padding: 30px;
+        border-radius: 8px;
+        border: 1px solid #2a3f5f;
+    }
+    h2 {
+        margin-top: 30px;
+        border-bottom: 1px solid #2a3f5f;
+        padding-bottom: 8px;
+    }
+    .download-box {
+        background: #1c2f4d;
+        padding: 20px;
+        border-radius: 6px;
+        margin-top: 20px;
+        text-align: center;
+        border: 1px solid #2a3f5f;
+    }
+    .download-btn {
+        display: inline-block;
+        padding: 14px 28px;
+        background: #2f5fa8;
+        color: #ffffff;
+        text-decoration: none;
+        font-size: 18px;
+        border-radius: 4px;
+        margin-top: 10px;
+    }
+    .download-btn:hover {
+        background: #3a72c7;
+    }
+    .warning {
+        background: #4a1f1f;
+        padding: 20px;
+        border-radius: 6px;
+        border: 1px solid #7a2f2f;
+        margin-top: 20px;
+    }
+    .footer {
+        text-align: center;
+        margin-top: 40px;
+        padding: 20px;
+        color: #9aa7b8;
+        font-size: 14px;
+    }
+</style>
+</head>
+<body>
+
+<div class="header">
+    Windows 12 Concept Shell
+</div>
+
+<div class="container">
+
+    <h2>Download ISO</h2>
+    <p>This is the official build of the Windows 12 Concept Shell running on WinPE.</p>
+
+    <div class="download-box">
+        <div>Latest Stable Build:</div>
+        <div style="margin-top: 6px; font-size: 20px; font-weight: bold;">
+            Win12_26H1_V1_Stable.iso
+        </div>
+
+        <!-- Replace the href with your actual ISO download link -->
+        <a class="download-btn" href="Win12_26H1_V1_Stable.iso">Download ISO</a>
+    </div>
+
+    <h2>About This Project</h2>
+    <p>
+        Windows 12 Concept Shell is a custom Win32 GUI shell written in C++ and compiled for WinPE.
+        It is not a real Microsoft Windows operating system. It is a conceptual environment designed
+        to demonstrate UI ideas, custom window management, a taskbar, a start menu, apps, and a
+        simulated desktop experience.
+    </p>
+
+    <p>
+        The shell includes:
+    </p>
+    <ul>
+        <li>Full Win32 GUI shell (no console)</li>
+        <li>Login system with user profiles stored in RAM</li>
+        <li>Desktop with draggable windows and taskbar</li>
+        <li>Browser with download support</li>
+        <li>WINstore with base64 app installer</li>
+        <li>Full file explorer</li>
+        <li>Terminal with BIOS.OPEN command</li>
+        <li>Notepad with tabs and JSON persistence</li>
+        <li>Theme system</li>
+        <li>Power menu triggered by Alt+F4</li>
+    </ul>
+
+    <h2>Important Warnings</h2>
+
+    <div class="warning">
+        <p><strong>This ISO is not a real Windows installation.</strong></p>
+
+        <p>
+            It runs entirely inside WinPE. WinPE is a minimal Windows environment intended for
+            deployment and recovery. Because of this, several limitations apply:
+        </p>
+
+        <ul>
+            <li>No permanent installation to disk</li>
+            <li>No real user accounts (RAM only)</li>
+            <li>No Windows Update</li>
+            <li>No full driver stack</li>
+            <li>No full networking stack (VMware NAT recommended)</li>
+            <li>No real UEFI firmware interaction beyond reboot commands</li>
+        </ul>
+
+        <p>
+            Do not use this ISO as a replacement for Windows. It is a concept shell for testing,
+            experimentation, and UI design only.
+        </p>
+    </div>
+
+    <h2>System Requirements</h2>
+    <ul>
+        <li>VMware Workstation or VirtualBox</li>
+        <li>1 GB RAM minimum</li>
+        <li>WinPE-compatible boot environment</li>
+    </ul>
+
+</div>
+
+<div class="footer">
+    Windows 12 Concept Shell Project — WinPE C++ GUI Shell Experiment
+</div>
+
+</body>
+</html>

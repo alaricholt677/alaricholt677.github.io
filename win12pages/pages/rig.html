@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rig Architect Visual</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+      20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+    .animate-shake {
+      animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 10px; }
+    
+    /* Utility for hiding scrollbar if needed but keeping functionality */
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-300 font-sans p-4 md:p-6 selection:bg-cyan-500/30 overflow-x-hidden flex flex-col">
+
+  <!-- HEADER -->
+  <header class="max-w-7xl mx-auto w-full flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-800 pb-4 mb-6 shrink-0 gap-4">
+    <div class="flex items-center gap-3">
+      <div class="p-3 bg-cyan-950/50 rounded-lg border border-cyan-500/30" id="icon-server"></div>
+      <div>
+        <h1 class="text-xl md:text-2xl font-bold text-slate-100 tracking-tight">Rig Architect <span class="text-cyan-500">Visual</span></h1>
+        <p class="text-xs md:text-sm text-slate-500">Standalone Fabrication Environment</p>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-4 w-full sm:w-auto justify-end">
+      <button 
+        id="btn-undo"
+        onclick="handleUndo()"
+        class="flex items-center gap-2 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm hover:bg-slate-800 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+      >
+        <div id="icon-undo"></div>
+        <span class="hidden md:inline">Undo Move</span>
+      </button>
+      
+      <button 
+        id="btn-boot"
+        onclick="attemptBoot()"
+        class="px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all duration-300 shadow-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-cyan-500/20"
+      >
+        <div id="icon-power"></div>
+        <span id="boot-text">POWER ON</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-[600px]">
+    
+    <!-- LEFT COLUMN: VISUAL CHASSIS -->
+    <div class="lg:col-span-8 flex flex-col relative h-[600px] lg:h-auto" id="chassis-wrapper">
+      
+      <!-- OVERLAYS CONTAINER -->
+      <div id="overlays-container"></div>
+
+      <!-- THE CHASSIS (PC CASE) -->
+      <div class="flex-1 bg-slate-900 rounded-2xl border-4 border-slate-800 p-4 relative shadow-2xl overflow-hidden flex flex-col" id="chassis-container">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: INVENTORY -->
+    <div class="lg:col-span-4 flex flex-col h-[600px] lg:h-[800px]">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl flex flex-col h-full overflow-hidden">
+        
+        <!-- Category Tabs -->
+        <div class="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-3 gap-1 p-2 bg-slate-950" id="tabs-container">
+          <!-- Rendered via JS -->
+        </div>
+        
+        <!-- Parts List -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-slate-900/50" id="inventory-container">
+          <!-- Rendered via JS -->
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="p-4 bg-slate-950 border-t border-slate-800 flex justify-between items-center shrink-0">
+          <div class="flex flex-col">
+            <span class="text-[10px] text-slate-500 uppercase tracking-widest">Total Cost</span>
+            <span class="text-lg font-mono text-emerald-400 font-bold" id="stat-cost">$0</span>
+          </div>
+          <div class="flex flex-col text-right">
+            <span class="text-[10px] text-slate-500 uppercase tracking-widest">Est. Draw</span>
+            <span class="text-lg font-mono text-amber-400 font-bold" id="stat-wattage">0W</span>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // --- ICONS (Lucide SVG Strings) ---
+    const ICONS = {
+      Server: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>`,
+      RotateCcw: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>`,
+      Power: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></svg>`,
+      AlertTriangle: `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`,
+      MonitorPlay: `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 7 5 3-5 3Z"/><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M12 17v4"/><path d="M8 21h8"/></svg>`,
+      MousePointerClick: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.1 12 6"/><path d="m5.1 8-2.9-.8"/><path d="m6 12-1.9 2"/><path d="M7.2 2.2 8 5.1"/><path d="M9.037 9.69a.498.498 0 0 1 .653-.653l11 4.5a.5.5 0 0 1-.074.949l-4.349 1.041a1 1 0 0 0-.74.739l-1.04 4.35a.5.5 0 0 1-.95.074z"/></svg>`,
+      Wrench: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,
+      Microchip: `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><path d="M9 9h6v6H9z"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>`,
+      Cpu: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>`,
+      MemoryStick: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z"/><path d="M6 16v-4"/><path d="M10 16v-4"/><path d="M14 16v-4"/><path d="M18 16v-4"/></svg>`,
+      Database: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>`,
+      Zap: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>`,
+      CheckCircle2: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>`
+    };
+
+    // --- MOCK DATABASE ---
+    const partsDB = {
+      motherboard: [
+        { id: 'm1', name: 'ASUS ROG Z790', socket: 'LGA1700', type: 'ATX', price: 629, wattage: 50, brand: 'ASUS' },
+        { id: 'm2', name: 'MSI B760 Tomahawk', socket: 'LGA1700', type: 'ATX', price: 199, wattage: 45, brand: 'MSI' },
+        { id: 'm3', name: 'AORUS X670E Master', socket: 'AM5', type: 'ATX', price: 499, wattage: 55, brand: 'GIGABYTE' },
+        { id: 'm4', name: 'ASRock B650E', socket: 'AM5', type: 'ATX', price: 239, wattage: 40, brand: 'ASRock' },
+      ],
+      cpu: [
+        { id: 'c1', name: 'Core i9-14900K', socket: 'LGA1700', price: 589, wattage: 253, brand: 'Intel' },
+        { id: 'c2', name: 'Core i5-13600K', socket: 'LGA1700', price: 299, wattage: 181, brand: 'Intel' },
+        { id: 'c3', name: 'Ryzen 9 7950X3D', socket: 'AM5', price: 699, wattage: 162, brand: 'AMD' },
+        { id: 'c4', name: 'Ryzen 7 7800X3D', socket: 'AM5', price: 399, wattage: 120, brand: 'AMD' },
+      ],
+      gpu: [
+        { id: 'g1', name: 'RTX 4090 24GB', price: 1599, wattage: 450, brand: 'NVIDIA' },
+        { id: 'g2', name: 'RTX 4080 Super', price: 999, wattage: 320, brand: 'NVIDIA' },
+        { id: 'g3', name: 'RX 7900 XTX 24GB', price: 999, wattage: 355, brand: 'AMD' },
+      ],
+      ram: [
+        { id: 'r1', name: 'Dominator 64GB DDR5', price: 319, wattage: 15, brand: 'Corsair' },
+        { id: 'r2', name: 'Trident Z5 32GB DDR5', price: 119, wattage: 10, brand: 'G.Skill' },
+      ],
+      storage: [
+        { id: 's1', name: '990 PRO 2TB M.2', price: 169, wattage: 9, brand: 'Samsung' },
+        { id: 's2', name: 'SN850X 1TB M.2', price: 89, wattage: 7, brand: 'WD' },
+      ],
+      psu: [
+        { id: 'p1', name: 'RM850x 850W Gold', capacity: 850, price: 149, brand: 'Corsair' },
+        { id: 'p2', name: 'PRIME 1000W Titanium', capacity: 1000, price: 329, brand: 'Seasonic' },
+        { id: 'p4', name: 'Smart 500W White', capacity: 500, price: 39, brand: 'Thermaltake' },
+      ],
+    };
+
+    const CATEGORIES = [
+      { id: 'motherboard', label: 'Motherboard', icon: ICONS.Microchip },
+      { id: 'cpu', label: 'Processor (CPU)', icon: ICONS.Cpu },
+      { id: 'ram', label: 'Memory (RAM)', icon: ICONS.MemoryStick },
+      { id: 'storage', label: 'M.2 Storage', icon: ICONS.Database },
+      { id: 'gpu', label: 'Graphics (GPU)', icon: ICONS.MonitorPlay },
+      { id: 'psu', label: 'Power Supply', icon: ICONS.Zap },
+    ];
+
+    // --- STATE ---
+    let build = { motherboard: null, cpu: null, ram: null, storage: null, gpu: null, psu: null };
+    let history = [];
+    let activeCategory = 'motherboard';
+    let heldPart = null;
+    let criticalError = null;
+    let bootState = 'offline'; // offline, booting, success
+
+    // --- INITIALIZATION ---
+    function init() {
+      document.getElementById('icon-server').innerHTML = ICONS.Server.replace('currentColor', '#22d3ee');
+      document.getElementById('icon-undo').innerHTML = ICONS.RotateCcw;
+      document.getElementById('icon-power').innerHTML = ICONS.Power;
+      renderAll();
+    }
+
+    // --- ACTIONS ---
+    window.handleInventorySelect = (partId, category) => {
+      if (criticalError) return;
+      const part = partsDB[category].find(p => p.id === partId);
+      heldPart = { ...part, category };
+      renderAll();
+    };
+
+    window.handleSlotClick = (slotCategory, event) => {
+      if (event) event.stopPropagation();
+      if (criticalError) return;
+      
+      if (heldPart) {
+        if (heldPart.category !== slotCategory) {
+          criticalError = `Assembly Error: You cannot install a ${heldPart.category.toUpperCase()} into the ${slotCategory.toUpperCase()} slot.`;
+          renderAll();
+          return;
+        }
+        installPart(heldPart);
+      } else if (build[slotCategory]) {
+        saveHistory();
+        build[slotCategory] = null;
+        bootState = 'offline';
+        renderAll();
+      }
+    };
+
+    function installPart(part) {
+      if (part.category !== 'motherboard' && part.category !== 'psu' && !build.motherboard) {
+        criticalError = `Physics Violation: You must install a Motherboard before installing a ${part.name}. They cannot float in mid-air.`;
+        renderAll();
+        return;
+      }
+
+      saveHistory();
+
+      if (part.category === 'cpu' && build.motherboard) {
+        if (part.socket !== build.motherboard.socket) {
+          build[part.category] = part;
+          criticalError = `CRITICAL DAMAGE: Bent pins detected! You attempted to force an ${part.socket} CPU into an ${build.motherboard.socket} socket. Components jeopardized.`;
+          renderAll();
+          return;
+        }
+      }
+
+      if (part.category === 'motherboard' && build.cpu) {
+        if (part.socket !== build.cpu.socket) {
+          build[part.category] = part;
+          criticalError = `CRITICAL DAMAGE: Motherboard socket (${part.socket}) incompatible with currently installed CPU (${build.cpu.socket}).`;
+          renderAll();
+          return;
+        }
+      }
+
+      build[part.category] = part;
+      heldPart = null;
+      bootState = 'offline';
+      
+      const catIndex = CATEGORIES.findIndex(c => c.id === part.category);
+      if (catIndex >= 0 && catIndex < CATEGORIES.length - 1) {
+        activeCategory = CATEGORIES[catIndex + 1].id;
+      }
+      renderAll();
+    }
+
+    window.saveHistory = () => {
+      history.push({ ...build });
+    };
+
+    window.handleUndo = () => {
+      if (history.length > 0) {
+        build = history.pop();
+      } else {
+        build = { motherboard: null, cpu: null, ram: null, storage: null, gpu: null, psu: null };
+      }
+      criticalError = null;
+      heldPart = null;
+      bootState = 'offline';
+      renderAll();
+    };
+
+    window.setActiveCategory = (categoryId) => {
+      activeCategory = categoryId;
+      renderAll();
+    };
+
+    window.attemptBoot = () => {
+      if (criticalError) return;
+
+      let totalWattage = 0;
+      let partsCount = 0;
+      Object.values(build).forEach(p => {
+        if (p) {
+          if (p.wattage) totalWattage += p.wattage;
+          partsCount++;
+        }
+      });
+      if (partsCount > 0) totalWattage += 50; 
+
+      const missing = [];
+      if (!build.cpu) missing.push('CPU');
+      if (!build.motherboard) missing.push('Motherboard');
+      if (!build.ram) missing.push('RAM');
+      if (!build.psu) missing.push('Power Supply');
+      if (!build.gpu) missing.push('GPU');
+      if (!build.storage) missing.push('Storage');
+
+      if (missing.length > 0) {
+        criticalError = `POST Failure: System missing required components: ${missing.join(', ')}.`;
+        renderAll();
+        return;
+      }
+
+      if (build.psu.capacity < totalWattage) {
+        criticalError = `PSU OVERLOAD: System draws ${totalWattage}W. The ${build.psu.capacity}W PSU triggered OCP (Over Current Protection) and shut down.`;
+        renderAll();
+        return;
+      }
+      
+      bootState = 'booting';
+      renderAll();
+      
+      setTimeout(() => {
+        bootState = 'success';
+        renderAll();
+      }, 2000);
+    };
+
+    // --- RENDER PIPELINE ---
+    function renderAll() {
+      renderHeader();
+      renderOverlays();
+      renderChassis();
+      renderTabs();
+      renderInventory();
+      renderStats();
+    }
+
+    function renderHeader() {
+      const btnUndo = document.getElementById('btn-undo');
+      btnUndo.disabled = history.length === 0 && !criticalError;
+      
+      const btnBoot = document.getElementById('btn-boot');
+      const bootText = document.getElementById('boot-text');
+      const iconPower = document.getElementById('icon-power');
+      
+      btnBoot.disabled = bootState === 'booting' || criticalError;
+      
+      // Reset classes
+      btnBoot.className = `px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all duration-300 shadow-lg ${
+        bootState === 'booting' ? 'bg-amber-500 text-slate-900 shadow-amber-500/20 cursor-wait' :
+        bootState === 'success' ? 'bg-emerald-500 text-slate-900 shadow-emerald-500/20' :
+        criticalError ? 'bg-slate-800 text-slate-600' :
+        'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-cyan-500/20'
+      }`;
+
+      iconPower.innerHTML = ICONS.Power.replace('<svg', `<svg class="${bootState === 'booting' ? 'animate-spin' : ''}"`);
+      bootText.innerText = bootState === 'booting' ? 'POST...' : bootState === 'success' ? 'SYSTEM ONLINE' : 'POWER ON';
+    }
+
+    function renderOverlays() {
+      const container = document.getElementById('overlays-container');
+      let html = '';
+
+      if (criticalError) {
+        html += `
+          <div class="absolute inset-0 z-50 flex items-center justify-center p-6 backdrop-blur-sm bg-red-950/40 rounded-2xl border-2 border-red-500/50 animate-shake">
+            <div class="bg-slate-900 border border-red-500 rounded-xl p-8 max-w-md shadow-2xl text-center shadow-red-900/50">
+              <div class="flex justify-center mb-4 text-red-500 animate-pulse">${ICONS.AlertTriangle}</div>
+              <h2 class="text-xl font-bold text-red-400 mb-2">CRITICAL FAILURE</h2>
+              <p class="text-slate-300 mb-6 text-sm">${criticalError}</p>
+              <button onclick="handleUndo()" class="w-full py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-colors shadow-lg shadow-red-500/20">
+                ${ICONS.RotateCcw} Initiate Emergency Undo
+              </button>
+            </div>
+          </div>`;
+      }
+
+      if (bootState === 'success' && !criticalError) {
+        html += `
+          <div class="absolute inset-0 z-40 pointer-events-none flex items-center justify-center bg-cyan-500/10 rounded-2xl transition-all duration-1000 mix-blend-screen">
+            <div class="bg-slate-950/90 border border-cyan-500/50 p-6 rounded-2xl shadow-[0_0_50px_rgba(6,182,212,0.3)] backdrop-blur-md flex flex-col items-center">
+               <div class="text-cyan-400 mb-4">${ICONS.MonitorPlay}</div>
+               <h2 class="text-2xl font-bold text-cyan-400 tracking-widest">BIOS INITIALIZED</h2>
+               <p class="text-slate-400 text-sm mt-2">All systems operating within parameters.</p>
+            </div>
+          </div>`;
+      }
+      container.innerHTML = html;
+    }
+
+    function getSlotClasses(categoryId, isFilled) {
+      const isTargetSlot = heldPart?.category === categoryId;
+      let base = "absolute border-2 transition-all flex items-center justify-center cursor-pointer overflow-hidden ";
+      
+      if (criticalError) {
+        base += isFilled ? "border-slate-800/50 opacity-50 " : "border-slate-800/20 opacity-20 ";
+      } else if (isTargetSlot) {
+        base += "border-cyan-400 bg-cyan-900/40 animate-pulse shadow-[0_0_15px_rgba(34,211,238,0.5)] z-20 ";
+      } else if (isFilled) {
+        base += "border-emerald-500/50 bg-emerald-950/40 hover:border-red-500/50 group ";
+      } else {
+        base += "border-slate-700 border-dashed hover:border-slate-500 hover:bg-slate-800/50 ";
+      }
+      return base;
+    }
+
+    function renderChassis() {
+      const container = document.getElementById('chassis-container');
+      let html = '';
+
+      // Instructions
+      if (!heldPart && !criticalError && bootState !== 'success') {
+        html += `
+          <div class="absolute top-6 left-1/2 -translate-x-1/2 z-30 bg-slate-800/80 backdrop-blur px-4 py-2 rounded-full border border-slate-700 flex items-center gap-2 pointer-events-none shadow-lg">
+            <div class="text-cyan-400">${ICONS.MousePointerClick}</div>
+            <span class="text-sm font-medium text-slate-300">Select a part from inventory to install</span>
+          </div>`;
+      }
+      
+      if (heldPart && !criticalError) {
+        html += `
+          <div class="absolute top-6 left-1/2 -translate-x-1/2 z-30 bg-cyan-900/80 backdrop-blur px-6 py-3 rounded-full border border-cyan-500 shadow-[0_0_20px_rgba(34,211,238,0.2)] pointer-events-none flex items-center gap-3">
+            <div class="text-cyan-300 animate-pulse">${ICONS.Wrench}</div>
+            <span class="font-semibold text-cyan-100 text-sm tracking-wide">Place ${heldPart.name} into highlighted slot</span>
+          </div>`;
+      }
+
+      // Motherboard Area
+      html += `<div class="flex-1 relative mb-4">
+        <div onclick="handleSlotClick('motherboard', event)" class="w-full h-full rounded-xl ${getSlotClasses('motherboard', !!build.motherboard)}">`;
+      
+      if (!build.motherboard) {
+        html += `
+          <div class="flex flex-col items-center text-slate-600 gap-2">
+            ${ICONS.Microchip}
+            <span class="font-bold tracking-widest uppercase">Install Motherboard</span>
+          </div>`;
+      } else {
+        html += `
+          <div class="absolute inset-0 bg-slate-950/80 border-[3px] border-emerald-900/50 rounded-xl m-2 overflow-hidden shadow-[inset_0_0_50px_rgba(0,0,0,0.8)] flex">
+             <div class="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_transparent_0%,_#000_100%),url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9IiM2NmYiLz48L3N2Zz4=')]"></div>
+             <span class="absolute bottom-3 left-4 text-xs font-mono text-emerald-900/70 font-bold rotate-[-90deg] origin-bottom-left uppercase tracking-widest">
+               ${build.motherboard.name}
+             </span>
+
+             <!-- CPU SLOT -->
+             <div onclick="handleSlotClick('cpu', event)" class="w-28 h-28 top-12 left-1/2 -translate-x-[70%] sm:-translate-x-[80%] rounded-md ${getSlotClasses('cpu', !!build.cpu)}">
+                ${build.cpu ? `
+                  <div class="w-[85%] h-[85%] bg-slate-300 rounded text-slate-900 flex items-center justify-center font-bold text-[10px] text-center p-1 shadow-inner group-hover:bg-red-500/20 group-hover:text-transparent transition-all">
+                    ${build.cpu.brand}<br/>${build.cpu.socket}
+                    <div class="absolute w-6 h-6 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">${ICONS.RotateCcw.replace('16', '24').replace('16', '24')}</div>
+                  </div>
+                ` : `<span class="text-[10px] text-slate-500 font-mono tracking-widest">CPU</span>`}
+             </div>
+
+             <!-- RAM SLOTS -->
+             <div onclick="handleSlotClick('ram', event)" class="w-16 h-32 top-10 left-[calc(50%+2rem)] sm:left-[calc(50%+4rem)] rounded-sm flex justify-around p-1 ${getSlotClasses('ram', !!build.ram)}">
+               ${[0,1,2,3].map(() => `<div class="w-1.5 h-full rounded-sm ${build.ram ? 'bg-cyan-500/80 shadow-[0_0_5px_rgba(6,182,212,0.5)]' : 'bg-slate-800'}"></div>`).join('')}
+               ${build.ram ? `<div class="absolute inset-0 m-auto w-6 h-6 flex items-center justify-center text-red-500 opacity-0 group-hover:opacity-100 transition-opacity z-10">${ICONS.RotateCcw.replace('16', '24').replace('16', '24')}</div>` : ''}
+             </div>
+
+             <!-- M.2 STORAGE SLOT -->
+             <div onclick="handleSlotClick('storage', event)" class="w-24 h-6 top-48 left-1/2 -translate-x-[40%] rounded-sm ${getSlotClasses('storage', !!build.storage)}">
+                ${build.storage ? `
+                  <div class="w-full h-full bg-slate-700 border border-slate-600 rounded flex items-center justify-center group-hover:bg-red-900/50 relative">
+                     <div class="absolute text-red-500 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">${ICONS.RotateCcw}</div>
+                     <div class="w-1/2 h-1 bg-amber-500/30 rounded-full group-hover:opacity-0"></div>
+                  </div>
+                ` : `<span class="text-[8px] text-slate-500 font-mono">M.2_1</span>`}
+             </div>
+
+             <!-- GPU PCIe SLOT -->
+             <div onclick="handleSlotClick('gpu', event)" class="w-[70%] sm:w-[60%] h-16 bottom-16 left-1/2 -translate-x-1/2 rounded-md ${getSlotClasses('gpu', !!build.gpu)}">
+               ${build.gpu ? `
+                 <div class="w-[110%] h-[120%] -translate-y-2 bg-slate-800 border-2 border-slate-600 rounded-lg shadow-2xl flex items-center justify-center relative overflow-hidden group-hover:border-red-500/50 group-hover:bg-slate-800/80">
+                   <div class="absolute right-4 top-1/2 -translate-y-1/2 flex gap-2">
+                      <div class="w-8 h-8 rounded-full bg-cyan-500/20 animate-spin flex items-center justify-center">
+                        <div class="w-6 h-6 rounded-full bg-cyan-950/40"></div>
+                      </div>
+                      <div class="w-8 h-8 rounded-full bg-cyan-500/20 animate-spin flex items-center justify-center">
+                        <div class="w-6 h-6 rounded-full bg-cyan-950/40"></div>
+                      </div>
+                   </div>
+                   <span class="text-xs font-bold text-slate-300 bg-slate-900/80 px-2 py-1 rounded absolute left-4 group-hover:opacity-0 transition-opacity">
+                     ${build.gpu.name}
+                   </span>
+                   <div class="absolute text-red-500 opacity-0 group-hover:opacity-100 transition-opacity z-10">${ICONS.RotateCcw.replace('16', '32').replace('16', '32')}</div>
+                 </div>
+               ` : `<span class="text-[10px] text-slate-500 font-mono">PCIe_x16</span>`}
+             </div>
+          </div>`;
+      }
+      html += `</div></div>`;
+
+      // PSU Area
+      html += `
+        <div onclick="handleSlotClick('psu', event)" class="h-24 md:h-32 w-full rounded-xl shrink-0 ${getSlotClasses('psu', !!build.psu)}">
+          ${build.psu ? `
+            <div class="w-full h-full bg-slate-900 border border-slate-700 flex p-4 items-center justify-between group-hover:bg-slate-800 relative">
+               <div class="flex items-center gap-4 group-hover:opacity-10">
+                 <div class="w-16 h-16 rounded-full border border-slate-700 flex items-center justify-center relative overflow-hidden">
+                   <div class="w-full h-1 bg-slate-800 absolute"></div>
+                   <div class="w-1 h-full bg-slate-800 absolute"></div>
+                 </div>
+                 <div>
+                   <div class="font-bold text-slate-200">${build.psu.name}</div>
+                   <div class="text-xs text-amber-400 font-mono">${build.psu.capacity}W Output</div>
+                 </div>
+               </div>
+               <div class="absolute inset-0 m-auto w-8 h-8 flex items-center justify-center text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">${ICONS.RotateCcw.replace('16', '32').replace('16', '32')}</div>
+            </div>
+          ` : `
+            <div class="flex flex-col items-center text-slate-600 gap-2">
+              <div class="text-slate-600">${ICONS.Zap}</div>
+              <span class="font-bold tracking-widest uppercase text-xs">PSU Bay</span>
+            </div>
+          `}
+        </div>`;
+      
+      container.innerHTML = html;
+    }
+
+    function renderTabs() {
+      const container = document.getElementById('tabs-container');
+      let html = '';
+      CATEGORIES.forEach(cat => {
+        const isComplete = !!build[cat.id];
+        const isActive = activeCategory === cat.id;
+        
+        const btnClass = isActive 
+          ? 'bg-cyan-900/50 text-cyan-400 border border-cyan-500/50' 
+          : 'bg-slate-900 text-slate-500 hover:bg-slate-800 hover:text-slate-300 border border-transparent';
+          
+        html += `
+          <button onclick="setActiveCategory('${cat.id}')" class="p-2 rounded-lg flex flex-col items-center justify-center gap-1 text-[10px] uppercase font-bold transition-all ${btnClass}">
+            <div class="w-4 h-4">${cat.icon.replace('width="16"', 'width="100%"').replace('height="16"', 'height="100%"')}</div>
+            <span class="truncate w-full text-center">${cat.label.split(' ')[0]}</span>
+            ${isComplete ? '<div class="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-0.5"></div>' : ''}
+          </button>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function renderInventory() {
+      const container = document.getElementById('inventory-container');
+      let html = `<h3 class="text-sm font-semibold text-slate-400 mb-2 border-b border-slate-800 pb-2">Available Inventory</h3>`;
+      
+      partsDB[activeCategory].forEach(part => {
+        const isInstalled = build[activeCategory]?.id === part.id;
+        const isHeld = heldPart?.id === part.id;
+        
+        const containerClass = isInstalled 
+          ? 'bg-emerald-950/20 border-emerald-500/30 opacity-50 cursor-not-allowed' 
+          : isHeld
+          ? 'bg-cyan-900/40 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.3)] cursor-crosshair scale-[1.02]'
+          : 'bg-slate-800/40 border-slate-700 hover:bg-slate-800 hover:border-cyan-500/50 cursor-pointer';
+
+        html += `
+          <div onclick="${!isInstalled ? `handleInventorySelect('${part.id}', '${activeCategory}')` : ''}" class="p-3 rounded-xl border transition-all flex flex-col gap-2 relative overflow-hidden ${containerClass}">
+            ${isInstalled ? `
+              <div class="absolute top-2 right-2 text-[10px] font-bold text-emerald-500 bg-emerald-950/50 px-2 py-0.5 rounded flex items-center gap-1">
+                ${ICONS.CheckCircle2} INSTALLED
+              </div>
+            ` : ''}
+            ${isHeld ? `
+              <div class="absolute top-2 right-2 text-[10px] font-bold text-cyan-400 animate-pulse bg-cyan-950/50 px-2 py-0.5 rounded flex items-center gap-1">
+                ${ICONS.MousePointerClick} HELD
+              </div>
+            ` : ''}
+
+            <div class="flex justify-between items-start gap-2 pr-16">
+              <h4 class="font-medium leading-tight ${isHeld ? 'text-cyan-300' : 'text-slate-200'}">${part.name}</h4>
+            </div>
+            
+            <div class="flex flex-wrap gap-1 text-[10px] font-medium">
+              <span class="px-1.5 py-0.5 bg-slate-900/80 text-emerald-400 rounded border border-slate-700/50">$${part.price}</span>
+              ${part.socket ? `<span class="px-1.5 py-0.5 bg-slate-900/80 text-slate-400 rounded border border-slate-700/50">${part.socket}</span>` : ''}
+              ${part.wattage ? `<span class="px-1.5 py-0.5 bg-slate-900/80 text-amber-400/80 rounded border border-slate-700/50">${part.wattage}W</span>` : ''}
+              ${part.capacity ? `<span class="px-1.5 py-0.5 bg-slate-900/80 text-amber-400/80 rounded border border-slate-700/50">${part.capacity}W Max</span>` : ''}
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function renderStats() {
+      let cost = 0;
+      let wattage = 0;
+      let partsCount = 0;
+      
+      Object.values(build).forEach(p => {
+        if (p) {
+          cost += p.price || 0;
+          wattage += p.wattage || 0;
+          partsCount++;
+        }
+      });
+      
+      if (partsCount > 0) wattage += 50; // base system draw
+      
+      document.getElementById('stat-cost').innerText = `$${cost.toLocaleString()}`;
+      document.getElementById('stat-wattage').innerText = `${wattage}W`;
+    }
+
+    // Start App
+    init();
+
+  </script>
+</body>
+</html>

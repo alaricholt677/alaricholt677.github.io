@@ -9,6 +9,9 @@
     "2.com": {
       "url": "pages/2.html"
     },
+    "rig.com": {
+      "url": "pages/rig.html"
+    },
     "home.com": {
       "url": "../index.html"
     },

@@ -57,28 +57,16 @@
             background: rgba(255, 255, 255, 0.3);
         }
 
-        /* Hide scrollbar for TOC */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Code Block Styling */
         pre {
             background: rgba(0, 0, 0, 0.5);
-            padding: 1rem;
-            border-radius: 8px;
-            overflow-x: auto;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            font-size: 0.85rem;
-            color: #e2e8f0;
+            padding: 1rem; border-radius: 8px;
+            overflow-x: auto; border: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.85rem; color: #e2e8f0;
         }
-        code {
-            font-family: 'Consolas', 'Monaco', monospace;
-        }
+        code { font-family: 'Consolas', 'Monaco', monospace; }
 
         /* Animations */
         @keyframes float {
@@ -86,38 +74,67 @@
             50% { transform: translateY(-10px); }
             100% { transform: translateY(0px); }
         }
-        .animate-float {
-            animation: float 6s ease-in-out infinite;
-        }
+        .animate-float { animation: float 6s ease-in-out infinite; }
 
         @keyframes fadeInScale {
             from { opacity: 0; transform: scale(0.95); }
             to { opacity: 1; transform: scale(1); }
         }
-        .fade-in-scale {
-            animation: fadeInScale 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
+        .fade-in-scale { animation: fadeInScale 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
         /* Mobile Mockup Styles */
         .mobile-mockup {
-            border: 12px solid #0f172a;
-            border-radius: 2.5rem;
+            border: 12px solid #0f172a; border-radius: 2.5rem;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            overflow: hidden;
-            position: relative;
+            overflow: hidden; position: relative;
         }
         .mobile-mockup::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40%;
-            height: 24px;
-            background: #0f172a;
-            border-bottom-left-radius: 12px;
-            border-bottom-right-radius: 12px;
-            z-index: 10;
+            content: ''; position: absolute; top: 0; left: 50%;
+            transform: translateX(-50%); width: 40%; height: 24px;
+            background: #0f172a; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; z-index: 10;
+        }
+
+        /* 3D Tilt Effect */
+        .tilt-element {
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform-style: preserve-3d;
+            will-change: transform;
+        }
+        .tilt-element.tilting {
+            transition: transform 0.1s linear;
+        }
+        
+        /* Sun / Moon Sky Animation */
+        .sky-container {
+            position: absolute; inset: 0; z-index: 0;
+            transition: background 3s ease-in-out;
+            background: linear-gradient(to bottom, #0f172a, #1e293b); 
+        }
+        .sky-day { background: linear-gradient(to bottom, #38bdf8, #bae6fd); }
+        .sky-night { background: linear-gradient(to bottom, #020617, #09090b); }
+
+        .celestial-body {
+            position: absolute; bottom: -120px; left: 50%; transform: translateX(-50%);
+            width: 100px; height: 100px; border-radius: 50%;
+            transition: transform 4s cubic-bezier(0.34, 1.56, 0.64, 1), background 3s ease, box-shadow 3s ease;
+            z-index: 1;
+        }
+        .sun-active {
+            transform: translate(-50%, -180px);
+            background: #fde047;
+            box-shadow: 0 0 60px #fef08a, 0 0 120px #fef08a, 0 0 200px rgba(253, 224, 71, 0.6);
+        }
+        .moon-active {
+            transform: translate(-50%, -180px);
+            background: #e2e8f0;
+            box-shadow: 0 0 40px #f8fafc, 0 0 80px rgba(255,255,255,0.4), inset -16px -16px 0 0 #94a3b8;
+        }
+        
+        .sky-content-wrapper {
+            position: relative; z-index: 10;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.7) 100%);
+            backdrop-filter: blur(2px);
+            height: 100%; display: flex; flex-direction: column;
         }
     </style>
 </head>
@@ -131,10 +148,13 @@
         <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="font-bold text-xl flex items-center gap-2 tracking-tight">
                 <i data-lucide="layout-dashboard" class="w-6 h-6 text-blue-400"></i>
-                Win12 Simulator 
+                Win12 Simulator
+            </div>
+            <div class="mt-2 text-sm text-gray-400 max-w-md">
+               💡 Tip: This project was generated entirely using AI and is intended for educational and entertainment purposes.
             </div>
             <div>
-                <a href="/win12.html" class="bg-blue-600/20 hover:bg-blue-500/30 border border-blue-500/40 px-5 py-2.5 rounded-xl text-sm transition flex items-center gap-2 shadow-lg shadow-blue-900/20 group backdrop-blur-sm">
+                <a href="https://alaricholt677.github.io" class="bg-blue-600/20 hover:bg-blue-500/30 border border-blue-500/40 px-5 py-2.5 rounded-xl text-sm transition flex items-center gap-2 shadow-lg shadow-blue-900/20 group backdrop-blur-sm">
                     <span class="text-blue-300 font-extrabold tracking-wide hidden md:inline">WIN12 LINK:</span> 
                     <span class="font-medium text-white group-hover:text-blue-200 transition">click here to enter the simulator</span>
                     <i data-lucide="external-link" class="w-4 h-4 ml-1 opacity-70"></i>
@@ -177,57 +197,77 @@
             </div>
         </div>
 
-        <!-- Real-Time GitHub Stats Grid -->
+        <!-- Real-Time GitHub Stats Grid (With 3D Tilt) -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
-            <div class="mica-card p-6 rounded-xl flex flex-col items-center justify-center text-center hover:bg-white/5 transition duration-300">
-                <i data-lucide="star" class="w-8 h-8 text-yellow-400 mb-3"></i>
-                <span class="text-3xl font-bold" id="gh-stars">...</span>
-                <span class="text-sm text-gray-400 mt-1">GitHub Stars</span>
+            <div class="tilt-element mica-card p-6 rounded-xl flex flex-col items-center justify-center text-center hover:bg-white/5 transition-colors duration-300">
+                <i data-lucide="star" class="w-8 h-8 text-yellow-400 mb-3 pointer-events-none"></i>
+                <span class="text-3xl font-bold pointer-events-none" id="gh-stars">...</span>
+                <span class="text-sm text-gray-400 mt-1 pointer-events-none">GitHub Stars</span>
             </div>
-            <div class="mica-card p-6 rounded-xl flex flex-col items-center justify-center text-center hover:bg-white/5 transition duration-300">
-                <i data-lucide="git-fork" class="w-8 h-8 text-gray-300 mb-3"></i>
-                <span class="text-3xl font-bold" id="gh-forks">...</span>
-                <span class="text-sm text-gray-400 mt-1">Forks</span>
+            <div class="tilt-element mica-card p-6 rounded-xl flex flex-col items-center justify-center text-center hover:bg-white/5 transition-colors duration-300">
+                <i data-lucide="git-fork" class="w-8 h-8 text-gray-300 mb-3 pointer-events-none"></i>
+                <span class="text-3xl font-bold pointer-events-none" id="gh-forks">...</span>
+                <span class="text-sm text-gray-400 mt-1 pointer-events-none">Forks</span>
             </div>
-            <div class="mica-card p-6 rounded-xl flex flex-col items-center justify-center text-center hover:bg-white/5 transition duration-300">
-                <i data-lucide="eye" class="w-8 h-8 text-blue-400 mb-3"></i>
-                <span class="text-3xl font-bold" id="gh-watchers">...</span>
-                <span class="text-sm text-gray-400 mt-1">Watchers</span>
+            <div class="tilt-element mica-card p-6 rounded-xl flex flex-col items-center justify-center text-center hover:bg-white/5 transition-colors duration-300">
+                <i data-lucide="eye" class="w-8 h-8 text-blue-400 mb-3 pointer-events-none"></i>
+                <span class="text-3xl font-bold pointer-events-none" id="gh-watchers">...</span>
+                <span class="text-sm text-gray-400 mt-1 pointer-events-none">Watchers</span>
             </div>
-            <div class="mica-card p-6 rounded-xl flex flex-col items-center justify-center text-center hover:bg-white/5 transition duration-300">
-                <i data-lucide="code-2" class="w-8 h-8 text-green-400 mb-3"></i>
-                <span class="text-3xl font-bold" id="gh-contribs">...</span>
-                <span class="text-sm text-gray-400 mt-1">Contributors</span>
+            <div class="tilt-element mica-card p-6 rounded-xl flex flex-col items-center justify-center text-center hover:bg-white/5 transition-colors duration-300">
+                <i data-lucide="code-2" class="w-8 h-8 text-green-400 mb-3 pointer-events-none"></i>
+                <span class="text-3xl font-bold pointer-events-none" id="gh-contribs">...</span>
+                <span class="text-sm text-gray-400 mt-1 pointer-events-none">Contributors</span>
+            </div>
+        </div>
+
+        <!-- Gallery Section (With 3D Tilt) -->
+        <div class="mb-16">
+            <h2 class="text-2xl font-bold mb-6 flex items-center justify-center gap-2">
+                <i data-lucide="image" class="w-6 h-6 text-blue-400"></i> Gallery
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <img src="./images/image-1.png" onerror="this.onerror=null;this.src='https://placehold.co/800x500/1e293b/38bdf8?text=Image+1+Pending';" alt="Gallery 1" class="tilt-element w-full h-72 object-cover rounded-xl cursor-pointer shadow-xl border border-white/10" onclick="openImageModal(this.src)">
+                <img src="./images/image-2.png" onerror="this.onerror=null;this.src='https://placehold.co/800x500/1e293b/a855f7?text=Image+2+Pending';" alt="Gallery 2" class="tilt-element w-full h-72 object-cover rounded-xl cursor-pointer shadow-xl border border-white/10" onclick="openImageModal(this.src)">
             </div>
         </div>
 
         <!-- Issues List & Features -->
         <div class="grid md:grid-cols-2 gap-8 mb-16" id="demo">
             
-            <!-- Real-Time Issues List -->
-            <div class="mica-card rounded-xl overflow-hidden flex flex-col">
-                <div class="bg-black/20 p-4 border-b border-white/10 flex justify-between items-center">
-                    <h3 class="font-semibold flex items-center gap-2">
-                        <i data-lucide="alert-circle" class="w-5 h-5 text-blue-400"></i>
-                        Live Repo Issues
-                    </h3>
-                    <span id="gh-issues-count" class="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded">...</span>
-                </div>
-                <div id="gh-issues-list" class="p-2 flex-grow overflow-y-auto max-h-[300px]">
-                    <div class="p-4 text-center text-gray-400 text-sm animate-pulse">Loading live issues from GitHub...</div>
+            <!-- Real-Time Issues List (With Sky/Sun Animation) -->
+            <div class="mica-card rounded-xl overflow-hidden flex flex-col relative min-h-[400px]">
+                <div id="issue-sky" class="sky-container"></div>
+                <div id="celestial-body" class="celestial-body"></div>
+
+                <div class="sky-content-wrapper">
+                    <div class="bg-black/30 p-4 border-b border-white/10 flex justify-between items-center backdrop-blur-sm">
+                        <h3 class="font-semibold flex items-center gap-2 text-white drop-shadow-md">
+                            <i data-lucide="alert-circle" class="w-5 h-5 text-blue-300"></i>
+                            Live Repo Issues
+                        </h3>
+                        <span id="gh-issues-count" class="text-xs bg-blue-500/40 text-white px-2 py-1 rounded shadow-lg backdrop-blur-md">...</span>
+                    </div>
+                    <div id="gh-issues-list" class="p-2 flex-grow overflow-y-auto bg-black/40">
+                        <div class="p-4 text-center text-gray-300 text-sm animate-pulse drop-shadow-sm">Loading live issues from GitHub...</div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Performance Card -->
-            <div class="mica-card p-8 rounded-xl flex flex-col justify-center relative overflow-hidden group">
+            <!-- Highly Optimized Card (With Vertical Kinetic Lightning Choreography) -->
+            <div id="opt-card" class="mica-card p-8 rounded-xl flex flex-col justify-center relative overflow-hidden group">
                 <div class="absolute right-[-20%] top-[-10%] w-64 h-64 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition duration-500"></div>
-                <i data-lucide="zap" class="w-10 h-10 text-yellow-400 mb-4"></i>
-                <h3 class="text-2xl font-bold mb-3">Highly Optimized!</h3>
-                <p class="text-gray-300 text-sm leading-relaxed mb-4">
+                
+                <div class="w-full relative h-10 mb-4 overflow-visible">
+                    <i id="zap-icon" data-lucide="zap" class="w-10 h-10 text-yellow-400 absolute left-0 top-0"></i>
+                </div>
+                
+                <h3 class="text-2xl font-bold mb-3 z-10 relative">Highly Optimized!</h3>
+                <p class="text-gray-300 text-sm leading-relaxed mb-4 z-10 relative">
                     Depending on your options in <code>&lt;windows-options&gt;</code>, your code injection is highly tailored. 
                     It only injects the needed code for your specific options.
                 </p>
-                <p class="text-gray-300 text-sm leading-relaxed">
+                <p class="text-gray-300 text-sm leading-relaxed z-10 relative">
                     If you're using this, you're asking for a no-stress, no-bloat CSS coding experience. 
                     Make high-performance, free Windows-like apps on an HTML file with zero struggle!
                 </p>
@@ -236,7 +276,7 @@
 
     </main>
 
-    <!-- LIVE DEMO OF WINUI3-KIT (This utilizes your custom components) -->
+    <!-- LIVE DEMO OF WINUI3-KIT -->
     <win-window title="WinUI3 Live Kit Demo" left="40px" top="150px">
         <div style="padding: 10px;">
             <h3 style="margin-top:0;"><windows-icon type="star"></windows-icon> Hello from Kit!</h3>
@@ -248,15 +288,19 @@
         </div>
     </win-window>
 
-    <!-- READ ME MODAL (Mobile Styled Popup with Dynamic GitHub Fetch & TOC) -->
-    <div id="readme-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
-        <!-- Close Overlay -->
+    <!-- IMAGE GALLERY MODAL -->
+    <div id="image-modal" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md hidden opacity-0 transition-opacity duration-300" onclick="closeImageModal()">
+        <button class="absolute top-6 right-6 text-white hover:text-gray-300 transition bg-black/50 p-2 rounded-full border border-white/20">
+            <i data-lucide="x" class="w-8 h-8"></i>
+        </button>
+        <img id="modal-img" src="" class="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+    </div>
+
+    <!-- READ ME MODAL -->
+    <div id="readme-modal" class="fixed inset-0 z-[55] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
         <div class="absolute inset-0" onclick="closeReadme()"></div>
         
-        <!-- Mobile Device Mockup -->
         <div class="mobile-mockup bg-[#1e293b] w-full max-w-[420px] h-[85vh] flex flex-col relative fade-in-scale shadow-2xl shadow-blue-900/50">
-            
-            <!-- Dynamic Header & TOC Topbar -->
             <div class="bg-black/40 pt-8 pb-3 px-4 border-b border-white/10 flex flex-col sticky top-0 z-20 backdrop-blur-md shadow-md gap-3">
                 <div class="flex items-center justify-between">
                     <h2 class="text-lg font-semibold flex items-center gap-2">
@@ -267,13 +311,11 @@
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
-                <!-- Table of Contents (Auto-Generated) -->
                 <div id="readme-toc" class="flex gap-2 overflow-x-auto no-scrollbar text-xs">
                     <div class="text-gray-400 animate-pulse py-1">Loading sections...</div>
                 </div>
             </div>
             
-            <!-- Readme Content Area (Auto-Generated from Markdown) -->
             <div id="readme-content" class="p-6 overflow-y-auto flex-grow text-sm text-gray-200 pb-10 scroll-smooth">
                 <div class="flex flex-col items-center justify-center h-40 text-gray-400 animate-pulse gap-3">
                     <i data-lucide="loader-2" class="w-8 h-8 animate-spin"></i>
@@ -284,9 +326,7 @@
     </div>
 
     <!-- MINI AI CHATBOT (POWERED BY SPUDZY) -->
-    <div class="fixed bottom-6 right-6 z-40 flex flex-col items-end">
-        
-        <!-- Chat Window (Notice the max-h-[calc(100vh-130px)] to avoid topbar overlap!) -->
+    <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
         <div id="chat-window" class="mica-card w-[340px] h-[450px] max-h-[calc(100vh-130px)] mb-4 rounded-2xl flex flex-col overflow-hidden hidden transform transition-all duration-300 origin-bottom-right scale-95 opacity-0">
             <div class="bg-blue-600/80 backdrop-blur-md p-3 flex justify-between items-center border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">
@@ -317,7 +357,6 @@
             </div>
         </div>
 
-        <!-- Floating Chat Button -->
         <button id="chat-toggle-btn" onclick="toggleChat()" class="w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-900/50 transition transform hover:scale-110 border border-blue-400/30 group">
             <i data-lucide="message-square" class="w-6 h-6 group-hover:hidden"></i>
             <i data-lucide="x" class="w-6 h-6 hidden group-hover:block"></i>
@@ -326,7 +365,6 @@
 
     <!-- MAIN JAVASCRIPT LOGIC -->
     <script>
-        // Initialize Lucide Icons
         lucide.createIcons();
 
         // ----------------------------------------------------
@@ -335,25 +373,65 @@
         const topbar = document.getElementById('sticky-topbar');
         window.addEventListener('scroll', () => {
             if (window.scrollY > 40) {
-                // Scrolled off top: Make it a mica card
                 topbar.classList.add('mica-card', 'border-white/10', 'py-3');
                 topbar.classList.remove('border-transparent', 'py-5');
             } else {
-                // At very top: Transparent & thick
                 topbar.classList.remove('mica-card', 'border-white/10', 'py-3');
                 topbar.classList.add('border-transparent', 'py-5');
             }
         });
 
         // ----------------------------------------------------
-        // 2. Fetch REAL GitHub Data from API
+        // 2. 3D Tilt Hover Effect
+        // ----------------------------------------------------
+        document.querySelectorAll('.tilt-element').forEach(el => {
+            el.addEventListener('mousemove', e => {
+                if(!el.classList.contains('tilting')) el.classList.add('tilting');
+                const rect = el.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const rotateX = ((y / rect.height) - 0.5) * -30; 
+                const rotateY = ((x / rect.width) - 0.5) * 30;
+                
+                el.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
+            });
+            el.addEventListener('mouseleave', () => {
+                el.classList.remove('tilting');
+                el.style.transform = `perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)`;
+            });
+        });
+
+        // ----------------------------------------------------
+        // 3. Image Gallery Modal Logic
+        // ----------------------------------------------------
+        const imageModal = document.getElementById('image-modal');
+        const modalImg = document.getElementById('modal-img');
+
+        function openImageModal(src) {
+            modalImg.src = src;
+            imageModal.classList.remove('hidden');
+            setTimeout(() => { 
+                imageModal.classList.remove('opacity-0'); 
+                modalImg.classList.remove('scale-95');
+                modalImg.classList.add('scale-100');
+            }, 10);
+        }
+        function closeImageModal() {
+            imageModal.classList.add('opacity-0');
+            modalImg.classList.remove('scale-100');
+            modalImg.classList.add('scale-95');
+            setTimeout(() => { imageModal.classList.add('hidden'); }, 300);
+        }
+
+        // ----------------------------------------------------
+        // 4. Fetch REAL GitHub Data & Sun/Moon Animation
         // ----------------------------------------------------
         const REPO_OWNER = 'alaricholt677';
         const REPO_NAME = 'alaricholt677.github.io';
         
         async function fetchRealTimeGitHubData() {
             try {
-                // Fetch Repository stats (Stars, Forks, Watchers, Open Issues count)
                 const repoResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`);
                 if(repoResponse.ok) {
                     const repoData = await repoResponse.json();
@@ -363,32 +441,43 @@
                     
                     const openIssuesCount = repoData.open_issues_count;
                     document.getElementById('gh-issues-count').innerText = `${openIssuesCount} Open`;
+
+                    const skyBg = document.getElementById('issue-sky');
+                    const celestial = document.getElementById('celestial-body');
+                    
+                    setTimeout(() => {
+                        if (openIssuesCount > 0) {
+                            skyBg.classList.add('sky-day');
+                            celestial.classList.add('sun-active');
+                        } else {
+                            skyBg.classList.add('sky-night');
+                            celestial.classList.add('moon-active');
+                        }
+                    }, 500);
                 }
 
-                // Fetch Contributors count
                 const contribResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contributors?per_page=100`);
                 if(contribResponse.ok) {
                     const contribData = await contribResponse.json();
                     document.getElementById('gh-contribs').innerText = contribData.length;
                 }
 
-                // Fetch Actual Open Issues list
                 const issuesResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues?state=open&per_page=5`);
                 const issuesContainer = document.getElementById('gh-issues-list');
                 
                 if(issuesResponse.ok) {
                     const issuesData = await issuesResponse.json();
-                    issuesContainer.innerHTML = ''; // Clear loading text
+                    issuesContainer.innerHTML = ''; 
                     
                     if (issuesData.length > 0) {
                         issuesData.forEach(issue => {
                             if (!issue.pull_request) {
                                 issuesContainer.innerHTML += `
-                                    <div class="p-3 hover:bg-white/5 rounded-lg transition flex gap-3 group">
-                                        <i data-lucide="circle-dot" class="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0"></i>
+                                    <div class="p-3 hover:bg-white/10 rounded-lg transition flex gap-3 group border border-transparent hover:border-white/10">
+                                        <i data-lucide="circle-dot" class="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0 drop-shadow-md"></i>
                                         <div>
-                                            <a href="${issue.html_url}" target="_blank" class="text-sm font-medium group-hover:text-blue-300 transition line-clamp-1 block">${issue.title}</a>
-                                            <p class="text-xs text-gray-400 mt-1">#${issue.number} opened by ${issue.user.login}</p>
+                                            <a href="${issue.html_url}" target="_blank" class="text-sm font-medium text-white group-hover:text-blue-200 transition line-clamp-1 block drop-shadow-md">${issue.title}</a>
+                                            <p class="text-xs text-gray-300 mt-1">#${issue.number} opened by ${issue.user.login}</p>
                                         </div>
                                     </div>
                                 `;
@@ -396,7 +485,7 @@
                         });
                         lucide.createIcons(); 
                     } else {
-                        issuesContainer.innerHTML = '<div class="p-4 text-center text-gray-400 text-sm">No open issues found. Awesome!</div>';
+                        issuesContainer.innerHTML = '<div class="p-6 text-center text-gray-300 text-sm font-medium">All clear! No open issues found.</div>';
                     }
                 }
 
@@ -408,54 +497,104 @@
         fetchRealTimeGitHubData();
 
         // ----------------------------------------------------
-        // 3. Readme Modal Logic (Dynamic Fetch & Parse)
+        // 5. Highly Optimized Zap Animation (Vertical Kinetic)
         // ----------------------------------------------------
-        const modal = document.getElementById('readme-modal');
+        const optCard = document.getElementById('opt-card');
+        const zapIcon = document.getElementById('zap-icon');
+        let isZapping = false;
+
+        optCard.addEventListener('mouseenter', () => {
+            if (isZapping) return; 
+            isZapping = true;
+            
+            // Calculate distance to fly entirely off the bottom of the card
+            const dist = optCard.clientHeight + 50; 
+
+            // Smooth, flowing kinetic energy choreography (Y-axis)
+            const keyframes = [
+                { transform: 'translate3d(0, 0, 0) scale(1, 1)', opacity: 1, offset: 0 },
+                
+                // 1. Charge up (stretch vertically, pull up slightly)
+                { transform: 'translate3d(0, -20px, 0) scale(0.6, 1.4)', opacity: 1, offset: 0.1 },
+                { transform: 'translate3d(0, 5px, 0) scale(1.1, 0.9)', opacity: 1, offset: 0.15 },
+
+                // 2. Zip down 3 times (getting longer each time)
+                // Lap 1 (ScaleY 2)
+                { transform: `translate3d(0, ${dist}px, 0) scale(0.5, 2)`, opacity: 0, offset: 0.25 },
+                { transform: `translate3d(0, -${dist}px, 0) scale(0.5, 2)`, opacity: 0, offset: 0.26 },
+                { transform: 'translate3d(0, 10px, 0) scale(1.1, 0.9)', opacity: 1, offset: 0.35 },
+
+                // Lap 2 (ScaleY 3)
+                { transform: `translate3d(0, ${dist}px, 0) scale(0.4, 3)`, opacity: 0, offset: 0.45 },
+                { transform: `translate3d(0, -${dist}px, 0) scale(0.4, 3)`, opacity: 0, offset: 0.46 },
+                { transform: 'translate3d(0, 15px, 0) scale(1.2, 0.8)', opacity: 1, offset: 0.55 },
+
+                // Lap 3 (ScaleY 4)
+                { transform: `translate3d(0, ${dist}px, 0) scale(0.2, 4)`, opacity: 0, offset: 0.65 },
+                { transform: `translate3d(0, -${dist}px, 0) scale(0.2, 4)`, opacity: 0, offset: 0.66 },
+                
+                // 3. Stop at its position (slid down a little bit with squash)
+                { transform: 'translate3d(0, 25px, 0) scale(1.3, 0.7)', opacity: 1, offset: 0.75 },
+                { transform: 'translate3d(0, 20px, 0) scale(1, 1)', opacity: 1, offset: 0.82 },
+                { transform: 'translate3d(0, 20px, 0) scale(1, 1)', opacity: 1, offset: 0.90 }, // Pause
+
+                // 4. Zip back up that bit with the stretch effect
+                { transform: 'translate3d(0, -10px, 0) scale(0.8, 1.3)', opacity: 1, offset: 0.95 },
+                
+                // Final settle
+                { transform: 'translate3d(0, 0, 0) scale(1, 1)', opacity: 1, offset: 1 }
+            ];
+
+            zapIcon.animate(keyframes, {
+                duration: 2200, // Fluid speed
+                easing: 'ease-in-out',
+                fill: 'forwards'
+            });
+        });
+
+        optCard.addEventListener('mouseleave', () => {
+            isZapping = false; // Reset flag for next hover
+        });
+
+        // ----------------------------------------------------
+        // 6. Readme Modal Logic (Dynamic Fetch & Parse)
+        // ----------------------------------------------------
+        const readmeModal = document.getElementById('readme-modal');
         const readmeContent = document.getElementById('readme-content');
         const readmeToc = document.getElementById('readme-toc');
         let isReadmeLoaded = false;
 
         async function openReadme() {
-            modal.classList.remove('hidden');
-            setTimeout(() => { modal.classList.remove('opacity-0'); }, 10);
+            readmeModal.classList.remove('hidden');
+            setTimeout(() => { readmeModal.classList.remove('opacity-0'); }, 10);
 
-            if (isReadmeLoaded) return; // Prevent re-fetching if already loaded
+            if (isReadmeLoaded) return; 
 
             try {
-                // Fetch RAW markdown from GitHub
                 const res = await fetch(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/README.md`);
                 if (!res.ok) throw new Error("Failed to fetch README.md");
                 
                 const markdownText = await res.text();
-                
-                // Parse Markdown using marked.js
                 const rawHtml = marked.parse(markdownText);
                 
-                // Create a temporary DOM to style and extract headers
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = rawHtml;
 
-                // Clear TOC loading text
                 readmeToc.innerHTML = '';
 
-                // Extract H1, H2, H3 headers for TOC and add IDs
                 const headers = tempDiv.querySelectorAll('h1, h2, h3');
                 headers.forEach((h, index) => {
                     const id = `doc-sec-${index}`;
                     h.id = id;
 
-                    // Apply Tailwind styling to headers
                     if(h.tagName === 'H1') h.className = "text-2xl font-bold text-white mt-8 mb-4 border-b border-white/10 pb-2";
                     if(h.tagName === 'H2') h.className = "text-xl font-bold text-blue-300 mt-6 mb-3";
                     if(h.tagName === 'H3') h.className = "text-lg font-semibold text-blue-200 mt-5 mb-2";
 
-                    // Create TOC Button
                     const tocBtn = document.createElement('button');
-                    // Style it as a pill
                     tocBtn.className = "whitespace-nowrap px-4 py-1.5 bg-white/5 border border-white/10 hover:bg-blue-600/30 hover:border-blue-400/30 rounded-full transition flex-shrink-0 text-gray-300 hover:text-white";
-                    tocBtn.innerText = h.innerText.replace(/[^\w\s]/gi, '').trim() || h.innerText; // Clean up emojis/symbols if needed
+                    tocBtn.innerText = h.innerText.replace(/[^\w\s]/gi, '').trim() || h.innerText; 
                     
-                    // Smooth Scroll Action
                     tocBtn.onclick = () => {
                         const targetElement = document.getElementById(id);
                         if(targetElement) {
@@ -465,18 +604,13 @@
                     readmeToc.appendChild(tocBtn);
                 });
 
-                if(headers.length === 0) {
-                    readmeToc.innerHTML = '<span class="text-gray-500 py-1">No sections found.</span>';
-                }
+                if(headers.length === 0) readmeToc.innerHTML = '<span class="text-gray-500 py-1">No sections found.</span>';
 
-                // Apply Tailwind styling to other markdown elements inside the temp DOM
                 tempDiv.querySelectorAll('pre').forEach(pre => pre.className = "bg-black/50 p-4 rounded-xl overflow-x-auto border border-white/10 my-4 text-xs shadow-inner custom-scrollbar");
                 tempDiv.querySelectorAll('code').forEach(code => {
                     if(code.parentElement.tagName !== 'PRE') {
-                        // Inline code
                         code.className = "font-mono text-xs bg-black/40 text-blue-300 px-1.5 py-0.5 rounded-md border border-white/5";
                     } else {
-                        // Block code
                         code.className = "font-mono text-gray-300";
                     }
                 });
@@ -485,12 +619,10 @@
                 tempDiv.querySelectorAll('ol').forEach(ol => ol.className = "list-decimal list-inside mb-4 space-y-1.5 text-gray-300");
                 tempDiv.querySelectorAll('a').forEach(a => a.className = "text-blue-400 hover:text-blue-300 underline transition");
 
-                // Inject parsed and styled HTML into the content area
                 readmeContent.innerHTML = tempDiv.innerHTML;
                 isReadmeLoaded = true;
 
             } catch (error) {
-                console.error(error);
                 readmeContent.innerHTML = `<div class="text-red-400 bg-red-900/20 p-4 rounded-xl border border-red-500/20 flex flex-col items-center justify-center gap-2">
                     <i data-lucide="alert-triangle" class="w-8 h-8"></i>
                     Could not load README from GitHub.<br><span class="text-xs opacity-70">${error.message}</span>
@@ -500,24 +632,18 @@
         }
 
         function closeReadme() {
-            modal.classList.add('opacity-0');
-            setTimeout(() => { modal.classList.add('hidden'); }, 300); 
+            readmeModal.classList.add('opacity-0');
+            setTimeout(() => { readmeModal.classList.add('hidden'); }, 300); 
         }
 
         // ----------------------------------------------------
-        // 4. ACTUAL SPUDZY AI INTEGRATION
+        // 7. ACTUAL SPUDZY AI INTEGRATION
         // ----------------------------------------------------
         let spudzyEngine = null;
         
-        // Initialize Spudzy once the object is available from the CDN script
         window.addEventListener('DOMContentLoaded', () => {
             if (typeof Spudzy !== 'undefined') {
-                spudzyEngine = new Spudzy({
-                    name: "Spudzy (WinUI3 Assistant)",
-                    defaultMode: "neutral"
-                });
-            } else {
-                console.error("Spudzy AI script failed to load or initialize.");
+                spudzyEngine = new Spudzy({ name: "Spudzy (WinUI3 Assistant)", defaultMode: "neutral" });
             }
         });
 
@@ -547,28 +673,22 @@
             }
         }
 
-        function handleChatEnter(e) {
-            if (e.key === 'Enter') sendChatMessage();
-        }
+        function handleChatEnter(e) { if (e.key === 'Enter') sendChatMessage(); }
 
         async function sendChatMessage() {
             const text = chatInput.value.trim();
             if (!text) return;
             
-            // Add user message to UI
             addMessage(text, 'user');
             chatInput.value = '';
 
-            // Loading state
             const loadingId = "load-" + Date.now();
             addLoadingBubble(loadingId);
 
-            // Connect to actual Spudzy Engine
             if (spudzyEngine) {
                 try {
                     const reply = await spudzyEngine.respond(text);
                     removeLoadingBubble(loadingId);
-                    // Add real Spudzy response
                     addMessage(reply, 'bot');
                 } catch(err) {
                     removeLoadingBubble(loadingId);
@@ -576,13 +696,12 @@
                 }
             } else {
                 removeLoadingBubble(loadingId);
-                addMessage("Spudzy is currently disconnected or failed to load. Please refresh the page.", 'bot');
+                addMessage("Spudzy is currently disconnected. Please refresh the page.", 'bot');
             }
         }
 
         function addMessage(text, sender) {
             const wrapper = document.createElement('div');
-            // Basic formatting for Spudzy outputs (converting newlines to <br>)
             const formattedText = text.replace(/\n/g, '<br>');
 
             if (sender === 'user') {

@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Win12 Simulator & WinUI3 Kit</title>
+    
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- SPUDZY AI ENGINE -->
+    <script src="https://alaricholt677.github.io/PKGS/spudzy/spudzy.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --win-blue: #0067c0;
+            --win-blue-hover: #005a9e;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #0a0e17;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(0, 103, 192, 0.15), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(0, 162, 255, 0.15), transparent 25%);
+            color: #ffffff;
+            overflow-x: hidden;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        /* Mica / Glassmorphism effect */
+        .mica-card {
+            background: rgba(20, 25, 40, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* Windows 11/12 Style Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Hide scrollbar for TOC */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Code Block Styling */
+        pre {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.85rem;
+            color: #e2e8f0;
+        }
+        code {
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        /* Animations */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .fade-in-scale {
+            animation: fadeInScale 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* Mobile Mockup Styles */
+        .mobile-mockup {
+            border: 12px solid #0f172a;
+            border-radius: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            position: relative;
+        }
+        .mobile-mockup::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40%;
+            height: 24px;
+            background: #0f172a;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="antialiased flex flex-col items-center">
+
+    <!-- WINUI3 CONFIG -->
+    <windows-options theme="dark" mica="on" accent="blue"></windows-options>
+
+    <!-- THICK STICKY TOP BAR -->
+    <div id="sticky-topbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 py-5 px-6 border-b border-transparent">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="font-bold text-xl flex items-center gap-2 tracking-tight">
+                <i data-lucide="layout-dashboard" class="w-6 h-6 text-blue-400"></i>
+                Win12 Simulator 
+            </div>
+            <div>
+                <a href="/win12.html" class="bg-blue-600/20 hover:bg-blue-500/30 border border-blue-500/40 px-5 py-2.5 rounded-xl text-sm transition flex items-center gap-2 shadow-lg shadow-blue-900/20 group backdrop-blur-sm">
+                    <span class="text-blue-300 font-extrabold tracking-wide hidden md:inline">WIN12 LINK:</span> 
+                    <span class="font-medium text-white group-hover:text-blue-200 transition">click here to enter the simulator</span>
+                    <i data-lucide="external-link" class="w-4 h-4 ml-1 opacity-70"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Background decorative blur -->
+    <div class="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="fixed bottom-[-20%] right-[-10%] w-[40%] h-[40%] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+    <!-- MAIN LANDING CONTENT -->
+    <main class="relative w-full max-w-6xl mx-auto px-6 pt-40 pb-32">
+        
+        <!-- Hero Section -->
+        <div class="text-center mb-16 animate-float">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full mica-card mb-6 text-sm font-medium text-blue-300 border-blue-500/30">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                Welcome to alaricholt677.github.io
+            </div>
+            <h1 class="text-5xl md:text-7xl font-bold tracking-tight mb-6">
+                Win12 Simulator & <br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">WinUI3 Kit</span>
+            </h1>
+            <p class="text-lg text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+                A lightweight, highly optimized Windows-style UI framework for the web. 
+                Build apps with no stress, no bloat, and stunning Mica animations. 
+                Stop burning your retinas—switch to WinUI3.
+            </p>
+            <div class="flex flex-wrap justify-center gap-4">
+                <button onclick="openReadme()" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg font-semibold flex items-center gap-2 shadow-lg shadow-blue-900/50 border border-blue-400/30 transition">
+                    <i data-lucide="book-open" class="w-5 h-5"></i>
+                    Read Documentation
+                </button>
+                <a href="#demo" class="mica-card hover:bg-white/10 px-8 py-3 rounded-lg font-semibold flex items-center gap-2 transition">
+                    <i data-lucide="github" class="w-5 h-5"></i>
+                    View on GitHub
+                </a>
+            </div>
+        </div>
+
+        <!-- Real-Time GitHub Stats Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
+            <div class="mica-card p-6 rounded-xl flex flex-col items-center justify-center text-center hover:bg-white/5 transition duration-300">
+                <i data-lucide="star" class="w-8 h-8 text-yellow-400 mb-3"></i>
+                <span class="text-3xl font-bold" id="gh-stars">...</span>
+                <span class="text-sm text-gray-400 mt-1">GitHub Stars</span>
+            </div>
+            <div class="mica-card p-6 rounded-xl flex flex-col items-center justify-center text-center hover:bg-white/5 transition duration-300">
+                <i data-lucide="git-fork" class="w-8 h-8 text-gray-300 mb-3"></i>
+                <span class="text-3xl font-bold" id="gh-forks">...</span>
+                <span class="text-sm text-gray-400 mt-1">Forks</span>
+            </div>
+            <div class="mica-card p-6 rounded-xl flex flex-col items-center justify-center text-center hover:bg-white/5 transition duration-300">
+                <i data-lucide="eye" class="w-8 h-8 text-blue-400 mb-3"></i>
+                <span class="text-3xl font-bold" id="gh-watchers">...</span>
+                <span class="text-sm text-gray-400 mt-1">Watchers</span>
+            </div>
+            <div class="mica-card p-6 rounded-xl flex flex-col items-center justify-center text-center hover:bg-white/5 transition duration-300">
+                <i data-lucide="code-2" class="w-8 h-8 text-green-400 mb-3"></i>
+                <span class="text-3xl font-bold" id="gh-contribs">...</span>
+                <span class="text-sm text-gray-400 mt-1">Contributors</span>
+            </div>
+        </div>
+
+        <!-- Issues List & Features -->
+        <div class="grid md:grid-cols-2 gap-8 mb-16" id="demo">
+            
+            <!-- Real-Time Issues List -->
+            <div class="mica-card rounded-xl overflow-hidden flex flex-col">
+                <div class="bg-black/20 p-4 border-b border-white/10 flex justify-between items-center">
+                    <h3 class="font-semibold flex items-center gap-2">
+                        <i data-lucide="alert-circle" class="w-5 h-5 text-blue-400"></i>
+                        Live Repo Issues
+                    </h3>
+                    <span id="gh-issues-count" class="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded">...</span>
+                </div>
+                <div id="gh-issues-list" class="p-2 flex-grow overflow-y-auto max-h-[300px]">
+                    <div class="p-4 text-center text-gray-400 text-sm animate-pulse">Loading live issues from GitHub...</div>
+                </div>
+            </div>
+
+            <!-- Performance Card -->
+            <div class="mica-card p-8 rounded-xl flex flex-col justify-center relative overflow-hidden group">
+                <div class="absolute right-[-20%] top-[-10%] w-64 h-64 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition duration-500"></div>
+                <i data-lucide="zap" class="w-10 h-10 text-yellow-400 mb-4"></i>
+                <h3 class="text-2xl font-bold mb-3">Highly Optimized!</h3>
+                <p class="text-gray-300 text-sm leading-relaxed mb-4">
+                    Depending on your options in <code>&lt;windows-options&gt;</code>, your code injection is highly tailored. 
+                    It only injects the needed code for your specific options.
+                </p>
+                <p class="text-gray-300 text-sm leading-relaxed">
+                    If you're using this, you're asking for a no-stress, no-bloat CSS coding experience. 
+                    Make high-performance, free Windows-like apps on an HTML file with zero struggle!
+                </p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- LIVE DEMO OF WINUI3-KIT (This utilizes your custom components) -->
+    <win-window title="WinUI3 Live Kit Demo" left="40px" top="150px">
+        <div style="padding: 10px;">
+            <h3 style="margin-top:0;"><windows-icon type="star"></windows-icon> Hello from Kit!</h3>
+            <p style="font-size: 13px;">This window is rendered using your actual JS script tag loaded at the bottom of this page!</p>
+            <br>
+            <win-toggle label="Enable cool stuff"></win-toggle>
+            <br><br>
+            <win-button primary>Awesome</win-button>
+        </div>
+    </win-window>
+
+    <!-- READ ME MODAL (Mobile Styled Popup with Dynamic GitHub Fetch & TOC) -->
+    <div id="readme-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
+        <!-- Close Overlay -->
+        <div class="absolute inset-0" onclick="closeReadme()"></div>
+        
+        <!-- Mobile Device Mockup -->
+        <div class="mobile-mockup bg-[#1e293b] w-full max-w-[420px] h-[85vh] flex flex-col relative fade-in-scale shadow-2xl shadow-blue-900/50">
+            
+            <!-- Dynamic Header & TOC Topbar -->
+            <div class="bg-black/40 pt-8 pb-3 px-4 border-b border-white/10 flex flex-col sticky top-0 z-20 backdrop-blur-md shadow-md gap-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold flex items-center gap-2">
+                        <i data-lucide="file-code" class="w-5 h-5 text-blue-400"></i>
+                        README.md
+                    </h2>
+                    <button onclick="closeReadme()" class="p-1 hover:bg-white/10 rounded-full transition bg-white/5 border border-white/10">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <!-- Table of Contents (Auto-Generated) -->
+                <div id="readme-toc" class="flex gap-2 overflow-x-auto no-scrollbar text-xs">
+                    <div class="text-gray-400 animate-pulse py-1">Loading sections...</div>
+                </div>
+            </div>
+            
+            <!-- Readme Content Area (Auto-Generated from Markdown) -->
+            <div id="readme-content" class="p-6 overflow-y-auto flex-grow text-sm text-gray-200 pb-10 scroll-smooth">
+                <div class="flex flex-col items-center justify-center h-40 text-gray-400 animate-pulse gap-3">
+                    <i data-lucide="loader-2" class="w-8 h-8 animate-spin"></i>
+                    Fetching latest Readme from GitHub...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MINI AI CHATBOT (POWERED BY SPUDZY) -->
+    <div class="fixed bottom-6 right-6 z-40 flex flex-col items-end">
+        
+        <!-- Chat Window (Notice the max-h-[calc(100vh-130px)] to avoid topbar overlap!) -->
+        <div id="chat-window" class="mica-card w-[340px] h-[450px] max-h-[calc(100vh-130px)] mb-4 rounded-2xl flex flex-col overflow-hidden hidden transform transition-all duration-300 origin-bottom-right scale-95 opacity-0">
+            <div class="bg-blue-600/80 backdrop-blur-md p-3 flex justify-between items-center border-b border-white/10 shrink-0">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span class="font-semibold text-sm">Spudzy AI (WinUI3)</span>
+                </div>
+                <button onclick="toggleChat()" class="hover:bg-white/20 p-1 rounded transition">
+                    <i data-lucide="minus" class="w-4 h-4"></i>
+                </button>
+            </div>
+            
+            <div id="chat-messages" class="flex-grow p-4 overflow-y-auto space-y-4 bg-black/40 custom-scrollbar text-sm">
+                <div class="flex gap-2">
+                    <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-blue-500/50">
+                        <i data-lucide="bot" class="w-3 h-3 text-white"></i>
+                    </div>
+                    <div class="bg-white/10 p-3 rounded-2xl rounded-tl-none border border-white/10 text-gray-200">
+                        Hello! I'm <strong>Spudzy AI Engine v9</strong> connected live. I can answer questions, search things, and help you code WinUI3. How can I help you today?
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-3 bg-black/60 border-t border-white/10 flex gap-2 items-center shrink-0">
+                <input type="text" id="chat-input" placeholder="Ask Spudzy..." class="flex-grow bg-white/5 border border-white/10 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition text-white placeholder-gray-500 shadow-inner" onkeypress="handleChatEnter(event)">
+                <button onclick="sendChatMessage()" class="bg-blue-600 hover:bg-blue-500 text-white w-10 h-10 rounded-full flex items-center justify-center transition flex-shrink-0 shadow-lg shadow-blue-600/40">
+                    <i data-lucide="send" class="w-4 h-4 ml-0.5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Floating Chat Button -->
+        <button id="chat-toggle-btn" onclick="toggleChat()" class="w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-900/50 transition transform hover:scale-110 border border-blue-400/30 group">
+            <i data-lucide="message-square" class="w-6 h-6 group-hover:hidden"></i>
+            <i data-lucide="x" class="w-6 h-6 hidden group-hover:block"></i>
+        </button>
+    </div>
+
+    <!-- MAIN JAVASCRIPT LOGIC -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // ----------------------------------------------------
+        // 1. Sticky Topbar Logic
+        // ----------------------------------------------------
+        const topbar = document.getElementById('sticky-topbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 40) {
+                // Scrolled off top: Make it a mica card
+                topbar.classList.add('mica-card', 'border-white/10', 'py-3');
+                topbar.classList.remove('border-transparent', 'py-5');
+            } else {
+                // At very top: Transparent & thick
+                topbar.classList.remove('mica-card', 'border-white/10', 'py-3');
+                topbar.classList.add('border-transparent', 'py-5');
+            }
+        });
+
+        // ----------------------------------------------------
+        // 2. Fetch REAL GitHub Data from API
+        // ----------------------------------------------------
+        const REPO_OWNER = 'alaricholt677';
+        const REPO_NAME = 'alaricholt677.github.io';
+        
+        async function fetchRealTimeGitHubData() {
+            try {
+                // Fetch Repository stats (Stars, Forks, Watchers, Open Issues count)
+                const repoResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`);
+                if(repoResponse.ok) {
+                    const repoData = await repoResponse.json();
+                    document.getElementById('gh-stars').innerText = repoData.stargazers_count;
+                    document.getElementById('gh-forks').innerText = repoData.forks_count;
+                    document.getElementById('gh-watchers').innerText = repoData.subscribers_count;
+                    
+                    const openIssuesCount = repoData.open_issues_count;
+                    document.getElementById('gh-issues-count').innerText = `${openIssuesCount} Open`;
+                }
+
+                // Fetch Contributors count
+                const contribResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contributors?per_page=100`);
+                if(contribResponse.ok) {
+                    const contribData = await contribResponse.json();
+                    document.getElementById('gh-contribs').innerText = contribData.length;
+                }
+
+                // Fetch Actual Open Issues list
+                const issuesResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues?state=open&per_page=5`);
+                const issuesContainer = document.getElementById('gh-issues-list');
+                
+                if(issuesResponse.ok) {
+                    const issuesData = await issuesResponse.json();
+                    issuesContainer.innerHTML = ''; // Clear loading text
+                    
+                    if (issuesData.length > 0) {
+                        issuesData.forEach(issue => {
+                            if (!issue.pull_request) {
+                                issuesContainer.innerHTML += `
+                                    <div class="p-3 hover:bg-white/5 rounded-lg transition flex gap-3 group">
+                                        <i data-lucide="circle-dot" class="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0"></i>
+                                        <div>
+                                            <a href="${issue.html_url}" target="_blank" class="text-sm font-medium group-hover:text-blue-300 transition line-clamp-1 block">${issue.title}</a>
+                                            <p class="text-xs text-gray-400 mt-1">#${issue.number} opened by ${issue.user.login}</p>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        });
+                        lucide.createIcons(); 
+                    } else {
+                        issuesContainer.innerHTML = '<div class="p-4 text-center text-gray-400 text-sm">No open issues found. Awesome!</div>';
+                    }
+                }
+
+            } catch (error) {
+                console.error("Error fetching GitHub data:", error);
+                document.getElementById('gh-issues-list').innerHTML = '<div class="p-4 text-center text-red-400 text-sm">Error loading real-time data from GitHub.</div>';
+            }
+        }
+        fetchRealTimeGitHubData();
+
+        // ----------------------------------------------------
+        // 3. Readme Modal Logic (Dynamic Fetch & Parse)
+        // ----------------------------------------------------
+        const modal = document.getElementById('readme-modal');
+        const readmeContent = document.getElementById('readme-content');
+        const readmeToc = document.getElementById('readme-toc');
+        let isReadmeLoaded = false;
+
+        async function openReadme() {
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); }, 10);
+
+            if (isReadmeLoaded) return; // Prevent re-fetching if already loaded
+
+            try {
+                // Fetch RAW markdown from GitHub
+                const res = await fetch(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/README.md`);
+                if (!res.ok) throw new Error("Failed to fetch README.md");
+                
+                const markdownText = await res.text();
+                
+                // Parse Markdown using marked.js
+                const rawHtml = marked.parse(markdownText);
+                
+                // Create a temporary DOM to style and extract headers
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = rawHtml;
+
+                // Clear TOC loading text
+                readmeToc.innerHTML = '';
+
+                // Extract H1, H2, H3 headers for TOC and add IDs
+                const headers = tempDiv.querySelectorAll('h1, h2, h3');
+                headers.forEach((h, index) => {
+                    const id = `doc-sec-${index}`;
+                    h.id = id;
+
+                    // Apply Tailwind styling to headers
+                    if(h.tagName === 'H1') h.className = "text-2xl font-bold text-white mt-8 mb-4 border-b border-white/10 pb-2";
+                    if(h.tagName === 'H2') h.className = "text-xl font-bold text-blue-300 mt-6 mb-3";
+                    if(h.tagName === 'H3') h.className = "text-lg font-semibold text-blue-200 mt-5 mb-2";
+
+                    // Create TOC Button
+                    const tocBtn = document.createElement('button');
+                    // Style it as a pill
+                    tocBtn.className = "whitespace-nowrap px-4 py-1.5 bg-white/5 border border-white/10 hover:bg-blue-600/30 hover:border-blue-400/30 rounded-full transition flex-shrink-0 text-gray-300 hover:text-white";
+                    tocBtn.innerText = h.innerText.replace(/[^\w\s]/gi, '').trim() || h.innerText; // Clean up emojis/symbols if needed
+                    
+                    // Smooth Scroll Action
+                    tocBtn.onclick = () => {
+                        const targetElement = document.getElementById(id);
+                        if(targetElement) {
+                            targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    };
+                    readmeToc.appendChild(tocBtn);
+                });
+
+                if(headers.length === 0) {
+                    readmeToc.innerHTML = '<span class="text-gray-500 py-1">No sections found.</span>';
+                }
+
+                // Apply Tailwind styling to other markdown elements inside the temp DOM
+                tempDiv.querySelectorAll('pre').forEach(pre => pre.className = "bg-black/50 p-4 rounded-xl overflow-x-auto border border-white/10 my-4 text-xs shadow-inner custom-scrollbar");
+                tempDiv.querySelectorAll('code').forEach(code => {
+                    if(code.parentElement.tagName !== 'PRE') {
+                        // Inline code
+                        code.className = "font-mono text-xs bg-black/40 text-blue-300 px-1.5 py-0.5 rounded-md border border-white/5";
+                    } else {
+                        // Block code
+                        code.className = "font-mono text-gray-300";
+                    }
+                });
+                tempDiv.querySelectorAll('p').forEach(p => p.className = "mb-4 leading-relaxed text-gray-300");
+                tempDiv.querySelectorAll('ul').forEach(ul => ul.className = "list-disc list-inside mb-4 space-y-1.5 text-gray-300");
+                tempDiv.querySelectorAll('ol').forEach(ol => ol.className = "list-decimal list-inside mb-4 space-y-1.5 text-gray-300");
+                tempDiv.querySelectorAll('a').forEach(a => a.className = "text-blue-400 hover:text-blue-300 underline transition");
+
+                // Inject parsed and styled HTML into the content area
+                readmeContent.innerHTML = tempDiv.innerHTML;
+                isReadmeLoaded = true;
+
+            } catch (error) {
+                console.error(error);
+                readmeContent.innerHTML = `<div class="text-red-400 bg-red-900/20 p-4 rounded-xl border border-red-500/20 flex flex-col items-center justify-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+                    Could not load README from GitHub.<br><span class="text-xs opacity-70">${error.message}</span>
+                </div>`;
+                lucide.createIcons({ root: readmeContent });
+            }
+        }
+
+        function closeReadme() {
+            modal.classList.add('opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); }, 300); 
+        }
+
+        // ----------------------------------------------------
+        // 4. ACTUAL SPUDZY AI INTEGRATION
+        // ----------------------------------------------------
+        let spudzyEngine = null;
+        
+        // Initialize Spudzy once the object is available from the CDN script
+        window.addEventListener('DOMContentLoaded', () => {
+            if (typeof Spudzy !== 'undefined') {
+                spudzyEngine = new Spudzy({
+                    name: "Spudzy (WinUI3 Assistant)",
+                    defaultMode: "neutral"
+                });
+            } else {
+                console.error("Spudzy AI script failed to load or initialize.");
+            }
+        });
+
+        const chatWindow = document.getElementById('chat-window');
+        const chatIcon = document.querySelector('#chat-toggle-btn i:first-child');
+        const chatIconClose = document.querySelector('#chat-toggle-btn i:last-child');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        let chatOpen = false;
+
+        function toggleChat() {
+            chatOpen = !chatOpen;
+            if (chatOpen) {
+                chatWindow.classList.remove('hidden');
+                setTimeout(() => {
+                    chatWindow.classList.remove('scale-95', 'opacity-0');
+                    chatIcon.classList.add('hidden');
+                    chatIconClose.classList.remove('hidden');
+                    chatIconClose.classList.add('block');
+                }, 10);
+            } else {
+                chatWindow.classList.add('scale-95', 'opacity-0');
+                chatIcon.classList.remove('hidden');
+                chatIconClose.classList.add('hidden');
+                chatIconClose.classList.remove('block');
+                setTimeout(() => { chatWindow.classList.add('hidden'); }, 300);
+            }
+        }
+
+        function handleChatEnter(e) {
+            if (e.key === 'Enter') sendChatMessage();
+        }
+
+        async function sendChatMessage() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+            
+            // Add user message to UI
+            addMessage(text, 'user');
+            chatInput.value = '';
+
+            // Loading state
+            const loadingId = "load-" + Date.now();
+            addLoadingBubble(loadingId);
+
+            // Connect to actual Spudzy Engine
+            if (spudzyEngine) {
+                try {
+                    const reply = await spudzyEngine.respond(text);
+                    removeLoadingBubble(loadingId);
+                    // Add real Spudzy response
+                    addMessage(reply, 'bot');
+                } catch(err) {
+                    removeLoadingBubble(loadingId);
+                    addMessage("Spudzy encountered an error: " + err.message, 'bot');
+                }
+            } else {
+                removeLoadingBubble(loadingId);
+                addMessage("Spudzy is currently disconnected or failed to load. Please refresh the page.", 'bot');
+            }
+        }
+
+        function addMessage(text, sender) {
+            const wrapper = document.createElement('div');
+            // Basic formatting for Spudzy outputs (converting newlines to <br>)
+            const formattedText = text.replace(/\n/g, '<br>');
+
+            if (sender === 'user') {
+                wrapper.className = 'flex justify-end';
+                wrapper.innerHTML = `
+                    <div class="bg-blue-600 text-white p-3 rounded-2xl rounded-tr-none max-w-[85%] shadow-md text-sm">${formattedText}</div>
+                `;
+            } else {
+                wrapper.className = 'flex gap-2';
+                wrapper.innerHTML = `
+                    <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-1 shadow-md shadow-blue-500/50">
+                        <i data-lucide="bot" class="w-3 h-3 text-white"></i>
+                    </div>
+                    <div class="bg-white/10 border border-white/10 p-3 rounded-2xl rounded-tl-none text-gray-200 max-w-[85%] text-sm shadow-md">${formattedText}</div>
+                `;
+            }
+            chatMessages.appendChild(wrapper);
+            lucide.createIcons({ root: wrapper });
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addLoadingBubble(id) {
+            const wrapper = document.createElement('div');
+            wrapper.id = id;
+            wrapper.className = 'flex gap-2 fade-in-scale';
+            wrapper.innerHTML = `
+                <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-1 shadow-md shadow-blue-500/50">
+                    <i data-lucide="bot" class="w-3 h-3 text-white"></i>
+                </div>
+                <div class="bg-white/10 border border-white/10 p-3 rounded-2xl rounded-tl-none text-gray-200 shadow-md flex gap-1 items-center h-[42px]">
+                    <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                    <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                </div>
+            `;
+            chatMessages.appendChild(wrapper);
+            lucide.createIcons({ root: wrapper });
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function removeLoadingBubble(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+    </script>
+
+    <!-- YOUR WINUI3 CDN SCRIPT EXACTLY AT THE BOTTOM AS REQUESTED -->
+    <script src="https://alaricholt677.github.io/PKGS/winui3/winui3-kit.js"></script>
+
+</body>
+</html>

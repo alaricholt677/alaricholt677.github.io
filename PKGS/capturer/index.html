@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Camera.js Screenshot Capturer Documentation</title>
+
+  <style>
+    :root {
+      --bg: #070b16;
+      --bg2: #0f172a;
+      --card: rgba(15, 23, 42, 0.86);
+      --card2: rgba(30, 41, 59, 0.78);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --blue: #38bdf8;
+      --purple: #a78bfa;
+      --green: #34d399;
+      --yellow: #facc15;
+      --red: #fb7185;
+      --border: rgba(148, 163, 184, 0.25);
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        sans-serif;
+      background:
+        radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.18), transparent 30%),
+        radial-gradient(circle at 90% 20%, rgba(167, 139, 250, 0.18), transparent 35%),
+        linear-gradient(135deg, var(--bg), var(--bg2));
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(to bottom, black, transparent 80%);
+      z-index: -1;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    header {
+      padding: 34px 24px;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(18px);
+      background: rgba(7, 11, 22, 0.62);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .nav {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      font-size: 22px;
+    }
+
+    .logo-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background:
+        linear-gradient(135deg, var(--blue), var(--purple));
+      display: grid;
+      place-items: center;
+      box-shadow: 0 10px 30px rgba(56, 189, 248, 0.24);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .nav-links a {
+      color: var(--muted);
+    }
+
+    .nav-links a:hover {
+      color: white;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 56px 24px 90px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 28px;
+      align-items: center;
+      margin-bottom: 54px;
+    }
+
+    .hero-text {
+      padding: 34px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.38));
+      border-radius: 32px;
+      box-shadow: var(--shadow);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.12);
+      color: #bae6fd;
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(42px, 7vw, 78px);
+      line-height: 0.9;
+      letter-spacing: -0.075em;
+    }
+
+    h1 span {
+      background: linear-gradient(135deg, #e0f2fe, #c4b5fd, #fef3c7);
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .lead {
+      margin: 24px 0 0;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.75;
+      max-width: 720px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 28px;
+    }
+
+    .btn {
+      border: 0;
+      cursor: pointer;
+      padding: 13px 18px;
+      border-radius: 15px;
+      font-weight: 900;
+      color: #06101f;
+      background: white;
+      box-shadow: 0 12px 35px rgba(255, 255, 255, 0.1);
+      transition: 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, var(--blue), var(--green));
+    }
+
+    .btn.secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: white;
+      border: 1px solid var(--border);
+    }
+
+    .preview-panel {
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: 32px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .browser-bar {
+      height: 42px;
+      border-radius: 18px 18px 0 0;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+    }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+
+    .dot.red {
+      background: #fb7185;
+    }
+
+    .dot.yellow {
+      background: #facc15;
+    }
+
+    .dot.green {
+      background: #34d399;
+    }
+
+    .mini-url {
+      margin-left: 10px;
+      flex: 1;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 8px 12px;
+      border-radius: 999px;
+    }
+
+    .demo-page {
+      border: 1px solid var(--border);
+      border-top: 0;
+      border-radius: 0 0 22px 22px;
+      padding: 26px;
+      background:
+        linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(167, 139, 250, 0.08)),
+        rgba(2, 6, 23, 0.45);
+    }
+
+    #capture-target {
+      position: relative;
+      padding: 24px;
+      border-radius: 26px;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(255,255,255,0.25), transparent 22%),
+        linear-gradient(135deg, #2563eb, #9333ea);
+      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35);
+      overflow: hidden;
+      min-height: 250px;
+    }
+
+    #capture-target::after {
+      content: "";
+      position: absolute;
+      right: -45px;
+      bottom: -45px;
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    #capture-target h2 {
+      margin: 0 0 12px;
+      font-size: 34px;
+      letter-spacing: -0.05em;
+    }
+
+    #capture-target p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.86);
+      line-height: 1.65;
+      max-width: 420px;
+    }
+
+    .fake-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .fake-stat {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .fake-stat strong {
+      display: block;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .fake-stat span {
+      display: block;
+      margin-top: 7px;
+      font-size: 12px;
+      opacity: 0.78;
+    }
+
+    section {
+      margin-top: 30px;
+      padding: 30px;
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      background: var(--card);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.22);
+    }
+
+    section h2 {
+      margin: 0 0 14px;
+      font-size: 32px;
+      letter-spacing: -0.04em;
+    }
+
+    section h3 {
+      margin-top: 26px;
+      margin-bottom: 10px;
+      font-size: 22px;
+      letter-spacing: -0.025em;
+    }
+
+    section p,
+    section li {
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .info-card {
+      padding: 20px;
+      border-radius: 22px;
+      background: var(--card2);
+      border: 1px solid var(--border);
+    }
+
+    .info-card b {
+      display: block;
+      color: white;
+      margin-bottom: 8px;
+      font-size: 17px;
+    }
+
+    pre {
+      margin: 16px 0 0;
+      padding: 18px;
+      overflow: auto;
+      border-radius: 18px;
+      background: #020617;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      color: #dbeafe;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    code {
+      color: #bae6fd;
+    }
+
+    .output-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .output-box {
+      min-height: 220px;
+      border-radius: 22px;
+      border: 1px dashed rgba(148, 163, 184, 0.45);
+      background: rgba(2, 6, 23, 0.42);
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      overflow: hidden;
+    }
+
+    #output-image {
+      max-width: 100%;
+      border-radius: 18px;
+      display: none;
+    }
+
+    #status {
+      color: var(--muted);
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .pill-list {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .pill {
+      padding: 8px 11px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.075);
+      border: 1px solid var(--border);
+      color: #cbd5e1;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .warning {
+      border-color: rgba(250, 204, 21, 0.35);
+      background: rgba(250, 204, 21, 0.08);
+    }
+
+    .warning strong {
+      color: #fef08a;
+    }
+
+    footer {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 24px 40px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .hero,
+      .output-wrap {
+        grid-template-columns: 1fr;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        position: static;
+      }
+
+      .nav {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 560px) {
+      main {
+        padding-inline: 14px;
+      }
+
+      .hero-text,
+      section,
+      .preview-panel {
+        padding: 20px;
+        border-radius: 24px;
+      }
+
+      .fake-stats {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <nav class="nav">
+      <div class="logo">
+        <div class="logo-mark">📸</div>
+        <span>Camera.js Capturer</span>
+      </div>
+
+      <div class="nav-links">
+        #whatWhat it does</a>
+        #setupSetup</a>
+        #demoLive demo</a>
+        #apiAPI</a>
+        #notesNotes</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div class="hero-text">
+        <div class="badge">Screenshot DOM elements as images</div>
+
+        <h1>
+          Capture any <span>HTML element</span>.
+        </h1>
+
+        <p class="lead">
+          Camera.js is a browser-side screenshot helper that copies the current
+          page into a hidden iframe, isolates your selected element, captures it,
+          and returns the result as an image data URL.
+        </p>
+
+        <div class="hero-actions">
+          #demoTry the demo</a>
+          #setupView setup</a>
+        </div>
+
+        <div class="pill-list">
+          <span class="pill">id selectors</span>
+          <span class="pill">class selectors</span>
+          <span class="pill">HTML elements</span>
+          <span class="pill">returns base64 image</span>
+        </div>
+      </div>
+
+      <div class="preview-panel">
+        <div class="browser-bar">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+          <span class="mini-url">alaricholt677.github.io/PKGS/capturer/camera.js</span>
+        </div>
+
+        <div class="demo-page">
+          <div id="capture-target">
+            <h2>Target Card</h2>
+            <p>
+              This card is the demo target. When you press the capture button,
+              only this element and its inside content should become the image.
+            </p>
+
+            <div class="fake-stats">
+              <div class="fake-stat">
+                <strong>01</strong>
+                <span>Clone page</span>
+              </div>
+
+              <div class="fake-stat">
+                <strong>02</strong>
+                <span>Hide extras</span>
+              </div>
+
+              <div class="fake-stat">
+                <strong>03</strong>
+                <span>Return image</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section id="what">
+      <h2>What Camera.js does</h2>
+
+      <p>
+        The goal of this script is simple: pick a target element using a CSS selector,
+        render just that element, and return the screenshot as an image string.
+      </p>
+
+      <div class="grid">
+        <div class="info-card">
+          <b>1. Copies the document</b>
+          <p>
+            It uses the page HTML and places it inside a hidden iframe so the
+            original page is not visually disturbed.
+          </p>
+        </div>
+
+        <div class="info-card">
+          <b>2. Isolates the target</b>
+          <p>
+            It keeps your chosen id, class, or element visible while everything
+            else is hidden for a clean capture.
+          </p>
+        </div>
+
+        <div class="info-card">
+          <b>3. Returns an image</b>
+          <p>
+            The final result can be saved, previewed in an img tag, downloaded,
+            or sent somewhere else.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="setup">
+      <h2>How to set it up</h2>
+
+      <h3>Step 1: Add Camera.js to your page</h3>
+
+      <p>
+        Put this script tag near the bottom of your HTML, before your own page script:
+      </p>
+
+      <pre><code>&lt;script src="https://alaricholt677.github.io/PKGS/capturer/camera.js"&gt;&lt;/script&gt;</code></pre>
+
+      <h3>Step 2: Add something you want to capture</h3>
+
+      <pre><code>&lt;div id="my-card"&gt;
+  &lt;h2&gt;Hello!&lt;/h2&gt;
+  &lt;p&gt;This element will become an image.&lt;/p&gt;
+&lt;/div&gt;</code></pre>
+
+      <h3>Step 3: Capture it</h3>
+
+      <pre><code>const image = await screenshotTargets("#my-card");
+
+document.querySelector("#preview").src = image;</code></pre>
+
+      <h3>Step 4: Show the image</h3>
+
+      <pre><code>&lt;img id="preview" alt="Captured result" /&gt;</code></pre>
+
+      <div class="info-card warning">
+        <b>Important</b>
+        <p>
+          If your actual function in <code>camera.js</code> is not named
+          <code>screenshotTargets</code>, change the demo call in this file to your real
+          function name.
+        </p>
+      </div>
+    </section>
+
+    <section id="demo">
+      <h2>Live demo</h2>
+
+      <p>
+        Press the button below to capture the purple-blue card at the top of this page.
+      </p>
+
+      <button class="btn primary" id="capture-button">
+        Capture #capture-target
+      </button>
+
+      <button class="btn secondary" id="download-button" disabled>
+        Download image
+      </button>
+
+      <div class="output-wrap">
+        <div class="output-box">
+          <div id="status">No capture yet.</div>
+          <img id="output-image" alt="Captured output" />
+        </div>
+
+        <div>
+          <h3>Returned image const</h3>
+          <p>
+            The script returns an image data URL. This page stores it in:
+          </p>
+
+          <pre><code>const image = await screenshotTargets("#capture-target");</code></pre>
+
+          <p>
+            After capture, the image can be placed into an
+            <code>&lt;img&gt;</code> tag, downloaded, or used in your own app.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="api">
+      <h2>Basic API example</h2>
+
+      <p>
+        This is the simplest way to use the script:
+      </p>
+
+      <pre><code>async function runCapture() {
+  const image = await screenshotTargets("#target");
+
+  console.log(image);
+
+  document.querySelector("#output").src = image;
+}</code></pre>
+
+      <h3>Multiple selectors</h3>
+
+      <p>
+        If your script supports arrays, you can capture multiple pieces together:
+      </p>
+
+      <pre><code>const image = await screenshotTargets([
+  "#header",
+  ".profile-card",
+  "footer"
+]);</code></pre>
+    </section>
+
+    <section id="notes">
+      <h2>Notes and troubleshooting</h2>
+
+      <ul>
+        <li>
+          Use normal CSS selectors like <code>#id</code>, <code>.class</code>, or
+          <code>section article</code>.
+        </li>
+        <li>
+          If the button says the function is missing, make sure
+          <code>camera.js</code> loaded correctly.
+        </li>
+        <li>
+          If the image is blank, check that your selected element exists and has visible size.
+        </li>
+        <li>
+          If external images do not show, they may need CORS support from the image host.
+        </li>
+        <li>
+          Test from a local server or GitHub Pages instead of opening the file directly
+          as <code>file://</code>.
+        </li>
+      </ul>
+
+      <h3>Recommended local test server</h3>
+
+      <pre><code>python -m http.server 8000</code></pre>
+
+      <p>
+        Then open:
+      </p>
+
+      <pre><code>http://localhost:8000</code></pre>
+    </section>
+  </main>
+
+  <footer>
+    Built as a documentation and test page for Camera.js.
+  </footer>
+
+  <script src="https://alaricholt677.github.io/PKGS/capturer/camera.js"></script>
+
+  <script>
+    const captureButton = document.getElementById("capture-button");
+    const downloadButton = document.getElementById("download-button");
+    const outputImage = document.getElementById("output-image");
+    const statusBox = document.getElementById("status");
+
+    let latestImage = "";
+
+    captureButton.addEventListener("click", async () => {
+      statusBox.style.display = "block";
+      outputImage.style.display = "none";
+      statusBox.textContent = "Capturing...";
+
+      try {
+        /*
+          If your camera.js function has a different name,
+          change screenshotTargets below to your real function name.
+        */
+
+        if (typeof window.screenshotTargets !== "function") {
+          throw new Error(
+            "camera.js loaded, but window.screenshotTargets was not found. Check your function name."
+          );
+        }
+
+        const image = await window.screenshotTargets("#capture-target");
+
+        latestImage = image;
+
+        outputImage.src = image;
+        outputImage.style.display = "block";
+        statusBox.style.display = "none";
+
+        downloadButton.disabled = false;
+
+        console.log("Returned image const:");
+        console.log(image);
+      } catch (error) {
+        console.error(error);
+        statusBox.style.display = "block";
+        statusBox.textContent = error.message;
+      }
+    });
+
+    downloadButton.addEventListener("click", () => {
+      if (!latestImage) return;
+
+      const link = document.createElement("a");
+      link.href = latestImage;
+      link.download = "camera-js-capture.png";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    });
+  </script>
+</body>
+</html>

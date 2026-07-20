@@ -527,6 +527,95 @@ body.booting #lock-login {
     pointer-events: none;
 }
 
+/* ===============================
+   TASKBAR HOVER WINDOW PREVIEWS
+   =============================== */
+
+#taskbar-preview-pop {
+    position: fixed;
+    bottom: 56px;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    z-index: 99999;
+    min-width: 220px;
+    max-width: 720px;
+    padding: 10px;
+    border-radius: 14px;
+    background: var(--win-bg);
+    color: var(--win-text);
+    border: 1px solid var(--sys-border);
+    box-shadow: 0 18px 50px rgba(0,0,0,0.35);
+    display: none;
+    gap: 10px;
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    opacity: 0;
+    transition: opacity 0.16s ease, transform 0.16s ease;
+    pointer-events: auto;
+}
+
+#taskbar-preview-pop.show {
+    display: flex;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.tb-preview-card {
+    width: 210px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--sys-border);
+    background: rgba(127,127,127,0.06);
+    cursor: pointer;
+}
+
+.tb-preview-card:hover {
+    background: var(--hover-bg);
+}
+
+.tb-preview-img-wrap {
+    width: 100%;
+    height: 120px;
+    background: rgba(0,0,0,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.tb-preview-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.tb-preview-fallback {
+    font-size: 42px;
+    opacity: 0.8;
+}
+
+.tb-preview-title {
+    padding: 8px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tb-preview-close {
+    float: right;
+    border: none;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    opacity: 0.7;
+    padding: 0 4px;
+}
+
+.tb-preview-close:hover {
+    opacity: 1;
+    color: #e81123;
+}
 </style>
 </head>
 <body>
@@ -5238,5 +5327,330 @@ async function appZipViewer(args={}){
 /* ===== END ZIP VIEWER SUPPORT ===== */
 
 </script>
+    <script>
+/* =====================================================
+   TASKBAR 3-SECOND HOVER PREVIEWS USING camera.js
+   ===================================================== */
+
+(function () {
+    const HOVER_DELAY = 3000;
+
+    let previewTimer = null;
+    let activePreviewApp = null;
+    let previewPop = null;
+
+    function ensurePreviewPop() {
+        if (previewPop) return previewPop;
+
+        previewPop = document.createElement("div");
+        previewPop.id = "taskbar-preview-pop";
+
+        previewPop.addEventListener("mouseenter", () => {
+            clearTimeout(previewTimer);
+        });
+
+        previewPop.addEventListener("mouseleave", () => {
+            hideTaskbarPreview();
+        });
+
+        document.body.appendChild(previewPop);
+        return previewPop;
+    }
+
+    function hideTaskbarPreview() {
+        clearTimeout(previewTimer);
+        activePreviewApp = null;
+
+        if (previewPop) {
+            previewPop.classList.remove("show");
+            setTimeout(() => {
+                if (previewPop && !previewPop.classList.contains("show")) {
+                    previewPop.style.display = "none";
+                    previewPop.innerHTML = "";
+                }
+            }, 180);
+        }
+    }
+
+    function getOpenWindowsForApp(appId) {
+        if (!window.OS || !OS.wins) return [];
+
+        return Object.entries(OS.wins)
+            .filter(([pid, win]) => win && win.appId === appId)
+            .map(([pid, win]) => {
+                return {
+                    pid,
+                    appId: win.appId,
+                    title: win.title || win.appId || "Window",
+                    icon: getTaskbarPreviewIcon(win.appId),
+                    el: document.getElementById(pid)
+                };
+            })
+            .filter(item => item.el);
+    }
+
+    function getTaskbarPreviewIcon(appId) {
+        if (window.APP_ICONS && APP_ICONS[appId]) {
+            return APP_ICONS[appId];
+        }
+
+        if (String(appId).includes(".exe")) return "💻";
+        if (String(appId).includes(".")) return "📄";
+
+        return "🪟";
+    }
+
+    function focusPreviewWindow(pid) {
+        const el = document.getElementById(pid);
+        if (!el) return;
+
+        el.classList.remove("hidden");
+
+        if (window.OS) {
+            el.style.zIndex = ++OS.z;
+        }
+
+        hideTaskbarPreview();
+
+        if (typeof buildTaskbar === "function") {
+            buildTaskbar();
+        }
+    }
+
+    function closePreviewWindow(pid, event) {
+        event.stopPropagation();
+
+        if (typeof closeW === "function") {
+            closeW(pid, { stopPropagation: function () {} });
+        }
+
+        hideTaskbarPreview();
+
+        if (typeof buildTaskbar === "function") {
+            buildTaskbar();
+        }
+    }
+
+    async function captureWindowPreview(winInfo) {
+        const el = winInfo.el;
+
+        if (!el) return null;
+
+        const wasHidden = el.classList.contains("hidden");
+
+        /*
+          Temporarily unhide minimized windows so camera.js can capture them.
+          Then restore hidden state right after screenshot.
+        */
+        if (wasHidden) {
+            el.classList.remove("hidden");
+        }
+
+        try {
+            if (typeof window.screenshotTargets !== "function") {
+                return null;
+            }
+
+            const image = await window.screenshotTargets("#" + CSS.escape(winInfo.pid), {
+                scale: 0.35,
+                backgroundColor: null
+            });
+
+            return image;
+        } catch (err) {
+            console.warn("Preview capture failed:", err);
+            return null;
+        } finally {
+            if (wasHidden) {
+                el.classList.add("hidden");
+            }
+        }
+    }
+
+    async function showTaskbarPreview(appId, taskbarIcon) {
+        const windows = getOpenWindowsForApp(appId);
+
+        if (!windows.length) {
+            hideTaskbarPreview();
+            return;
+        }
+
+        activePreviewApp = appId;
+
+        const pop = ensurePreviewPop();
+
+        pop.style.display = "flex";
+        pop.innerHTML = windows.map(win => `
+            <div class="tb-preview-card" data-preview-pid="${win.pid}">
+                <div class="tb-preview-img-wrap" id="tb-preview-img-${win.pid}">
+                    <div class="tb-preview-fallback">${win.icon}</div>
+                </div>
+                <div class="tb-preview-title">
+                    <button class="tb-preview-close" data-close-pid="${win.pid}">✕</button>
+                    ${escapeHTMLForPreview(win.title)}
+                </div>
+            </div>
+        `).join("");
+
+        positionPreviewNearIcon(pop, taskbarIcon);
+
+        requestAnimationFrame(() => {
+            pop.classList.add("show");
+        });
+
+        pop.querySelectorAll(".tb-preview-card").forEach(card => {
+            card.addEventListener("click", () => {
+                focusPreviewWindow(card.dataset.previewPid);
+            });
+        });
+
+        pop.querySelectorAll(".tb-preview-close").forEach(btn => {
+            btn.addEventListener("click", event => {
+                closePreviewWindow(btn.dataset.closePid, event);
+            });
+        });
+
+        for (const win of windows) {
+            if (activePreviewApp !== appId) return;
+
+            const image = await captureWindowPreview(win);
+            const imgWrap = document.getElementById("tb-preview-img-" + win.pid);
+
+            if (imgWrap && image) {
+                imgWrap.innerHTML = `<img src="${image}" alt="Window preview">`;
+            }
+        }
+    }
+
+    function positionPreviewNearIcon(pop, icon) {
+        const rect = icon.getBoundingClientRect();
+
+        pop.style.left = rect.left + rect.width / 2 + "px";
+        pop.style.bottom = "56px";
+    }
+
+    function escapeHTMLForPreview(value) {
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function attachPreviewEventsToTaskbar() {
+        const icons = document.querySelectorAll("#tb-icons .tb-icon");
+
+        icons.forEach(icon => {
+            if (icon.dataset.previewAttached === "true") return;
+
+            icon.dataset.previewAttached = "true";
+
+            icon.addEventListener("mouseenter", () => {
+                clearTimeout(previewTimer);
+
+                /*
+                  We set data-preview-app inside the patched buildTaskbar below.
+                  If this icon has no app id, ignore it.
+                */
+                const appId = icon.dataset.previewApp;
+                if (!appId) return;
+
+                previewTimer = setTimeout(() => {
+                    showTaskbarPreview(appId, icon);
+                }, HOVER_DELAY);
+            });
+
+            icon.addEventListener("mouseleave", event => {
+                clearTimeout(previewTimer);
+
+                const pop = ensurePreviewPop();
+                const toElement = event.relatedTarget;
+
+                if (pop && pop.contains(toElement)) {
+                    return;
+                }
+
+                setTimeout(() => {
+                    if (!pop.matches(":hover")) {
+                        hideTaskbarPreview();
+                    }
+                }, 120);
+            });
+        });
+    }
+
+    /*
+      Patch buildTaskbar:
+      Your file already rebuilds taskbar icons from OS.pins and OS.wins.
+      This wrapper runs the original buildTaskbar, then marks icons with app ids.
+    */
+    function patchBuildTaskbarForPreviews() {
+        if (window.__taskbarPreviewBuildPatched) return;
+        if (typeof window.buildTaskbar !== "function") return;
+
+        window.__taskbarPreviewBuildPatched = true;
+
+        const originalBuildTaskbar = window.buildTaskbar;
+
+        window.buildTaskbar = function () {
+            const result = originalBuildTaskbar.apply(this, arguments);
+
+            markTaskbarIconsWithAppIds();
+            attachPreviewEventsToTaskbar();
+
+            return result;
+        };
+    }
+
+    function markTaskbarIconsWithAppIds() {
+        const tc = document.getElementById("tb-icons");
+        if (!tc || !window.OS || !OS.curr) return;
+
+        /*
+          This mirrors your buildTaskbar order:
+          1. Start button
+          2. pinned apps
+          3. open apps not already shown
+        */
+        let shown = [...(OS.pins[OS.curr] || [])];
+
+        Object.entries(OS.wins).forEach(([pid, win]) => {
+            if (win && !shown.includes(win.appId)) {
+                shown.push(win.appId);
+            }
+        });
+
+        const icons = Array.from(tc.querySelectorAll(".tb-icon"));
+
+        /*
+          Skip index 0 because your first tb-icon is the Start button.
+        */
+        shown.forEach((appId, index) => {
+            const icon = icons[index + 1];
+            if (!icon) return;
+
+            icon.dataset.previewApp = appId;
+        });
+    }
+
+    function bootTaskbarPreviewPatch() {
+        patchBuildTaskbarForPreviews();
+
+        if (typeof buildTaskbar === "function") {
+            buildTaskbar();
+        } else {
+            attachPreviewEventsToTaskbar();
+        }
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", bootTaskbarPreviewPatch);
+    } else {
+        bootTaskbarPreviewPatch();
+    }
+})();
+</script>
+<script src="https://alaricholt677.github.io/PKGS/capturer/camera.js"></script>
 </body>
 </html>

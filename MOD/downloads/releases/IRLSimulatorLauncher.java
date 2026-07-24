@@ -25,7 +25,7 @@ import java.util.zip.ZipInputStream;
 public class Launcher extends JFrame {
 
     // --- Config ---
-    private static final String DOWNLOAD_URL = "https://alaricholt677.github.io/downloads/irl.zip";
+    private static final String DOWNLOAD_URL = "https://archive.org/download/irl_20260724/irl.zip";
     private static final String NEWS_URL = "https://alaricholt677.github.io/news/news.json";
 
     private static final String JAR_NAME = "IRLSimulator.jar";

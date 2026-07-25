@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>404 - Page Not Found</title>
+
+  <style>
+    :root {
+      --accent: #4c8dff;
+      --accent-soft: rgba(76, 141, 255, 0.22);
+      --accent-strong: rgba(76, 141, 255, 0.94);
+      --bg-main: radial-gradient(circle at 0% 0%, #16245a 0, #050813 45%, #02020a 100%);
+      --glass-dark: rgba(8, 12, 28, 0.9);
+      --border-glass: rgba(255, 255, 255, 0.1);
+      --text-main: #f5f7ff;
+      --text-soft: #c5cae6;
+      --text-dim: #9ca3c7;
+      --transition-fast: 140ms ease-out;
+      --transition-med: 220ms ease-out;
+      --font-ui: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .orbit {
+      position: fixed;
+      width: 420px;
+      height: 420px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow:
+        0 0 30px rgba(76,141,255,0.55),
+        0 0 90px rgba(106,63,181,0.75);
+      opacity: 0.35;
+      animation: orbitSpin 40s linear infinite;
+    }
+
+    @keyframes orbitSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .error-card {
+      position: relative;
+      z-index: 2;
+      width: min(460px, 92vw);
+      padding: 24px;
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at 0 0, rgba(255,255,255,0.14), transparent 55%),
+        var(--glass-dark);
+      border: 1px solid rgba(255,255,255,0.16);
+      box-shadow:
+        0 24px 60px rgba(0,0,0,0.9),
+        0 0 0 1px rgba(76,141,255,0.35);
+      backdrop-filter: blur(26px);
+      -webkit-backdrop-filter: blur(26px);
+      text-align: center;
+    }
+
+    .error-badge {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 14px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, var(--accent), #9d72ff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      font-weight: 700;
+      box-shadow:
+        0 0 20px rgba(76,141,255,0.8),
+        0 14px 34px rgba(0,0,0,0.8);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 54px;
+      letter-spacing: 0.08em;
+    }
+
+    .subtitle {
+      margin-top: 4px;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+    }
+
+    .message {
+      margin: 14px 0 20px;
+      color: var(--text-dim);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .primary-button,
+    .redirect-button {
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--text-main);
+      cursor: pointer;
+      transition:
+        background var(--transition-fast),
+        border-color var(--transition-fast),
+        transform var(--transition-fast),
+        box-shadow var(--transition-fast);
+      font-family: var(--font-ui);
+    }
+
+    .primary-button {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: linear-gradient(to right, var(--accent), #9d72ff);
+      font-size: 13px;
+      font-weight: 650;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.9);
+      margin-bottom: 12px;
+    }
+
+    .primary-button:hover {
+      transform: translateY(-1px);
+      box-shadow:
+        0 0 18px rgba(76,141,255,0.9),
+        0 16px 36px rgba(0,0,0,0.95);
+    }
+
+    .redirects {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .redirect-button {
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(10,12,32,0.96);
+      font-size: 12px;
+    }
+
+    .redirect-button:hover {
+      background: rgba(30,40,76,0.98);
+      border-color: rgba(255,255,255,0.4);
+      box-shadow: 0 0 12px rgba(76,141,255,0.75);
+      transform: translateY(-1px);
+    }
+
+    .redirect-button:active,
+    .primary-button:active {
+      transform: scale(0.97);
+      opacity: 0.85;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="orbit"></div>
+
+  <main class="error-card">
+    <div class="error-badge">404</div>
+
+    <h1>404</h1>
+    <div class="subtitle">Page not found</div>
+
+    <p class="message">
+      This page does not exist in the Win12 simulator.
+      Choose somewhere safe to continue.
+    </p>
+
+    <button class="primary-button" onclick="location.href='/win12.html'">
+      Head home
+    </button>
+
+    <div class="redirects">
+      <button class="redirect-button" onclick="location.href='/moreOS'">
+        moreOS
+      </button>
+
+      <button class="redirect-button" onclick="location.href='/PKGS'">
+        Packages
+      </button>
+
+      <button class="redirect-button" onclick="location.href='/'">
+        Home
+      </button>
+
+      <button class="redirect-button" onclick="location.href='/win12.html'">
+        Windows 12 Simulator
+      </button>
+    </div>
+  </main>
+</body>
+</html>

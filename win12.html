@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -54,7 +55,6 @@
 }
 </script>
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style id="base-style">
     :root {
       --accent: #4c8dff;
@@ -70,6 +70,13 @@
       --transition-fast: 140ms ease-out;
       --transition-med: 220ms ease-out;
       --font-ui: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --win12-surface: rgba(8, 12, 28, 0.94);
+      --win12-surface-1: rgba(4, 6, 18, 0.96);
+      --win12-surface-2: rgba(12, 16, 42, 0.98);
+      --win12-border: rgba(255, 255, 255, 0.14);
+      --win12-text: var(--text-main);
+      --win12-accent: var(--accent);
+      --text-color: var(--text-main);
     }
     * { box-sizing: border-box; user-select: none; }
     html, body {
@@ -3718,7 +3725,7 @@ document.addEventListener("DOMContentLoaded", () => {
          <img src="user.png"></img>
          <h1>Type: new page, User:</h1>
          <p>Alaricholt677</p>
-         <p>Theres a new mod thats uploaded to my site at: <a href="https://alaricholt677.github.io/MOD">https://alaricholt677.github.io/MOD</a> report any bugs if theres an error with it. you can do the same for <a class="download-game" href="/downloads">this game you can download</a></p>
+         <p>Theres a new mod thats uploaded to my site at: <a href="https://alaricholt677.github.io/MOD">https://alaricholt677.github.io/MOD</a> report any bugs if theres an error with it. you can do the same for <a class="download-game" href="/downloads">this game you can download</a></p><p>and also, try this: <a href="/win12-simulator-edition.zip">a custom made simulator you can download locally</p>
        </div>
       </details>
     </div>
@@ -4359,7 +4366,6 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
   </div>
 
-<audio id="troubleshooterAudio" src="troubleshooter.mp3" style="display: none;"></audio>
 <div id="cursor">
     <svg width="46" height="46" viewBox="0 0 46 46">
         <defs>
@@ -4812,9 +4818,9 @@ fs:[
       const hostOutputEl = document.getElementById("host-output");
       const hostTitleSub = document.getElementById("host-title-sub");
 
-      const aiLog = document.getElementById("ai-log");
-      const aiInput = document.getElementById("ai-input");
-      const aiSend = document.getElementById("ai-send");
+      const aiLog = document.getElementById("ai-log") || document.getElementById("aiLog2");
+      const aiInput = document.getElementById("ai-input") || document.getElementById("aiInput2");
+      const aiSend = document.getElementById("ai-send") || document.getElementById("aiSend2");
 
       const regListEl = document.getElementById("regedit-list");
       const regAddBtn = document.getElementById("regedit-add");
@@ -4886,7 +4892,7 @@ fs:[
       const camPopupBackdrop = document.getElementById("camera-popup-backdrop");
       const camPopupClose = document.getElementById("camera-popup-close");
       const networkPanel = document.getElementById("network-panel");
-  function openTroubleshooter() { const overlay = document.getElementById('troubleshooterOverlay'); const audio = document.getElementById('troubleshooterAudio'); overlay.style.display = 'block'; overlay.classList.add('ts-animating'); setTimeout(() => { overlay.classList.add('ts-active'); overlay.classList.remove('ts-animating'); }, 550); if (audio) { audio.currentTime = 0; audio.play().catch(() => {}); } setTsContent('home'); } function closeTroubleshooter() { const overlay = document.getElementById('troubleshooterOverlay'); const audio = document.getElementById('troubleshooterAudio'); overlay.classList.remove('ts-active'); setTimeout(() => { overlay.style.display = 'none'; }, 300); if (audio) { audio.pause(); audio.currentTime = 0; } }
+  function openTroubleshooter() { const overlay = document.getElementById('troubleshooterOverlay'); const audio = document.getElementById('troubleshooterAudio'); if (!overlay) return; overlay.style.display = 'block'; overlay.classList.add('ts-animating'); setTimeout(() => { overlay.classList.add('ts-active'); overlay.classList.remove('ts-animating'); }, 550); if (audio) { audio.currentTime = 0; audio.play().catch(() => {}); } if (typeof setTsContent === 'function') setTsContent('home'); } function closeTroubleshooter() { const overlay = document.getElementById('troubleshooterOverlay'); const audio = document.getElementById('troubleshooterAudio'); if (!overlay) return; overlay.classList.remove('ts-active'); setTimeout(() => { overlay.style.display = 'none'; }, 300); if (audio) { audio.pause(); audio.currentTime = 0; } }
       // Show popup function
       function showCameraUnsupportedPopup() {
         camPopupBackdrop.style.display = "flex";
@@ -5487,6 +5493,7 @@ function mergeImported(entries) {
         if(action==="rename" && ctxTargetEntry)ctxRename(ctxTargetEntry);
         if(action==="delete" && ctxTargetEntry)ctxDelete(ctxTargetEntry);
         if(action==="props")showProps(ctxTargetEntry);
+        if(action==="createShortcut" && ctxTargetEntry)openShortcutWizard(ctxTargetEntry);
         hideCtxMenu();
       });
 
@@ -7372,27 +7379,50 @@ async function renderBrowserView(url) {
         const u=currentUser();
         const match=u.fs.find(e=>e.path===entry.path&&e.name===entry.name);
         const node=match||entry;
-        if(!node.exePayloadBase64){
-          hostOutputEl.textContent="This .exe has no exePayloadBase64 field.";
-          hostTitleSub.textContent=`Idle · ${entry.name}`;
+        const payloads = [node.content, node.exePayloadBase64].map(v => String(v || "").trim()).filter(Boolean);
+        const hostWin = document.getElementById("window-host");
+        const hostTitleMain = hostWin ? hostWin.querySelector(".window-title-main") : null;
+        const hostTitleSubEl = hostWin ? hostWin.querySelector(".window-title-sub") : null;
+
+        if(!payloads.length){
+          hostOutputEl.textContent="This .exe has no base64 content.";
+          if(hostTitleSubEl) hostTitleSubEl.textContent=`Idle · ${entry.name}`;
           return;
         }
+
         let html="";
-        try{ html=atob(node.exePayloadBase64); }
-        catch{
-          hostOutputEl.textContent="Failed to decode base64 payload.";
-          hostTitleSub.textContent=`Idle · ${entry.name}`;
+        let decoded=false;
+        for (const payload of payloads) {
+          try { html = atob(payload); decoded = true; break; }
+          catch {}
+        }
+        if(!decoded){
+          hostOutputEl.textContent="Failed to decode .exe base64 content.";
+          if(hostTitleSubEl) hostTitleSubEl.textContent=`Idle · ${entry.name}`;
           return;
         }
-        hostTitleSub.textContent=`Running: ${entry.name}`;
+
+        let exeTitle = entry.name;
+        try {
+          const doc = new DOMParser().parseFromString(html, "text/html");
+          const title = doc.querySelector("title");
+          if(title && title.textContent.trim()) exeTitle = title.textContent.trim();
+        } catch {}
+
+        if(hostTitleMain) hostTitleMain.textContent = exeTitle;
+        if(hostTitleSubEl) hostTitleSubEl.textContent=`Running: ${entry.name}`;
         hostOutputEl.innerHTML="";
         const iframe=document.createElement("iframe");
-        iframe.style.border="none";iframe.style.width="100%";iframe.style.height="260px";
+        iframe.style.border="none";
+        iframe.style.width="100%";
+        iframe.style.height="360px";
+        iframe.style.borderRadius="12px";
+        iframe.style.background="#000";
         iframe.srcdoc=html;
         hostOutputEl.appendChild(iframe);
         const info=document.createElement("div");
         info.style.marginTop="6px";info.style.fontSize="10px";info.style.color="var(--text-dim)";
-        info.textContent="This HTML is decoded from exePayloadBase64 and rendered in an iframe srcdoc. Real executables are not run.";
+        info.textContent="This HTML was decoded from the .exe file content and rendered in an iframe srcdoc. Real executables are not run.";
         hostOutputEl.appendChild(info);
       }
 
@@ -7414,27 +7444,65 @@ function openFile(entry, chooseApp) {
   // 1. SHORTCUT RESOLVER ALWAYS COMES FIRST — LIKE WINDOWS
   // ============================================================
   if (ext === ".lnk") {
+    let target = "";
+
     try {
-      const data = JSON.parse(entry.content);
-      const target = data.target;
-
-      const parts = target.split("/");
-      const name = parts.pop();
-      const path = parts.join("/") || "/";
-
-      const u = currentUser();
-      const real = u.fs.find(f => f.path === path && f.name === name);
-
-      if (!real) {
-        aiMsg("ai", `Shortcut target not found: ${target}`);
-        return;
+      const text = String(entry.content || "").trim();
+      if (text.startsWith("{")) {
+        const data = JSON.parse(text);
+        target = String(data.target || data.path || "").trim();
+      } else if (text.toLowerCase().startsWith("shortcut:")) {
+        target = text.slice(text.indexOf(":") + 1).trim();
+      } else {
+        target = text;
       }
-
-      return openFile(real, false);
     } catch {
+      target = "";
+    }
+
+    target = target.replace(/\\/g, "/").replace(/^['"]|['"]$/g, "");
+
+    if (!target) {
       aiMsg("ai", "Invalid shortcut file.");
       return;
     }
+
+    if (target.startsWith("app:")) {
+      showWindow(target.slice(4));
+      return;
+    }
+
+    const u = currentUser();
+    const cleanTarget = target.replace(/\/+$/g, "") || "/";
+    const targetParts = cleanTarget.split("/").filter(Boolean);
+    const targetName = targetParts.pop() || "";
+    const targetPath = targetParts.length ? "/" + targetParts.join("/") : "/";
+    const real = u.fs.find(f => f.path === targetPath && f.name === targetName);
+
+    if (!real) {
+      const folderExists = cleanTarget === "/" || u.fs.some(f => f.type === "folder" && `${f.path}/${f.name}` === cleanTarget) || ["/desktop", "/documents", "/recommended-files", "/imported", "/Windows", "/Windows/System32"].includes(cleanTarget);
+      if (folderExists) {
+        renderExplorer(cleanTarget);
+        showWindow("explorer");
+        return;
+      }
+
+      aiMsg("ai", `Shortcut target not found: ${target}`);
+      return;
+    }
+
+    if (real.ext === ".lnk" && real.path === entry.path && real.name === entry.name) {
+      aiMsg("ai", "Shortcut points to itself.");
+      return;
+    }
+
+    if (real.type === "folder") {
+      renderExplorer(`${real.path}/${real.name}`);
+      showWindow("explorer");
+      return;
+    }
+
+    return openFile(real, false);
   }
 
   // ============================================================
@@ -7543,124 +7611,123 @@ function openFile(entry, chooseApp) {
   );
 }
 
-  if (!ctxMenu) return;
 
-  // 1. Create button as an element
+function initShortcutContextMenu() {
+  if (!ctxMenu || ctxMenu.querySelector('[data-action="createShortcut"]')) return;
+
   const shortcutBtn = document.createElement("div");
   shortcutBtn.className = "ctx-item";
   shortcutBtn.dataset.action = "createShortcut";
   shortcutBtn.innerHTML = `<span>Create shortcut</span>`;
-
-  // 2. Append FIRST
   ctxMenu.appendChild(shortcutBtn);
-
-  // 3. Add event listener AFTER append
-  shortcutBtn.addEventListener("click", () => {
-    if (!ctxTargetEntry) {
-      aiMsg("ai", "No item selected to create shortcut for.");
-      return;
-    }
-    openShortcutWizard(ctxTargetEntry);
-    hideCtxMenu();
-  });
+}
+initShortcutContextMenu();
 
 function openShortcutWizard(targetEntry) {
-  const win = document.createElement("div");
-  win.className = "window";
-  win.dataset.app = "shortcut-wizard";
+  const normalizePath = p => (String(p || "").trim().replace(/\\/g, "/").replace(/\/+/g, "/").replace(/\/$/, "") || "/");
+  const targetPath = targetEntry ? normalizePath(`${targetEntry.path}/${targetEntry.name}`) : "";
+  const defaultName = targetEntry ? `${targetEntry.name.replace(/\.lnk$/i, "")} - Shortcut.lnk` : "New Shortcut.lnk";
 
-  // 1. Minimal HTML block
-  win.innerHTML = `
-    <div class="window-header" data-drag-handle>
-      <div class="window-title">
-        <div class="window-title-main">Create Shortcut</div>
-        <div class="window-title-sub">Choose target</div>
+  const overlay = document.createElement("div");
+  overlay.className = "shortcut-wizard-overlay";
+  overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.42);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:2147483000;";
+  overlay.innerHTML = `
+    <div class="shortcut-wizard-box" style="width:min(430px,calc(100vw - 30px));border-radius:18px;background:rgba(8,12,28,.97);border:1px solid rgba(255,255,255,.16);box-shadow:0 24px 60px rgba(0,0,0,.9);color:var(--text-main);font-family:var(--font-ui);overflow:hidden;">
+      <div class="shortcut-wizard-title" style="height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:linear-gradient(to right,rgba(6,9,26,.98),rgba(12,16,42,.98));border-bottom:1px solid rgba(255,255,255,.08);">
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:650;"><span style="width:18px;height:18px;border-radius:6px;background:linear-gradient(135deg,#4c8dff,#9d72ff);box-shadow:0 0 12px rgba(76,141,255,.8);"></span>Create Shortcut</div>
+        <button id="sw-close" class="button-small" type="button">Close</button>
       </div>
-      <div class="window-controls">
-        <div class="window-btn close"><div class="window-btn-icon"></div></div>
-      </div>
-    </div>
+      <div style="padding:14px;">
+        <div style="font-size:12px;color:var(--text-soft);margin-bottom:6px;">Target path</div>
+        <input id="sw-path" style="width:100%;margin-bottom:10px;padding:7px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(4,6,18,.98);color:var(--text-main);outline:none;" value="${targetPath}">
+        <div style="font-size:11px;color:var(--text-dim);margin-top:-6px;margin-bottom:10px;">Use a virtual path like /desktop/File.txt or app:settings.</div>
 
-    <div class="window-body" style="padding:12px;font-size:12px;">
-      <div id="sw-step1">
-        <div>Enter the path of the file:</div>
-        <input id="sw-path" style="width:100%;margin:6px 0;padding:6px;">
-        <div style="text-align:right;">
-          <button id="sw-browse" class="button-small">Browse…</button>
-          <button id="sw-next" class="button-small">Next</button>
-        </div>
-      </div>
+        <div style="font-size:12px;color:var(--text-soft);margin-bottom:6px;">Shortcut name</div>
+        <input id="sw-name" style="width:100%;margin-bottom:10px;padding:7px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(4,6,18,.98);color:var(--text-main);outline:none;" value="${defaultName}">
 
-      <div id="sw-step2" style="display:none;">
-        <div>Name your shortcut:</div>
-        <input id="sw-name" style="width:100%;margin:6px 0;padding:6px;">
-        <div style="text-align:right;">
-          <button id="sw-create" class="button-small">Create</button>
+        <div style="font-size:12px;color:var(--text-soft);margin-bottom:6px;">Create in</div>
+        <select id="sw-destination" style="width:100%;margin-bottom:12px;padding:7px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(4,6,18,.98);color:var(--text-main);outline:none;">
+          <option value="/desktop">Desktop</option>
+          <option value="/documents">Documents</option>
+          <option value="/imported">Imported</option>
+          <option value="${typeof currentExplorerPath !== "undefined" ? currentExplorerPath : "/desktop"}">Current Explorer folder</option>
+        </select>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;">
+          <button id="sw-cancel" class="button-small" type="button">Cancel</button>
+          <button id="sw-create" class="button-small" type="button">Create</button>
         </div>
       </div>
     </div>
   `;
 
-  // 2. Append FIRST
-  document.body.appendChild(win);
-  enableWindowControls(win);
+  document.body.appendChild(overlay);
 
-  // 3. THEN safely get buttons
-  const browseBtn = win.querySelector("#sw-browse");
-  const nextBtn   = win.querySelector("#sw-next");
-  const createBtn = win.querySelector("#sw-create");
-  const closeBtn  = win.querySelector(".window-btn.close");
+  const pathInput = overlay.querySelector("#sw-path");
+  const nameInput = overlay.querySelector("#sw-name");
+  const destinationInput = overlay.querySelector("#sw-destination");
+  const createBtn = overlay.querySelector("#sw-create");
+  const cancelBtn = overlay.querySelector("#sw-cancel");
+  const closeBtn = overlay.querySelector("#sw-close");
+  const box = overlay.querySelector(".shortcut-wizard-box");
 
-  const step1 = win.querySelector("#sw-step1");
-  const step2 = win.querySelector("#sw-step2");
-
-  const pathInput = win.querySelector("#sw-path");
-  const nameInput = win.querySelector("#sw-name");
-
-  if (targetEntry) {
-    pathInput.value = `${targetEntry.path}/${targetEntry.name}`;
-  }
-
-  // Now attach events
-  browseBtn.onclick = () => {
-    showWindow("explorer");
-    aiMsg("ai", "Browse in Explorer, then type the path manually here.");
-  };
-
-  nextBtn.onclick = () => {
-    const path = pathInput.value.trim();
-    if (!path) return alert("Enter a valid path.");
-    step1.style.display = "none";
-    step2.style.display = "block";
-    nameInput.value = path.split("/").pop() + ".lnk";
-  };
+  const close = () => overlay.remove();
+  cancelBtn.onclick = close;
+  closeBtn.onclick = close;
+  overlay.addEventListener("mousedown", e => { if (e.target === overlay) close(); });
+  box.addEventListener("mousedown", e => e.stopPropagation());
 
   createBtn.onclick = () => {
-    const path = pathInput.value.trim();
-    const name = nameInput.value.trim();
-    if (!path || !name) return alert("Invalid shortcut.");
+    try {
+      const target = normalizePath(pathInput.value);
+      const destination = normalizePath(destinationInput.value || "/desktop");
+      let name = nameInput.value.trim();
 
-    updateCurrentUser(u => ({
-      ...u,
-      fs: [
-        ...u.fs,
-        {
-          path: "/desktop",
-          name,
+      if (!target || target === "/") return alert("Choose a target file, folder, or app: name.");
+      if (!name) return alert("Name your shortcut.");
+      if (!name.toLowerCase().endsWith(".lnk")) name += ".lnk";
+
+      const u = currentUser();
+      const targetParts = target.split("/").filter(Boolean);
+      const targetName = targetParts.pop() || "";
+      const targetDir = targetParts.length ? "/" + targetParts.join("/") : "/";
+      const knownFolder = ["/desktop", "/documents", "/recommended-files", "/imported", "/Windows", "/Windows/System32", "/"].includes(target);
+      const targetExists = target.startsWith("app:") || knownFolder || u.fs.some(f => f.path === targetDir && f.name === targetName) || u.fs.some(f => f.type === "folder" && `${f.path}/${f.name}` === target);
+
+      if (!targetExists) return alert("Shortcut target was not found in the virtual OS.");
+
+      let finalName = name;
+      let n = 2;
+      while (u.fs.some(f => f.path === destination && f.name === finalName)) {
+        finalName = name.replace(/\.lnk$/i, ` (${n}).lnk`);
+        n++;
+      }
+
+      updateCurrentUser(user => ({
+        ...user,
+        fs: user.fs.concat({
+          path: destination,
+          name: finalName,
           type: "file",
           ext: ".lnk",
-          content: JSON.stringify({ target: path })
-        }
-      ]
-    }));
+          content: JSON.stringify({ target, createdAt: Date.now() })
+        })
+      }));
 
-    alert("Shortcut created!");
-    win.remove();
+      if (typeof renderExplorer === "function") renderExplorer(destination);
+      if (typeof renderDesktop === "function") renderDesktop();
+      if (window.win12Notify) win12Notify("Shortcut created", `${finalName} was created.`);
+      else alert("Shortcut created!");
+      close();
+    } catch (err) {
+      console.error("Shortcut wizard failed:", err);
+      alert("Shortcut wizard failed: " + (err && err.message ? err.message : err));
+    }
   };
 
-  closeBtn.onclick = () => win.remove();
+  setTimeout(() => pathInput && pathInput.focus(), 0);
 }
-      
+
 function renderImageInPaint(entry) {
   if (!paintCanvas || !entry.content) {
     aiMsg("ai", `Paint opened, but ${entry.name} has no image data.`);
@@ -9472,6 +9539,7 @@ function calcTotalStorage() {
 
 // ✅ Add storage counter below sidebar tabs
 function updateSidebarStorageCounter() {
+  if (!explorerSidebar) return;
   let counterEl = document.getElementById("sidebar-storage-counter");
   if (!counterEl) {
     counterEl = document.createElement("div");
@@ -10093,7 +10161,9 @@ function openThemeStudioPopup(entry) {
 
 // ✅ Window interaction helper
 function makeWindowInteractive(win) {
+  if (!win) return;
   const header = win.querySelector("[data-drag-handle]");
+  if (!header) return;
   let dragging = false, sx, sy, sl, st;
 
   header.addEventListener("mousedown", e => {
@@ -12107,6 +12177,7 @@ function createBootUI() {
 
 function runBootSequence() {
   const overlay = document.getElementById("boot-overlay");
+  if (!overlay || overlay.children.length < 2) return;
   const logo = overlay.children[0];
   const spinner = overlay.children[1];
 
@@ -12851,42 +12922,96 @@ async function initTaskbarBattery(pillEl) {
 
 const updateBtn = document.getElementById("updateBtn");
 const updateStatus = document.getElementById("updateStatus");
+const WIN12_UPDATE_URL = "https://alaricholt677.github.io/win12.html";
 
-async function checkForUpdates() {
-    updateStatus.textContent = "Checking for updates…";
+async function win12HashText(text) {
+    const normalized = String(text || "").replace(/\r\n/g, "\n");
+    const bytes = new TextEncoder().encode(normalized);
+    const buffer = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(buffer)).map(byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function showUpdateNotification(remoteHash, localHash) {
+    const shortRemote = remoteHash ? remoteHash.slice(0, 10) : "unknown";
+    const shortLocal = localHash ? localHash.slice(0, 10) : "unknown";
+
+    if (window.win12Notify) {
+        win12Notify("Update available", `Remote hash ${shortRemote} differs from local hash ${shortLocal}.`, { toast: false });
+    }
+
+    let toast = document.getElementById("win12-update-toast");
+    if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "win12-update-toast";
+        toast.style.cssText = "position:fixed;right:14px;bottom:116px;z-index:2147482500;width:min(340px,calc(100vw - 28px));padding:12px;border-radius:18px;background:rgba(8,12,28,.97);border:1px solid rgba(255,255,255,.18);box-shadow:0 22px 52px rgba(0,0,0,.86);color:#f5f7ff;font:12px system-ui,Segoe UI,sans-serif;backdrop-filter:blur(24px);";
+        toast.innerHTML = `
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px;color:var(--win12-notify-title,#f5f7ff);">Update available</div>
+            <div style="color:var(--win12-notify-body,#c5cae6);line-height:1.45;margin-bottom:10px;">A newer copy of win12.html was found online.</div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+                <button id="win12-update-dismiss" class="button-small" type="button">Later</button>
+                <button id="win12-update-now" class="button-small" type="button">Update</button>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        toast.querySelector("#win12-update-dismiss").onclick = () => toast.remove();
+        toast.querySelector("#win12-update-now").onclick = () => window.location.href = WIN12_UPDATE_URL;
+    }
+}
+
+async function checkForUpdates(options = {}) {
+    const notify = options.notify !== false;
+    if (!updateStatus || !updateBtn) return;
+
+    updateStatus.textContent = "Checking update hash…";
+    updateBtn.disabled = true;
 
     try {
-        const response = await fetch("https://alaricholt677.github.io/index.html", {
-            cache: "no-store"
-        });
+        if (!window.crypto || !crypto.subtle) throw new Error("SHA-256 is not available in this browser context.");
 
-        const newCode = await response.text();
-        const currentCode = document.documentElement.outerHTML;
+        const response = await fetch(WIN12_UPDATE_URL, { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        if (newCode.trim() !== currentCode.trim()) {
+        const remoteCode = await response.text();
+        const remoteHash = await win12HashText(remoteCode);
+        const localHash = await win12HashText(document.documentElement.outerHTML);
+
+        localStorage.setItem("win12_Update_RemoteHash", remoteHash);
+        localStorage.setItem("win12_Update_LocalHash", localHash);
+
+        if (remoteHash !== localHash) {
             localStorage.setItem("win12_Update", "yes");
-            updateStatus.textContent = "Update available!";
+            updateStatus.textContent = `Update available. Hash ${remoteHash.slice(0, 10)}…`;
             updateBtn.textContent = "Update Now";
+            if (notify) showUpdateNotification(remoteHash, localHash);
         } else {
             localStorage.setItem("win12_Update", "no");
             updateStatus.textContent = "Your system is up to date.";
             updateBtn.textContent = "Check for Updates";
         }
-    } catch (err) {
-        updateStatus.textContent = "Error checking updates.";
+    } catch (error) {
+        updateStatus.textContent = "Error checking updates: " + error.message;
+        updateBtn.textContent = "Check for Updates";
+        if (window.win12Notify && notify) win12Notify("Update check failed", error.message || "Unable to check updates.");
+    } finally {
+        updateBtn.disabled = false;
     }
 }
 
-updateBtn.addEventListener("click", () => {
-    if (localStorage.getItem("win12_Update") === "yes") {
-        window.location.href = "updater.html";
-    } else {
-        checkForUpdates();
-    }
+if (updateBtn) {
+    updateBtn.addEventListener("click", () => {
+        if (localStorage.getItem("win12_Update") === "yes") {
+            window.location.href = WIN12_UPDATE_URL;
+        } else {
+            checkForUpdates({ notify: true });
+        }
+    });
+}
+
+window.addEventListener("load", () => {
+    setTimeout(() => checkForUpdates({ notify: true }), 1400);
 });
 
-// Load UI state on boot
-if (localStorage.getItem("win12_Update") === "yes") {
+if (localStorage.getItem("win12_Update") === "yes" && updateBtn && updateStatus) {
     updateBtn.textContent = "Update Now";
     updateStatus.textContent = "Update available!";
 }
@@ -14290,6 +14415,8 @@ document.addEventListener("mousemove", (e) => {
     // Stretch more gently for rounded cursor
     const stretch = Math.min(1 + speed * 0.25, 1.8);
 
+    if (!cursor) return;
+
     cursor.style.transform = `
         translate(${e.clientX}px, ${e.clientY}px)
         rotate(${angle}deg)
@@ -14307,8 +14434,9 @@ document.addEventListener("mousemove", (e) => {
 const initCriticalMonitor = () => {
     // 1. Listen for Uncaught SyntaxErrors (like the one in your log)
     window.addEventListener('error', (event) => {
-        const isParseError = event.message.toLowerCase().includes('unexpected token') || 
-                             event.message.toLowerCase().includes('is not valid json');
+        const errorMessage = String(event.message || '');
+        const isParseError = errorMessage.toLowerCase().includes('unexpected token') || 
+                             errorMessage.toLowerCase().includes('is not valid json');
 
         if (isParseError) {
             renderErrorOverlay(event.message);
@@ -15564,5 +15692,1644 @@ console.log(`%c
 
 })();
 </script>
-    </body>
+    
+<!-- System Restore app injected by Copilot -->
+<script>
+function createSystemRestoreApp() {
+  const restoreKey = "win12.systemRestore.points";
+  if (document.getElementById("system-restore-app")) return;
+
+  const style = document.createElement("style");
+  style.id = "system-restore-style";
+  style.textContent = `
+    #system-restore-app {
+      position: fixed;
+      top: 90px;
+      left: 120px;
+      width: 460px;
+      max-width: calc(100vw - 30px);
+      height: 430px;
+      max-height: calc(100vh - 90px);
+      background: rgba(8, 12, 28, 0.94);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 18px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.85), 0 0 0 1px rgba(76,141,255,0.3);
+      color: #f5f7ff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      overflow: hidden;
+      z-index: 9999;
+      display: none;
+    }
+    #system-restore-app.visible { display: flex; flex-direction: column; }
+    #system-restore-app .sr-titlebar {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      background: linear-gradient(to right, rgba(6,9,26,0.98), rgba(12,16,42,0.98));
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      cursor: move;
+    }
+    #system-restore-app .sr-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+    #system-restore-app .sr-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #4c8dff, #9d72ff);
+      box-shadow: 0 0 12px rgba(76,141,255,0.8);
+    }
+    #system-restore-app .sr-close {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(4,6,18,0.96);
+      color: #f5f7ff;
+      cursor: pointer;
+    }
+    #system-restore-app .sr-close:hover { background: rgba(90,20,35,0.98); border-color: #ff5573; box-shadow: 0 0 12px rgba(255,85,115,0.9); }
+    #system-restore-app .sr-body {
+      flex: 1;
+      padding: 14px;
+      overflow: auto;
+      background: radial-gradient(circle at 0 0, rgba(76,141,255,0.12), transparent 50%), rgba(6,9,26,0.98);
+    }
+    #system-restore-app .sr-header { margin-bottom: 12px; }
+    #system-restore-app .sr-header h2 { margin: 0; font-size: 20px; }
+    #system-restore-app .sr-header p { margin: 5px 0 0; font-size: 12px; color: #c5cae6; line-height: 1.45; }
+    #system-restore-app .sr-create { display: flex; gap: 8px; margin-bottom: 12px; }
+    #system-restore-app .sr-input {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(4,6,18,0.98);
+      color: #f5f7ff;
+      outline: none;
+      font-size: 12px;
+    }
+    #system-restore-app .sr-btn {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(12,18,44,0.98);
+      color: #f5f7ff;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: 140ms ease-out;
+    }
+    #system-restore-app .sr-btn:hover { background: rgba(30,40,76,0.98); border-color: rgba(255,255,255,0.38); transform: translateY(-1px); }
+    #system-restore-app .sr-btn.primary { border-color: rgba(76,141,255,0.94); background: linear-gradient(to right, #4c8dff, #9d72ff); box-shadow: 0 8px 20px rgba(0,0,0,0.75); }
+    #system-restore-app .sr-btn.danger:hover { background: rgba(90,20,35,0.98); border-color: #ff5573; }
+    #system-restore-app .sr-list { display: flex; flex-direction: column; gap: 8px; }
+    #system-restore-app .sr-empty {
+      padding: 18px;
+      text-align: center;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px dashed rgba(255,255,255,0.18);
+      color: #9ca3c7;
+      font-size: 12px;
+    }
+    #system-restore-app .sr-point {
+      padding: 10px;
+      border-radius: 14px;
+      background: rgba(10,14,36,0.98);
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.55);
+    }
+    #system-restore-app .sr-point-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
+    #system-restore-app .sr-point-name { font-size: 13px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #system-restore-app .sr-point-date { font-size: 10px; color: #9ca3c7; margin-top: 2px; }
+    #system-restore-app .sr-point-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .system-restore-desktop-icon .desktop-icon-thumb,
+    .system-restore-start-icon {
+      background: linear-gradient(135deg, #4c8dff, #9d72ff) !important;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.7), 0 0 14px rgba(76,141,255,0.85) !important;
+    }
+  `;
+  document.head.appendChild(style);
+
+  const app = document.createElement("div");
+  app.id = "system-restore-app";
+  app.innerHTML = `
+    <div class="sr-titlebar">
+      <div class="sr-title"><div class="sr-icon"></div><span>System Restore</span></div>
+      <button class="sr-close" type="button">×</button>
+    </div>
+    <div class="sr-body">
+      <div class="sr-header">
+        <h2>Restore Points</h2>
+        <p>Save the current simulator state, then restore it later if something breaks or you want to roll back.</p>
+      </div>
+      <div class="sr-create">
+        <input class="sr-input" placeholder="Restore point name">
+        <button class="sr-btn primary sr-save" type="button">Create</button>
+      </div>
+      <div class="sr-list"></div>
+    </div>
+  `;
+  document.body.appendChild(app);
+
+  function escapeHtml(text) {
+    return String(text).replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char]));
+  }
+  function getPoints() {
+    try { return JSON.parse(localStorage.getItem(restoreKey) || "[]"); }
+    catch { return []; }
+  }
+  function setPoints(points) { localStorage.setItem(restoreKey, JSON.stringify(points)); }
+  function makeSnapshot() {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key !== restoreKey) data[key] = localStorage.getItem(key);
+    }
+    return data;
+  }
+  function renderPoints() {
+    const list = app.querySelector(".sr-list");
+    const points = getPoints();
+    if (!points.length) { list.innerHTML = `<div class="sr-empty">No restore points yet.</div>`; return; }
+    list.innerHTML = points.map(point => `
+      <div class="sr-point" data-id="${escapeHtml(point.id)}">
+        <div class="sr-point-top">
+          <div>
+            <div class="sr-point-name">${escapeHtml(point.name)}</div>
+            <div class="sr-point-date">${new Date(point.createdAt).toLocaleString()}</div>
+          </div>
+        </div>
+        <div class="sr-point-actions">
+          <button class="sr-btn sr-restore" type="button">Restore</button>
+          <button class="sr-btn danger sr-delete" type="button">Delete</button>
+        </div>
+      </div>
+    `).join("");
+  }
+  function savePoint() {
+    const input = app.querySelector(".sr-input");
+    const name = input.value.trim() || `Restore Point ${new Date().toLocaleString()}`;
+    const points = getPoints();
+    points.unshift({ id: "rp-" + Date.now(), name, createdAt: Date.now(), data: makeSnapshot() });
+    setPoints(points);
+    input.value = "";
+    renderPoints();
+  }
+  function restorePoint(id) {
+    const points = getPoints();
+    const point = points.find(item => item.id === id);
+    if (!point) return;
+    if (!confirm(`Restore "${point.name}"?\n\nThis will replace the simulator's current saved state.`)) return;
+    localStorage.clear();
+    Object.keys(point.data).forEach(key => localStorage.setItem(key, point.data[key]));
+    localStorage.setItem(restoreKey, JSON.stringify(points));
+    location.reload();
+  }
+  function deletePoint(id) {
+    const points = getPoints();
+    const point = points.find(item => item.id === id);
+    if (!point) return;
+    if (!confirm(`Delete restore point "${point.name}"?`)) return;
+    setPoints(points.filter(item => item.id !== id));
+    renderPoints();
+  }
+  function addLaunchers() {
+    const desktopIcons = document.getElementById("desktop-icons");
+    if (desktopIcons && !document.getElementById("system-restore-desktop-icon")) {
+      const icon = document.createElement("div");
+      icon.id = "system-restore-desktop-icon";
+      icon.className = "desktop-icon system-restore-desktop-icon";
+      icon.innerHTML = `<div class="desktop-icon-thumb"></div><div class="desktop-icon-label">System Restore</div>`;
+      icon.addEventListener("dblclick", () => window.openSystemRestoreApp());
+      icon.addEventListener("click", () => window.openSystemRestoreApp());
+      desktopIcons.appendChild(icon);
+    }
+    const startGrid = document.getElementById("start-pinned-grid");
+    if (startGrid && !document.getElementById("system-restore-start-tile")) {
+      const tile = document.createElement("div");
+      tile.id = "system-restore-start-tile";
+      tile.className = "start-app";
+      tile.innerHTML = `<div class="start-app-icon system-restore-start-icon"></div><div>System Restore</div><div class="start-app-sub">Restore points</div>`;
+      tile.addEventListener("click", () => window.openSystemRestoreApp());
+      startGrid.appendChild(tile);
+    }
+  }
+
+  app.querySelector(".sr-close").onclick = () => app.classList.remove("visible");
+  app.querySelector(".sr-save").onclick = savePoint;
+  app.querySelector(".sr-input").addEventListener("keydown", event => { if (event.key === "Enter") savePoint(); });
+  app.querySelector(".sr-list").addEventListener("click", event => {
+    const point = event.target.closest(".sr-point");
+    if (!point) return;
+    if (event.target.closest(".sr-restore")) restorePoint(point.dataset.id);
+    if (event.target.closest(".sr-delete")) deletePoint(point.dataset.id);
+  });
+
+  let dragging = false;
+  let offsetX = 0;
+  let offsetY = 0;
+  const titlebar = app.querySelector(".sr-titlebar");
+  titlebar.addEventListener("mousedown", event => {
+    if (event.target.closest("button")) return;
+    dragging = true;
+    offsetX = event.clientX - app.offsetLeft;
+    offsetY = event.clientY - app.offsetTop;
+  });
+  window.addEventListener("mousemove", event => {
+    if (!dragging) return;
+    app.style.left = Math.max(8, Math.min(window.innerWidth - app.offsetWidth - 8, event.clientX - offsetX)) + "px";
+    app.style.top = Math.max(8, Math.min(window.innerHeight - app.offsetHeight - 8, event.clientY - offsetY)) + "px";
+  });
+  window.addEventListener("mouseup", () => dragging = false);
+
+  window.openSystemRestoreApp = function () {
+    app.classList.add("visible");
+    renderPoints();
+  };
+
+  addLaunchers();
+  renderPoints();
+}
+
+window.addEventListener("DOMContentLoaded", () => createSystemRestoreApp());
+</script>
+
+
+<!-- Lightweight runtime recovery guard injected by Copilot -->
+<script>
+(function(){
+  if (window.__win12RecoveryGuard) return;
+  window.__win12RecoveryGuard = true;
+  function showRecoveryToast(message){
+    if (document.getElementById("win12-recovery-toast")) return;
+    const toast = document.createElement("div");
+    toast.id = "win12-recovery-toast";
+    toast.textContent = "Simulator recovered from an error" + (message ? ": " + message : "");
+    toast.style.cssText = "position:fixed;right:14px;bottom:68px;z-index:999999;padding:10px 14px;border-radius:14px;background:rgba(8,12,28,.96);color:#f5f7ff;border:1px solid rgba(255,255,255,.18);box-shadow:0 12px 32px rgba(0,0,0,.75);font:12px system-ui,Segoe UI,sans-serif;max-width:360px";
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 5200);
+  }
+  window.addEventListener("error", event => {
+    const msg = String(event.message || "");
+    if (msg) showRecoveryToast(msg);
+  });
+  window.addEventListener("unhandledrejection", event => {
+    const reason = event.reason && (event.reason.message || String(event.reason));
+    if (reason) showRecoveryToast(reason);
+  });
+})();
+</script>
+
+
+<!-- JS functionality guard injected by Copilot -->
+<script>
+(function(){
+  if (window.__win12JsFunctionalityGuard) return;
+  window.__win12JsFunctionalityGuard = true;
+
+  window.win12SafeJsonParse = function(value, fallback){
+    try { return JSON.parse(value); }
+    catch { return fallback; }
+  };
+
+  window.win12Get = function(id){ return document.getElementById(id); };
+
+  window.addEventListener("DOMContentLoaded", function(){
+    // Backward-compatible AIM aliases for older code paths.
+    if (!window.aiLog2) window.aiLog2 = document.getElementById("aiLog2") || document.getElementById("ai-log");
+    if (!window.aiInput2) window.aiInput2 = document.getElementById("aiInput2") || document.getElementById("ai-input");
+    if (!window.aiSend2) window.aiSend2 = document.getElementById("aiSend2") || document.getElementById("ai-send");
+
+    // Make sure the boot overlay exists before boot helpers run again.
+    if (!document.getElementById("boot-overlay") && typeof createBootUI === "function") {
+      try { createBootUI(); } catch (e) { console.warn("Boot UI recovery skipped:", e); }
+    }
+  });
+})();
+</script>
+
+
+<!-- Notification center and cursor lock injected by Copilot -->
+<style id="win12-notification-cursor-style">
+  html, body, *, *::before, *::after {
+    cursor: none !important;
+  }
+
+  #cursor {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    position: fixed !important;
+    z-index: 2147483647 !important;
+    pointer-events: none !important;
+    will-change: transform;
+  }
+
+  .taskbar-notify {
+    cursor: none !important;
+  }
+
+  .taskbar-notify.win12-notify-has-items::before {
+    content: attr(data-count);
+    position: absolute;
+    right: -5px;
+    top: -6px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #4c8dff, #9d72ff);
+    color: #fff;
+    font-size: 10px;
+    line-height: 16px;
+    text-align: center;
+    box-shadow: 0 0 12px rgba(76,141,255,.9);
+  }
+
+  #win12-notification-panel {
+    position: fixed;
+    right: 12px;
+    bottom: 64px;
+    width: min(360px, calc(100vw - 24px));
+    max-height: min(520px, calc(100vh - 86px));
+    padding: 10px;
+    border-radius: 18px;
+    background: radial-gradient(circle at 0 0, rgba(76,141,255,.16), transparent 55%), rgba(8,12,28,.96);
+    border: 1px solid rgba(255,255,255,.16);
+    box-shadow: 0 24px 60px rgba(0,0,0,.9), 0 0 0 1px rgba(76,141,255,.25);
+    color: #f5f7ff;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    backdrop-filter: blur(26px) saturate(1.6);
+    -webkit-backdrop-filter: blur(26px) saturate(1.6);
+    opacity: 0;
+    transform: translateY(12px) scale(.98);
+    pointer-events: none;
+    transition: 180ms ease-out;
+    z-index: 999998;
+  }
+
+  #win12-notification-panel.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  .win12-notification-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 2px 2px 8px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    margin-bottom: 8px;
+  }
+
+  .win12-notification-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #c5cae6;
+  }
+
+  .win12-notification-clear {
+    border: 1px solid rgba(255,255,255,.18);
+    background: rgba(12,18,44,.98);
+    color: #f5f7ff;
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-size: 11px;
+    cursor: none !important;
+  }
+
+  .win12-notification-clear:hover {
+    background: rgba(30,40,76,.98);
+    border-color: rgba(255,255,255,.36);
+  }
+
+  .win12-notification-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: auto;
+    max-height: 440px;
+    padding-right: 2px;
+  }
+
+  .win12-notification-empty {
+    padding: 18px 10px;
+    text-align: center;
+    color: #9ca3c7;
+    font-size: 12px;
+    border: 1px dashed rgba(255,255,255,.16);
+    border-radius: 14px;
+    background: rgba(255,255,255,.035);
+  }
+
+  .win12-notification-item {
+    border-radius: 14px;
+    padding: 10px;
+    background: rgba(10,14,36,.98);
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow: 0 10px 24px rgba(0,0,0,.45);
+    animation: win12NotifyIn 180ms ease-out both;
+  }
+
+  @keyframes win12NotifyIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .win12-notification-item-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .win12-notification-item-title {
+    font-size: 13px;
+    font-weight: 650;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .win12-notification-item-time {
+    font-size: 10px;
+    color: #9ca3c7;
+    white-space: nowrap;
+  }
+
+  .win12-notification-item-body {
+    color: #c5cae6;
+    font-size: 12px;
+    line-height: 1.45;
+    user-select: text;
+  }
+
+  .win12-toast-stack {
+    position: fixed;
+    right: 12px;
+    bottom: 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 999997;
+    pointer-events: none;
+  }
+
+  .win12-toast {
+    width: min(330px, calc(100vw - 24px));
+    padding: 10px 12px;
+    border-radius: 16px;
+    background: rgba(8,12,28,.97);
+    color: #f5f7ff;
+    border: 1px solid rgba(255,255,255,.16);
+    box-shadow: 0 18px 42px rgba(0,0,0,.82), 0 0 0 1px rgba(76,141,255,.22);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    animation: win12ToastIn 180ms ease-out both;
+  }
+
+  @keyframes win12ToastIn {
+    from { opacity: 0; transform: translateX(16px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .win12-toast-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+
+  .win12-toast-body {
+    font-size: 12px;
+    color: #c5cae6;
+    line-height: 1.4;
+  }
+</style>
+<script>
+(function(){
+  if (window.__win12NotificationCursorPatch) return;
+  window.__win12NotificationCursorPatch = true;
+
+  const notificationKey = "win12.notifications.v1";
+
+  function safeParse(value, fallback){
+    try { return JSON.parse(value); }
+    catch { return fallback; }
+  }
+
+  function getNotifications(){
+    return safeParse(localStorage.getItem(notificationKey) || "[]", []);
+  }
+
+  function setNotifications(items){
+    localStorage.setItem(notificationKey, JSON.stringify(items.slice(0, 50)));
+  }
+
+  function escapeHtml(text){
+    return String(text).replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char]));
+  }
+
+  function ensureCursor(){
+    let cursor = document.getElementById("cursor");
+    if (!cursor) {
+      cursor = document.createElement("div");
+      cursor.id = "cursor";
+      cursor.innerHTML = `<svg width="46" height="46" viewBox="0 0 46 46"><defs><linearGradient id="cursorGradInjected" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff4bff"/><stop offset="50%" stop-color="#c43bff"/><stop offset="100%" stop-color="#8a2bff"/></linearGradient></defs><path d="M8 5 L36 23 L23 26 L17 39 Z" fill="url(#cursorGradInjected)" stroke="white" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+      document.body.appendChild(cursor);
+    }
+    cursor.style.display = "block";
+    cursor.style.opacity = "1";
+    cursor.style.visibility = "visible";
+    cursor.style.zIndex = "2147483647";
+    cursor.style.pointerEvents = "none";
+    return cursor;
+  }
+
+  let cursorEl = null;
+  let lastX = 0;
+  let lastY = 0;
+  let lastTime = performance.now();
+
+  function moveCursor(e){
+    cursorEl = cursorEl || ensureCursor();
+    const now = performance.now();
+    const dt = Math.max(now - lastTime, 1);
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+    const speed = Math.sqrt(dx * dx + dy * dy) / dt;
+    const stretch = Math.min(1 + speed * 0.25, 1.8);
+    cursorEl.style.transform = `translate(${e.clientX}px, ${e.clientY}px) rotate(${angle}deg) scale(${stretch}, ${1 / stretch})`;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    lastTime = now;
+  }
+
+  function forceCursorNone(){
+    document.documentElement.style.cursor = "none";
+    document.body.style.cursor = "none";
+  }
+
+  function ensureNotificationPanel(){
+    let panel = document.getElementById("win12-notification-panel");
+    if (panel) return panel;
+
+    panel = document.createElement("div");
+    panel.id = "win12-notification-panel";
+    panel.innerHTML = `
+      <div class="win12-notification-head">
+        <div class="win12-notification-title">Notifications</div>
+        <button class="win12-notification-clear" type="button">Clear all</button>
+      </div>
+      <div class="win12-notification-list"></div>
+    `;
+    document.body.appendChild(panel);
+    panel.querySelector(".win12-notification-clear").addEventListener("click", function(){
+      setNotifications([]);
+      renderNotifications();
+    });
+    return panel;
+  }
+
+  function ensureToastStack(){
+    let stack = document.querySelector(".win12-toast-stack");
+    if (!stack) {
+      stack = document.createElement("div");
+      stack.className = "win12-toast-stack";
+      document.body.appendChild(stack);
+    }
+    return stack;
+  }
+
+  function updateTaskbarBadge(){
+    const notifyButton = document.querySelector(".taskbar-notify");
+    if (!notifyButton) return;
+    const count = getNotifications().length;
+    notifyButton.dataset.count = count > 9 ? "9+" : String(count);
+    notifyButton.classList.toggle("win12-notify-has-items", count > 0);
+    notifyButton.title = count ? `${count} notification${count === 1 ? "" : "s"}` : "Notifications";
+  }
+
+  function renderNotifications(){
+    const panel = ensureNotificationPanel();
+    const list = panel.querySelector(".win12-notification-list");
+    const items = getNotifications();
+    if (!items.length) {
+      list.innerHTML = `<div class="win12-notification-empty">No notifications yet.</div>`;
+    } else {
+      list.innerHTML = items.map(item => `
+        <div class="win12-notification-item">
+          <div class="win12-notification-item-top">
+            <div class="win12-notification-item-title">${escapeHtml(item.title || "Notification")}</div>
+            <div class="win12-notification-item-time">${new Date(item.time || Date.now()).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})}</div>
+          </div>
+          <div class="win12-notification-item-body">${escapeHtml(item.body || "")}</div>
+        </div>
+      `).join("");
+    }
+    updateTaskbarBadge();
+  }
+
+  function showToast(title, body){
+    const stack = ensureToastStack();
+    const toast = document.createElement("div");
+    toast.className = "win12-toast";
+    toast.innerHTML = `<div class="win12-toast-title">${escapeHtml(title || "Notification")}</div><div class="win12-toast-body">${escapeHtml(body || "")}</div>`;
+    stack.prepend(toast);
+    setTimeout(() => toast.remove(), 5200);
+  }
+
+  window.win12Notify = function(title, body, options){
+    const opts = options || {};
+    const items = getNotifications();
+    const item = {
+      id: "ntf-" + Date.now() + "-" + Math.random().toString(16).slice(2),
+      title: title || "Notification",
+      body: body || "",
+      time: Date.now(),
+      type: opts.type || "info"
+    };
+    items.unshift(item);
+    setNotifications(items);
+    renderNotifications();
+    if (opts.toast !== false) showToast(item.title, item.body);
+    return item;
+  };
+
+  window.openWin12Notifications = function(){
+    const panel = ensureNotificationPanel();
+    renderNotifications();
+    panel.classList.add("visible");
+  };
+
+  window.closeWin12Notifications = function(){
+    const panel = ensureNotificationPanel();
+    panel.classList.remove("visible");
+  };
+
+  window.toggleWin12Notifications = function(){
+    const panel = ensureNotificationPanel();
+    renderNotifications();
+    panel.classList.toggle("visible");
+  };
+
+  window.addEventListener("DOMContentLoaded", function(){
+    cursorEl = ensureCursor();
+    forceCursorNone();
+    document.addEventListener("mousemove", moveCursor, true);
+    document.addEventListener("mouseenter", ensureCursor, true);
+    window.addEventListener("blur", ensureCursor);
+    window.addEventListener("focus", ensureCursor);
+    setInterval(function(){ ensureCursor(); forceCursorNone(); }, 1000);
+
+    ensureNotificationPanel();
+    renderNotifications();
+
+    const notifyButton = document.querySelector(".taskbar-notify");
+    if (notifyButton && notifyButton.dataset.win12NotifyBound !== "1") {
+      notifyButton.dataset.win12NotifyBound = "1";
+      notifyButton.addEventListener("click", function(event){
+        event.stopPropagation();
+        window.toggleWin12Notifications();
+      });
+    }
+
+    document.addEventListener("click", function(event){
+      const panel = document.getElementById("win12-notification-panel");
+      if (!panel || !panel.classList.contains("visible")) return;
+      if (event.target.closest("#win12-notification-panel") || event.target.closest(".taskbar-notify")) return;
+      panel.classList.remove("visible");
+    });
+
+    if (!localStorage.getItem("win12.notifications.seeded")) {
+      localStorage.setItem("win12.notifications.seeded", "1");
+      window.win12Notify("Welcome back", "Notifications are now enabled. Click the taskbar dot to view them.");
+    }
+  });
+})();
+</script>
+
+
+<!-- Kinetic front-layer cursor injected by Copilot -->
+<style id="win12-kinetic-cursor-style">
+  html, body, *, *::before, *::after {
+    cursor: none !important;
+  }
+
+  #cursor {
+    display: none !important;
+  }
+
+  #win12-kinetic-cursor-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2147483647;
+    overflow: visible;
+    contain: layout style paint;
+  }
+
+  .win12-kinetic-dot {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(255, 75, 255, 0.88);
+    box-shadow:
+      0 0 10px rgba(255, 75, 255, 0.9),
+      0 0 22px rgba(180, 59, 255, 0.75),
+      0 0 38px rgba(76, 141, 255, 0.45);
+    transform: translate3d(-50px, -50px, 0);
+    will-change: transform, opacity;
+  }
+
+  .win12-kinetic-main {
+    width: 18px;
+    height: 18px;
+    background: radial-gradient(circle at 30% 30%, #ffffff 0, #ff4bff 28%, #8a2bff 72%, #4c8dff 100%);
+    border: 1px solid rgba(255,255,255,0.82);
+    box-shadow:
+      0 0 12px rgba(255,255,255,0.85),
+      0 0 22px rgba(255,75,255,0.95),
+      0 0 42px rgba(138,43,255,0.8);
+  }
+
+  .win12-kinetic-ring {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.55);
+    box-shadow:
+      0 0 16px rgba(76,141,255,0.55),
+      inset 0 0 12px rgba(255,75,255,0.32);
+    transform: translate3d(-80px, -80px, 0);
+    will-change: transform;
+  }
+
+  .win12-kinetic-idle .win12-kinetic-main {
+    animation: win12KineticPulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes win12KineticPulse {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.35); }
+  }
+</style>
+<script>
+(function(){
+  if (window.__win12KineticCursor) return;
+  window.__win12KineticCursor = true;
+
+  const dotCount = 9;
+  const target = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  const main = { x: target.x, y: target.y };
+  const ring = { x: target.x, y: target.y };
+  let lastMove = performance.now();
+  let layer;
+  let mainDot;
+  let ringDot;
+  let dots = [];
+
+  function hideNativeCursor(){
+    document.documentElement.style.cursor = "none";
+    if (document.body) document.body.style.cursor = "none";
+  }
+
+  function removeOldCursor(){
+    const old = document.getElementById("cursor");
+    if (old) old.style.display = "none";
+  }
+
+  function makeDot(className){
+    const dot = document.createElement("div");
+    dot.className = className;
+    layer.appendChild(dot);
+    return dot;
+  }
+
+  function ensureKineticCursor(){
+    hideNativeCursor();
+    removeOldCursor();
+
+    layer = document.getElementById("win12-kinetic-cursor-layer");
+    if (!layer) {
+      layer = document.createElement("div");
+      layer.id = "win12-kinetic-cursor-layer";
+      document.body.appendChild(layer);
+    }
+
+    if (!mainDot || !mainDot.isConnected) {
+      layer.innerHTML = "";
+      ringDot = makeDot("win12-kinetic-ring");
+      dots = [];
+      for (let i = 0; i < dotCount; i++) {
+        const dot = makeDot("win12-kinetic-dot" + (i === 0 ? " win12-kinetic-main" : ""));
+        dot.style.opacity = String(Math.max(0.12, 1 - i * 0.09));
+        dot.style.transform = `translate3d(${target.x}px, ${target.y}px, 0)`;
+        dots.push({ el: dot, x: target.x, y: target.y });
+      }
+      mainDot = dots[0].el;
+    }
+  }
+
+  function setTransform(el, x, y, scale){
+    el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) scale(${scale})`;
+  }
+
+  function onPointerMove(event){
+    target.x = event.clientX;
+    target.y = event.clientY;
+    lastMove = performance.now();
+    ensureKineticCursor();
+  }
+
+  function animate(){
+    ensureKineticCursor();
+
+    main.x += (target.x - main.x) * 0.34;
+    main.y += (target.y - main.y) * 0.34;
+    ring.x += (target.x - ring.x) * 0.16;
+    ring.y += (target.y - ring.y) * 0.16;
+
+    const speed = Math.min(Math.hypot(target.x - main.x, target.y - main.y) / 90, 0.55);
+    const idle = performance.now() - lastMove > 900;
+    layer.classList.toggle("win12-kinetic-idle", idle);
+
+    for (let i = 0; i < dots.length; i++) {
+      const lead = i === 0 ? main : dots[i - 1];
+      const dot = dots[i];
+      const follow = i === 0 ? 1 : 0.42 - Math.min(i * 0.025, 0.2);
+      dot.x += (lead.x - dot.x) * follow;
+      dot.y += (lead.y - dot.y) * follow;
+      const scale = Math.max(0.28, 1 - i * 0.07 + speed);
+      setTransform(dot.el, dot.x, dot.y, scale);
+    }
+
+    setTransform(ringDot, ring.x, ring.y, 1 + speed * 0.55);
+    requestAnimationFrame(animate);
+  }
+
+  window.addEventListener("DOMContentLoaded", function(){
+    ensureKineticCursor();
+    document.addEventListener("pointermove", onPointerMove, true);
+    document.addEventListener("mousemove", onPointerMove, true);
+    document.addEventListener("mouseenter", ensureKineticCursor, true);
+    window.addEventListener("focus", ensureKineticCursor);
+    window.addEventListener("blur", ensureKineticCursor);
+    setInterval(ensureKineticCursor, 700);
+    requestAnimationFrame(animate);
+  });
+})();
+</script>
+
+
+<!-- Notification customization settings injected by Copilot -->
+<style id="win12-notification-custom-style">
+  :root {
+    --win12-notify-title: #f5f7ff;
+    --win12-notify-body: #c5cae6;
+    --win12-notify-line: rgba(255,255,255,.16);
+  }
+  .win12-notification-item-title, .win12-toast-title { color: var(--win12-notify-title, #f5f7ff) !important; }
+  .win12-notification-item-body, .win12-toast-body { color: var(--win12-notify-body, #c5cae6) !important; }
+  body.win12-notify-sep-enabled .win12-notification-item-body,
+  body.win12-notify-sep-enabled .win12-toast-body {
+    border-top: 1px solid var(--win12-notify-line, rgba(255,255,255,.16));
+    padding-top: 7px;
+    margin-top: 7px;
+  }
+  #win12-notify-settings {
+    margin-top: 14px;
+    padding: 12px;
+    border-radius: 14px;
+    background: rgba(255,255,255,.045);
+    border: 1px solid rgba(255,255,255,.12);
+  }
+  #win12-notify-settings h3 { margin: 0 0 8px; font-size: 14px; }
+  .win12-notify-settings-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0; font-size: 12px; color: var(--text-soft); }
+  .win12-notify-settings-row input[type="color"] { width: 42px; height: 26px; border: 1px solid rgba(255,255,255,.18); border-radius: 999px; padding: 0; background: rgba(4,6,18,.98); }
+  .win12-notify-preview { margin-top: 10px; padding: 10px; border-radius: 14px; background: rgba(10,14,36,.98); border: 1px solid rgba(255,255,255,.10); }
+  .win12-notify-preview-title { font-size: 13px; font-weight: 700; color: var(--win12-notify-title, #f5f7ff); }
+  .win12-notify-preview-body { font-size: 12px; line-height: 1.45; color: var(--win12-notify-body, #c5cae6); margin-top: 4px; }
+  body.win12-notify-sep-enabled .win12-notify-preview-body { border-top: 1px solid var(--win12-notify-line, rgba(255,255,255,.16)); padding-top: 7px; margin-top: 7px; }
+</style>
+<script>
+(function(){
+  if (window.__win12NotifySettingsPatch) return;
+  window.__win12NotifySettingsPatch = true;
+
+  const settingsKey = "win12.notification.customization.v1";
+  const defaults = { titleColor: "#f5f7ff", contentColor: "#c5cae6", showSeparator: false, separatorColor: "#4c8dff" };
+
+  function readSettings(){ try { return { ...defaults, ...JSON.parse(localStorage.getItem(settingsKey) || "{}") }; } catch { return { ...defaults }; } }
+  function applyNotificationSettings(settings){
+    const s = { ...defaults, ...(settings || readSettings()) };
+    document.documentElement.style.setProperty("--win12-notify-title", s.titleColor);
+    document.documentElement.style.setProperty("--win12-notify-body", s.contentColor);
+    document.documentElement.style.setProperty("--win12-notify-line", s.separatorColor);
+    if (document.body) document.body.classList.toggle("win12-notify-sep-enabled", !!s.showSeparator);
+  }
+  function saveSettings(settings){ localStorage.setItem(settingsKey, JSON.stringify(settings)); applyNotificationSettings(settings); }
+
+  function ensureNotifySettingsPanel(){
+    const settingsBody = document.querySelector("#window-settings .window-body");
+    if (!settingsBody || document.getElementById("win12-notify-settings")) return;
+    const panel = document.createElement("div");
+    panel.id = "win12-notify-settings";
+    panel.innerHTML = `
+      <h3>Notification customization</h3>
+      <div class="win12-notify-settings-row"><label for="notify-title-color">Title color</label><input id="notify-title-color" type="color"></div>
+      <div class="win12-notify-settings-row"><label for="notify-content-color">Content color</label><input id="notify-content-color" type="color"></div>
+      <div class="win12-notify-settings-row"><label for="notify-separator-enabled">Add separation line?</label><input id="notify-separator-enabled" type="checkbox"></div>
+      <div class="win12-notify-settings-row" id="notify-separator-color-row" style="display:none;"><label for="notify-separator-color">Separation line color</label><input id="notify-separator-color" type="color"></div>
+      <div class="win12-notify-preview"><div class="win12-notify-preview-title">Notify preview</div><div class="win12-notify-preview-body">This is what notification page contents will look like.</div></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;"><button id="notify-settings-save" class="button-small" type="button">Save</button><button id="notify-settings-test" class="button-small" type="button">Test</button><button id="notify-settings-cancel" class="button-small" type="button">Cancel</button></div>
+    `;
+    settingsBody.appendChild(panel);
+    const titleInput = panel.querySelector("#notify-title-color");
+    const contentInput = panel.querySelector("#notify-content-color");
+    const sepInput = panel.querySelector("#notify-separator-enabled");
+    const sepColorRow = panel.querySelector("#notify-separator-color-row");
+    const sepColorInput = panel.querySelector("#notify-separator-color");
+    function fillControls(settings){ titleInput.value = settings.titleColor; contentInput.value = settings.contentColor; sepInput.checked = !!settings.showSeparator; sepColorInput.value = settings.separatorColor; sepColorRow.style.display = sepInput.checked ? "flex" : "none"; applyNotificationSettings(settings); }
+    function readControls(){ return { titleColor: titleInput.value, contentColor: contentInput.value, showSeparator: sepInput.checked, separatorColor: sepColorInput.value }; }
+    [titleInput, contentInput, sepInput, sepColorInput].forEach(input => {
+      input.addEventListener("input", () => { sepColorRow.style.display = sepInput.checked ? "flex" : "none"; applyNotificationSettings(readControls()); });
+      input.addEventListener("change", () => { sepColorRow.style.display = sepInput.checked ? "flex" : "none"; applyNotificationSettings(readControls()); });
+    });
+    panel.querySelector("#notify-settings-save").onclick = () => { saveSettings(readControls()); if (window.win12Notify) win12Notify("Notification settings", "Your notification style was saved."); };
+    panel.querySelector("#notify-settings-test").onclick = () => { applyNotificationSettings(readControls()); if (window.win12Notify) win12Notify("Preview notification", "This is a test using your current notification colors."); };
+    panel.querySelector("#notify-settings-cancel").onclick = () => fillControls(readSettings());
+    fillControls(readSettings());
+  }
+
+  window.addEventListener("DOMContentLoaded", () => { applyNotificationSettings(readSettings()); ensureNotifySettingsPanel(); setInterval(ensureNotifySettingsPanel, 1200); });
+})();
+</script>
+
+
+<!-- Futuristic Regedit, Run panel, content-based EXE host, and Win12 MS Store injected by Copilot -->
+<style id="win12-future-tools-style">
+  .win12-future-card { border-radius: 16px; background: radial-gradient(circle at 0 0, rgba(76,141,255,.18), transparent 55%), rgba(8,12,28,.96); border: 1px solid rgba(255,255,255,.14); box-shadow: 0 18px 45px rgba(0,0,0,.72); }
+  .win12-future-input, .win12-future-select { width: 100%; padding: 8px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); background: rgba(4,6,18,.98); color: var(--text-main); outline: none; }
+  .win12-future-button { padding: 7px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); background: linear-gradient(135deg, rgba(76,141,255,.9), rgba(157,114,255,.9)); color: #fff; font-size: 12px; cursor: none !important; box-shadow: 0 8px 20px rgba(0,0,0,.5); }
+  .win12-future-ghost { background: rgba(12,18,44,.98); }
+  #win12-run-panel { position: fixed; left: 14px; bottom: 66px; width: min(430px, calc(100vw - 28px)); max-height: min(520px, calc(100vh - 88px)); z-index: 2147482400; padding: 12px; display: none; color: var(--text-main); font-family: var(--font-ui); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+  #win12-run-panel.visible { display: block; animation: win12RunIn .16s ease-out both; }
+  @keyframes win12RunIn { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  .win12-run-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; margin-top: 10px; }
+  .win12-run-item { padding: 9px; border-radius: 14px; background: rgba(255,255,255,.055); border: 1px solid rgba(255,255,255,.09); cursor: none !important; min-height: 58px; }
+  .win12-run-item:hover { border-color: rgba(76,141,255,.75); box-shadow: 0 0 18px rgba(76,141,255,.38); transform: translateY(-1px); }
+  .win12-run-name { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .win12-run-sub { margin-top: 3px; font-size: 10px; color: var(--text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .future-reg-grid { display: grid; grid-template-columns: 240px 1fr; gap: 12px; min-height: 330px; }
+  .future-reg-tree, .future-reg-values { padding: 12px; border-radius: 16px; background: rgba(5,8,22,.98); border: 1px solid rgba(255,255,255,.1); overflow: auto; }
+  .future-reg-node { padding: 7px 8px; border-radius: 10px; font-family: Cascadia Code, Consolas, monospace; font-size: 11px; color: var(--text-soft); }
+  .future-reg-node.active { color: #fff; background: linear-gradient(135deg, rgba(76,141,255,.35), rgba(157,114,255,.25)); border: 1px solid rgba(255,255,255,.12); }
+  .future-reg-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; margin-bottom: 8px; padding: 8px; border-radius: 14px; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.08); }
+  .future-reg-label { font-size: 10px; color: var(--text-soft); margin-bottom: 4px; }
+  #win12-msstore .store-hero { padding: 16px; border-radius: 18px; background: radial-gradient(circle at 0 0, rgba(76,141,255,.25), transparent 55%), linear-gradient(135deg, rgba(8,12,28,.98), rgba(20,10,48,.96)); border: 1px solid rgba(255,255,255,.14); margin-bottom: 12px; }
+  #win12-msstore .store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+  #win12-msstore .store-card { padding: 12px; border-radius: 16px; background: rgba(255,255,255,.055); border: 1px solid rgba(255,255,255,.1); box-shadow: 0 14px 30px rgba(0,0,0,.46); }
+  #win12-msstore .store-card:hover { border-color: rgba(76,141,255,.7); box-shadow: 0 0 20px rgba(76,141,255,.35), 0 14px 30px rgba(0,0,0,.55); }
+  #win12-msstore .store-icon { width: 44px; height: 44px; display: flex; align-items:center; justify-content:center; border-radius: 14px; background: linear-gradient(135deg,#4c8dff,#9d72ff); font-size: 22px; box-shadow: 0 0 18px rgba(76,141,255,.5); }
+  #win12-msstore pre { white-space: pre-wrap; background: rgba(4,6,18,.98); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:10px; color:#c5cae6; font-size:11px; }
+</style>
+<script>
+(function(){
+  if (window.__win12FutureToolsPatch) return;
+  window.__win12FutureToolsPatch = true;
+
+  const LS_KEY = "win12_aim_fs_state_exe_ctx_full_v3";
+  const STORE_URL = "https://alaricholt677.github.io/win12msstore/index.json";
+  const STORE_FORMAT = {
+    version: 1,
+    apps: [
+      {
+        id: "neon-notes",
+        name: "Neon Notes",
+        description: "A sample Store app that opens Notepad.",
+        type: "app",
+        icon: "📝",
+        category: "Productivity",
+        launch: "app:notepad",
+        install: {
+          path: "/desktop",
+          name: "Neon Notes.lnk",
+          type: "file",
+          ext: ".lnk",
+          content: { target: "app:notepad" }
+        }
+      },
+      {
+        id: "sample-exe",
+        name: "Sample HTML EXE",
+        description: "Base64 HTML stored in file content and launched by Host.exe.",
+        type: "exe",
+        icon: "⚡",
+        category: "Demos",
+        install: {
+          path: "/desktop",
+          name: "Sample HTML EXE.exe",
+          type: "file",
+          ext: ".exe",
+          contentBase64Html: "<!doctype html><html><head><title>Sample HTML EXE</title></head><body style='font-family:Segoe UI;background:#060816;color:white'><h1>Sample HTML EXE</h1><p>Hello from the Store format.</p></body></html>"
+        }
+      }
+    ]
+  };
+
+  function safeParse(text, fallback){ try { return JSON.parse(text); } catch { return fallback; } }
+  function getState(){ return safeParse(localStorage.getItem(LS_KEY) || "{}", {}); }
+  function saveState(state){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+  function currentUser(state = getState()) { return (state.users || []).find(u => u.id === state.currentUserId) || (state.users || [])[0]; }
+  function openApp(app){
+    if (!app) return;
+    if (app === "msstore") ensureMsStoreWindow();
+    const win = document.getElementById(`window-${app}`);
+    if (win) {
+      win.classList.add("visible");
+      win.style.opacity = "1";
+      win.style.pointerEvents = "auto";
+      win.style.transform = "translateY(0) scale(1)";
+      win.style.zIndex = String(1800 + Date.now() % 1000);
+    }
+  }
+
+  function decodeExeHtml(entry){
+    const payloads = [entry && entry.content, entry && entry.exePayloadBase64].map(v => String(v || "").trim()).filter(Boolean);
+    if (!payloads.length) throw new Error("No base64 content found on this .exe file.");
+    for (const raw of payloads) {
+      try { return atob(raw); }
+      catch {}
+    }
+    throw new Error("Failed to decode .exe base64 content.");
+  }
+  function titleFromHtml(html, fallback){
+    try { return new DOMParser().parseFromString(html, "text/html").querySelector("title")?.textContent?.trim() || fallback; }
+    catch { return fallback; }
+  }
+  function runVirtualExe(entry){
+    ensureHostWindow();
+    openApp("host");
+    const host = document.getElementById("window-host");
+    const out = document.getElementById("host-output") || host?.querySelector(".window-body");
+    const titleMain = host?.querySelector(".window-title-main");
+    const titleSub = host?.querySelector(".window-title-sub");
+    try {
+      const html = decodeExeHtml(entry);
+      const title = titleFromHtml(html, entry.name || "Host.exe");
+      if (titleMain) titleMain.textContent = title;
+      if (titleSub) titleSub.textContent = `Running: ${entry.name}`;
+      if (out) {
+        out.innerHTML = "";
+        const iframe = document.createElement("iframe");
+        iframe.srcdoc = html;
+        iframe.style.cssText = "width:100%;height:390px;border:0;border-radius:14px;background:#000;";
+        out.appendChild(iframe);
+        const note = document.createElement("div");
+        note.style.cssText = "margin-top:7px;font-size:10px;color:var(--text-dim);";
+        note.textContent = "Decoded from the .exe file content. Title was read from the decoded HTML <title> element.";
+        out.appendChild(note);
+      }
+    } catch (err) {
+      if (out) out.textContent = err.message;
+      if (titleSub) titleSub.textContent = "Host idle";
+    }
+  }
+  window.win12RunVirtualExe = runVirtualExe;
+
+  function ensureHostWindow(){
+    if (document.getElementById("window-host")) return;
+    const win = document.createElement("div");
+    win.className = "window";
+    win.id = "window-host";
+    win.dataset.app = "host";
+    win.innerHTML = `<div class="window-header" data-drag-handle><div class="window-title"><div class="window-title-icon"></div><div class="window-title-text"><div class="window-title-main">Host.exe</div><div class="window-title-sub">Idle</div></div></div><div class="window-controls"><div class="window-btn close"><div class="window-btn-icon"></div></div></div></div><div class="window-body"><div id="host-output">Drop a base64 HTML .exe here.</div></div>`;
+    document.body.appendChild(win);
+  }
+
+  function enhanceRegedit(){
+    const win = document.getElementById("window-regedit");
+    const body = win?.querySelector(".window-body");
+    if (!body || body.dataset.futureRegedit === "1") return;
+    body.dataset.futureRegedit = "1";
+    body.innerHTML = `
+      <div class="store-hero win12-future-card" style="padding:14px;margin-bottom:12px;">
+        <div style="font-size:18px;font-weight:800;letter-spacing:.04em;">Registry Editor</div>
+        <div style="font-size:12px;color:var(--text-soft);margin-top:4px;">Futuristic registry control for virtual file associations.</div>
+      </div>
+      <div class="future-reg-grid">
+        <div class="future-reg-tree">
+          <div class="future-reg-node">HKEY_CURRENT_USER</div>
+          <div class="future-reg-node">└─ Software</div>
+          <div class="future-reg-node">&nbsp;&nbsp;└─ Win12</div>
+          <div class="future-reg-node active">&nbsp;&nbsp;&nbsp;&nbsp;└─ Associations</div>
+          <div style="margin-top:14px;font-size:11px;color:var(--text-dim);line-height:1.55;">Map extensions like <code>.txt</code>, <code>.exe</code>, and <code>.mp3</code> to virtual apps.</div>
+        </div>
+        <div class="future-reg-values">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;">
+            <div style="font-weight:700;">Values</div>
+            <button class="win12-future-button" id="future-reg-add">Add</button>
+          </div>
+          <div id="future-reg-list"></div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+            <button class="win12-future-button win12-future-ghost" id="future-reg-reset">Reset defaults</button>
+            <button class="win12-future-button" id="future-reg-save">Save registry</button>
+          </div>
+        </div>
+      </div>`;
+    renderFutureRegedit();
+    body.querySelector("#future-reg-add").onclick = () => addFutureRegRow(".new", "notepad");
+    body.querySelector("#future-reg-save").onclick = saveFutureRegedit;
+    body.querySelector("#future-reg-reset").onclick = () => {
+      const state = getState(); const user = currentUser(state); if (!user) return;
+      user.regAssociations = {".txt":"notepad",".md":"notepad",".html":"browser",".htm":"browser",".css":"settings",".js":"notepad",".json":"notepad",".png":"paint",".jpg":"paint",".jpeg":"paint",".gif":"paint",".mp3":"media",".wav":"media",".ogg":"media",".mp4":"media",".webm":"media",".exe":"host",".cmd":"cmd",".bat":"cmd",".lnk":"browser"};
+      saveState(state); renderFutureRegedit();
+    };
+  }
+  function addFutureRegRow(ext = "", app = "notepad"){
+    const list = document.getElementById("future-reg-list"); if (!list) return;
+    const row = document.createElement("div");
+    row.className = "future-reg-row";
+    row.innerHTML = `<div><div class="future-reg-label">Extension</div><input class="win12-future-input reg-ext" value="${ext}"></div><div><div class="future-reg-label">App</div><select class="win12-future-select reg-app"><option>notepad</option><option>browser</option><option>paint</option><option>media</option><option>host</option><option>cmd</option><option>settings</option><option>assistant</option><option>explorer</option></select></div><button class="win12-future-button win12-future-ghost reg-del">Delete</button>`;
+    row.querySelector(".reg-app").value = app;
+    row.querySelector(".reg-del").onclick = () => row.remove();
+    list.appendChild(row);
+  }
+  function renderFutureRegedit(){
+    const state = getState(); const user = currentUser(state); const map = user?.regAssociations || {};
+    const list = document.getElementById("future-reg-list"); if (!list) return;
+    list.innerHTML = "";
+    Object.entries(map).sort().forEach(([ext, app]) => addFutureRegRow(ext, app));
+  }
+  function saveFutureRegedit(){
+    const state = getState(); const user = currentUser(state); if (!user) return;
+    const map = {};
+    document.querySelectorAll(".future-reg-row").forEach(row => {
+      let ext = row.querySelector(".reg-ext")?.value.trim().toLowerCase();
+      const app = row.querySelector(".reg-app")?.value || "notepad";
+      if (ext && !ext.startsWith(".")) ext = "." + ext;
+      if (ext) map[ext] = app;
+    });
+    user.regAssociations = map;
+    saveState(state);
+    if (window.win12Notify) win12Notify("Registry saved", "File association registry was updated.");
+  }
+
+  function createRunPanel(){
+    if (document.getElementById("win12-run-panel")) return;
+    const panel = document.createElement("div");
+    panel.id = "win12-run-panel";
+    panel.className = "win12-future-card";
+    panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div><div style="font-size:16px;font-weight:800;">Run</div><div style="font-size:11px;color:var(--text-soft);">Apps, .exe files, and virtual files</div></div><button id="win12-run-close" class="win12-future-button win12-future-ghost">Close</button></div><input id="win12-run-search" class="win12-future-input" style="margin-top:10px;" placeholder="Type app, file, or command..."><div id="win12-run-results" class="win12-run-grid"></div>`;
+    document.body.appendChild(panel);
+    panel.querySelector("#win12-run-close").onclick = () => panel.classList.remove("visible");
+    panel.querySelector("#win12-run-search").addEventListener("input", renderRunItems);
+    panel.querySelector("#win12-run-search").addEventListener("keydown", e => { if(e.key === "Enter") panel.querySelector(".win12-run-item")?.click(); if(e.key === "Escape") panel.classList.remove("visible"); });
+    renderRunItems();
+  }
+  function runItems(){
+    const apps = ["explorer","notepad","browser","host","assistant","regedit","settings","notes","paint","media","camera","cmd","msstore"].map(id => ({kind:"app", name:id, sub:"Virtual app", app:id}));
+    const user = currentUser();
+    const files = (user?.fs || []).filter(f => f.type !== "folder").map(f => ({kind:f.ext === ".exe" ? "exe" : "file", name:f.name, sub:`${f.path} · ${f.ext || "file"}`, file:f}));
+    return apps.concat(files);
+  }
+  function renderRunItems(){
+    const results = document.getElementById("win12-run-results"); const search = document.getElementById("win12-run-search"); if(!results) return;
+    const q = (search?.value || "").toLowerCase();
+    results.innerHTML = "";
+    runItems().filter(item => !q || item.name.toLowerCase().includes(q) || item.sub.toLowerCase().includes(q)).slice(0, 18).forEach(item => {
+      const card = document.createElement("div");
+      card.className = "win12-run-item";
+      card.innerHTML = `<div class="win12-run-name">${item.kind === "app" ? "▣" : item.kind === "exe" ? "⚡" : "◇"} ${item.name}</div><div class="win12-run-sub">${item.sub}</div>`;
+      card.onclick = () => { if(item.kind === "app") openApp(item.app); else if(item.kind === "exe") runVirtualExe(item.file); else openApp("explorer"); document.getElementById("win12-run-panel")?.classList.remove("visible"); };
+      results.appendChild(card);
+    });
+  }
+  function openRunPanel(){ createRunPanel(); const panel = document.getElementById("win12-run-panel"); panel.classList.add("visible"); renderRunItems(); setTimeout(()=>panel.querySelector("#win12-run-search")?.focus(), 0); }
+  window.win12OpenRunPanel = openRunPanel;
+  document.addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "r") { e.preventDefault(); openRunPanel(); } });
+
+  function ensureMsStoreWindow(){
+    if (document.getElementById("window-msstore")) return;
+    const win = document.createElement("div");
+    win.className = "window";
+    win.id = "window-msstore";
+    win.dataset.app = "msstore";
+    win.style.width = "760px";
+    win.style.height = "520px";
+    win.innerHTML = `<div class="window-header" data-drag-handle><div class="window-title"><div class="window-title-icon" style="background:linear-gradient(135deg,#4c8dff,#9d72ff);"></div><div class="window-title-text"><div class="window-title-main">MS Store</div><div class="window-title-sub">Connected catalog · ${STORE_URL}</div></div></div><div class="window-controls"><div class="window-btn close"><div class="window-btn-icon"></div></div></div></div><div class="window-body"><div id="win12-msstore"><div class="store-hero"><div style="font-size:22px;font-weight:900;">Win12 MS Store</div><div style="font-size:12px;color:var(--text-soft);margin-top:5px;">Futuristic package catalog powered by index.json.</div><button id="store-refresh" class="win12-future-button" style="margin-top:10px;">Refresh catalog</button></div><div id="store-status" style="font-size:12px;color:var(--text-soft);margin-bottom:10px;">Loading catalog...</div><div id="store-apps" class="store-grid"></div><div style="margin-top:14px;"><div style="font-weight:700;margin-bottom:6px;">Expected index.json format</div><pre id="store-format"></pre></div></div></div>`;
+    document.body.appendChild(win);
+    win.querySelector(".window-btn.close").onclick = () => win.classList.remove("visible");
+    win.querySelector("#store-refresh").onclick = loadMsStore;
+    win.querySelector("#store-format").textContent = JSON.stringify(STORE_FORMAT, null, 2);
+    loadMsStore();
+  }
+  async function loadMsStore(){
+    ensureMsStoreWindow();
+    const status = document.getElementById("store-status"); const grid = document.getElementById("store-apps"); if(!grid) return;
+    status.textContent = "Fetching " + STORE_URL + " ...";
+    let catalog = null;
+    try { const res = await fetch(STORE_URL, {cache:"no-store"}); if(!res.ok) throw new Error("HTTP " + res.status); catalog = await res.json(); status.textContent = "Catalog loaded."; }
+    catch (err) { catalog = STORE_FORMAT; status.textContent = "Catalog not found yet. Showing sample format/demo apps. " + err.message; }
+    grid.innerHTML = "";
+    (catalog.apps || []).forEach(app => {
+      const card = document.createElement("div"); card.className = "store-card";
+      card.innerHTML = `<div style="display:flex;gap:10px;align-items:center;"><div class="store-icon">${app.icon || "▣"}</div><div><div style="font-weight:800;">${app.name || app.id}</div><div style="font-size:11px;color:var(--text-soft);">${app.category || app.type || "Package"}</div></div></div><div style="font-size:12px;color:var(--text-soft);line-height:1.45;margin:10px 0;">${app.description || "No description."}</div><button class="win12-future-button store-install">Install</button>`;
+      card.querySelector(".store-install").onclick = () => installStoreApp(app);
+      grid.appendChild(card);
+    });
+  }
+  function installStoreApp(app){
+    const state = getState(); const user = currentUser(state); if(!user) return;
+    const inst = app.install || {};
+    let content = inst.content;
+    if (typeof content === "object") content = JSON.stringify(content);
+    if (inst.contentBase64Html) content = btoa(inst.contentBase64Html);
+    const entry = { path: inst.path || "/desktop", name: inst.name || `${app.name || app.id}.lnk`, type: inst.type || "file", ext: inst.ext || ".lnk", content: content || JSON.stringify({target: app.launch || "app:explorer"}) };
+    let finalName = entry.name, n = 2;
+    while ((user.fs || []).some(f => f.path === entry.path && f.name === finalName)) { finalName = entry.name.replace(/(\.[^.]+)?$/, ` (${n})$1`); n++; }
+    user.fs = (user.fs || []).concat({...entry, name: finalName});
+    saveState(state);
+    if (window.win12Notify) win12Notify("Store install complete", `${finalName} was installed to ${entry.path}.`);
+  }
+
+  document.addEventListener("click", e => { const tile = e.target.closest('[data-app="msstore"], [data-app-name="Microsoft Store"]'); if(tile){ e.preventDefault(); e.stopPropagation(); ensureMsStoreWindow(); openApp("msstore"); } }, true);
+  document.addEventListener("DOMContentLoaded", () => { enhanceRegedit(); createRunPanel(); ensureMsStoreWindow(); });
+  setTimeout(() => { enhanceRegedit(); createRunPanel(); ensureMsStoreWindow(); }, 1200);
+})();
+</script>
+
+
+<!-- MS Store app and Run panel finalizer injected by Copilot -->
+<style id="win12-msstore-run-final-style">
+  #window-run {
+    display: none !important;
+  }
+
+  .taskbar-app[data-app="msstore"]::after,
+  .taskbar-app[data-app="run"]::after {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(76,141,255,.85), rgba(157,114,255,.85));
+    box-shadow: 0 0 16px rgba(76,141,255,.55);
+  }
+
+  .taskbar-app[data-app="run"]::after {
+    background: linear-gradient(135deg, rgba(20,220,170,.9), rgba(76,141,255,.85));
+  }
+
+  .start-app[data-app="msstore"] .start-app-icon,
+  .start-app[data-app="run"] .start-app-icon {
+    background: linear-gradient(135deg, #4c8dff, #9d72ff) !important;
+    box-shadow: 0 0 18px rgba(76,141,255,.55) !important;
+  }
+
+  .start-app[data-app="run"] .start-app-icon {
+    background: linear-gradient(135deg, #14dcae, #4c8dff) !important;
+  }
+</style>
+<script>
+(function(){
+  if (window.__win12MsStoreRunFinalizer) return;
+  window.__win12MsStoreRunFinalizer = true;
+
+  const STORE_URL = "https://alaricholt677.github.io/win12msstore/index.json";
+  const LS_KEY = "win12_aim_fs_state_exe_ctx_full_v3";
+  const STORE_FORMAT = {
+    version: 1,
+    apps: [
+      {
+        id: "sample-app",
+        name: "Sample App",
+        description: "A sample app listing for the Win12 MS Store catalog.",
+        type: "app",
+        icon: "▣",
+        category: "Demo",
+        launch: "app:notepad",
+        install: {
+          path: "/desktop",
+          name: "Sample App.lnk",
+          type: "file",
+          ext: ".lnk",
+          content: { target: "app:notepad" }
+        }
+      }
+    ]
+  };
+
+  function safeParse(text, fallback){
+    try { return JSON.parse(text); }
+    catch { return fallback; }
+  }
+
+  function getState(){ return safeParse(localStorage.getItem(LS_KEY) || "{}", {}); }
+  function saveState(state){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+  function currentUser(state){ return (state.users || []).find(user => user.id === state.currentUserId) || (state.users || [])[0]; }
+
+  function showVirtualWindow(app){
+    const win = document.getElementById("window-" + app);
+    if (!win) return;
+    win.classList.add("visible");
+    win.style.display = "flex";
+    win.style.opacity = "1";
+    win.style.pointerEvents = "auto";
+    win.style.transform = "translateY(0) scale(1)";
+    win.style.zIndex = String(2000 + Date.now() % 2000);
+  }
+
+  function closeVirtualWindow(app){
+    const win = document.getElementById("window-" + app);
+    if (!win) return;
+    win.classList.remove("visible");
+    win.style.display = "none";
+  }
+
+  function ensureMsStoreTaskbarIcon(){
+    const taskbar = document.querySelector(".taskbar-apps") || document.querySelector("#taskbar-apps") || document.querySelector(".taskbar-center") || document.querySelector("#taskbar");
+    if (!taskbar || taskbar.querySelector('[data-app="msstore"]')) return;
+    const icon = document.createElement("div");
+    icon.className = "taskbar-app";
+    icon.dataset.app = "msstore";
+    icon.title = "MS Store";
+    taskbar.appendChild(icon);
+  }
+
+  function ensureRunTaskbarIcon(){
+    const taskbar = document.querySelector(".taskbar-apps") || document.querySelector("#taskbar-apps") || document.querySelector(".taskbar-center") || document.querySelector("#taskbar");
+    if (!taskbar || taskbar.querySelector('[data-app="run"]')) return;
+    const icon = document.createElement("div");
+    icon.className = "taskbar-app";
+    icon.dataset.app = "run";
+    icon.title = "Run";
+    taskbar.appendChild(icon);
+  }
+
+  function ensureStartTile(app, title, sub){
+    const grid = document.getElementById("start-pinned-grid") || document.querySelector(".start-pinned-grid") || document.querySelector(".start-apps");
+    if (!grid || grid.querySelector('[data-app="' + app + '"]')) return;
+    const tile = document.createElement("div");
+    tile.className = "start-app";
+    tile.dataset.app = app;
+    tile.dataset.appName = title;
+    tile.innerHTML = `<div class="start-app-icon"></div><div>${title}</div><div class="start-app-sub">${sub}</div>`;
+    grid.appendChild(tile);
+  }
+
+  function ensureMsStoreWindow(){
+    let win = document.getElementById("window-msstore");
+    if (win) return win;
+
+    win = document.createElement("div");
+    win.className = "window";
+    win.id = "window-msstore";
+    win.dataset.app = "msstore";
+    win.dataset.appDesc = "Win12 MS Store connected to the external index.json catalog.";
+    win.style.left = "120px";
+    win.style.top = "70px";
+    win.style.width = "780px";
+    win.style.height = "540px";
+    win.style.display = "none";
+    win.innerHTML = `
+      <div class="window-header" data-drag-handle>
+        <div class="window-title">
+          <div class="window-title-icon" style="background:linear-gradient(135deg,#4c8dff,#9d72ff);"></div>
+          <div class="window-title-text">
+            <div class="window-title-main">MS Store</div>
+            <div class="window-title-sub">Connected catalog · ${STORE_URL}</div>
+          </div>
+        </div>
+        <div class="window-controls">
+          <div class="window-btn minimize"><div class="window-btn-icon"></div></div>
+          <div class="window-btn close"><div class="window-btn-icon"></div></div>
+        </div>
+      </div>
+      <div class="window-body">
+        <div id="win12-msstore">
+          <div class="store-hero">
+            <div style="font-size:23px;font-weight:900;">Win12 MS Store</div>
+            <div style="font-size:12px;color:var(--text-soft);margin-top:5px;">Futuristic package catalog powered by index.json.</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+              <button id="store-refresh" class="win12-future-button">Refresh catalog</button>
+              <button id="store-format-copy" class="win12-future-button win12-future-ghost">Copy format</button>
+            </div>
+          </div>
+          <div id="store-status" style="font-size:12px;color:var(--text-soft);margin-bottom:10px;">Loading catalog...</div>
+          <div id="store-apps" class="store-grid"></div>
+          <div style="margin-top:14px;">
+            <div style="font-weight:700;margin-bottom:6px;">Expected index.json format</div>
+            <pre id="store-format"></pre>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(win);
+
+    win.querySelector(".window-btn.close").onclick = () => closeVirtualWindow("msstore");
+    win.querySelector(".window-btn.minimize").onclick = () => closeVirtualWindow("msstore");
+    win.querySelector("#store-refresh").onclick = loadMsStore;
+    win.querySelector("#store-format-copy").onclick = () => navigator.clipboard && navigator.clipboard.writeText(JSON.stringify(STORE_FORMAT, null, 2));
+    win.querySelector("#store-format").textContent = JSON.stringify(STORE_FORMAT, null, 2);
+
+    return win;
+  }
+
+  async function loadMsStore(){
+    ensureMsStoreWindow();
+    const status = document.getElementById("store-status");
+    const grid = document.getElementById("store-apps");
+    if (!grid) return;
+
+    status.textContent = "Fetching " + STORE_URL + " ...";
+    let catalog;
+    try {
+      const res = await fetch(STORE_URL, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      catalog = await res.json();
+      status.textContent = "Catalog loaded.";
+    } catch (err) {
+      catalog = STORE_FORMAT;
+      status.textContent = "Catalog not found yet. Showing demo catalog and format. " + err.message;
+    }
+
+    grid.innerHTML = "";
+    (catalog.apps || []).forEach(app => {
+      const card = document.createElement("div");
+      card.className = "store-card";
+      card.innerHTML = `
+        <div style="display:flex;gap:10px;align-items:center;">
+          <div class="store-icon">${app.icon || "▣"}</div>
+          <div>
+            <div style="font-weight:800;">${app.name || app.id || "Unnamed"}</div>
+            <div style="font-size:11px;color:var(--text-soft);">${app.category || app.type || "Package"}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text-soft);line-height:1.45;margin:10px 0;">${app.description || "No description."}</div>
+        <button class="win12-future-button store-install">Install</button>
+      `;
+      card.querySelector(".store-install").onclick = () => installStoreApp(app);
+      grid.appendChild(card);
+    });
+  }
+
+  function installStoreApp(app){
+    const state = getState();
+    const user = currentUser(state);
+    if (!user) return;
+    const inst = app.install || {};
+    let content = inst.content;
+    if (typeof content === "object") content = JSON.stringify(content);
+    if (inst.contentBase64Html) content = btoa(inst.contentBase64Html);
+    const entry = {
+      path: inst.path || "/desktop",
+      name: inst.name || `${app.name || app.id || "Store App"}.lnk`,
+      type: inst.type || "file",
+      ext: inst.ext || ".lnk",
+      content: content || JSON.stringify({ target: app.launch || "app:explorer" })
+    };
+    let finalName = entry.name;
+    let count = 2;
+    while ((user.fs || []).some(file => file.path === entry.path && file.name === finalName)) {
+      finalName = entry.name.replace(/(\.[^.]+)?$/, ` (${count})$1`);
+      count++;
+    }
+    user.fs = (user.fs || []).concat({ ...entry, name: finalName });
+    saveState(state);
+    if (window.win12Notify) win12Notify("Store install complete", `${finalName} was installed to ${entry.path}.`);
+  }
+
+  function ensureRunPanel(){
+    let panel = document.getElementById("win12-run-panel");
+    if (panel) return panel;
+    panel = document.createElement("div");
+    panel.id = "win12-run-panel";
+    panel.className = "win12-future-card";
+    panel.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <div>
+          <div style="font-size:16px;font-weight:800;">Run</div>
+          <div style="font-size:11px;color:var(--text-soft);">Bottom-left launcher panel for apps, files, and EXEs</div>
+        </div>
+        <button id="win12-run-close" class="win12-future-button win12-future-ghost">Close</button>
+      </div>
+      <input id="win12-run-search" class="win12-future-input" style="margin-top:10px;" placeholder="Type app, file, or command...">
+      <div id="win12-run-results" class="win12-run-grid"></div>
+    `;
+    document.body.appendChild(panel);
+    panel.querySelector("#win12-run-close").onclick = () => panel.classList.remove("visible");
+    panel.querySelector("#win12-run-search").addEventListener("input", renderRunResults);
+    panel.querySelector("#win12-run-search").addEventListener("keydown", event => {
+      if (event.key === "Enter") panel.querySelector(".win12-run-item")?.click();
+      if (event.key === "Escape") panel.classList.remove("visible");
+    });
+    return panel;
+  }
+
+  function getRunItems(){
+    const apps = ["explorer", "notepad", "browser", "host", "assistant", "regedit", "settings", "notes", "paint", "media", "camera", "cmd", "msstore"].map(app => ({ kind: "app", name: app, sub: "Virtual app", app }));
+    const user = currentUser(getState());
+    const files = (user?.fs || []).filter(file => file.type !== "folder").map(file => ({ kind: file.ext === ".exe" ? "exe" : "file", name: file.name, sub: `${file.path} · ${file.ext || "file"}`, file }));
+    return apps.concat(files);
+  }
+
+  function renderRunResults(){
+    const panel = ensureRunPanel();
+    const results = panel.querySelector("#win12-run-results");
+    const search = panel.querySelector("#win12-run-search");
+    const q = (search.value || "").toLowerCase();
+    results.innerHTML = "";
+    getRunItems().filter(item => !q || item.name.toLowerCase().includes(q) || item.sub.toLowerCase().includes(q)).slice(0, 18).forEach(item => {
+      const card = document.createElement("div");
+      card.className = "win12-run-item";
+      card.innerHTML = `<div class="win12-run-name">${item.kind === "app" ? "▣" : item.kind === "exe" ? "⚡" : "◇"} ${item.name}</div><div class="win12-run-sub">${item.sub}</div>`;
+      card.onclick = () => {
+        if (item.kind === "app") {
+          if (item.app === "msstore") {
+            ensureMsStoreWindow();
+            loadMsStore();
+          }
+          showVirtualWindow(item.app);
+        } else if (item.kind === "exe" && window.win12RunVirtualExe) {
+          window.win12RunVirtualExe(item.file);
+        } else {
+          showVirtualWindow("explorer");
+        }
+        panel.classList.remove("visible");
+      };
+      results.appendChild(card);
+    });
+  }
+
+  function openRunPanel(){
+    closeVirtualWindow("run");
+    const panel = ensureRunPanel();
+    panel.classList.add("visible");
+    renderRunResults();
+    setTimeout(() => panel.querySelector("#win12-run-search")?.focus(), 0);
+  }
+
+  window.win12OpenRunPanel = openRunPanel;
+
+  function finalInit(){
+    closeVirtualWindow("run");
+    ensureMsStoreWindow();
+    ensureRunPanel();
+    ensureMsStoreTaskbarIcon();
+    ensureRunTaskbarIcon();
+    ensureStartTile("msstore", "MS Store", "Catalog apps");
+    ensureStartTile("run", "Run", "Panel launcher");
+    loadMsStore();
+  }
+
+  document.addEventListener("click", event => {
+    const msStoreTarget = event.target.closest('[data-app="msstore"], [data-app-name="Microsoft Store"]');
+    if (msStoreTarget) {
+      event.preventDefault();
+      event.stopPropagation();
+      ensureMsStoreWindow();
+      loadMsStore();
+      showVirtualWindow("msstore");
+      return;
+    }
+
+    const runTarget = event.target.closest('[data-app="run"], [data-app-name="Run"]');
+    if (runTarget) {
+      event.preventDefault();
+      event.stopPropagation();
+      openRunPanel();
+    }
+  }, true);
+
+  document.addEventListener("keydown", event => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "r") {
+      event.preventDefault();
+      event.stopPropagation();
+      openRunPanel();
+    }
+  }, true);
+
+  window.addEventListener("DOMContentLoaded", finalInit);
+  setTimeout(finalInit, 800);
+  setInterval(() => closeVirtualWindow("run"), 1000);
+})();
+</script>
+
+</body>
     </html>

@@ -49,7 +49,7 @@ jobs:
           exit 0
 
       # -----------------------------
-      # Secret injection (your original version)
+      # Secret injection
       # -----------------------------
       - name: Inject YouTube API key
         run: |
@@ -68,23 +68,10 @@ jobs:
           echo "Placeholder replaced in Spudzy files"
 
       # -----------------------------
-      # Dynamic: Optional build step
-      # -----------------------------
-      - name: Build site if package.json exists
-        run: |
-          if [ -f package.json ]; then
-            echo "package.json found — running build"
-            npm install
-            npm run build
-          else
-            echo "No build step required"
-          fi
-
-      # -----------------------------
-      # Dynamic: HTML validation
+      # Dynamic: HTML validation (FIXED)
       # -----------------------------
       - name: Validate HTML
-        uses: Cyb3r-Jak3/html5validator-action@v0
+        uses: cyb3r-jak3/html5validator-action@v0.4.0
         continue-on-error: true
 
       # -----------------------------

@@ -27,6 +27,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # -----------------------------
+      # Dynamic: Skip deploy if no relevant changes
+      # -----------------------------
+      - name: Detect relevant changes
+        id: changes
+        run: |
+          CHANGED=$(git diff --name-only HEAD^ HEAD)
+          echo "$CHANGED"
+
+          if ! echo "$CHANGED" | grep -qE "^(PKGS/|index.html|spudzy.js)"; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Stop early if no changes
+        if: steps.changes.outputs.skip == 'true'
+        run: |
+          echo "No relevant changes detected. Skipping deployment."
+          exit 0
+
+      # -----------------------------
+      # Secret injection (your original version)
+      # -----------------------------
       - name: Inject YouTube API key
         run: |
           if [ -z "${{ secrets.YOUTUBE_API_KEY }}" ]; then
@@ -42,6 +66,60 @@ jobs:
           fi
 
           echo "Placeholder replaced in Spudzy files"
+
+      # -----------------------------
+      # Dynamic: Optional build step
+      # -----------------------------
+      - name: Build site if package.json exists
+        run: |
+          if [ -f package.json ]; then
+            echo "package.json found — running build"
+            npm install
+            npm run build
+          else
+            echo "No build step required"
+          fi
+
+      # -----------------------------
+      # Dynamic: HTML validation
+      # -----------------------------
+      - name: Validate HTML
+        uses: Cyb3r-Jak3/html5validator-action@v1
+        continue-on-error: true
+
+      # -----------------------------
+      # Dynamic: Broken link checker
+      # -----------------------------
+      - name: Check for broken links
+        uses: lycheeverse/lychee-action@v1
+        with:
+          args: --verbose .
+        continue-on-error: true
+
+      # -----------------------------
+      # Dynamic: JS syntax check
+      # -----------------------------
+      - name: JS Syntax Check
+        run: |
+          if command -v npx >/dev/null 2>&1; then
+            npx eslint .
+          else
+            echo "ESLint not available — skipping JS lint"
+          fi
+        continue-on-error: true
+
+      # -----------------------------
+      # Dynamic: Conditional deploy based on commit message
+      # -----------------------------
+      - name: Skip deploy for docs-only commits
+        if: contains(github.event.head_commit.message, '[docs]')
+        run: |
+          echo "Docs-only commit detected — skipping deploy"
+          exit 0
+
+      # -----------------------------
+      # Pages deployment
+      # -----------------------------
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

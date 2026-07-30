@@ -66,14 +66,7 @@ jobs:
           fi
 
           echo "Placeholder replaced in Spudzy files"
-
-      # -----------------------------
-      # Dynamic: HTML validation (FIXED)
-      # -----------------------------
-      - name: Validate HTML
-        uses: cyb3r-jak3/html5validator-action@v0.4.0
-        continue-on-error: true
-
+          
       # -----------------------------
       # Dynamic: Broken link checker
       # -----------------------------

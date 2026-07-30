@@ -28,15 +28,18 @@ jobs:
         uses: actions/checkout@v4
 
       # -----------------------------
-      # Dynamic: Skip deploy if no relevant changes
+      # Dynamic: Skip deploy if no relevant changes (FIXED)
       # -----------------------------
       - name: Detect relevant changes
         id: changes
         run: |
-          CHANGED=$(git diff --name-only HEAD^ HEAD)
+          # Safe diff: works even with shallow clones
+          CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "ALL")
           echo "$CHANGED"
 
-          if ! echo "$CHANGED" | grep -qE "^(PKGS/|index.html|spudzy.js)"; then
+          if echo "$CHANGED" | grep -q "ALL"; then
+            echo "skip=false" >> $GITHUB_OUTPUT
+          elif ! echo "$CHANGED" | grep -qE "^(PKGS/|index.html|spudzy.js)"; then
             echo "skip=true" >> $GITHUB_OUTPUT
           else
             echo "skip=false" >> $GITHUB_OUTPUT
@@ -68,7 +71,7 @@ jobs:
           echo "Placeholder replaced in Spudzy files"
           
       # -----------------------------
-      # Dynamic: Broken link checker
+      # Dynamic: Broken link checker (PR merge preserved)
       # -----------------------------
       - name: Check for broken links
         uses: lycheeverse/lychee-action@v2.0.2

@@ -1,2869 +1,7065 @@
 /*
-  Spudzy Vid / RealLifeVideo
-  v7.0.0-recreate-ui-future-video
+  Spudzy ThreeGLSL RealLifeVideo
+  v13.0.0-gameplay-type-audio-fixed
 
-  Browser-only procedural prompt-to-video generator.
-  No server. No real AI model. Canvas + MediaRecorder only.
+  Browser-only prompt-to-video generator with:
+  - Same API: const data = await RealLifeVideo.generate(prompt, options)
+  - Three.js renderer path when global THREE is already loaded
+  - GLSL shader materials for IRL-like scenes
+  - Canvas2D fallback if Three.js/WebGL is unavailable
+  - Procedural UI generator from prompt descriptions
+  - Optional browser TTS using Web Speech API
 
-  Same API:
-    const data = await RealLifeVideo.generate(prompt, options)
-
-  Supports prompts like:
-    "make a dragon fly in the rain in an rpg game with the effect fire"
-    "recreate this futuristic UI being used in a video"
-    "make a dashboard app in use with neon hologram effect"
-    "not UI, make future city flythrough with glitch"
+  Honest limitation:
+  This is not a trained AI video model. It cannot guarantee perfect realism or
+  perfect UI matching from every description. It is a large procedural generator
+  that uses math, rules, Three.js, GLSL, Canvas, and browser recording.
 */
-
-(function attachSpudzyVid(global) {
+(function attachSpudzyThreeGLSL(global) {
   "use strict";
 
-  const VERSION = "7.0.0-recreate-ui-future-video";
+  const VERSION = "13.0.0-gameplay-type-audio-fixed";
 
   const DEFAULTS = {
     width: 960,
     height: 540,
     fps: 30,
     seconds: 6,
-    bitrate: 6000000,
+    bitrate: 9000000,
     quality: 0.92,
     mimeType: "",
+    canvas: null,
     appendCanvas: false,
-    returnFrames: false,
     transparent: false,
+    returnFrames: false,
+    autoDownload: false,
+    downloadName: "spudzy-three-glsl-video.webm",
     seed: null,
     debug: false,
-    canvas: null,
     typoDistance: 2,
-    wordLayerLimit: 260,
-    maxParticles: 900
+    mode: "auto",
+    renderer: "auto",
+    forceCanvas2D: false,
+    mc: false,
+    minecraftMode: false,
+    anywhereMode: true,
+    audio: true,
+    soundEffects: true,
+    gameplayType: "auto",
+    gameplayVideo: false,
+    gameHud: true,
+    typedAudio: true,
+    masterVolume: 0.65,
+    musicVolume: 0.18,
+    sfxVolume: 0.45,
+    hyperRealistic: false,
+    irl: false,
+    uiAccurate: true,
+    shotCount: 8,
+    realism: 1.0,
+    maxParticles: 2500,
+    maxRules: 1200,
+    tts: false,
+    ttsText: "",
+    ttsRate: 1,
+    ttsPitch: 1,
+    ttsVolume: 1
   };
 
   const TYPO_MAP = {
-    teh: "the",
-    tha: "that",
-    tht: "that",
-    thsi: "this",
-    tihs: "this",
-    adn: "and",
-    annd: "and",
-    wiht: "with",
-    wih: "with",
-    wit: "with",
-    whith: "with",
-    mak: "make",
-    maek: "make",
-    mkae: "make",
-    makee: "make",
-    creat: "create",
-    crate: "create",
-    genrate: "generate",
-    genrated: "generated",
-    vidueo: "video",
-    vidoe: "video",
-    videeo: "video",
-    poromp: "prompt",
-    porompt: "prompt",
-    promt: "prompt",
-    promp: "prompt",
-    worss: "words",
-    wrods: "words",
-    enything: "anything",
-    anytyhing: "anything",
-    yo: "you",
-    wil: "will",
-    fukllly: "fully",
-    responces: "responses",
-    responce: "response",
-    focueses: "focuses",
-    focuse: "focus",
-    focues: "focus",
-    mnore: "more",
-    morew: "more",
-    lfie: "life",
-    lif: "life",
-    wel: "well",
-    takw: "take",
-    lon: "long",
-    gper: "per",
-    styel: "style",
-    stlye: "style",
-    effct: "effect",
-    efct: "effect",
-    efect: "effect",
-    effets: "effects",
-    dosent: "doesn't",
-    doesnt: "doesn't",
-    dont: "don't",
-    cant: "can't",
-    wont: "won't",
-    opver: "over",
-    ovre: "over",
-    lik: "like",
-    lkot: "lot",
-    alot: "a lot",
-    refrence: "reference",
-    refrences: "references",
-    recreat: "recreate",
-    recraete: "recreate",
-    recrete: "recreate",
-    remak: "remake",
-    usi: "using",
-    usign: "using",
-    useing: "using",
-    beign: "being",
-    futre: "future",
-    futur: "future",
-    futurstic: "futuristic",
-    futurisitc: "futuristic",
-    uii: "ui",
-    dashbord: "dashboard",
-    dashbaord: "dashboard",
-    buttton: "button",
-    buton: "button",
-    logn: "login",
-    singup: "signup",
-    appp: "app",
-    realstic: "realistic",
-    realistc: "realistic",
-    cinamatic: "cinematic",
-    cinamtic: "cinematic",
-    nigth: "night",
-    nite: "night",
-    raing: "rain",
-    rian: "rain",
-    pepole: "people",
-    peaple: "people",
-    ppl: "people",
-    carz: "cars",
-    forrest: "forest",
-    mountian: "mountain",
-    mountians: "mountains",
-    ocen: "ocean",
-    watter: "water",
-    pixle: "pixel",
-    pixles: "pixels",
-    voxle: "voxel",
-    minecarft: "minecraft",
-    minecrft: "minecraft",
-    mcraft: "minecraft",
-    robo: "robot",
-    roboot: "robot",
-    dragin: "dragon",
-    dragn: "dragon",
-    dragun: "dragon",
-    firre: "fire",
-    explotion: "explosion",
-    spac: "space",
-    galxy: "galaxy",
-    cyberpuk: "cyberpunk",
-    cyberpnk: "cyberpunk",
-    neonn: "neon",
-    gltich: "glitch",
-    horor: "horror",
-    fanasty: "fantasy",
-    syfy: "sci-fi",
-    cartton: "cartoon",
-    runing: "running",
-    flyng: "flying",
-    jumpng: "jumping",
-    dancng: "dancing"
+    teh:"the", tha:"that", tht:"that", thsi:"this", tihs:"this", adn:"and", annd:"and", wiht:"with", wih:"with", wit:"with",
+    whith:"with", mak:"make", maek:"make", mkae:"make", makee:"make", creat:"create", crate:"create", genrate:"generate", genrated:"generated",
+    vidueo:"video", vidoe:"video", videeo:"video", poromp:"prompt", porompt:"prompt", promt:"prompt", promp:"prompt", downlaod:"download",
+    realstic:"realistic", reralstic:"realistic", realistc:"realistic", hyperrealsirtc:"hyper realistic", realsirtc:"realistic", cinamatic:"cinematic",
+    absulutly:"absolutely", anythijng:"anything", screipt:"script", hte:"the", twake:"take", creaste:"create", uik:"ui", accruatly:"accurately",
+    bnased:"based", oof:"of", neevr:"never", yuou:"you", litrally:"literally", refrence:"reference", refrences:"references", googkle:"google",
+    futre:"future", futurstic:"futuristic", gltich:"glitch", neonn:"neon", thign:"thing", fatser:"faster", frtee:"free"
   };
 
-  const DICT = {
-    styles: {
-      realistic: ["realistic", "real life", "lifelike", "photoreal", "documentary"],
-      cinematic: ["cinematic", "movie", "film", "trailer", "epic", "anamorphic"],
-      rpg: ["rpg", "quest", "hero", "fantasy game", "inventory", "party"],
-      pixel: ["pixel", "pixel art", "pixelart", "8bit", "8-bit", "16bit", "retro game"],
-      voxel: ["voxel", "blocky", "minecraft", "blocks", "cubes", "sandbox"],
-      anime: ["anime", "manga", "cel shaded", "cel-shaded"],
-      comic: ["comic", "ink", "halftone", "graphic novel"],
-      cyberpunk: ["cyberpunk", "cyber city", "neon city", "future city"],
-      futuristic: ["future", "futuristic", "next gen", "hologram", "holographic", "sci fi future"],
-      synthwave: ["synthwave", "retrowave", "outrun", "neon"],
-      horror: ["horror", "scary", "creepy", "haunted", "dark"],
-      fantasy: ["fantasy", "magic", "dragon", "wizard", "castle"],
-      scifi: ["sci-fi", "scifi", "science fiction", "robot", "spaceship", "cyber"],
-      racing: ["racing", "race", "drift", "track", "highway"],
-      platformer: ["platformer", "side scroller", "side-scroller", "jump"],
-      arcade: ["arcade", "score", "boss", "coin", "powerup"],
-      watercolor: ["watercolor", "paint", "painterly", "brush"],
-      sketch: ["sketch", "pencil", "chalk", "hand drawn", "hand-drawn"],
-      noir: ["noir", "black and white", "monochrome"],
-      clay: ["clay", "claymation", "stop motion"],
-      blueprint: ["blueprint", "schematic", "technical drawing"],
-      matrix: ["matrix", "code rain", "green code"],
-      dream: ["dream", "dreamy", "surreal", "liminal"],
-      underwater: ["underwater", "reef", "submarine"],
-      western: ["western", "cowboy", "saloon"],
-      steampunk: ["steampunk", "brass", "gear", "gears"],
-      glitch: ["glitch", "static", "datamosh", "corrupt"],
-      vlog: ["vlog", "handheld", "phone video"],
-      drone: ["drone", "aerial", "overhead"],
-      timelapse: ["timelapse", "time lapse"],
-      slowmo: ["slowmo", "slow motion", "slow-mo"],
-      ui: ["ui", "user interface", "interface", "app screen", "screen design"],
-      dashboard: ["dashboard", "analytics", "charts", "admin panel", "control panel"],
-      mobile: ["mobile", "phone app", "iphone", "android app"],
-      desktop: ["desktop", "website", "web app", "browser"],
-      gameUi: ["game ui", "hud", "health bar", "inventory ui", "game menu"]
-    },
-
+  const LEXICON = {
     scenes: {
-      city: ["city", "street", "downtown", "urban", "alley", "skyscraper"],
-      forest: ["forest", "woods", "trees", "jungle", "nature"],
-      ocean: ["ocean", "sea", "beach", "shore", "waves", "island"],
-      desert: ["desert", "sand", "dunes", "cactus"],
-      mountain: ["mountain", "mountains", "valley", "cliff", "hills"],
-      space: ["space", "galaxy", "stars", "planet", "nebula", "moon"],
-      room: ["room", "house", "apartment", "kitchen", "bedroom", "office"],
-      farm: ["farm", "field", "barn", "crops"],
-      dungeon: ["dungeon", "cave", "ruins", "temple"],
-      track: ["track", "road", "highway", "raceway"],
-      village: ["village", "town", "market"],
-      castle: ["castle", "kingdom", "palace"],
-      volcano: ["volcano", "lava", "magma"],
-      underwater: ["underwater", "reef", "coral", "submarine"],
-      concert: ["concert", "stage", "music", "dj"],
-      lab: ["lab", "laboratory", "science"],
-      cyberspace: ["cyberspace", "digital world", "matrix"],
-      uiStudio: ["ui", "interface", "dashboard", "app", "website", "screen"],
-      futureCity: ["future city", "futuristic city", "hologram city"],
-      abstract: ["abstract", "dream", "surreal", "particles"]
+      mc:["mc","minecraft","voxel irl simulator","irl simulator","block game","voxel","blocky","cubes","biome","nether","hell dimension","overworld","end city","creeper","zombie","village","alaricholt677","crafting table","boss spawner","pee meter","water meter"],
+      irl:["irl","real life","realistic","hyper realistic","photoreal","camera footage","phone footage","documentary","real world","anywhere"],
+      city:["city","street","downtown","urban","skyscraper","road","traffic","crosswalk"],
+      room:["room","office","bedroom","kitchen","apartment","studio","desk","computer"],
+      nature:["forest","woods","park","trail","grass","trees","mountain","field"],
+      ocean:["ocean","beach","water","sea","waves","shore"],
+      space:["space","planet","galaxy","stars","nebula"],
+      ui:["ui","interface","dashboard","app","website","screen","login","buttons","cards","charts","sidebar","menu","form"],
+      abstract:["abstract","particles","vortex","dream","surreal"]
     },
-
-    objects: {
-      dragon: ["dragon", "wyvern"],
-      robot: ["robot", "android", "mech"],
-      people: ["people", "person", "human", "crowd", "hero", "character"],
-      cars: ["car", "cars", "vehicle", "truck", "bus", "traffic"],
-      birds: ["bird", "birds", "eagle", "seagull"],
-      animals: ["animal", "animals", "dog", "cat", "deer", "horse", "wolf"],
-      rain: ["rain", "rainy", "storm", "wet"],
-      snow: ["snow", "snowy", "winter", "ice"],
-      fog: ["fog", "foggy", "mist"],
-      fire: ["fire", "flame", "flames", "explosion", "lava"],
-      water: ["water", "river", "lake", "pool"],
-      clouds: ["cloud", "clouds", "cloudy"],
-      sun: ["sun", "sunny", "bright"],
-      sunset: ["sunset", "sunrise", "golden hour"],
-      night: ["night", "midnight", "dark"],
-      castle: ["castle"],
-      sword: ["sword", "blade"],
-      coins: ["coin", "coins", "gold"],
-      hearts: ["heart", "hearts", "health"],
-      cubes: ["cube", "cubes", "block", "blocks"],
-      spaceship: ["spaceship", "rocket", "ufo"],
-      train: ["train", "railway"],
-      boat: ["boat", "ship"],
-      plane: ["plane", "airplane", "jet"],
-      zombie: ["zombie", "undead"],
-      ghost: ["ghost", "spirit"],
-      dinosaur: ["dinosaur", "trex", "t-rex"],
-      fish: ["fish", "shark", "whale"],
-      butterfly: ["butterfly", "butterflies"],
-      flowers: ["flower", "flowers"],
-      lightning: ["lightning", "thunder"],
-      portal: ["portal", "vortex", "wormhole"],
-      text: ["text", "letters", "words"],
-      music: ["music", "notes", "song", "beat"],
-      cursor: ["cursor", "mouse", "pointer", "click"],
-      buttons: ["button", "buttons", "cta"],
-      cards: ["card", "cards", "panel", "panels"],
-      charts: ["chart", "charts", "graph", "graphs"],
-      menu: ["menu", "sidebar", "nav", "navigation"],
-      login: ["login", "signin", "sign in", "signup", "register"],
-      avatar: ["avatar", "profile", "user icon"],
-      hologram: ["hologram", "holographic"]
+    subjects: {
+      person:["person","people","human","character","crowd","face","portrait"],
+      car:["car","cars","vehicle","truck","traffic"],
+      animal:["dog","cat","animal","horse","bird","wolf","deer","pig","cow","sheep"],
+      minecraftMob:["creeper","zombie","skeleton","enderman","villager","spider","ghast","piglin","warden"],
+      product:["product","phone","laptop","shoe","bottle","watch"],
+      ui:["ui","app","dashboard","website","screen","interface"],
+      text:["text","words","letters","caption","title"],
+      robot:["robot","android","mech"],
+      dragon:["dragon","wyvern"],
+      none:["scene","environment","landscape"]
     },
-
     actions: {
-      idle: ["idle", "stand", "pose", "wait"],
-      walk: ["walk", "walking", "stroll"],
-      run: ["run", "running", "sprint"],
-      fly: ["fly", "flying", "soar"],
-      jump: ["jump", "jumping", "bounce"],
-      dance: ["dance", "dancing", "groove"],
-      spin: ["spin", "spinning", "rotate", "twirl"],
-      explode: ["explode", "exploding", "burst"],
-      glow: ["glow", "glowing", "shine"],
-      fall: ["fall", "falling", "drop"],
-      rise: ["rise", "rising", "ascend"],
-      chase: ["chase", "pursue"],
-      drift: ["drift", "sliding"],
-      swim: ["swim", "swimming"],
-      fight: ["fight", "battle", "attack"],
-      shoot: ["shoot", "laser", "blast"],
-      build: ["build", "construct"],
-      transform: ["transform", "morph", "change"],
-      pulse: ["pulse", "beat"],
-      zoom: ["zoom", "camera zoom"],
-      shake: ["shake", "quake"],
-      wave: ["wave", "waving"],
-      click: ["click", "tap", "press"],
-      scroll: ["scroll", "swipe"],
-      type: ["type", "typing", "input"],
-      open: ["open", "reveal", "expand"],
-      close: ["close", "collapse"],
-      recreate: ["recreate", "remake", "copy", "rebuild", "based on"],
-      use: ["use", "using", "in use", "being used"]
+      idle:["idle","stand","still","pose"], walk:["walk","walking"], run:["run","running"], drive:["drive","driving"], fly:["fly","flying"],
+      use:["use","using","click","tap","scroll","type","being used","in use"], reveal:["reveal","open","appear","transform"], orbit:["orbit","rotate","spin"]
     },
-
-    effects: {
-      fire: ["fire", "flame", "burning"],
-      neon: ["neon", "glow", "glowing", "electric"],
-      glitch: ["glitch", "static", "corrupt", "datamosh"],
-      ice: ["ice", "frozen", "frost"],
-      rainbow: ["rainbow", "colorful", "prismatic"],
-      magic: ["magic", "sparkle", "spell"],
-      smoke: ["smoke", "dust"],
-      lightning: ["lightning", "electric", "storm"],
-      blur: ["blur", "blurry", "motion blur"],
-      slowmo: ["slowmo", "slow motion", "slow-mo"],
-      fast: ["fast", "speedy", "quick"],
-      zoom: ["zoom", "dolly"],
-      vhs: ["vhs", "tape", "retro video"],
-      grain: ["grain", "film grain"],
-      scanlines: ["scanline", "scanlines", "crt"],
-      bloom: ["bloom", "bright glow"],
-      ripple: ["ripple", "wave distortion"],
-      pixelate: ["pixelate", "pixelated"],
-      chromatic: ["chromatic", "rgb split"],
-      hologram: ["hologram", "holo", "holographic"],
-      matrix: ["matrix", "code rain"],
-      hearts: ["hearts", "love"],
-      coins: ["coins", "gold"],
-      stars: ["stars", "sparkles"],
-      glass: ["glass", "glassmorphism", "frosted"],
-      future: ["future", "futuristic", "next gen"]
+    looks: {
+      cinematic:["cinematic","movie","film","anamorphic","trailer"], handheld:["handheld","phone","vlog","shaky"], drone:["drone","aerial","flythrough"],
+      macro:["macro","close up","close-up","detail"], neon:["neon","glow","cyberpunk"], hologram:["hologram","holographic"],
+      rain:["rain","storm","wet"], snow:["snow","winter"], fog:["fog","mist"], fire:["fire","flame","explosion"], glitch:["glitch","static"],
+      uiGlass:["glass","glassmorphism","frosted"], dark:["dark","night"], bright:["bright","day","sunny"]
     },
-
-    colors: {
-      blue: "#3b82f6",
-      red: "#ef4444",
-      green: "#22c55e",
-      yellow: "#eab308",
-      purple: "#a855f7",
-      pink: "#ec4899",
-      orange: "#f97316",
-      gold: "#facc15",
-      silver: "#cbd5e1",
-      black: "#020617",
-      white: "#f8fafc",
-      cyan: "#22d3ee",
-      teal: "#14b8a6",
-      lime: "#84cc16",
-      violet: "#8b5cf6",
-      crimson: "#dc2626"
-    },
-
-    modifiers: {
-      fast: { speed: 1.8 },
-      speedy: { speed: 1.8 },
-      turbo: { speed: 2.3 },
-      slow: { speed: 0.55 },
-      calm: { speed: 0.65 },
-      chaos: { chaos: 1 },
-      chaotic: { chaos: 1 },
-      huge: { scale: 1.6 },
-      giant: { scale: 1.85 },
-      massive: { scale: 2.1 },
-      tiny: { scale: 0.65 },
-      small: { scale: 0.75 },
-      many: { density: 1.55 },
-      lots: { density: 1.55 },
-      crowded: { density: 1.85 },
-      army: { density: 2.25 },
-      minimal: { density: 0.55 },
-      empty: { density: 0.35 },
-      shaky: { shake: 1 },
-      smooth: { smooth: 1 },
-      dreamy: { dream: 1 },
-      epic: { epic: 1 },
-      scary: { fear: 1 },
-      cute: { cute: 1 }
-    }
+    colors: { blue:"#3b82f6", red:"#ef4444", green:"#22c55e", yellow:"#eab308", purple:"#a855f7", pink:"#ec4899", orange:"#f97316", gold:"#facc15", cyan:"#22d3ee", white:"#f8fafc", black:"#020617" }
   };
 
-  function clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
-  function unique(arr) {
-    return Array.from(new Set(arr));
-  }
-
-  function flatValues(obj) {
-    return Object.values(obj).reduce((a, b) => a.concat(b), []);
-  }
-
-  function escapeRegExp(s) {
-    return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  }
-
-  function hashString(str) {
-    let h = 2166136261 >>> 0;
-    for (let i = 0; i < str.length; i++) {
-      h ^= str.charCodeAt(i);
-      h = Math.imul(h, 16777619);
-    }
-    return h >>> 0;
-  }
-
-  function makeRng(seed) {
-    let s = seed >>> 0;
-    return function rand() {
-      s += 0x6D2B79F5;
-      let t = s;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  }
-
-  function colorWithAlpha(hex, alpha) {
-    const clean = String(hex || "#ffffff").replace("#", "");
-    const n = parseInt(
-      clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean,
-      16
-    );
-    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
-  }
-
-  function levenshtein(a, b, max = 99) {
-    if (a === b) return 0;
-    if (!a) return b.length;
-    if (!b) return a.length;
-    if (Math.abs(a.length - b.length) > max) return max + 1;
-
-    const prev = new Array(b.length + 1);
-    const curr = new Array(b.length + 1);
-
-    for (let j = 0; j <= b.length; j++) prev[j] = j;
-
-    for (let i = 1; i <= a.length; i++) {
-      curr[0] = i;
-      let rowMin = curr[0];
-
-      for (let j = 1; j <= b.length; j++) {
-        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-        curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
-        if (curr[j] < rowMin) rowMin = curr[j];
+  const GLSL = {
+    vertexBasic: `
+      varying vec2 vUv;
+      varying vec3 vPos;
+      void main(){
+        vUv = uv;
+        vPos = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
+    `,
+    skyFragment: `
+      precision highp float;
+      varying vec2 vUv;
+      uniform float uTime;
+      uniform vec3 uTop;
+      uniform vec3 uMid;
+      uniform vec3 uBottom;
+      float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }
+      float noise(vec2 p){ vec2 i=floor(p); vec2 f=fract(p); vec2 u=f*f*(3.0-2.0*f); return mix(mix(hash(i),hash(i+vec2(1.,0.)),u.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),u.x),u.y); }
+      void main(){
+        float y = clamp(vUv.y, 0.0, 1.0);
+        vec3 col = mix(uBottom, uMid, smoothstep(0.0,0.6,y));
+        col = mix(col, uTop, smoothstep(0.45,1.0,y));
+        float n = noise(vUv*8.0 + uTime*0.02);
+        col += n * 0.025;
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `,
+    irlGroundFragment: `
+      precision highp float;
+      varying vec2 vUv;
+      uniform float uTime;
+      uniform vec3 uColorA;
+      uniform vec3 uColorB;
+      float hash(vec2 p){ return fract(sin(dot(p, vec2(17.1, 91.7))) * 43758.5453); }
+      float noise(vec2 p){ vec2 i=floor(p); vec2 f=fract(p); vec2 u=f*f*(3.0-2.0*f); return mix(mix(hash(i),hash(i+vec2(1.,0.)),u.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),u.x),u.y); }
+      void main(){
+        float n = noise(vUv*80.0 + vec2(uTime*0.02, 0.0));
+        float lines = smoothstep(0.48,0.5,abs(fract(vUv.y*28.0)-0.5));
+        vec3 col = mix(uColorA, uColorB, n);
+        col *= 0.85 + 0.15 * lines;
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `,
+    glassUiFragment: `
+      precision highp float;
+      varying vec2 vUv;
+      uniform float uTime;
+      uniform vec3 uAccent;
+      float grid(vec2 uv){ vec2 g = abs(fract(uv*12.0)-0.5); return 1.0-smoothstep(0.0,0.03,min(g.x,g.y)); }
+      void main(){
+        float edge = smoothstep(0.48,0.5,max(abs(vUv.x-0.5),abs(vUv.y-0.5)));
+        float scan = sin((vUv.y+uTime*0.15)*120.0)*0.025;
+        vec3 col = mix(vec3(0.02,0.04,0.09), uAccent, 0.15 + grid(vUv)*0.15);
+        col += scan;
+        gl_FragColor = vec4(col, 0.72 - edge*0.25);
+      }
+    `
+  };
 
-      if (rowMin > max) return max + 1;
+  const HYPER_REAL_PRIORS = [
+    { id:0, scene:"irl", subject:"person", look:"cinematic", lens:18, fstop:1.2, iso:100, motion:0.25, hue:0 },
+    { id:1, scene:"city", subject:"car", look:"handheld", lens:19, fstop:1.3, iso:200, motion:0.35, hue:37 },
+    { id:2, scene:"room", subject:"animal", look:"drone", lens:20, fstop:1.4, iso:300, motion:0.45, hue:74 },
+    { id:3, scene:"nature", subject:"product", look:"macro", lens:21, fstop:1.5, iso:400, motion:0.55, hue:111 },
+    { id:4, scene:"ocean", subject:"ui", look:"neon", lens:22, fstop:1.6, iso:500, motion:0.65, hue:148 },
+    { id:5, scene:"space", subject:"text", look:"rain", lens:23, fstop:1.7, iso:600, motion:0.75, hue:185 },
+    { id:6, scene:"ui", subject:"robot", look:"fog", lens:24, fstop:1.8, iso:700, motion:0.85, hue:222 },
+    { id:7, scene:"abstract", subject:"dragon", look:"dark", lens:25, fstop:1.9, iso:800, motion:0.95, hue:259 },
+    { id:8, scene:"irl", subject:"none", look:"bright", lens:26, fstop:2.0, iso:900, motion:1.05, hue:296 },
+    { id:9, scene:"city", subject:"person", look:"glitch", lens:27, fstop:2.1, iso:1000, motion:1.15, hue:333 },
+    { id:10, scene:"room", subject:"car", look:"cinematic", lens:28, fstop:2.2, iso:1100, motion:1.25, hue:10 },
+    { id:11, scene:"nature", subject:"animal", look:"handheld", lens:29, fstop:2.3, iso:1200, motion:1.35, hue:47 },
+    { id:12, scene:"ocean", subject:"product", look:"drone", lens:30, fstop:2.4, iso:1300, motion:1.45, hue:84 },
+    { id:13, scene:"space", subject:"ui", look:"macro", lens:31, fstop:2.5, iso:1400, motion:1.55, hue:121 },
+    { id:14, scene:"ui", subject:"text", look:"neon", lens:32, fstop:2.6, iso:1500, motion:1.65, hue:158 },
+    { id:15, scene:"abstract", subject:"robot", look:"rain", lens:33, fstop:2.7, iso:1600, motion:1.75, hue:195 },
+    { id:16, scene:"irl", subject:"dragon", look:"fog", lens:34, fstop:1.2, iso:100, motion:1.85, hue:232 },
+    { id:17, scene:"city", subject:"none", look:"dark", lens:35, fstop:1.3, iso:200, motion:1.95, hue:269 },
+    { id:18, scene:"room", subject:"person", look:"bright", lens:36, fstop:1.4, iso:300, motion:2.05, hue:306 },
+    { id:19, scene:"nature", subject:"car", look:"glitch", lens:37, fstop:1.5, iso:400, motion:2.15, hue:343 },
+    { id:20, scene:"ocean", subject:"animal", look:"cinematic", lens:38, fstop:1.6, iso:500, motion:2.25, hue:20 },
+    { id:21, scene:"space", subject:"product", look:"handheld", lens:39, fstop:1.7, iso:600, motion:2.35, hue:57 },
+    { id:22, scene:"ui", subject:"ui", look:"drone", lens:40, fstop:1.8, iso:700, motion:2.45, hue:94 },
+    { id:23, scene:"abstract", subject:"text", look:"macro", lens:41, fstop:1.9, iso:800, motion:2.55, hue:131 },
+    { id:24, scene:"irl", subject:"robot", look:"neon", lens:42, fstop:2.0, iso:900, motion:2.65, hue:168 },
+    { id:25, scene:"city", subject:"dragon", look:"rain", lens:43, fstop:2.1, iso:1000, motion:0.25, hue:205 },
+    { id:26, scene:"room", subject:"none", look:"fog", lens:44, fstop:2.2, iso:1100, motion:0.35, hue:242 },
+    { id:27, scene:"nature", subject:"person", look:"dark", lens:45, fstop:2.3, iso:1200, motion:0.45, hue:279 },
+    { id:28, scene:"ocean", subject:"car", look:"bright", lens:46, fstop:2.4, iso:1300, motion:0.55, hue:316 },
+    { id:29, scene:"space", subject:"animal", look:"glitch", lens:47, fstop:2.5, iso:1400, motion:0.65, hue:353 },
+    { id:30, scene:"ui", subject:"product", look:"cinematic", lens:48, fstop:2.6, iso:1500, motion:0.75, hue:30 },
+    { id:31, scene:"abstract", subject:"ui", look:"handheld", lens:49, fstop:2.7, iso:1600, motion:0.85, hue:67 },
+    { id:32, scene:"irl", subject:"text", look:"drone", lens:50, fstop:1.2, iso:100, motion:0.95, hue:104 },
+    { id:33, scene:"city", subject:"robot", look:"macro", lens:51, fstop:1.3, iso:200, motion:1.05, hue:141 },
+    { id:34, scene:"room", subject:"dragon", look:"neon", lens:52, fstop:1.4, iso:300, motion:1.15, hue:178 },
+    { id:35, scene:"nature", subject:"none", look:"rain", lens:53, fstop:1.5, iso:400, motion:1.25, hue:215 },
+    { id:36, scene:"ocean", subject:"person", look:"fog", lens:54, fstop:1.6, iso:500, motion:1.35, hue:252 },
+    { id:37, scene:"space", subject:"car", look:"dark", lens:55, fstop:1.7, iso:600, motion:1.45, hue:289 },
+    { id:38, scene:"ui", subject:"animal", look:"bright", lens:56, fstop:1.8, iso:700, motion:1.55, hue:326 },
+    { id:39, scene:"abstract", subject:"product", look:"glitch", lens:57, fstop:1.9, iso:800, motion:1.65, hue:3 },
+    { id:40, scene:"irl", subject:"ui", look:"cinematic", lens:58, fstop:2.0, iso:900, motion:1.75, hue:40 },
+    { id:41, scene:"city", subject:"text", look:"handheld", lens:59, fstop:2.1, iso:1000, motion:1.85, hue:77 },
+    { id:42, scene:"room", subject:"robot", look:"drone", lens:60, fstop:2.2, iso:1100, motion:1.95, hue:114 },
+    { id:43, scene:"nature", subject:"dragon", look:"macro", lens:61, fstop:2.3, iso:1200, motion:2.05, hue:151 },
+    { id:44, scene:"ocean", subject:"none", look:"neon", lens:62, fstop:2.4, iso:1300, motion:2.15, hue:188 },
+    { id:45, scene:"space", subject:"person", look:"rain", lens:63, fstop:2.5, iso:1400, motion:2.25, hue:225 },
+    { id:46, scene:"ui", subject:"car", look:"fog", lens:64, fstop:2.6, iso:1500, motion:2.35, hue:262 },
+    { id:47, scene:"abstract", subject:"animal", look:"dark", lens:65, fstop:2.7, iso:1600, motion:2.45, hue:299 },
+    { id:48, scene:"irl", subject:"product", look:"bright", lens:66, fstop:1.2, iso:100, motion:2.55, hue:336 },
+    { id:49, scene:"city", subject:"ui", look:"glitch", lens:67, fstop:1.3, iso:200, motion:2.65, hue:13 },
+    { id:50, scene:"room", subject:"text", look:"cinematic", lens:68, fstop:1.4, iso:300, motion:0.25, hue:50 },
+    { id:51, scene:"nature", subject:"robot", look:"handheld", lens:69, fstop:1.5, iso:400, motion:0.35, hue:87 },
+    { id:52, scene:"ocean", subject:"dragon", look:"drone", lens:70, fstop:1.6, iso:500, motion:0.45, hue:124 },
+    { id:53, scene:"space", subject:"none", look:"macro", lens:71, fstop:1.7, iso:600, motion:0.55, hue:161 },
+    { id:54, scene:"ui", subject:"person", look:"neon", lens:72, fstop:1.8, iso:700, motion:0.65, hue:198 },
+    { id:55, scene:"abstract", subject:"car", look:"rain", lens:73, fstop:1.9, iso:800, motion:0.75, hue:235 },
+    { id:56, scene:"irl", subject:"animal", look:"fog", lens:74, fstop:2.0, iso:900, motion:0.85, hue:272 },
+    { id:57, scene:"city", subject:"product", look:"dark", lens:75, fstop:2.1, iso:1000, motion:0.95, hue:309 },
+    { id:58, scene:"room", subject:"ui", look:"bright", lens:76, fstop:2.2, iso:1100, motion:1.05, hue:346 },
+    { id:59, scene:"nature", subject:"text", look:"glitch", lens:77, fstop:2.3, iso:1200, motion:1.15, hue:23 },
+    { id:60, scene:"ocean", subject:"robot", look:"cinematic", lens:78, fstop:2.4, iso:1300, motion:1.25, hue:60 },
+    { id:61, scene:"space", subject:"dragon", look:"handheld", lens:79, fstop:2.5, iso:1400, motion:1.35, hue:97 },
+    { id:62, scene:"ui", subject:"none", look:"drone", lens:80, fstop:2.6, iso:1500, motion:1.45, hue:134 },
+    { id:63, scene:"abstract", subject:"person", look:"macro", lens:81, fstop:2.7, iso:1600, motion:1.55, hue:171 },
+    { id:64, scene:"irl", subject:"car", look:"neon", lens:82, fstop:1.2, iso:100, motion:1.65, hue:208 },
+    { id:65, scene:"city", subject:"animal", look:"rain", lens:83, fstop:1.3, iso:200, motion:1.75, hue:245 },
+    { id:66, scene:"room", subject:"product", look:"fog", lens:84, fstop:1.4, iso:300, motion:1.85, hue:282 },
+    { id:67, scene:"nature", subject:"ui", look:"dark", lens:85, fstop:1.5, iso:400, motion:1.95, hue:319 },
+    { id:68, scene:"ocean", subject:"text", look:"bright", lens:86, fstop:1.6, iso:500, motion:2.05, hue:356 },
+    { id:69, scene:"space", subject:"robot", look:"glitch", lens:87, fstop:1.7, iso:600, motion:2.15, hue:33 },
+    { id:70, scene:"ui", subject:"dragon", look:"cinematic", lens:88, fstop:1.8, iso:700, motion:2.25, hue:70 },
+    { id:71, scene:"abstract", subject:"none", look:"handheld", lens:89, fstop:1.9, iso:800, motion:2.35, hue:107 },
+    { id:72, scene:"irl", subject:"person", look:"drone", lens:90, fstop:2.0, iso:900, motion:2.45, hue:144 },
+    { id:73, scene:"city", subject:"car", look:"macro", lens:91, fstop:2.1, iso:1000, motion:2.55, hue:181 },
+    { id:74, scene:"room", subject:"animal", look:"neon", lens:92, fstop:2.2, iso:1100, motion:2.65, hue:218 },
+    { id:75, scene:"nature", subject:"product", look:"rain", lens:93, fstop:2.3, iso:1200, motion:0.25, hue:255 },
+    { id:76, scene:"ocean", subject:"ui", look:"fog", lens:94, fstop:2.4, iso:1300, motion:0.35, hue:292 },
+    { id:77, scene:"space", subject:"text", look:"dark", lens:95, fstop:2.5, iso:1400, motion:0.45, hue:329 },
+    { id:78, scene:"ui", subject:"robot", look:"bright", lens:96, fstop:2.6, iso:1500, motion:0.55, hue:6 },
+    { id:79, scene:"abstract", subject:"dragon", look:"glitch", lens:97, fstop:2.7, iso:1600, motion:0.65, hue:43 },
+    { id:80, scene:"irl", subject:"none", look:"cinematic", lens:98, fstop:1.2, iso:100, motion:0.75, hue:80 },
+    { id:81, scene:"city", subject:"person", look:"handheld", lens:99, fstop:1.3, iso:200, motion:0.85, hue:117 },
+    { id:82, scene:"room", subject:"car", look:"drone", lens:100, fstop:1.4, iso:300, motion:0.95, hue:154 },
+    { id:83, scene:"nature", subject:"animal", look:"macro", lens:101, fstop:1.5, iso:400, motion:1.05, hue:191 },
+    { id:84, scene:"ocean", subject:"product", look:"neon", lens:102, fstop:1.6, iso:500, motion:1.15, hue:228 },
+    { id:85, scene:"space", subject:"ui", look:"rain", lens:18, fstop:1.7, iso:600, motion:1.25, hue:265 },
+    { id:86, scene:"ui", subject:"text", look:"fog", lens:19, fstop:1.8, iso:700, motion:1.35, hue:302 },
+    { id:87, scene:"abstract", subject:"robot", look:"dark", lens:20, fstop:1.9, iso:800, motion:1.45, hue:339 },
+    { id:88, scene:"irl", subject:"dragon", look:"bright", lens:21, fstop:2.0, iso:900, motion:1.55, hue:16 },
+    { id:89, scene:"city", subject:"none", look:"glitch", lens:22, fstop:2.1, iso:1000, motion:1.65, hue:53 },
+    { id:90, scene:"room", subject:"person", look:"cinematic", lens:23, fstop:2.2, iso:1100, motion:1.75, hue:90 },
+    { id:91, scene:"nature", subject:"car", look:"handheld", lens:24, fstop:2.3, iso:1200, motion:1.85, hue:127 },
+    { id:92, scene:"ocean", subject:"animal", look:"drone", lens:25, fstop:2.4, iso:1300, motion:1.95, hue:164 },
+    { id:93, scene:"space", subject:"product", look:"macro", lens:26, fstop:2.5, iso:1400, motion:2.05, hue:201 },
+    { id:94, scene:"ui", subject:"ui", look:"neon", lens:27, fstop:2.6, iso:1500, motion:2.15, hue:238 },
+    { id:95, scene:"abstract", subject:"text", look:"rain", lens:28, fstop:2.7, iso:1600, motion:2.25, hue:275 },
+    { id:96, scene:"irl", subject:"robot", look:"fog", lens:29, fstop:1.2, iso:100, motion:2.35, hue:312 },
+    { id:97, scene:"city", subject:"dragon", look:"dark", lens:30, fstop:1.3, iso:200, motion:2.45, hue:349 },
+    { id:98, scene:"room", subject:"none", look:"bright", lens:31, fstop:1.4, iso:300, motion:2.55, hue:26 },
+    { id:99, scene:"nature", subject:"person", look:"glitch", lens:32, fstop:1.5, iso:400, motion:2.65, hue:63 },
+    { id:100, scene:"ocean", subject:"car", look:"cinematic", lens:33, fstop:1.6, iso:500, motion:0.25, hue:100 },
+    { id:101, scene:"space", subject:"animal", look:"handheld", lens:34, fstop:1.7, iso:600, motion:0.35, hue:137 },
+    { id:102, scene:"ui", subject:"product", look:"drone", lens:35, fstop:1.8, iso:700, motion:0.45, hue:174 },
+    { id:103, scene:"abstract", subject:"ui", look:"macro", lens:36, fstop:1.9, iso:800, motion:0.55, hue:211 },
+    { id:104, scene:"irl", subject:"text", look:"neon", lens:37, fstop:2.0, iso:900, motion:0.65, hue:248 },
+    { id:105, scene:"city", subject:"robot", look:"rain", lens:38, fstop:2.1, iso:1000, motion:0.75, hue:285 },
+    { id:106, scene:"room", subject:"dragon", look:"fog", lens:39, fstop:2.2, iso:1100, motion:0.85, hue:322 },
+    { id:107, scene:"nature", subject:"none", look:"dark", lens:40, fstop:2.3, iso:1200, motion:0.95, hue:359 },
+    { id:108, scene:"ocean", subject:"person", look:"bright", lens:41, fstop:2.4, iso:1300, motion:1.05, hue:36 },
+    { id:109, scene:"space", subject:"car", look:"glitch", lens:42, fstop:2.5, iso:1400, motion:1.15, hue:73 },
+    { id:110, scene:"ui", subject:"animal", look:"cinematic", lens:43, fstop:2.6, iso:1500, motion:1.25, hue:110 },
+    { id:111, scene:"abstract", subject:"product", look:"handheld", lens:44, fstop:2.7, iso:1600, motion:1.35, hue:147 },
+    { id:112, scene:"irl", subject:"ui", look:"drone", lens:45, fstop:1.2, iso:100, motion:1.45, hue:184 },
+    { id:113, scene:"city", subject:"text", look:"macro", lens:46, fstop:1.3, iso:200, motion:1.55, hue:221 },
+    { id:114, scene:"room", subject:"robot", look:"neon", lens:47, fstop:1.4, iso:300, motion:1.65, hue:258 },
+    { id:115, scene:"nature", subject:"dragon", look:"rain", lens:48, fstop:1.5, iso:400, motion:1.75, hue:295 },
+    { id:116, scene:"ocean", subject:"none", look:"fog", lens:49, fstop:1.6, iso:500, motion:1.85, hue:332 },
+    { id:117, scene:"space", subject:"person", look:"dark", lens:50, fstop:1.7, iso:600, motion:1.95, hue:9 },
+    { id:118, scene:"ui", subject:"car", look:"bright", lens:51, fstop:1.8, iso:700, motion:2.05, hue:46 },
+    { id:119, scene:"abstract", subject:"animal", look:"glitch", lens:52, fstop:1.9, iso:800, motion:2.15, hue:83 },
+    { id:120, scene:"irl", subject:"product", look:"cinematic", lens:53, fstop:2.0, iso:900, motion:2.25, hue:120 },
+    { id:121, scene:"city", subject:"ui", look:"handheld", lens:54, fstop:2.1, iso:1000, motion:2.35, hue:157 },
+    { id:122, scene:"room", subject:"text", look:"drone", lens:55, fstop:2.2, iso:1100, motion:2.45, hue:194 },
+    { id:123, scene:"nature", subject:"robot", look:"macro", lens:56, fstop:2.3, iso:1200, motion:2.55, hue:231 },
+    { id:124, scene:"ocean", subject:"dragon", look:"neon", lens:57, fstop:2.4, iso:1300, motion:2.65, hue:268 },
+    { id:125, scene:"space", subject:"none", look:"rain", lens:58, fstop:2.5, iso:1400, motion:0.25, hue:305 },
+    { id:126, scene:"ui", subject:"person", look:"fog", lens:59, fstop:2.6, iso:1500, motion:0.35, hue:342 },
+    { id:127, scene:"abstract", subject:"car", look:"dark", lens:60, fstop:2.7, iso:1600, motion:0.45, hue:19 },
+    { id:128, scene:"irl", subject:"animal", look:"bright", lens:61, fstop:1.2, iso:100, motion:0.55, hue:56 },
+    { id:129, scene:"city", subject:"product", look:"glitch", lens:62, fstop:1.3, iso:200, motion:0.65, hue:93 },
+    { id:130, scene:"room", subject:"ui", look:"cinematic", lens:63, fstop:1.4, iso:300, motion:0.75, hue:130 },
+    { id:131, scene:"nature", subject:"text", look:"handheld", lens:64, fstop:1.5, iso:400, motion:0.85, hue:167 },
+    { id:132, scene:"ocean", subject:"robot", look:"drone", lens:65, fstop:1.6, iso:500, motion:0.95, hue:204 },
+    { id:133, scene:"space", subject:"dragon", look:"macro", lens:66, fstop:1.7, iso:600, motion:1.05, hue:241 },
+    { id:134, scene:"ui", subject:"none", look:"neon", lens:67, fstop:1.8, iso:700, motion:1.15, hue:278 },
+    { id:135, scene:"abstract", subject:"person", look:"rain", lens:68, fstop:1.9, iso:800, motion:1.25, hue:315 },
+    { id:136, scene:"irl", subject:"car", look:"fog", lens:69, fstop:2.0, iso:900, motion:1.35, hue:352 },
+    { id:137, scene:"city", subject:"animal", look:"dark", lens:70, fstop:2.1, iso:1000, motion:1.45, hue:29 },
+    { id:138, scene:"room", subject:"product", look:"bright", lens:71, fstop:2.2, iso:1100, motion:1.55, hue:66 },
+    { id:139, scene:"nature", subject:"ui", look:"glitch", lens:72, fstop:2.3, iso:1200, motion:1.65, hue:103 },
+    { id:140, scene:"ocean", subject:"text", look:"cinematic", lens:73, fstop:2.4, iso:1300, motion:1.75, hue:140 },
+    { id:141, scene:"space", subject:"robot", look:"handheld", lens:74, fstop:2.5, iso:1400, motion:1.85, hue:177 },
+    { id:142, scene:"ui", subject:"dragon", look:"drone", lens:75, fstop:2.6, iso:1500, motion:1.95, hue:214 },
+    { id:143, scene:"abstract", subject:"none", look:"macro", lens:76, fstop:2.7, iso:1600, motion:2.05, hue:251 },
+    { id:144, scene:"irl", subject:"person", look:"neon", lens:77, fstop:1.2, iso:100, motion:2.15, hue:288 },
+    { id:145, scene:"city", subject:"car", look:"rain", lens:78, fstop:1.3, iso:200, motion:2.25, hue:325 },
+    { id:146, scene:"room", subject:"animal", look:"fog", lens:79, fstop:1.4, iso:300, motion:2.35, hue:2 },
+    { id:147, scene:"nature", subject:"product", look:"dark", lens:80, fstop:1.5, iso:400, motion:2.45, hue:39 },
+    { id:148, scene:"ocean", subject:"ui", look:"bright", lens:81, fstop:1.6, iso:500, motion:2.55, hue:76 },
+    { id:149, scene:"space", subject:"text", look:"glitch", lens:82, fstop:1.7, iso:600, motion:2.65, hue:113 },
+    { id:150, scene:"ui", subject:"robot", look:"cinematic", lens:83, fstop:1.8, iso:700, motion:0.25, hue:150 },
+    { id:151, scene:"abstract", subject:"dragon", look:"handheld", lens:84, fstop:1.9, iso:800, motion:0.35, hue:187 },
+    { id:152, scene:"irl", subject:"none", look:"drone", lens:85, fstop:2.0, iso:900, motion:0.45, hue:224 },
+    { id:153, scene:"city", subject:"person", look:"macro", lens:86, fstop:2.1, iso:1000, motion:0.55, hue:261 },
+    { id:154, scene:"room", subject:"car", look:"neon", lens:87, fstop:2.2, iso:1100, motion:0.65, hue:298 },
+    { id:155, scene:"nature", subject:"animal", look:"rain", lens:88, fstop:2.3, iso:1200, motion:0.75, hue:335 },
+    { id:156, scene:"ocean", subject:"product", look:"fog", lens:89, fstop:2.4, iso:1300, motion:0.85, hue:12 },
+    { id:157, scene:"space", subject:"ui", look:"dark", lens:90, fstop:2.5, iso:1400, motion:0.95, hue:49 },
+    { id:158, scene:"ui", subject:"text", look:"bright", lens:91, fstop:2.6, iso:1500, motion:1.05, hue:86 },
+    { id:159, scene:"abstract", subject:"robot", look:"glitch", lens:92, fstop:2.7, iso:1600, motion:1.15, hue:123 },
+    { id:160, scene:"irl", subject:"dragon", look:"cinematic", lens:93, fstop:1.2, iso:100, motion:1.25, hue:160 },
+    { id:161, scene:"city", subject:"none", look:"handheld", lens:94, fstop:1.3, iso:200, motion:1.35, hue:197 },
+    { id:162, scene:"room", subject:"person", look:"drone", lens:95, fstop:1.4, iso:300, motion:1.45, hue:234 },
+    { id:163, scene:"nature", subject:"car", look:"macro", lens:96, fstop:1.5, iso:400, motion:1.55, hue:271 },
+    { id:164, scene:"ocean", subject:"animal", look:"neon", lens:97, fstop:1.6, iso:500, motion:1.65, hue:308 },
+    { id:165, scene:"space", subject:"product", look:"rain", lens:98, fstop:1.7, iso:600, motion:1.75, hue:345 },
+    { id:166, scene:"ui", subject:"ui", look:"fog", lens:99, fstop:1.8, iso:700, motion:1.85, hue:22 },
+    { id:167, scene:"abstract", subject:"text", look:"dark", lens:100, fstop:1.9, iso:800, motion:1.95, hue:59 },
+    { id:168, scene:"irl", subject:"robot", look:"bright", lens:101, fstop:2.0, iso:900, motion:2.05, hue:96 },
+    { id:169, scene:"city", subject:"dragon", look:"glitch", lens:102, fstop:2.1, iso:1000, motion:2.15, hue:133 },
+    { id:170, scene:"room", subject:"none", look:"cinematic", lens:18, fstop:2.2, iso:1100, motion:2.25, hue:170 },
+    { id:171, scene:"nature", subject:"person", look:"handheld", lens:19, fstop:2.3, iso:1200, motion:2.35, hue:207 },
+    { id:172, scene:"ocean", subject:"car", look:"drone", lens:20, fstop:2.4, iso:1300, motion:2.45, hue:244 },
+    { id:173, scene:"space", subject:"animal", look:"macro", lens:21, fstop:2.5, iso:1400, motion:2.55, hue:281 },
+    { id:174, scene:"ui", subject:"product", look:"neon", lens:22, fstop:2.6, iso:1500, motion:2.65, hue:318 },
+    { id:175, scene:"abstract", subject:"ui", look:"rain", lens:23, fstop:2.7, iso:1600, motion:0.25, hue:355 },
+    { id:176, scene:"irl", subject:"text", look:"fog", lens:24, fstop:1.2, iso:100, motion:0.35, hue:32 },
+    { id:177, scene:"city", subject:"robot", look:"dark", lens:25, fstop:1.3, iso:200, motion:0.45, hue:69 },
+    { id:178, scene:"room", subject:"dragon", look:"bright", lens:26, fstop:1.4, iso:300, motion:0.55, hue:106 },
+    { id:179, scene:"nature", subject:"none", look:"glitch", lens:27, fstop:1.5, iso:400, motion:0.65, hue:143 },
+    { id:180, scene:"ocean", subject:"person", look:"cinematic", lens:28, fstop:1.6, iso:500, motion:0.75, hue:180 },
+    { id:181, scene:"space", subject:"car", look:"handheld", lens:29, fstop:1.7, iso:600, motion:0.85, hue:217 },
+    { id:182, scene:"ui", subject:"animal", look:"drone", lens:30, fstop:1.8, iso:700, motion:0.95, hue:254 },
+    { id:183, scene:"abstract", subject:"product", look:"macro", lens:31, fstop:1.9, iso:800, motion:1.05, hue:291 },
+    { id:184, scene:"irl", subject:"ui", look:"neon", lens:32, fstop:2.0, iso:900, motion:1.15, hue:328 },
+    { id:185, scene:"city", subject:"text", look:"rain", lens:33, fstop:2.1, iso:1000, motion:1.25, hue:5 },
+    { id:186, scene:"room", subject:"robot", look:"fog", lens:34, fstop:2.2, iso:1100, motion:1.35, hue:42 },
+    { id:187, scene:"nature", subject:"dragon", look:"dark", lens:35, fstop:2.3, iso:1200, motion:1.45, hue:79 },
+    { id:188, scene:"ocean", subject:"none", look:"bright", lens:36, fstop:2.4, iso:1300, motion:1.55, hue:116 },
+    { id:189, scene:"space", subject:"person", look:"glitch", lens:37, fstop:2.5, iso:1400, motion:1.65, hue:153 },
+    { id:190, scene:"ui", subject:"car", look:"cinematic", lens:38, fstop:2.6, iso:1500, motion:1.75, hue:190 },
+    { id:191, scene:"abstract", subject:"animal", look:"handheld", lens:39, fstop:2.7, iso:1600, motion:1.85, hue:227 },
+    { id:192, scene:"irl", subject:"product", look:"drone", lens:40, fstop:1.2, iso:100, motion:1.95, hue:264 },
+    { id:193, scene:"city", subject:"ui", look:"macro", lens:41, fstop:1.3, iso:200, motion:2.05, hue:301 },
+    { id:194, scene:"room", subject:"text", look:"neon", lens:42, fstop:1.4, iso:300, motion:2.15, hue:338 },
+    { id:195, scene:"nature", subject:"robot", look:"rain", lens:43, fstop:1.5, iso:400, motion:2.25, hue:15 },
+    { id:196, scene:"ocean", subject:"dragon", look:"fog", lens:44, fstop:1.6, iso:500, motion:2.35, hue:52 },
+    { id:197, scene:"space", subject:"none", look:"dark", lens:45, fstop:1.7, iso:600, motion:2.45, hue:89 },
+    { id:198, scene:"ui", subject:"person", look:"bright", lens:46, fstop:1.8, iso:700, motion:2.55, hue:126 },
+    { id:199, scene:"abstract", subject:"car", look:"glitch", lens:47, fstop:1.9, iso:800, motion:2.65, hue:163 },
+    { id:200, scene:"irl", subject:"animal", look:"cinematic", lens:48, fstop:2.0, iso:900, motion:0.25, hue:200 },
+    { id:201, scene:"city", subject:"product", look:"handheld", lens:49, fstop:2.1, iso:1000, motion:0.35, hue:237 },
+    { id:202, scene:"room", subject:"ui", look:"drone", lens:50, fstop:2.2, iso:1100, motion:0.45, hue:274 },
+    { id:203, scene:"nature", subject:"text", look:"macro", lens:51, fstop:2.3, iso:1200, motion:0.55, hue:311 },
+    { id:204, scene:"ocean", subject:"robot", look:"neon", lens:52, fstop:2.4, iso:1300, motion:0.65, hue:348 },
+    { id:205, scene:"space", subject:"dragon", look:"rain", lens:53, fstop:2.5, iso:1400, motion:0.75, hue:25 },
+    { id:206, scene:"ui", subject:"none", look:"fog", lens:54, fstop:2.6, iso:1500, motion:0.85, hue:62 },
+    { id:207, scene:"abstract", subject:"person", look:"dark", lens:55, fstop:2.7, iso:1600, motion:0.95, hue:99 },
+    { id:208, scene:"irl", subject:"car", look:"bright", lens:56, fstop:1.2, iso:100, motion:1.05, hue:136 },
+    { id:209, scene:"city", subject:"animal", look:"glitch", lens:57, fstop:1.3, iso:200, motion:1.15, hue:173 },
+    { id:210, scene:"room", subject:"product", look:"cinematic", lens:58, fstop:1.4, iso:300, motion:1.25, hue:210 },
+    { id:211, scene:"nature", subject:"ui", look:"handheld", lens:59, fstop:1.5, iso:400, motion:1.35, hue:247 },
+    { id:212, scene:"ocean", subject:"text", look:"drone", lens:60, fstop:1.6, iso:500, motion:1.45, hue:284 },
+    { id:213, scene:"space", subject:"robot", look:"macro", lens:61, fstop:1.7, iso:600, motion:1.55, hue:321 },
+    { id:214, scene:"ui", subject:"dragon", look:"neon", lens:62, fstop:1.8, iso:700, motion:1.65, hue:358 },
+    { id:215, scene:"abstract", subject:"none", look:"rain", lens:63, fstop:1.9, iso:800, motion:1.75, hue:35 },
+    { id:216, scene:"irl", subject:"person", look:"fog", lens:64, fstop:2.0, iso:900, motion:1.85, hue:72 },
+    { id:217, scene:"city", subject:"car", look:"dark", lens:65, fstop:2.1, iso:1000, motion:1.95, hue:109 },
+    { id:218, scene:"room", subject:"animal", look:"bright", lens:66, fstop:2.2, iso:1100, motion:2.05, hue:146 },
+    { id:219, scene:"nature", subject:"product", look:"glitch", lens:67, fstop:2.3, iso:1200, motion:2.15, hue:183 },
+    { id:220, scene:"ocean", subject:"ui", look:"cinematic", lens:68, fstop:2.4, iso:1300, motion:2.25, hue:220 },
+    { id:221, scene:"space", subject:"text", look:"handheld", lens:69, fstop:2.5, iso:1400, motion:2.35, hue:257 },
+    { id:222, scene:"ui", subject:"robot", look:"drone", lens:70, fstop:2.6, iso:1500, motion:2.45, hue:294 },
+    { id:223, scene:"abstract", subject:"dragon", look:"macro", lens:71, fstop:2.7, iso:1600, motion:2.55, hue:331 },
+    { id:224, scene:"irl", subject:"none", look:"neon", lens:72, fstop:1.2, iso:100, motion:2.65, hue:8 },
+    { id:225, scene:"city", subject:"person", look:"rain", lens:73, fstop:1.3, iso:200, motion:0.25, hue:45 },
+    { id:226, scene:"room", subject:"car", look:"fog", lens:74, fstop:1.4, iso:300, motion:0.35, hue:82 },
+    { id:227, scene:"nature", subject:"animal", look:"dark", lens:75, fstop:1.5, iso:400, motion:0.45, hue:119 },
+    { id:228, scene:"ocean", subject:"product", look:"bright", lens:76, fstop:1.6, iso:500, motion:0.55, hue:156 },
+    { id:229, scene:"space", subject:"ui", look:"glitch", lens:77, fstop:1.7, iso:600, motion:0.65, hue:193 },
+    { id:230, scene:"ui", subject:"text", look:"cinematic", lens:78, fstop:1.8, iso:700, motion:0.75, hue:230 },
+    { id:231, scene:"abstract", subject:"robot", look:"handheld", lens:79, fstop:1.9, iso:800, motion:0.85, hue:267 },
+    { id:232, scene:"irl", subject:"dragon", look:"drone", lens:80, fstop:2.0, iso:900, motion:0.95, hue:304 },
+    { id:233, scene:"city", subject:"none", look:"macro", lens:81, fstop:2.1, iso:1000, motion:1.05, hue:341 },
+    { id:234, scene:"room", subject:"person", look:"neon", lens:82, fstop:2.2, iso:1100, motion:1.15, hue:18 },
+    { id:235, scene:"nature", subject:"car", look:"rain", lens:83, fstop:2.3, iso:1200, motion:1.25, hue:55 },
+    { id:236, scene:"ocean", subject:"animal", look:"fog", lens:84, fstop:2.4, iso:1300, motion:1.35, hue:92 },
+    { id:237, scene:"space", subject:"product", look:"dark", lens:85, fstop:2.5, iso:1400, motion:1.45, hue:129 },
+    { id:238, scene:"ui", subject:"ui", look:"bright", lens:86, fstop:2.6, iso:1500, motion:1.55, hue:166 },
+    { id:239, scene:"abstract", subject:"text", look:"glitch", lens:87, fstop:2.7, iso:1600, motion:1.65, hue:203 },
+    { id:240, scene:"irl", subject:"robot", look:"cinematic", lens:88, fstop:1.2, iso:100, motion:1.75, hue:240 },
+    { id:241, scene:"city", subject:"dragon", look:"handheld", lens:89, fstop:1.3, iso:200, motion:1.85, hue:277 },
+    { id:242, scene:"room", subject:"none", look:"drone", lens:90, fstop:1.4, iso:300, motion:1.95, hue:314 },
+    { id:243, scene:"nature", subject:"person", look:"macro", lens:91, fstop:1.5, iso:400, motion:2.05, hue:351 },
+    { id:244, scene:"ocean", subject:"car", look:"neon", lens:92, fstop:1.6, iso:500, motion:2.15, hue:28 },
+    { id:245, scene:"space", subject:"animal", look:"rain", lens:93, fstop:1.7, iso:600, motion:2.25, hue:65 },
+    { id:246, scene:"ui", subject:"product", look:"fog", lens:94, fstop:1.8, iso:700, motion:2.35, hue:102 },
+    { id:247, scene:"abstract", subject:"ui", look:"dark", lens:95, fstop:1.9, iso:800, motion:2.45, hue:139 },
+    { id:248, scene:"irl", subject:"text", look:"bright", lens:96, fstop:2.0, iso:900, motion:2.55, hue:176 },
+    { id:249, scene:"city", subject:"robot", look:"glitch", lens:97, fstop:2.1, iso:1000, motion:2.65, hue:213 },
+    { id:250, scene:"room", subject:"dragon", look:"cinematic", lens:98, fstop:2.2, iso:1100, motion:0.25, hue:250 },
+    { id:251, scene:"nature", subject:"none", look:"handheld", lens:99, fstop:2.3, iso:1200, motion:0.35, hue:287 },
+    { id:252, scene:"ocean", subject:"person", look:"drone", lens:100, fstop:2.4, iso:1300, motion:0.45, hue:324 },
+    { id:253, scene:"space", subject:"car", look:"macro", lens:101, fstop:2.5, iso:1400, motion:0.55, hue:1 },
+    { id:254, scene:"ui", subject:"animal", look:"neon", lens:102, fstop:2.6, iso:1500, motion:0.65, hue:38 },
+    { id:255, scene:"abstract", subject:"product", look:"rain", lens:18, fstop:2.7, iso:1600, motion:0.75, hue:75 },
+    { id:256, scene:"irl", subject:"ui", look:"fog", lens:19, fstop:1.2, iso:100, motion:0.85, hue:112 },
+    { id:257, scene:"city", subject:"text", look:"dark", lens:20, fstop:1.3, iso:200, motion:0.95, hue:149 },
+    { id:258, scene:"room", subject:"robot", look:"bright", lens:21, fstop:1.4, iso:300, motion:1.05, hue:186 },
+    { id:259, scene:"nature", subject:"dragon", look:"glitch", lens:22, fstop:1.5, iso:400, motion:1.15, hue:223 },
+    { id:260, scene:"ocean", subject:"none", look:"cinematic", lens:23, fstop:1.6, iso:500, motion:1.25, hue:260 },
+    { id:261, scene:"space", subject:"person", look:"handheld", lens:24, fstop:1.7, iso:600, motion:1.35, hue:297 },
+    { id:262, scene:"ui", subject:"car", look:"drone", lens:25, fstop:1.8, iso:700, motion:1.45, hue:334 },
+    { id:263, scene:"abstract", subject:"animal", look:"macro", lens:26, fstop:1.9, iso:800, motion:1.55, hue:11 },
+    { id:264, scene:"irl", subject:"product", look:"neon", lens:27, fstop:2.0, iso:900, motion:1.65, hue:48 },
+    { id:265, scene:"city", subject:"ui", look:"rain", lens:28, fstop:2.1, iso:1000, motion:1.75, hue:85 },
+    { id:266, scene:"room", subject:"text", look:"fog", lens:29, fstop:2.2, iso:1100, motion:1.85, hue:122 },
+    { id:267, scene:"nature", subject:"robot", look:"dark", lens:30, fstop:2.3, iso:1200, motion:1.95, hue:159 },
+    { id:268, scene:"ocean", subject:"dragon", look:"bright", lens:31, fstop:2.4, iso:1300, motion:2.05, hue:196 },
+    { id:269, scene:"space", subject:"none", look:"glitch", lens:32, fstop:2.5, iso:1400, motion:2.15, hue:233 },
+    { id:270, scene:"ui", subject:"person", look:"cinematic", lens:33, fstop:2.6, iso:1500, motion:2.25, hue:270 },
+    { id:271, scene:"abstract", subject:"car", look:"handheld", lens:34, fstop:2.7, iso:1600, motion:2.35, hue:307 },
+    { id:272, scene:"irl", subject:"animal", look:"drone", lens:35, fstop:1.2, iso:100, motion:2.45, hue:344 },
+    { id:273, scene:"city", subject:"product", look:"macro", lens:36, fstop:1.3, iso:200, motion:2.55, hue:21 },
+    { id:274, scene:"room", subject:"ui", look:"neon", lens:37, fstop:1.4, iso:300, motion:2.65, hue:58 },
+    { id:275, scene:"nature", subject:"text", look:"rain", lens:38, fstop:1.5, iso:400, motion:0.25, hue:95 },
+    { id:276, scene:"ocean", subject:"robot", look:"fog", lens:39, fstop:1.6, iso:500, motion:0.35, hue:132 },
+    { id:277, scene:"space", subject:"dragon", look:"dark", lens:40, fstop:1.7, iso:600, motion:0.45, hue:169 },
+    { id:278, scene:"ui", subject:"none", look:"bright", lens:41, fstop:1.8, iso:700, motion:0.55, hue:206 },
+    { id:279, scene:"abstract", subject:"person", look:"glitch", lens:42, fstop:1.9, iso:800, motion:0.65, hue:243 },
+    { id:280, scene:"irl", subject:"car", look:"cinematic", lens:43, fstop:2.0, iso:900, motion:0.75, hue:280 },
+    { id:281, scene:"city", subject:"animal", look:"handheld", lens:44, fstop:2.1, iso:1000, motion:0.85, hue:317 },
+    { id:282, scene:"room", subject:"product", look:"drone", lens:45, fstop:2.2, iso:1100, motion:0.95, hue:354 },
+    { id:283, scene:"nature", subject:"ui", look:"macro", lens:46, fstop:2.3, iso:1200, motion:1.05, hue:31 },
+    { id:284, scene:"ocean", subject:"text", look:"neon", lens:47, fstop:2.4, iso:1300, motion:1.15, hue:68 },
+    { id:285, scene:"space", subject:"robot", look:"rain", lens:48, fstop:2.5, iso:1400, motion:1.25, hue:105 },
+    { id:286, scene:"ui", subject:"dragon", look:"fog", lens:49, fstop:2.6, iso:1500, motion:1.35, hue:142 },
+    { id:287, scene:"abstract", subject:"none", look:"dark", lens:50, fstop:2.7, iso:1600, motion:1.45, hue:179 },
+    { id:288, scene:"irl", subject:"person", look:"bright", lens:51, fstop:1.2, iso:100, motion:1.55, hue:216 },
+    { id:289, scene:"city", subject:"car", look:"glitch", lens:52, fstop:1.3, iso:200, motion:1.65, hue:253 },
+    { id:290, scene:"room", subject:"animal", look:"cinematic", lens:53, fstop:1.4, iso:300, motion:1.75, hue:290 },
+    { id:291, scene:"nature", subject:"product", look:"handheld", lens:54, fstop:1.5, iso:400, motion:1.85, hue:327 },
+    { id:292, scene:"ocean", subject:"ui", look:"drone", lens:55, fstop:1.6, iso:500, motion:1.95, hue:4 },
+    { id:293, scene:"space", subject:"text", look:"macro", lens:56, fstop:1.7, iso:600, motion:2.05, hue:41 },
+    { id:294, scene:"ui", subject:"robot", look:"neon", lens:57, fstop:1.8, iso:700, motion:2.15, hue:78 },
+    { id:295, scene:"abstract", subject:"dragon", look:"rain", lens:58, fstop:1.9, iso:800, motion:2.25, hue:115 },
+    { id:296, scene:"irl", subject:"none", look:"fog", lens:59, fstop:2.0, iso:900, motion:2.35, hue:152 },
+    { id:297, scene:"city", subject:"person", look:"dark", lens:60, fstop:2.1, iso:1000, motion:2.45, hue:189 },
+    { id:298, scene:"room", subject:"car", look:"bright", lens:61, fstop:2.2, iso:1100, motion:2.55, hue:226 },
+    { id:299, scene:"nature", subject:"animal", look:"glitch", lens:62, fstop:2.3, iso:1200, motion:2.65, hue:263 },
+    { id:300, scene:"ocean", subject:"product", look:"cinematic", lens:63, fstop:2.4, iso:1300, motion:0.25, hue:300 },
+    { id:301, scene:"space", subject:"ui", look:"handheld", lens:64, fstop:2.5, iso:1400, motion:0.35, hue:337 },
+    { id:302, scene:"ui", subject:"text", look:"drone", lens:65, fstop:2.6, iso:1500, motion:0.45, hue:14 },
+    { id:303, scene:"abstract", subject:"robot", look:"macro", lens:66, fstop:2.7, iso:1600, motion:0.55, hue:51 },
+    { id:304, scene:"irl", subject:"dragon", look:"neon", lens:67, fstop:1.2, iso:100, motion:0.65, hue:88 },
+    { id:305, scene:"city", subject:"none", look:"rain", lens:68, fstop:1.3, iso:200, motion:0.75, hue:125 },
+    { id:306, scene:"room", subject:"person", look:"fog", lens:69, fstop:1.4, iso:300, motion:0.85, hue:162 },
+    { id:307, scene:"nature", subject:"car", look:"dark", lens:70, fstop:1.5, iso:400, motion:0.95, hue:199 },
+    { id:308, scene:"ocean", subject:"animal", look:"bright", lens:71, fstop:1.6, iso:500, motion:1.05, hue:236 },
+    { id:309, scene:"space", subject:"product", look:"glitch", lens:72, fstop:1.7, iso:600, motion:1.15, hue:273 },
+    { id:310, scene:"ui", subject:"ui", look:"cinematic", lens:73, fstop:1.8, iso:700, motion:1.25, hue:310 },
+    { id:311, scene:"abstract", subject:"text", look:"handheld", lens:74, fstop:1.9, iso:800, motion:1.35, hue:347 },
+    { id:312, scene:"irl", subject:"robot", look:"drone", lens:75, fstop:2.0, iso:900, motion:1.45, hue:24 },
+    { id:313, scene:"city", subject:"dragon", look:"macro", lens:76, fstop:2.1, iso:1000, motion:1.55, hue:61 },
+    { id:314, scene:"room", subject:"none", look:"neon", lens:77, fstop:2.2, iso:1100, motion:1.65, hue:98 },
+    { id:315, scene:"nature", subject:"person", look:"rain", lens:78, fstop:2.3, iso:1200, motion:1.75, hue:135 },
+    { id:316, scene:"ocean", subject:"car", look:"fog", lens:79, fstop:2.4, iso:1300, motion:1.85, hue:172 },
+    { id:317, scene:"space", subject:"animal", look:"dark", lens:80, fstop:2.5, iso:1400, motion:1.95, hue:209 },
+    { id:318, scene:"ui", subject:"product", look:"bright", lens:81, fstop:2.6, iso:1500, motion:2.05, hue:246 },
+    { id:319, scene:"abstract", subject:"ui", look:"glitch", lens:82, fstop:2.7, iso:1600, motion:2.15, hue:283 },
+    { id:320, scene:"irl", subject:"text", look:"cinematic", lens:83, fstop:1.2, iso:100, motion:2.25, hue:320 },
+    { id:321, scene:"city", subject:"robot", look:"handheld", lens:84, fstop:1.3, iso:200, motion:2.35, hue:357 },
+    { id:322, scene:"room", subject:"dragon", look:"drone", lens:85, fstop:1.4, iso:300, motion:2.45, hue:34 },
+    { id:323, scene:"nature", subject:"none", look:"macro", lens:86, fstop:1.5, iso:400, motion:2.55, hue:71 },
+    { id:324, scene:"ocean", subject:"person", look:"neon", lens:87, fstop:1.6, iso:500, motion:2.65, hue:108 },
+    { id:325, scene:"space", subject:"car", look:"rain", lens:88, fstop:1.7, iso:600, motion:0.25, hue:145 },
+    { id:326, scene:"ui", subject:"animal", look:"fog", lens:89, fstop:1.8, iso:700, motion:0.35, hue:182 },
+    { id:327, scene:"abstract", subject:"product", look:"dark", lens:90, fstop:1.9, iso:800, motion:0.45, hue:219 },
+    { id:328, scene:"irl", subject:"ui", look:"bright", lens:91, fstop:2.0, iso:900, motion:0.55, hue:256 },
+    { id:329, scene:"city", subject:"text", look:"glitch", lens:92, fstop:2.1, iso:1000, motion:0.65, hue:293 },
+    { id:330, scene:"room", subject:"robot", look:"cinematic", lens:93, fstop:2.2, iso:1100, motion:0.75, hue:330 },
+    { id:331, scene:"nature", subject:"dragon", look:"handheld", lens:94, fstop:2.3, iso:1200, motion:0.85, hue:7 },
+    { id:332, scene:"ocean", subject:"none", look:"drone", lens:95, fstop:2.4, iso:1300, motion:0.95, hue:44 },
+    { id:333, scene:"space", subject:"person", look:"macro", lens:96, fstop:2.5, iso:1400, motion:1.05, hue:81 },
+    { id:334, scene:"ui", subject:"car", look:"neon", lens:97, fstop:2.6, iso:1500, motion:1.15, hue:118 },
+    { id:335, scene:"abstract", subject:"animal", look:"rain", lens:98, fstop:2.7, iso:1600, motion:1.25, hue:155 },
+    { id:336, scene:"irl", subject:"product", look:"fog", lens:99, fstop:1.2, iso:100, motion:1.35, hue:192 },
+    { id:337, scene:"city", subject:"ui", look:"dark", lens:100, fstop:1.3, iso:200, motion:1.45, hue:229 },
+    { id:338, scene:"room", subject:"text", look:"bright", lens:101, fstop:1.4, iso:300, motion:1.55, hue:266 },
+    { id:339, scene:"nature", subject:"robot", look:"glitch", lens:102, fstop:1.5, iso:400, motion:1.65, hue:303 },
+    { id:340, scene:"ocean", subject:"dragon", look:"cinematic", lens:18, fstop:1.6, iso:500, motion:1.75, hue:340 },
+    { id:341, scene:"space", subject:"none", look:"handheld", lens:19, fstop:1.7, iso:600, motion:1.85, hue:17 },
+    { id:342, scene:"ui", subject:"person", look:"drone", lens:20, fstop:1.8, iso:700, motion:1.95, hue:54 },
+    { id:343, scene:"abstract", subject:"car", look:"macro", lens:21, fstop:1.9, iso:800, motion:2.05, hue:91 },
+    { id:344, scene:"irl", subject:"animal", look:"neon", lens:22, fstop:2.0, iso:900, motion:2.15, hue:128 },
+    { id:345, scene:"city", subject:"product", look:"rain", lens:23, fstop:2.1, iso:1000, motion:2.25, hue:165 },
+    { id:346, scene:"room", subject:"ui", look:"fog", lens:24, fstop:2.2, iso:1100, motion:2.35, hue:202 },
+    { id:347, scene:"nature", subject:"text", look:"dark", lens:25, fstop:2.3, iso:1200, motion:2.45, hue:239 },
+    { id:348, scene:"ocean", subject:"robot", look:"bright", lens:26, fstop:2.4, iso:1300, motion:2.55, hue:276 },
+    { id:349, scene:"space", subject:"dragon", look:"glitch", lens:27, fstop:2.5, iso:1400, motion:2.65, hue:313 },
+    { id:350, scene:"ui", subject:"none", look:"cinematic", lens:28, fstop:2.6, iso:1500, motion:0.25, hue:350 },
+    { id:351, scene:"abstract", subject:"person", look:"handheld", lens:29, fstop:2.7, iso:1600, motion:0.35, hue:27 },
+    { id:352, scene:"irl", subject:"car", look:"drone", lens:30, fstop:1.2, iso:100, motion:0.45, hue:64 },
+    { id:353, scene:"city", subject:"animal", look:"macro", lens:31, fstop:1.3, iso:200, motion:0.55, hue:101 },
+    { id:354, scene:"room", subject:"product", look:"neon", lens:32, fstop:1.4, iso:300, motion:0.65, hue:138 },
+    { id:355, scene:"nature", subject:"ui", look:"rain", lens:33, fstop:1.5, iso:400, motion:0.75, hue:175 },
+    { id:356, scene:"ocean", subject:"text", look:"fog", lens:34, fstop:1.6, iso:500, motion:0.85, hue:212 },
+    { id:357, scene:"space", subject:"robot", look:"dark", lens:35, fstop:1.7, iso:600, motion:0.95, hue:249 },
+    { id:358, scene:"ui", subject:"dragon", look:"bright", lens:36, fstop:1.8, iso:700, motion:1.05, hue:286 },
+    { id:359, scene:"abstract", subject:"none", look:"glitch", lens:37, fstop:1.9, iso:800, motion:1.15, hue:323 },
+    { id:360, scene:"irl", subject:"person", look:"cinematic", lens:38, fstop:2.0, iso:900, motion:1.25, hue:0 },
+    { id:361, scene:"city", subject:"car", look:"handheld", lens:39, fstop:2.1, iso:1000, motion:1.35, hue:37 },
+    { id:362, scene:"room", subject:"animal", look:"drone", lens:40, fstop:2.2, iso:1100, motion:1.45, hue:74 },
+    { id:363, scene:"nature", subject:"product", look:"macro", lens:41, fstop:2.3, iso:1200, motion:1.55, hue:111 },
+    { id:364, scene:"ocean", subject:"ui", look:"neon", lens:42, fstop:2.4, iso:1300, motion:1.65, hue:148 },
+    { id:365, scene:"space", subject:"text", look:"rain", lens:43, fstop:2.5, iso:1400, motion:1.75, hue:185 },
+    { id:366, scene:"ui", subject:"robot", look:"fog", lens:44, fstop:2.6, iso:1500, motion:1.85, hue:222 },
+    { id:367, scene:"abstract", subject:"dragon", look:"dark", lens:45, fstop:2.7, iso:1600, motion:1.95, hue:259 },
+    { id:368, scene:"irl", subject:"none", look:"bright", lens:46, fstop:1.2, iso:100, motion:2.05, hue:296 },
+    { id:369, scene:"city", subject:"person", look:"glitch", lens:47, fstop:1.3, iso:200, motion:2.15, hue:333 },
+    { id:370, scene:"room", subject:"car", look:"cinematic", lens:48, fstop:1.4, iso:300, motion:2.25, hue:10 },
+    { id:371, scene:"nature", subject:"animal", look:"handheld", lens:49, fstop:1.5, iso:400, motion:2.35, hue:47 },
+    { id:372, scene:"ocean", subject:"product", look:"drone", lens:50, fstop:1.6, iso:500, motion:2.45, hue:84 },
+    { id:373, scene:"space", subject:"ui", look:"macro", lens:51, fstop:1.7, iso:600, motion:2.55, hue:121 },
+    { id:374, scene:"ui", subject:"text", look:"neon", lens:52, fstop:1.8, iso:700, motion:2.65, hue:158 },
+    { id:375, scene:"abstract", subject:"robot", look:"rain", lens:53, fstop:1.9, iso:800, motion:0.25, hue:195 },
+    { id:376, scene:"irl", subject:"dragon", look:"fog", lens:54, fstop:2.0, iso:900, motion:0.35, hue:232 },
+    { id:377, scene:"city", subject:"none", look:"dark", lens:55, fstop:2.1, iso:1000, motion:0.45, hue:269 },
+    { id:378, scene:"room", subject:"person", look:"bright", lens:56, fstop:2.2, iso:1100, motion:0.55, hue:306 },
+    { id:379, scene:"nature", subject:"car", look:"glitch", lens:57, fstop:2.3, iso:1200, motion:0.65, hue:343 },
+    { id:380, scene:"ocean", subject:"animal", look:"cinematic", lens:58, fstop:2.4, iso:1300, motion:0.75, hue:20 },
+    { id:381, scene:"space", subject:"product", look:"handheld", lens:59, fstop:2.5, iso:1400, motion:0.85, hue:57 },
+    { id:382, scene:"ui", subject:"ui", look:"drone", lens:60, fstop:2.6, iso:1500, motion:0.95, hue:94 },
+    { id:383, scene:"abstract", subject:"text", look:"macro", lens:61, fstop:2.7, iso:1600, motion:1.05, hue:131 },
+    { id:384, scene:"irl", subject:"robot", look:"neon", lens:62, fstop:1.2, iso:100, motion:1.15, hue:168 },
+    { id:385, scene:"city", subject:"dragon", look:"rain", lens:63, fstop:1.3, iso:200, motion:1.25, hue:205 },
+    { id:386, scene:"room", subject:"none", look:"fog", lens:64, fstop:1.4, iso:300, motion:1.35, hue:242 },
+    { id:387, scene:"nature", subject:"person", look:"dark", lens:65, fstop:1.5, iso:400, motion:1.45, hue:279 },
+    { id:388, scene:"ocean", subject:"car", look:"bright", lens:66, fstop:1.6, iso:500, motion:1.55, hue:316 },
+    { id:389, scene:"space", subject:"animal", look:"glitch", lens:67, fstop:1.7, iso:600, motion:1.65, hue:353 },
+    { id:390, scene:"ui", subject:"product", look:"cinematic", lens:68, fstop:1.8, iso:700, motion:1.75, hue:30 },
+    { id:391, scene:"abstract", subject:"ui", look:"handheld", lens:69, fstop:1.9, iso:800, motion:1.85, hue:67 },
+    { id:392, scene:"irl", subject:"text", look:"drone", lens:70, fstop:2.0, iso:900, motion:1.95, hue:104 },
+    { id:393, scene:"city", subject:"robot", look:"macro", lens:71, fstop:2.1, iso:1000, motion:2.05, hue:141 },
+    { id:394, scene:"room", subject:"dragon", look:"neon", lens:72, fstop:2.2, iso:1100, motion:2.15, hue:178 },
+    { id:395, scene:"nature", subject:"none", look:"rain", lens:73, fstop:2.3, iso:1200, motion:2.25, hue:215 },
+    { id:396, scene:"ocean", subject:"person", look:"fog", lens:74, fstop:2.4, iso:1300, motion:2.35, hue:252 },
+    { id:397, scene:"space", subject:"car", look:"dark", lens:75, fstop:2.5, iso:1400, motion:2.45, hue:289 },
+    { id:398, scene:"ui", subject:"animal", look:"bright", lens:76, fstop:2.6, iso:1500, motion:2.55, hue:326 },
+    { id:399, scene:"abstract", subject:"product", look:"glitch", lens:77, fstop:2.7, iso:1600, motion:2.65, hue:3 },
+    { id:400, scene:"irl", subject:"ui", look:"cinematic", lens:78, fstop:1.2, iso:100, motion:0.25, hue:40 },
+    { id:401, scene:"city", subject:"text", look:"handheld", lens:79, fstop:1.3, iso:200, motion:0.35, hue:77 },
+    { id:402, scene:"room", subject:"robot", look:"drone", lens:80, fstop:1.4, iso:300, motion:0.45, hue:114 },
+    { id:403, scene:"nature", subject:"dragon", look:"macro", lens:81, fstop:1.5, iso:400, motion:0.55, hue:151 },
+    { id:404, scene:"ocean", subject:"none", look:"neon", lens:82, fstop:1.6, iso:500, motion:0.65, hue:188 },
+    { id:405, scene:"space", subject:"person", look:"rain", lens:83, fstop:1.7, iso:600, motion:0.75, hue:225 },
+    { id:406, scene:"ui", subject:"car", look:"fog", lens:84, fstop:1.8, iso:700, motion:0.85, hue:262 },
+    { id:407, scene:"abstract", subject:"animal", look:"dark", lens:85, fstop:1.9, iso:800, motion:0.95, hue:299 },
+    { id:408, scene:"irl", subject:"product", look:"bright", lens:86, fstop:2.0, iso:900, motion:1.05, hue:336 },
+    { id:409, scene:"city", subject:"ui", look:"glitch", lens:87, fstop:2.1, iso:1000, motion:1.15, hue:13 },
+    { id:410, scene:"room", subject:"text", look:"cinematic", lens:88, fstop:2.2, iso:1100, motion:1.25, hue:50 },
+    { id:411, scene:"nature", subject:"robot", look:"handheld", lens:89, fstop:2.3, iso:1200, motion:1.35, hue:87 },
+    { id:412, scene:"ocean", subject:"dragon", look:"drone", lens:90, fstop:2.4, iso:1300, motion:1.45, hue:124 },
+    { id:413, scene:"space", subject:"none", look:"macro", lens:91, fstop:2.5, iso:1400, motion:1.55, hue:161 },
+    { id:414, scene:"ui", subject:"person", look:"neon", lens:92, fstop:2.6, iso:1500, motion:1.65, hue:198 },
+    { id:415, scene:"abstract", subject:"car", look:"rain", lens:93, fstop:2.7, iso:1600, motion:1.75, hue:235 },
+    { id:416, scene:"irl", subject:"animal", look:"fog", lens:94, fstop:1.2, iso:100, motion:1.85, hue:272 },
+    { id:417, scene:"city", subject:"product", look:"dark", lens:95, fstop:1.3, iso:200, motion:1.95, hue:309 },
+    { id:418, scene:"room", subject:"ui", look:"bright", lens:96, fstop:1.4, iso:300, motion:2.05, hue:346 },
+    { id:419, scene:"nature", subject:"text", look:"glitch", lens:97, fstop:1.5, iso:400, motion:2.15, hue:23 },
+    { id:420, scene:"ocean", subject:"robot", look:"cinematic", lens:98, fstop:1.6, iso:500, motion:2.25, hue:60 },
+    { id:421, scene:"space", subject:"dragon", look:"handheld", lens:99, fstop:1.7, iso:600, motion:2.35, hue:97 },
+    { id:422, scene:"ui", subject:"none", look:"drone", lens:100, fstop:1.8, iso:700, motion:2.45, hue:134 },
+    { id:423, scene:"abstract", subject:"person", look:"macro", lens:101, fstop:1.9, iso:800, motion:2.55, hue:171 },
+    { id:424, scene:"irl", subject:"car", look:"neon", lens:102, fstop:2.0, iso:900, motion:2.65, hue:208 },
+    { id:425, scene:"city", subject:"animal", look:"rain", lens:18, fstop:2.1, iso:1000, motion:0.25, hue:245 },
+    { id:426, scene:"room", subject:"product", look:"fog", lens:19, fstop:2.2, iso:1100, motion:0.35, hue:282 },
+    { id:427, scene:"nature", subject:"ui", look:"dark", lens:20, fstop:2.3, iso:1200, motion:0.45, hue:319 },
+    { id:428, scene:"ocean", subject:"text", look:"bright", lens:21, fstop:2.4, iso:1300, motion:0.55, hue:356 },
+    { id:429, scene:"space", subject:"robot", look:"glitch", lens:22, fstop:2.5, iso:1400, motion:0.65, hue:33 },
+    { id:430, scene:"ui", subject:"dragon", look:"cinematic", lens:23, fstop:2.6, iso:1500, motion:0.75, hue:70 },
+    { id:431, scene:"abstract", subject:"none", look:"handheld", lens:24, fstop:2.7, iso:1600, motion:0.85, hue:107 },
+    { id:432, scene:"irl", subject:"person", look:"drone", lens:25, fstop:1.2, iso:100, motion:0.95, hue:144 },
+    { id:433, scene:"city", subject:"car", look:"macro", lens:26, fstop:1.3, iso:200, motion:1.05, hue:181 },
+    { id:434, scene:"room", subject:"animal", look:"neon", lens:27, fstop:1.4, iso:300, motion:1.15, hue:218 },
+    { id:435, scene:"nature", subject:"product", look:"rain", lens:28, fstop:1.5, iso:400, motion:1.25, hue:255 },
+    { id:436, scene:"ocean", subject:"ui", look:"fog", lens:29, fstop:1.6, iso:500, motion:1.35, hue:292 },
+    { id:437, scene:"space", subject:"text", look:"dark", lens:30, fstop:1.7, iso:600, motion:1.45, hue:329 },
+    { id:438, scene:"ui", subject:"robot", look:"bright", lens:31, fstop:1.8, iso:700, motion:1.55, hue:6 },
+    { id:439, scene:"abstract", subject:"dragon", look:"glitch", lens:32, fstop:1.9, iso:800, motion:1.65, hue:43 },
+    { id:440, scene:"irl", subject:"none", look:"cinematic", lens:33, fstop:2.0, iso:900, motion:1.75, hue:80 },
+    { id:441, scene:"city", subject:"person", look:"handheld", lens:34, fstop:2.1, iso:1000, motion:1.85, hue:117 },
+    { id:442, scene:"room", subject:"car", look:"drone", lens:35, fstop:2.2, iso:1100, motion:1.95, hue:154 },
+    { id:443, scene:"nature", subject:"animal", look:"macro", lens:36, fstop:2.3, iso:1200, motion:2.05, hue:191 },
+    { id:444, scene:"ocean", subject:"product", look:"neon", lens:37, fstop:2.4, iso:1300, motion:2.15, hue:228 },
+    { id:445, scene:"space", subject:"ui", look:"rain", lens:38, fstop:2.5, iso:1400, motion:2.25, hue:265 },
+    { id:446, scene:"ui", subject:"text", look:"fog", lens:39, fstop:2.6, iso:1500, motion:2.35, hue:302 },
+    { id:447, scene:"abstract", subject:"robot", look:"dark", lens:40, fstop:2.7, iso:1600, motion:2.45, hue:339 },
+    { id:448, scene:"irl", subject:"dragon", look:"bright", lens:41, fstop:1.2, iso:100, motion:2.55, hue:16 },
+    { id:449, scene:"city", subject:"none", look:"glitch", lens:42, fstop:1.3, iso:200, motion:2.65, hue:53 },
+    { id:450, scene:"room", subject:"person", look:"cinematic", lens:43, fstop:1.4, iso:300, motion:0.25, hue:90 },
+    { id:451, scene:"nature", subject:"car", look:"handheld", lens:44, fstop:1.5, iso:400, motion:0.35, hue:127 },
+    { id:452, scene:"ocean", subject:"animal", look:"drone", lens:45, fstop:1.6, iso:500, motion:0.45, hue:164 },
+    { id:453, scene:"space", subject:"product", look:"macro", lens:46, fstop:1.7, iso:600, motion:0.55, hue:201 },
+    { id:454, scene:"ui", subject:"ui", look:"neon", lens:47, fstop:1.8, iso:700, motion:0.65, hue:238 },
+    { id:455, scene:"abstract", subject:"text", look:"rain", lens:48, fstop:1.9, iso:800, motion:0.75, hue:275 },
+    { id:456, scene:"irl", subject:"robot", look:"fog", lens:49, fstop:2.0, iso:900, motion:0.85, hue:312 },
+    { id:457, scene:"city", subject:"dragon", look:"dark", lens:50, fstop:2.1, iso:1000, motion:0.95, hue:349 },
+    { id:458, scene:"room", subject:"none", look:"bright", lens:51, fstop:2.2, iso:1100, motion:1.05, hue:26 },
+    { id:459, scene:"nature", subject:"person", look:"glitch", lens:52, fstop:2.3, iso:1200, motion:1.15, hue:63 },
+    { id:460, scene:"ocean", subject:"car", look:"cinematic", lens:53, fstop:2.4, iso:1300, motion:1.25, hue:100 },
+    { id:461, scene:"space", subject:"animal", look:"handheld", lens:54, fstop:2.5, iso:1400, motion:1.35, hue:137 },
+    { id:462, scene:"ui", subject:"product", look:"drone", lens:55, fstop:2.6, iso:1500, motion:1.45, hue:174 },
+    { id:463, scene:"abstract", subject:"ui", look:"macro", lens:56, fstop:2.7, iso:1600, motion:1.55, hue:211 },
+    { id:464, scene:"irl", subject:"text", look:"neon", lens:57, fstop:1.2, iso:100, motion:1.65, hue:248 },
+    { id:465, scene:"city", subject:"robot", look:"rain", lens:58, fstop:1.3, iso:200, motion:1.75, hue:285 },
+    { id:466, scene:"room", subject:"dragon", look:"fog", lens:59, fstop:1.4, iso:300, motion:1.85, hue:322 },
+    { id:467, scene:"nature", subject:"none", look:"dark", lens:60, fstop:1.5, iso:400, motion:1.95, hue:359 },
+    { id:468, scene:"ocean", subject:"person", look:"bright", lens:61, fstop:1.6, iso:500, motion:2.05, hue:36 },
+    { id:469, scene:"space", subject:"car", look:"glitch", lens:62, fstop:1.7, iso:600, motion:2.15, hue:73 },
+    { id:470, scene:"ui", subject:"animal", look:"cinematic", lens:63, fstop:1.8, iso:700, motion:2.25, hue:110 },
+    { id:471, scene:"abstract", subject:"product", look:"handheld", lens:64, fstop:1.9, iso:800, motion:2.35, hue:147 },
+    { id:472, scene:"irl", subject:"ui", look:"drone", lens:65, fstop:2.0, iso:900, motion:2.45, hue:184 },
+    { id:473, scene:"city", subject:"text", look:"macro", lens:66, fstop:2.1, iso:1000, motion:2.55, hue:221 },
+    { id:474, scene:"room", subject:"robot", look:"neon", lens:67, fstop:2.2, iso:1100, motion:2.65, hue:258 },
+    { id:475, scene:"nature", subject:"dragon", look:"rain", lens:68, fstop:2.3, iso:1200, motion:0.25, hue:295 },
+    { id:476, scene:"ocean", subject:"none", look:"fog", lens:69, fstop:2.4, iso:1300, motion:0.35, hue:332 },
+    { id:477, scene:"space", subject:"person", look:"dark", lens:70, fstop:2.5, iso:1400, motion:0.45, hue:9 },
+    { id:478, scene:"ui", subject:"car", look:"bright", lens:71, fstop:2.6, iso:1500, motion:0.55, hue:46 },
+    { id:479, scene:"abstract", subject:"animal", look:"glitch", lens:72, fstop:2.7, iso:1600, motion:0.65, hue:83 },
+    { id:480, scene:"irl", subject:"product", look:"cinematic", lens:73, fstop:1.2, iso:100, motion:0.75, hue:120 },
+    { id:481, scene:"city", subject:"ui", look:"handheld", lens:74, fstop:1.3, iso:200, motion:0.85, hue:157 },
+    { id:482, scene:"room", subject:"text", look:"drone", lens:75, fstop:1.4, iso:300, motion:0.95, hue:194 },
+    { id:483, scene:"nature", subject:"robot", look:"macro", lens:76, fstop:1.5, iso:400, motion:1.05, hue:231 },
+    { id:484, scene:"ocean", subject:"dragon", look:"neon", lens:77, fstop:1.6, iso:500, motion:1.15, hue:268 },
+    { id:485, scene:"space", subject:"none", look:"rain", lens:78, fstop:1.7, iso:600, motion:1.25, hue:305 },
+    { id:486, scene:"ui", subject:"person", look:"fog", lens:79, fstop:1.8, iso:700, motion:1.35, hue:342 },
+    { id:487, scene:"abstract", subject:"car", look:"dark", lens:80, fstop:1.9, iso:800, motion:1.45, hue:19 },
+    { id:488, scene:"irl", subject:"animal", look:"bright", lens:81, fstop:2.0, iso:900, motion:1.55, hue:56 },
+    { id:489, scene:"city", subject:"product", look:"glitch", lens:82, fstop:2.1, iso:1000, motion:1.65, hue:93 },
+    { id:490, scene:"room", subject:"ui", look:"cinematic", lens:83, fstop:2.2, iso:1100, motion:1.75, hue:130 },
+    { id:491, scene:"nature", subject:"text", look:"handheld", lens:84, fstop:2.3, iso:1200, motion:1.85, hue:167 },
+    { id:492, scene:"ocean", subject:"robot", look:"drone", lens:85, fstop:2.4, iso:1300, motion:1.95, hue:204 },
+    { id:493, scene:"space", subject:"dragon", look:"macro", lens:86, fstop:2.5, iso:1400, motion:2.05, hue:241 },
+    { id:494, scene:"ui", subject:"none", look:"neon", lens:87, fstop:2.6, iso:1500, motion:2.15, hue:278 },
+    { id:495, scene:"abstract", subject:"person", look:"rain", lens:88, fstop:2.7, iso:1600, motion:2.25, hue:315 },
+    { id:496, scene:"irl", subject:"car", look:"fog", lens:89, fstop:1.2, iso:100, motion:2.35, hue:352 },
+    { id:497, scene:"city", subject:"animal", look:"dark", lens:90, fstop:1.3, iso:200, motion:2.45, hue:29 },
+    { id:498, scene:"room", subject:"product", look:"bright", lens:91, fstop:1.4, iso:300, motion:2.55, hue:66 },
+    { id:499, scene:"nature", subject:"ui", look:"glitch", lens:92, fstop:1.5, iso:400, motion:2.65, hue:103 },
+    { id:500, scene:"ocean", subject:"text", look:"cinematic", lens:93, fstop:1.6, iso:500, motion:0.25, hue:140 },
+    { id:501, scene:"space", subject:"robot", look:"handheld", lens:94, fstop:1.7, iso:600, motion:0.35, hue:177 },
+    { id:502, scene:"ui", subject:"dragon", look:"drone", lens:95, fstop:1.8, iso:700, motion:0.45, hue:214 },
+    { id:503, scene:"abstract", subject:"none", look:"macro", lens:96, fstop:1.9, iso:800, motion:0.55, hue:251 },
+    { id:504, scene:"irl", subject:"person", look:"neon", lens:97, fstop:2.0, iso:900, motion:0.65, hue:288 },
+    { id:505, scene:"city", subject:"car", look:"rain", lens:98, fstop:2.1, iso:1000, motion:0.75, hue:325 },
+    { id:506, scene:"room", subject:"animal", look:"fog", lens:99, fstop:2.2, iso:1100, motion:0.85, hue:2 },
+    { id:507, scene:"nature", subject:"product", look:"dark", lens:100, fstop:2.3, iso:1200, motion:0.95, hue:39 },
+    { id:508, scene:"ocean", subject:"ui", look:"bright", lens:101, fstop:2.4, iso:1300, motion:1.05, hue:76 },
+    { id:509, scene:"space", subject:"text", look:"glitch", lens:102, fstop:2.5, iso:1400, motion:1.15, hue:113 },
+    { id:510, scene:"ui", subject:"robot", look:"cinematic", lens:18, fstop:2.6, iso:1500, motion:1.25, hue:150 },
+    { id:511, scene:"abstract", subject:"dragon", look:"handheld", lens:19, fstop:2.7, iso:1600, motion:1.35, hue:187 },
+    { id:512, scene:"irl", subject:"none", look:"drone", lens:20, fstop:1.2, iso:100, motion:1.45, hue:224 },
+    { id:513, scene:"city", subject:"person", look:"macro", lens:21, fstop:1.3, iso:200, motion:1.55, hue:261 },
+    { id:514, scene:"room", subject:"car", look:"neon", lens:22, fstop:1.4, iso:300, motion:1.65, hue:298 },
+    { id:515, scene:"nature", subject:"animal", look:"rain", lens:23, fstop:1.5, iso:400, motion:1.75, hue:335 },
+    { id:516, scene:"ocean", subject:"product", look:"fog", lens:24, fstop:1.6, iso:500, motion:1.85, hue:12 },
+    { id:517, scene:"space", subject:"ui", look:"dark", lens:25, fstop:1.7, iso:600, motion:1.95, hue:49 },
+    { id:518, scene:"ui", subject:"text", look:"bright", lens:26, fstop:1.8, iso:700, motion:2.05, hue:86 },
+    { id:519, scene:"abstract", subject:"robot", look:"glitch", lens:27, fstop:1.9, iso:800, motion:2.15, hue:123 },
+    { id:520, scene:"irl", subject:"dragon", look:"cinematic", lens:28, fstop:2.0, iso:900, motion:2.25, hue:160 },
+    { id:521, scene:"city", subject:"none", look:"handheld", lens:29, fstop:2.1, iso:1000, motion:2.35, hue:197 },
+    { id:522, scene:"room", subject:"person", look:"drone", lens:30, fstop:2.2, iso:1100, motion:2.45, hue:234 },
+    { id:523, scene:"nature", subject:"car", look:"macro", lens:31, fstop:2.3, iso:1200, motion:2.55, hue:271 },
+    { id:524, scene:"ocean", subject:"animal", look:"neon", lens:32, fstop:2.4, iso:1300, motion:2.65, hue:308 },
+    { id:525, scene:"space", subject:"product", look:"rain", lens:33, fstop:2.5, iso:1400, motion:0.25, hue:345 },
+    { id:526, scene:"ui", subject:"ui", look:"fog", lens:34, fstop:2.6, iso:1500, motion:0.35, hue:22 },
+    { id:527, scene:"abstract", subject:"text", look:"dark", lens:35, fstop:2.7, iso:1600, motion:0.45, hue:59 },
+    { id:528, scene:"irl", subject:"robot", look:"bright", lens:36, fstop:1.2, iso:100, motion:0.55, hue:96 },
+    { id:529, scene:"city", subject:"dragon", look:"glitch", lens:37, fstop:1.3, iso:200, motion:0.65, hue:133 },
+    { id:530, scene:"room", subject:"none", look:"cinematic", lens:38, fstop:1.4, iso:300, motion:0.75, hue:170 },
+    { id:531, scene:"nature", subject:"person", look:"handheld", lens:39, fstop:1.5, iso:400, motion:0.85, hue:207 },
+    { id:532, scene:"ocean", subject:"car", look:"drone", lens:40, fstop:1.6, iso:500, motion:0.95, hue:244 },
+    { id:533, scene:"space", subject:"animal", look:"macro", lens:41, fstop:1.7, iso:600, motion:1.05, hue:281 },
+    { id:534, scene:"ui", subject:"product", look:"neon", lens:42, fstop:1.8, iso:700, motion:1.15, hue:318 },
+    { id:535, scene:"abstract", subject:"ui", look:"rain", lens:43, fstop:1.9, iso:800, motion:1.25, hue:355 },
+    { id:536, scene:"irl", subject:"text", look:"fog", lens:44, fstop:2.0, iso:900, motion:1.35, hue:32 },
+    { id:537, scene:"city", subject:"robot", look:"dark", lens:45, fstop:2.1, iso:1000, motion:1.45, hue:69 },
+    { id:538, scene:"room", subject:"dragon", look:"bright", lens:46, fstop:2.2, iso:1100, motion:1.55, hue:106 },
+    { id:539, scene:"nature", subject:"none", look:"glitch", lens:47, fstop:2.3, iso:1200, motion:1.65, hue:143 },
+    { id:540, scene:"ocean", subject:"person", look:"cinematic", lens:48, fstop:2.4, iso:1300, motion:1.75, hue:180 },
+    { id:541, scene:"space", subject:"car", look:"handheld", lens:49, fstop:2.5, iso:1400, motion:1.85, hue:217 },
+    { id:542, scene:"ui", subject:"animal", look:"drone", lens:50, fstop:2.6, iso:1500, motion:1.95, hue:254 },
+    { id:543, scene:"abstract", subject:"product", look:"macro", lens:51, fstop:2.7, iso:1600, motion:2.05, hue:291 },
+    { id:544, scene:"irl", subject:"ui", look:"neon", lens:52, fstop:1.2, iso:100, motion:2.15, hue:328 },
+    { id:545, scene:"city", subject:"text", look:"rain", lens:53, fstop:1.3, iso:200, motion:2.25, hue:5 },
+    { id:546, scene:"room", subject:"robot", look:"fog", lens:54, fstop:1.4, iso:300, motion:2.35, hue:42 },
+    { id:547, scene:"nature", subject:"dragon", look:"dark", lens:55, fstop:1.5, iso:400, motion:2.45, hue:79 },
+    { id:548, scene:"ocean", subject:"none", look:"bright", lens:56, fstop:1.6, iso:500, motion:2.55, hue:116 },
+    { id:549, scene:"space", subject:"person", look:"glitch", lens:57, fstop:1.7, iso:600, motion:2.65, hue:153 },
+    { id:550, scene:"ui", subject:"car", look:"cinematic", lens:58, fstop:1.8, iso:700, motion:0.25, hue:190 },
+    { id:551, scene:"abstract", subject:"animal", look:"handheld", lens:59, fstop:1.9, iso:800, motion:0.35, hue:227 },
+    { id:552, scene:"irl", subject:"product", look:"drone", lens:60, fstop:2.0, iso:900, motion:0.45, hue:264 },
+    { id:553, scene:"city", subject:"ui", look:"macro", lens:61, fstop:2.1, iso:1000, motion:0.55, hue:301 },
+    { id:554, scene:"room", subject:"text", look:"neon", lens:62, fstop:2.2, iso:1100, motion:0.65, hue:338 },
+    { id:555, scene:"nature", subject:"robot", look:"rain", lens:63, fstop:2.3, iso:1200, motion:0.75, hue:15 },
+    { id:556, scene:"ocean", subject:"dragon", look:"fog", lens:64, fstop:2.4, iso:1300, motion:0.85, hue:52 },
+    { id:557, scene:"space", subject:"none", look:"dark", lens:65, fstop:2.5, iso:1400, motion:0.95, hue:89 },
+    { id:558, scene:"ui", subject:"person", look:"bright", lens:66, fstop:2.6, iso:1500, motion:1.05, hue:126 },
+    { id:559, scene:"abstract", subject:"car", look:"glitch", lens:67, fstop:2.7, iso:1600, motion:1.15, hue:163 },
+    { id:560, scene:"irl", subject:"animal", look:"cinematic", lens:68, fstop:1.2, iso:100, motion:1.25, hue:200 },
+    { id:561, scene:"city", subject:"product", look:"handheld", lens:69, fstop:1.3, iso:200, motion:1.35, hue:237 },
+    { id:562, scene:"room", subject:"ui", look:"drone", lens:70, fstop:1.4, iso:300, motion:1.45, hue:274 },
+    { id:563, scene:"nature", subject:"text", look:"macro", lens:71, fstop:1.5, iso:400, motion:1.55, hue:311 },
+    { id:564, scene:"ocean", subject:"robot", look:"neon", lens:72, fstop:1.6, iso:500, motion:1.65, hue:348 },
+    { id:565, scene:"space", subject:"dragon", look:"rain", lens:73, fstop:1.7, iso:600, motion:1.75, hue:25 },
+    { id:566, scene:"ui", subject:"none", look:"fog", lens:74, fstop:1.8, iso:700, motion:1.85, hue:62 },
+    { id:567, scene:"abstract", subject:"person", look:"dark", lens:75, fstop:1.9, iso:800, motion:1.95, hue:99 },
+    { id:568, scene:"irl", subject:"car", look:"bright", lens:76, fstop:2.0, iso:900, motion:2.05, hue:136 },
+    { id:569, scene:"city", subject:"animal", look:"glitch", lens:77, fstop:2.1, iso:1000, motion:2.15, hue:173 },
+    { id:570, scene:"room", subject:"product", look:"cinematic", lens:78, fstop:2.2, iso:1100, motion:2.25, hue:210 },
+    { id:571, scene:"nature", subject:"ui", look:"handheld", lens:79, fstop:2.3, iso:1200, motion:2.35, hue:247 },
+    { id:572, scene:"ocean", subject:"text", look:"drone", lens:80, fstop:2.4, iso:1300, motion:2.45, hue:284 },
+    { id:573, scene:"space", subject:"robot", look:"macro", lens:81, fstop:2.5, iso:1400, motion:2.55, hue:321 },
+    { id:574, scene:"ui", subject:"dragon", look:"neon", lens:82, fstop:2.6, iso:1500, motion:2.65, hue:358 },
+    { id:575, scene:"abstract", subject:"none", look:"rain", lens:83, fstop:2.7, iso:1600, motion:0.25, hue:35 },
+    { id:576, scene:"irl", subject:"person", look:"fog", lens:84, fstop:1.2, iso:100, motion:0.35, hue:72 },
+    { id:577, scene:"city", subject:"car", look:"dark", lens:85, fstop:1.3, iso:200, motion:0.45, hue:109 },
+    { id:578, scene:"room", subject:"animal", look:"bright", lens:86, fstop:1.4, iso:300, motion:0.55, hue:146 },
+    { id:579, scene:"nature", subject:"product", look:"glitch", lens:87, fstop:1.5, iso:400, motion:0.65, hue:183 },
+    { id:580, scene:"ocean", subject:"ui", look:"cinematic", lens:88, fstop:1.6, iso:500, motion:0.75, hue:220 },
+    { id:581, scene:"space", subject:"text", look:"handheld", lens:89, fstop:1.7, iso:600, motion:0.85, hue:257 },
+    { id:582, scene:"ui", subject:"robot", look:"drone", lens:90, fstop:1.8, iso:700, motion:0.95, hue:294 },
+    { id:583, scene:"abstract", subject:"dragon", look:"macro", lens:91, fstop:1.9, iso:800, motion:1.05, hue:331 },
+    { id:584, scene:"irl", subject:"none", look:"neon", lens:92, fstop:2.0, iso:900, motion:1.15, hue:8 },
+    { id:585, scene:"city", subject:"person", look:"rain", lens:93, fstop:2.1, iso:1000, motion:1.25, hue:45 },
+    { id:586, scene:"room", subject:"car", look:"fog", lens:94, fstop:2.2, iso:1100, motion:1.35, hue:82 },
+    { id:587, scene:"nature", subject:"animal", look:"dark", lens:95, fstop:2.3, iso:1200, motion:1.45, hue:119 },
+    { id:588, scene:"ocean", subject:"product", look:"bright", lens:96, fstop:2.4, iso:1300, motion:1.55, hue:156 },
+    { id:589, scene:"space", subject:"ui", look:"glitch", lens:97, fstop:2.5, iso:1400, motion:1.65, hue:193 },
+    { id:590, scene:"ui", subject:"text", look:"cinematic", lens:98, fstop:2.6, iso:1500, motion:1.75, hue:230 },
+    { id:591, scene:"abstract", subject:"robot", look:"handheld", lens:99, fstop:2.7, iso:1600, motion:1.85, hue:267 },
+    { id:592, scene:"irl", subject:"dragon", look:"drone", lens:100, fstop:1.2, iso:100, motion:1.95, hue:304 },
+    { id:593, scene:"city", subject:"none", look:"macro", lens:101, fstop:1.3, iso:200, motion:2.05, hue:341 },
+    { id:594, scene:"room", subject:"person", look:"neon", lens:102, fstop:1.4, iso:300, motion:2.15, hue:18 },
+    { id:595, scene:"nature", subject:"car", look:"rain", lens:18, fstop:1.5, iso:400, motion:2.25, hue:55 },
+    { id:596, scene:"ocean", subject:"animal", look:"fog", lens:19, fstop:1.6, iso:500, motion:2.35, hue:92 },
+    { id:597, scene:"space", subject:"product", look:"dark", lens:20, fstop:1.7, iso:600, motion:2.45, hue:129 },
+    { id:598, scene:"ui", subject:"ui", look:"bright", lens:21, fstop:1.8, iso:700, motion:2.55, hue:166 },
+    { id:599, scene:"abstract", subject:"text", look:"glitch", lens:22, fstop:1.9, iso:800, motion:2.65, hue:203 },
+    { id:600, scene:"irl", subject:"robot", look:"cinematic", lens:23, fstop:2.0, iso:900, motion:0.25, hue:240 },
+    { id:601, scene:"city", subject:"dragon", look:"handheld", lens:24, fstop:2.1, iso:1000, motion:0.35, hue:277 },
+    { id:602, scene:"room", subject:"none", look:"drone", lens:25, fstop:2.2, iso:1100, motion:0.45, hue:314 },
+    { id:603, scene:"nature", subject:"person", look:"macro", lens:26, fstop:2.3, iso:1200, motion:0.55, hue:351 },
+    { id:604, scene:"ocean", subject:"car", look:"neon", lens:27, fstop:2.4, iso:1300, motion:0.65, hue:28 },
+    { id:605, scene:"space", subject:"animal", look:"rain", lens:28, fstop:2.5, iso:1400, motion:0.75, hue:65 },
+    { id:606, scene:"ui", subject:"product", look:"fog", lens:29, fstop:2.6, iso:1500, motion:0.85, hue:102 },
+    { id:607, scene:"abstract", subject:"ui", look:"dark", lens:30, fstop:2.7, iso:1600, motion:0.95, hue:139 },
+    { id:608, scene:"irl", subject:"text", look:"bright", lens:31, fstop:1.2, iso:100, motion:1.05, hue:176 },
+    { id:609, scene:"city", subject:"robot", look:"glitch", lens:32, fstop:1.3, iso:200, motion:1.15, hue:213 },
+    { id:610, scene:"room", subject:"dragon", look:"cinematic", lens:33, fstop:1.4, iso:300, motion:1.25, hue:250 },
+    { id:611, scene:"nature", subject:"none", look:"handheld", lens:34, fstop:1.5, iso:400, motion:1.35, hue:287 },
+    { id:612, scene:"ocean", subject:"person", look:"drone", lens:35, fstop:1.6, iso:500, motion:1.45, hue:324 },
+    { id:613, scene:"space", subject:"car", look:"macro", lens:36, fstop:1.7, iso:600, motion:1.55, hue:1 },
+    { id:614, scene:"ui", subject:"animal", look:"neon", lens:37, fstop:1.8, iso:700, motion:1.65, hue:38 },
+    { id:615, scene:"abstract", subject:"product", look:"rain", lens:38, fstop:1.9, iso:800, motion:1.75, hue:75 },
+    { id:616, scene:"irl", subject:"ui", look:"fog", lens:39, fstop:2.0, iso:900, motion:1.85, hue:112 },
+    { id:617, scene:"city", subject:"text", look:"dark", lens:40, fstop:2.1, iso:1000, motion:1.95, hue:149 },
+    { id:618, scene:"room", subject:"robot", look:"bright", lens:41, fstop:2.2, iso:1100, motion:2.05, hue:186 },
+    { id:619, scene:"nature", subject:"dragon", look:"glitch", lens:42, fstop:2.3, iso:1200, motion:2.15, hue:223 },
+    { id:620, scene:"ocean", subject:"none", look:"cinematic", lens:43, fstop:2.4, iso:1300, motion:2.25, hue:260 },
+    { id:621, scene:"space", subject:"person", look:"handheld", lens:44, fstop:2.5, iso:1400, motion:2.35, hue:297 },
+    { id:622, scene:"ui", subject:"car", look:"drone", lens:45, fstop:2.6, iso:1500, motion:2.45, hue:334 },
+    { id:623, scene:"abstract", subject:"animal", look:"macro", lens:46, fstop:2.7, iso:1600, motion:2.55, hue:11 },
+    { id:624, scene:"irl", subject:"product", look:"neon", lens:47, fstop:1.2, iso:100, motion:2.65, hue:48 },
+    { id:625, scene:"city", subject:"ui", look:"rain", lens:48, fstop:1.3, iso:200, motion:0.25, hue:85 },
+    { id:626, scene:"room", subject:"text", look:"fog", lens:49, fstop:1.4, iso:300, motion:0.35, hue:122 },
+    { id:627, scene:"nature", subject:"robot", look:"dark", lens:50, fstop:1.5, iso:400, motion:0.45, hue:159 },
+    { id:628, scene:"ocean", subject:"dragon", look:"bright", lens:51, fstop:1.6, iso:500, motion:0.55, hue:196 },
+    { id:629, scene:"space", subject:"none", look:"glitch", lens:52, fstop:1.7, iso:600, motion:0.65, hue:233 },
+    { id:630, scene:"ui", subject:"person", look:"cinematic", lens:53, fstop:1.8, iso:700, motion:0.75, hue:270 },
+    { id:631, scene:"abstract", subject:"car", look:"handheld", lens:54, fstop:1.9, iso:800, motion:0.85, hue:307 },
+    { id:632, scene:"irl", subject:"animal", look:"drone", lens:55, fstop:2.0, iso:900, motion:0.95, hue:344 },
+    { id:633, scene:"city", subject:"product", look:"macro", lens:56, fstop:2.1, iso:1000, motion:1.05, hue:21 },
+    { id:634, scene:"room", subject:"ui", look:"neon", lens:57, fstop:2.2, iso:1100, motion:1.15, hue:58 },
+    { id:635, scene:"nature", subject:"text", look:"rain", lens:58, fstop:2.3, iso:1200, motion:1.25, hue:95 },
+    { id:636, scene:"ocean", subject:"robot", look:"fog", lens:59, fstop:2.4, iso:1300, motion:1.35, hue:132 },
+    { id:637, scene:"space", subject:"dragon", look:"dark", lens:60, fstop:2.5, iso:1400, motion:1.45, hue:169 },
+    { id:638, scene:"ui", subject:"none", look:"bright", lens:61, fstop:2.6, iso:1500, motion:1.55, hue:206 },
+    { id:639, scene:"abstract", subject:"person", look:"glitch", lens:62, fstop:2.7, iso:1600, motion:1.65, hue:243 },
+    { id:640, scene:"irl", subject:"car", look:"cinematic", lens:63, fstop:1.2, iso:100, motion:1.75, hue:280 },
+    { id:641, scene:"city", subject:"animal", look:"handheld", lens:64, fstop:1.3, iso:200, motion:1.85, hue:317 },
+    { id:642, scene:"room", subject:"product", look:"drone", lens:65, fstop:1.4, iso:300, motion:1.95, hue:354 },
+    { id:643, scene:"nature", subject:"ui", look:"macro", lens:66, fstop:1.5, iso:400, motion:2.05, hue:31 },
+    { id:644, scene:"ocean", subject:"text", look:"neon", lens:67, fstop:1.6, iso:500, motion:2.15, hue:68 },
+    { id:645, scene:"space", subject:"robot", look:"rain", lens:68, fstop:1.7, iso:600, motion:2.25, hue:105 },
+    { id:646, scene:"ui", subject:"dragon", look:"fog", lens:69, fstop:1.8, iso:700, motion:2.35, hue:142 },
+    { id:647, scene:"abstract", subject:"none", look:"dark", lens:70, fstop:1.9, iso:800, motion:2.45, hue:179 },
+    { id:648, scene:"irl", subject:"person", look:"bright", lens:71, fstop:2.0, iso:900, motion:2.55, hue:216 },
+    { id:649, scene:"city", subject:"car", look:"glitch", lens:72, fstop:2.1, iso:1000, motion:2.65, hue:253 },
+    { id:650, scene:"room", subject:"animal", look:"cinematic", lens:73, fstop:2.2, iso:1100, motion:0.25, hue:290 },
+    { id:651, scene:"nature", subject:"product", look:"handheld", lens:74, fstop:2.3, iso:1200, motion:0.35, hue:327 },
+    { id:652, scene:"ocean", subject:"ui", look:"drone", lens:75, fstop:2.4, iso:1300, motion:0.45, hue:4 },
+    { id:653, scene:"space", subject:"text", look:"macro", lens:76, fstop:2.5, iso:1400, motion:0.55, hue:41 },
+    { id:654, scene:"ui", subject:"robot", look:"neon", lens:77, fstop:2.6, iso:1500, motion:0.65, hue:78 },
+    { id:655, scene:"abstract", subject:"dragon", look:"rain", lens:78, fstop:2.7, iso:1600, motion:0.75, hue:115 },
+    { id:656, scene:"irl", subject:"none", look:"fog", lens:79, fstop:1.2, iso:100, motion:0.85, hue:152 },
+    { id:657, scene:"city", subject:"person", look:"dark", lens:80, fstop:1.3, iso:200, motion:0.95, hue:189 },
+    { id:658, scene:"room", subject:"car", look:"bright", lens:81, fstop:1.4, iso:300, motion:1.05, hue:226 },
+    { id:659, scene:"nature", subject:"animal", look:"glitch", lens:82, fstop:1.5, iso:400, motion:1.15, hue:263 },
+    { id:660, scene:"ocean", subject:"product", look:"cinematic", lens:83, fstop:1.6, iso:500, motion:1.25, hue:300 },
+    { id:661, scene:"space", subject:"ui", look:"handheld", lens:84, fstop:1.7, iso:600, motion:1.35, hue:337 },
+    { id:662, scene:"ui", subject:"text", look:"drone", lens:85, fstop:1.8, iso:700, motion:1.45, hue:14 },
+    { id:663, scene:"abstract", subject:"robot", look:"macro", lens:86, fstop:1.9, iso:800, motion:1.55, hue:51 },
+    { id:664, scene:"irl", subject:"dragon", look:"neon", lens:87, fstop:2.0, iso:900, motion:1.65, hue:88 },
+    { id:665, scene:"city", subject:"none", look:"rain", lens:88, fstop:2.1, iso:1000, motion:1.75, hue:125 },
+    { id:666, scene:"room", subject:"person", look:"fog", lens:89, fstop:2.2, iso:1100, motion:1.85, hue:162 },
+    { id:667, scene:"nature", subject:"car", look:"dark", lens:90, fstop:2.3, iso:1200, motion:1.95, hue:199 },
+    { id:668, scene:"ocean", subject:"animal", look:"bright", lens:91, fstop:2.4, iso:1300, motion:2.05, hue:236 },
+    { id:669, scene:"space", subject:"product", look:"glitch", lens:92, fstop:2.5, iso:1400, motion:2.15, hue:273 },
+    { id:670, scene:"ui", subject:"ui", look:"cinematic", lens:93, fstop:2.6, iso:1500, motion:2.25, hue:310 },
+    { id:671, scene:"abstract", subject:"text", look:"handheld", lens:94, fstop:2.7, iso:1600, motion:2.35, hue:347 },
+    { id:672, scene:"irl", subject:"robot", look:"drone", lens:95, fstop:1.2, iso:100, motion:2.45, hue:24 },
+    { id:673, scene:"city", subject:"dragon", look:"macro", lens:96, fstop:1.3, iso:200, motion:2.55, hue:61 },
+    { id:674, scene:"room", subject:"none", look:"neon", lens:97, fstop:1.4, iso:300, motion:2.65, hue:98 },
+    { id:675, scene:"nature", subject:"person", look:"rain", lens:98, fstop:1.5, iso:400, motion:0.25, hue:135 },
+    { id:676, scene:"ocean", subject:"car", look:"fog", lens:99, fstop:1.6, iso:500, motion:0.35, hue:172 },
+    { id:677, scene:"space", subject:"animal", look:"dark", lens:100, fstop:1.7, iso:600, motion:0.45, hue:209 },
+    { id:678, scene:"ui", subject:"product", look:"bright", lens:101, fstop:1.8, iso:700, motion:0.55, hue:246 },
+    { id:679, scene:"abstract", subject:"ui", look:"glitch", lens:102, fstop:1.9, iso:800, motion:0.65, hue:283 },
+    { id:680, scene:"irl", subject:"text", look:"cinematic", lens:18, fstop:2.0, iso:900, motion:0.75, hue:320 },
+    { id:681, scene:"city", subject:"robot", look:"handheld", lens:19, fstop:2.1, iso:1000, motion:0.85, hue:357 },
+    { id:682, scene:"room", subject:"dragon", look:"drone", lens:20, fstop:2.2, iso:1100, motion:0.95, hue:34 },
+    { id:683, scene:"nature", subject:"none", look:"macro", lens:21, fstop:2.3, iso:1200, motion:1.05, hue:71 },
+    { id:684, scene:"ocean", subject:"person", look:"neon", lens:22, fstop:2.4, iso:1300, motion:1.15, hue:108 },
+    { id:685, scene:"space", subject:"car", look:"rain", lens:23, fstop:2.5, iso:1400, motion:1.25, hue:145 },
+    { id:686, scene:"ui", subject:"animal", look:"fog", lens:24, fstop:2.6, iso:1500, motion:1.35, hue:182 },
+    { id:687, scene:"abstract", subject:"product", look:"dark", lens:25, fstop:2.7, iso:1600, motion:1.45, hue:219 },
+    { id:688, scene:"irl", subject:"ui", look:"bright", lens:26, fstop:1.2, iso:100, motion:1.55, hue:256 },
+    { id:689, scene:"city", subject:"text", look:"glitch", lens:27, fstop:1.3, iso:200, motion:1.65, hue:293 },
+    { id:690, scene:"room", subject:"robot", look:"cinematic", lens:28, fstop:1.4, iso:300, motion:1.75, hue:330 },
+    { id:691, scene:"nature", subject:"dragon", look:"handheld", lens:29, fstop:1.5, iso:400, motion:1.85, hue:7 },
+    { id:692, scene:"ocean", subject:"none", look:"drone", lens:30, fstop:1.6, iso:500, motion:1.95, hue:44 },
+    { id:693, scene:"space", subject:"person", look:"macro", lens:31, fstop:1.7, iso:600, motion:2.05, hue:81 },
+    { id:694, scene:"ui", subject:"car", look:"neon", lens:32, fstop:1.8, iso:700, motion:2.15, hue:118 },
+    { id:695, scene:"abstract", subject:"animal", look:"rain", lens:33, fstop:1.9, iso:800, motion:2.25, hue:155 },
+    { id:696, scene:"irl", subject:"product", look:"fog", lens:34, fstop:2.0, iso:900, motion:2.35, hue:192 },
+    { id:697, scene:"city", subject:"ui", look:"dark", lens:35, fstop:2.1, iso:1000, motion:2.45, hue:229 },
+    { id:698, scene:"room", subject:"text", look:"bright", lens:36, fstop:2.2, iso:1100, motion:2.55, hue:266 },
+    { id:699, scene:"nature", subject:"robot", look:"glitch", lens:37, fstop:2.3, iso:1200, motion:2.65, hue:303 },
+    { id:700, scene:"ocean", subject:"dragon", look:"cinematic", lens:38, fstop:2.4, iso:1300, motion:0.25, hue:340 },
+    { id:701, scene:"space", subject:"none", look:"handheld", lens:39, fstop:2.5, iso:1400, motion:0.35, hue:17 },
+    { id:702, scene:"ui", subject:"person", look:"drone", lens:40, fstop:2.6, iso:1500, motion:0.45, hue:54 },
+    { id:703, scene:"abstract", subject:"car", look:"macro", lens:41, fstop:2.7, iso:1600, motion:0.55, hue:91 },
+    { id:704, scene:"irl", subject:"animal", look:"neon", lens:42, fstop:1.2, iso:100, motion:0.65, hue:128 },
+    { id:705, scene:"city", subject:"product", look:"rain", lens:43, fstop:1.3, iso:200, motion:0.75, hue:165 },
+    { id:706, scene:"room", subject:"ui", look:"fog", lens:44, fstop:1.4, iso:300, motion:0.85, hue:202 },
+    { id:707, scene:"nature", subject:"text", look:"dark", lens:45, fstop:1.5, iso:400, motion:0.95, hue:239 },
+    { id:708, scene:"ocean", subject:"robot", look:"bright", lens:46, fstop:1.6, iso:500, motion:1.05, hue:276 },
+    { id:709, scene:"space", subject:"dragon", look:"glitch", lens:47, fstop:1.7, iso:600, motion:1.15, hue:313 },
+    { id:710, scene:"ui", subject:"none", look:"cinematic", lens:48, fstop:1.8, iso:700, motion:1.25, hue:350 },
+    { id:711, scene:"abstract", subject:"person", look:"handheld", lens:49, fstop:1.9, iso:800, motion:1.35, hue:27 },
+    { id:712, scene:"irl", subject:"car", look:"drone", lens:50, fstop:2.0, iso:900, motion:1.45, hue:64 },
+    { id:713, scene:"city", subject:"animal", look:"macro", lens:51, fstop:2.1, iso:1000, motion:1.55, hue:101 },
+    { id:714, scene:"room", subject:"product", look:"neon", lens:52, fstop:2.2, iso:1100, motion:1.65, hue:138 },
+    { id:715, scene:"nature", subject:"ui", look:"rain", lens:53, fstop:2.3, iso:1200, motion:1.75, hue:175 },
+    { id:716, scene:"ocean", subject:"text", look:"fog", lens:54, fstop:2.4, iso:1300, motion:1.85, hue:212 },
+    { id:717, scene:"space", subject:"robot", look:"dark", lens:55, fstop:2.5, iso:1400, motion:1.95, hue:249 },
+    { id:718, scene:"ui", subject:"dragon", look:"bright", lens:56, fstop:2.6, iso:1500, motion:2.05, hue:286 },
+    { id:719, scene:"abstract", subject:"none", look:"glitch", lens:57, fstop:2.7, iso:1600, motion:2.15, hue:323 },
+    { id:720, scene:"irl", subject:"person", look:"cinematic", lens:58, fstop:1.2, iso:100, motion:2.25, hue:0 },
+    { id:721, scene:"city", subject:"car", look:"handheld", lens:59, fstop:1.3, iso:200, motion:2.35, hue:37 },
+    { id:722, scene:"room", subject:"animal", look:"drone", lens:60, fstop:1.4, iso:300, motion:2.45, hue:74 },
+    { id:723, scene:"nature", subject:"product", look:"macro", lens:61, fstop:1.5, iso:400, motion:2.55, hue:111 },
+    { id:724, scene:"ocean", subject:"ui", look:"neon", lens:62, fstop:1.6, iso:500, motion:2.65, hue:148 },
+    { id:725, scene:"space", subject:"text", look:"rain", lens:63, fstop:1.7, iso:600, motion:0.25, hue:185 },
+    { id:726, scene:"ui", subject:"robot", look:"fog", lens:64, fstop:1.8, iso:700, motion:0.35, hue:222 },
+    { id:727, scene:"abstract", subject:"dragon", look:"dark", lens:65, fstop:1.9, iso:800, motion:0.45, hue:259 },
+    { id:728, scene:"irl", subject:"none", look:"bright", lens:66, fstop:2.0, iso:900, motion:0.55, hue:296 },
+    { id:729, scene:"city", subject:"person", look:"glitch", lens:67, fstop:2.1, iso:1000, motion:0.65, hue:333 },
+    { id:730, scene:"room", subject:"car", look:"cinematic", lens:68, fstop:2.2, iso:1100, motion:0.75, hue:10 },
+    { id:731, scene:"nature", subject:"animal", look:"handheld", lens:69, fstop:2.3, iso:1200, motion:0.85, hue:47 },
+    { id:732, scene:"ocean", subject:"product", look:"drone", lens:70, fstop:2.4, iso:1300, motion:0.95, hue:84 },
+    { id:733, scene:"space", subject:"ui", look:"macro", lens:71, fstop:2.5, iso:1400, motion:1.05, hue:121 },
+    { id:734, scene:"ui", subject:"text", look:"neon", lens:72, fstop:2.6, iso:1500, motion:1.15, hue:158 },
+    { id:735, scene:"abstract", subject:"robot", look:"rain", lens:73, fstop:2.7, iso:1600, motion:1.25, hue:195 },
+    { id:736, scene:"irl", subject:"dragon", look:"fog", lens:74, fstop:1.2, iso:100, motion:1.35, hue:232 },
+    { id:737, scene:"city", subject:"none", look:"dark", lens:75, fstop:1.3, iso:200, motion:1.45, hue:269 },
+    { id:738, scene:"room", subject:"person", look:"bright", lens:76, fstop:1.4, iso:300, motion:1.55, hue:306 },
+    { id:739, scene:"nature", subject:"car", look:"glitch", lens:77, fstop:1.5, iso:400, motion:1.65, hue:343 },
+    { id:740, scene:"ocean", subject:"animal", look:"cinematic", lens:78, fstop:1.6, iso:500, motion:1.75, hue:20 },
+    { id:741, scene:"space", subject:"product", look:"handheld", lens:79, fstop:1.7, iso:600, motion:1.85, hue:57 },
+    { id:742, scene:"ui", subject:"ui", look:"drone", lens:80, fstop:1.8, iso:700, motion:1.95, hue:94 },
+    { id:743, scene:"abstract", subject:"text", look:"macro", lens:81, fstop:1.9, iso:800, motion:2.05, hue:131 },
+    { id:744, scene:"irl", subject:"robot", look:"neon", lens:82, fstop:2.0, iso:900, motion:2.15, hue:168 },
+    { id:745, scene:"city", subject:"dragon", look:"rain", lens:83, fstop:2.1, iso:1000, motion:2.25, hue:205 },
+    { id:746, scene:"room", subject:"none", look:"fog", lens:84, fstop:2.2, iso:1100, motion:2.35, hue:242 },
+    { id:747, scene:"nature", subject:"person", look:"dark", lens:85, fstop:2.3, iso:1200, motion:2.45, hue:279 },
+    { id:748, scene:"ocean", subject:"car", look:"bright", lens:86, fstop:2.4, iso:1300, motion:2.55, hue:316 },
+    { id:749, scene:"space", subject:"animal", look:"glitch", lens:87, fstop:2.5, iso:1400, motion:2.65, hue:353 },
+    { id:750, scene:"ui", subject:"product", look:"cinematic", lens:88, fstop:2.6, iso:1500, motion:0.25, hue:30 },
+    { id:751, scene:"abstract", subject:"ui", look:"handheld", lens:89, fstop:2.7, iso:1600, motion:0.35, hue:67 },
+    { id:752, scene:"irl", subject:"text", look:"drone", lens:90, fstop:1.2, iso:100, motion:0.45, hue:104 },
+    { id:753, scene:"city", subject:"robot", look:"macro", lens:91, fstop:1.3, iso:200, motion:0.55, hue:141 },
+    { id:754, scene:"room", subject:"dragon", look:"neon", lens:92, fstop:1.4, iso:300, motion:0.65, hue:178 },
+    { id:755, scene:"nature", subject:"none", look:"rain", lens:93, fstop:1.5, iso:400, motion:0.75, hue:215 },
+    { id:756, scene:"ocean", subject:"person", look:"fog", lens:94, fstop:1.6, iso:500, motion:0.85, hue:252 },
+    { id:757, scene:"space", subject:"car", look:"dark", lens:95, fstop:1.7, iso:600, motion:0.95, hue:289 },
+    { id:758, scene:"ui", subject:"animal", look:"bright", lens:96, fstop:1.8, iso:700, motion:1.05, hue:326 },
+    { id:759, scene:"abstract", subject:"product", look:"glitch", lens:97, fstop:1.9, iso:800, motion:1.15, hue:3 },
+    { id:760, scene:"irl", subject:"ui", look:"cinematic", lens:98, fstop:2.0, iso:900, motion:1.25, hue:40 },
+    { id:761, scene:"city", subject:"text", look:"handheld", lens:99, fstop:2.1, iso:1000, motion:1.35, hue:77 },
+    { id:762, scene:"room", subject:"robot", look:"drone", lens:100, fstop:2.2, iso:1100, motion:1.45, hue:114 },
+    { id:763, scene:"nature", subject:"dragon", look:"macro", lens:101, fstop:2.3, iso:1200, motion:1.55, hue:151 },
+    { id:764, scene:"ocean", subject:"none", look:"neon", lens:102, fstop:2.4, iso:1300, motion:1.65, hue:188 },
+    { id:765, scene:"space", subject:"person", look:"rain", lens:18, fstop:2.5, iso:1400, motion:1.75, hue:225 },
+    { id:766, scene:"ui", subject:"car", look:"fog", lens:19, fstop:2.6, iso:1500, motion:1.85, hue:262 },
+    { id:767, scene:"abstract", subject:"animal", look:"dark", lens:20, fstop:2.7, iso:1600, motion:1.95, hue:299 },
+    { id:768, scene:"irl", subject:"product", look:"bright", lens:21, fstop:1.2, iso:100, motion:2.05, hue:336 },
+    { id:769, scene:"city", subject:"ui", look:"glitch", lens:22, fstop:1.3, iso:200, motion:2.15, hue:13 },
+    { id:770, scene:"room", subject:"text", look:"cinematic", lens:23, fstop:1.4, iso:300, motion:2.25, hue:50 },
+    { id:771, scene:"nature", subject:"robot", look:"handheld", lens:24, fstop:1.5, iso:400, motion:2.35, hue:87 },
+    { id:772, scene:"ocean", subject:"dragon", look:"drone", lens:25, fstop:1.6, iso:500, motion:2.45, hue:124 },
+    { id:773, scene:"space", subject:"none", look:"macro", lens:26, fstop:1.7, iso:600, motion:2.55, hue:161 },
+    { id:774, scene:"ui", subject:"person", look:"neon", lens:27, fstop:1.8, iso:700, motion:2.65, hue:198 },
+    { id:775, scene:"abstract", subject:"car", look:"rain", lens:28, fstop:1.9, iso:800, motion:0.25, hue:235 },
+    { id:776, scene:"irl", subject:"animal", look:"fog", lens:29, fstop:2.0, iso:900, motion:0.35, hue:272 },
+    { id:777, scene:"city", subject:"product", look:"dark", lens:30, fstop:2.1, iso:1000, motion:0.45, hue:309 },
+    { id:778, scene:"room", subject:"ui", look:"bright", lens:31, fstop:2.2, iso:1100, motion:0.55, hue:346 },
+    { id:779, scene:"nature", subject:"text", look:"glitch", lens:32, fstop:2.3, iso:1200, motion:0.65, hue:23 },
+    { id:780, scene:"ocean", subject:"robot", look:"cinematic", lens:33, fstop:2.4, iso:1300, motion:0.75, hue:60 },
+    { id:781, scene:"space", subject:"dragon", look:"handheld", lens:34, fstop:2.5, iso:1400, motion:0.85, hue:97 },
+    { id:782, scene:"ui", subject:"none", look:"drone", lens:35, fstop:2.6, iso:1500, motion:0.95, hue:134 },
+    { id:783, scene:"abstract", subject:"person", look:"macro", lens:36, fstop:2.7, iso:1600, motion:1.05, hue:171 },
+    { id:784, scene:"irl", subject:"car", look:"neon", lens:37, fstop:1.2, iso:100, motion:1.15, hue:208 },
+    { id:785, scene:"city", subject:"animal", look:"rain", lens:38, fstop:1.3, iso:200, motion:1.25, hue:245 },
+    { id:786, scene:"room", subject:"product", look:"fog", lens:39, fstop:1.4, iso:300, motion:1.35, hue:282 },
+    { id:787, scene:"nature", subject:"ui", look:"dark", lens:40, fstop:1.5, iso:400, motion:1.45, hue:319 },
+    { id:788, scene:"ocean", subject:"text", look:"bright", lens:41, fstop:1.6, iso:500, motion:1.55, hue:356 },
+    { id:789, scene:"space", subject:"robot", look:"glitch", lens:42, fstop:1.7, iso:600, motion:1.65, hue:33 },
+    { id:790, scene:"ui", subject:"dragon", look:"cinematic", lens:43, fstop:1.8, iso:700, motion:1.75, hue:70 },
+    { id:791, scene:"abstract", subject:"none", look:"handheld", lens:44, fstop:1.9, iso:800, motion:1.85, hue:107 },
+    { id:792, scene:"irl", subject:"person", look:"drone", lens:45, fstop:2.0, iso:900, motion:1.95, hue:144 },
+    { id:793, scene:"city", subject:"car", look:"macro", lens:46, fstop:2.1, iso:1000, motion:2.05, hue:181 },
+    { id:794, scene:"room", subject:"animal", look:"neon", lens:47, fstop:2.2, iso:1100, motion:2.15, hue:218 },
+    { id:795, scene:"nature", subject:"product", look:"rain", lens:48, fstop:2.3, iso:1200, motion:2.25, hue:255 },
+    { id:796, scene:"ocean", subject:"ui", look:"fog", lens:49, fstop:2.4, iso:1300, motion:2.35, hue:292 },
+    { id:797, scene:"space", subject:"text", look:"dark", lens:50, fstop:2.5, iso:1400, motion:2.45, hue:329 },
+    { id:798, scene:"ui", subject:"robot", look:"bright", lens:51, fstop:2.6, iso:1500, motion:2.55, hue:6 },
+    { id:799, scene:"abstract", subject:"dragon", look:"glitch", lens:52, fstop:2.7, iso:1600, motion:2.65, hue:43 },
+    { id:800, scene:"irl", subject:"none", look:"cinematic", lens:53, fstop:1.2, iso:100, motion:0.25, hue:80 },
+    { id:801, scene:"city", subject:"person", look:"handheld", lens:54, fstop:1.3, iso:200, motion:0.35, hue:117 },
+    { id:802, scene:"room", subject:"car", look:"drone", lens:55, fstop:1.4, iso:300, motion:0.45, hue:154 },
+    { id:803, scene:"nature", subject:"animal", look:"macro", lens:56, fstop:1.5, iso:400, motion:0.55, hue:191 },
+    { id:804, scene:"ocean", subject:"product", look:"neon", lens:57, fstop:1.6, iso:500, motion:0.65, hue:228 },
+    { id:805, scene:"space", subject:"ui", look:"rain", lens:58, fstop:1.7, iso:600, motion:0.75, hue:265 },
+    { id:806, scene:"ui", subject:"text", look:"fog", lens:59, fstop:1.8, iso:700, motion:0.85, hue:302 },
+    { id:807, scene:"abstract", subject:"robot", look:"dark", lens:60, fstop:1.9, iso:800, motion:0.95, hue:339 },
+    { id:808, scene:"irl", subject:"dragon", look:"bright", lens:61, fstop:2.0, iso:900, motion:1.05, hue:16 },
+    { id:809, scene:"city", subject:"none", look:"glitch", lens:62, fstop:2.1, iso:1000, motion:1.15, hue:53 },
+    { id:810, scene:"room", subject:"person", look:"cinematic", lens:63, fstop:2.2, iso:1100, motion:1.25, hue:90 },
+    { id:811, scene:"nature", subject:"car", look:"handheld", lens:64, fstop:2.3, iso:1200, motion:1.35, hue:127 },
+    { id:812, scene:"ocean", subject:"animal", look:"drone", lens:65, fstop:2.4, iso:1300, motion:1.45, hue:164 },
+    { id:813, scene:"space", subject:"product", look:"macro", lens:66, fstop:2.5, iso:1400, motion:1.55, hue:201 },
+    { id:814, scene:"ui", subject:"ui", look:"neon", lens:67, fstop:2.6, iso:1500, motion:1.65, hue:238 },
+    { id:815, scene:"abstract", subject:"text", look:"rain", lens:68, fstop:2.7, iso:1600, motion:1.75, hue:275 },
+    { id:816, scene:"irl", subject:"robot", look:"fog", lens:69, fstop:1.2, iso:100, motion:1.85, hue:312 },
+    { id:817, scene:"city", subject:"dragon", look:"dark", lens:70, fstop:1.3, iso:200, motion:1.95, hue:349 },
+    { id:818, scene:"room", subject:"none", look:"bright", lens:71, fstop:1.4, iso:300, motion:2.05, hue:26 },
+    { id:819, scene:"nature", subject:"person", look:"glitch", lens:72, fstop:1.5, iso:400, motion:2.15, hue:63 },
+    { id:820, scene:"ocean", subject:"car", look:"cinematic", lens:73, fstop:1.6, iso:500, motion:2.25, hue:100 },
+    { id:821, scene:"space", subject:"animal", look:"handheld", lens:74, fstop:1.7, iso:600, motion:2.35, hue:137 },
+    { id:822, scene:"ui", subject:"product", look:"drone", lens:75, fstop:1.8, iso:700, motion:2.45, hue:174 },
+    { id:823, scene:"abstract", subject:"ui", look:"macro", lens:76, fstop:1.9, iso:800, motion:2.55, hue:211 },
+    { id:824, scene:"irl", subject:"text", look:"neon", lens:77, fstop:2.0, iso:900, motion:2.65, hue:248 },
+    { id:825, scene:"city", subject:"robot", look:"rain", lens:78, fstop:2.1, iso:1000, motion:0.25, hue:285 },
+    { id:826, scene:"room", subject:"dragon", look:"fog", lens:79, fstop:2.2, iso:1100, motion:0.35, hue:322 },
+    { id:827, scene:"nature", subject:"none", look:"dark", lens:80, fstop:2.3, iso:1200, motion:0.45, hue:359 },
+    { id:828, scene:"ocean", subject:"person", look:"bright", lens:81, fstop:2.4, iso:1300, motion:0.55, hue:36 },
+    { id:829, scene:"space", subject:"car", look:"glitch", lens:82, fstop:2.5, iso:1400, motion:0.65, hue:73 },
+    { id:830, scene:"ui", subject:"animal", look:"cinematic", lens:83, fstop:2.6, iso:1500, motion:0.75, hue:110 },
+    { id:831, scene:"abstract", subject:"product", look:"handheld", lens:84, fstop:2.7, iso:1600, motion:0.85, hue:147 },
+    { id:832, scene:"irl", subject:"ui", look:"drone", lens:85, fstop:1.2, iso:100, motion:0.95, hue:184 },
+    { id:833, scene:"city", subject:"text", look:"macro", lens:86, fstop:1.3, iso:200, motion:1.05, hue:221 },
+    { id:834, scene:"room", subject:"robot", look:"neon", lens:87, fstop:1.4, iso:300, motion:1.15, hue:258 },
+    { id:835, scene:"nature", subject:"dragon", look:"rain", lens:88, fstop:1.5, iso:400, motion:1.25, hue:295 },
+    { id:836, scene:"ocean", subject:"none", look:"fog", lens:89, fstop:1.6, iso:500, motion:1.35, hue:332 },
+    { id:837, scene:"space", subject:"person", look:"dark", lens:90, fstop:1.7, iso:600, motion:1.45, hue:9 },
+    { id:838, scene:"ui", subject:"car", look:"bright", lens:91, fstop:1.8, iso:700, motion:1.55, hue:46 },
+    { id:839, scene:"abstract", subject:"animal", look:"glitch", lens:92, fstop:1.9, iso:800, motion:1.65, hue:83 },
+    { id:840, scene:"irl", subject:"product", look:"cinematic", lens:93, fstop:2.0, iso:900, motion:1.75, hue:120 },
+    { id:841, scene:"city", subject:"ui", look:"handheld", lens:94, fstop:2.1, iso:1000, motion:1.85, hue:157 },
+    { id:842, scene:"room", subject:"text", look:"drone", lens:95, fstop:2.2, iso:1100, motion:1.95, hue:194 },
+    { id:843, scene:"nature", subject:"robot", look:"macro", lens:96, fstop:2.3, iso:1200, motion:2.05, hue:231 },
+    { id:844, scene:"ocean", subject:"dragon", look:"neon", lens:97, fstop:2.4, iso:1300, motion:2.15, hue:268 },
+    { id:845, scene:"space", subject:"none", look:"rain", lens:98, fstop:2.5, iso:1400, motion:2.25, hue:305 },
+    { id:846, scene:"ui", subject:"person", look:"fog", lens:99, fstop:2.6, iso:1500, motion:2.35, hue:342 },
+    { id:847, scene:"abstract", subject:"car", look:"dark", lens:100, fstop:2.7, iso:1600, motion:2.45, hue:19 },
+    { id:848, scene:"irl", subject:"animal", look:"bright", lens:101, fstop:1.2, iso:100, motion:2.55, hue:56 },
+    { id:849, scene:"city", subject:"product", look:"glitch", lens:102, fstop:1.3, iso:200, motion:2.65, hue:93 },
+    { id:850, scene:"room", subject:"ui", look:"cinematic", lens:18, fstop:1.4, iso:300, motion:0.25, hue:130 },
+    { id:851, scene:"nature", subject:"text", look:"handheld", lens:19, fstop:1.5, iso:400, motion:0.35, hue:167 },
+    { id:852, scene:"ocean", subject:"robot", look:"drone", lens:20, fstop:1.6, iso:500, motion:0.45, hue:204 },
+    { id:853, scene:"space", subject:"dragon", look:"macro", lens:21, fstop:1.7, iso:600, motion:0.55, hue:241 },
+    { id:854, scene:"ui", subject:"none", look:"neon", lens:22, fstop:1.8, iso:700, motion:0.65, hue:278 },
+    { id:855, scene:"abstract", subject:"person", look:"rain", lens:23, fstop:1.9, iso:800, motion:0.75, hue:315 },
+    { id:856, scene:"irl", subject:"car", look:"fog", lens:24, fstop:2.0, iso:900, motion:0.85, hue:352 },
+    { id:857, scene:"city", subject:"animal", look:"dark", lens:25, fstop:2.1, iso:1000, motion:0.95, hue:29 },
+    { id:858, scene:"room", subject:"product", look:"bright", lens:26, fstop:2.2, iso:1100, motion:1.05, hue:66 },
+    { id:859, scene:"nature", subject:"ui", look:"glitch", lens:27, fstop:2.3, iso:1200, motion:1.15, hue:103 },
+    { id:860, scene:"ocean", subject:"text", look:"cinematic", lens:28, fstop:2.4, iso:1300, motion:1.25, hue:140 },
+    { id:861, scene:"space", subject:"robot", look:"handheld", lens:29, fstop:2.5, iso:1400, motion:1.35, hue:177 },
+    { id:862, scene:"ui", subject:"dragon", look:"drone", lens:30, fstop:2.6, iso:1500, motion:1.45, hue:214 },
+    { id:863, scene:"abstract", subject:"none", look:"macro", lens:31, fstop:2.7, iso:1600, motion:1.55, hue:251 },
+    { id:864, scene:"irl", subject:"person", look:"neon", lens:32, fstop:1.2, iso:100, motion:1.65, hue:288 },
+    { id:865, scene:"city", subject:"car", look:"rain", lens:33, fstop:1.3, iso:200, motion:1.75, hue:325 },
+    { id:866, scene:"room", subject:"animal", look:"fog", lens:34, fstop:1.4, iso:300, motion:1.85, hue:2 },
+    { id:867, scene:"nature", subject:"product", look:"dark", lens:35, fstop:1.5, iso:400, motion:1.95, hue:39 },
+    { id:868, scene:"ocean", subject:"ui", look:"bright", lens:36, fstop:1.6, iso:500, motion:2.05, hue:76 },
+    { id:869, scene:"space", subject:"text", look:"glitch", lens:37, fstop:1.7, iso:600, motion:2.15, hue:113 },
+    { id:870, scene:"ui", subject:"robot", look:"cinematic", lens:38, fstop:1.8, iso:700, motion:2.25, hue:150 },
+    { id:871, scene:"abstract", subject:"dragon", look:"handheld", lens:39, fstop:1.9, iso:800, motion:2.35, hue:187 },
+    { id:872, scene:"irl", subject:"none", look:"drone", lens:40, fstop:2.0, iso:900, motion:2.45, hue:224 },
+    { id:873, scene:"city", subject:"person", look:"macro", lens:41, fstop:2.1, iso:1000, motion:2.55, hue:261 },
+    { id:874, scene:"room", subject:"car", look:"neon", lens:42, fstop:2.2, iso:1100, motion:2.65, hue:298 },
+    { id:875, scene:"nature", subject:"animal", look:"rain", lens:43, fstop:2.3, iso:1200, motion:0.25, hue:335 },
+    { id:876, scene:"ocean", subject:"product", look:"fog", lens:44, fstop:2.4, iso:1300, motion:0.35, hue:12 },
+    { id:877, scene:"space", subject:"ui", look:"dark", lens:45, fstop:2.5, iso:1400, motion:0.45, hue:49 },
+    { id:878, scene:"ui", subject:"text", look:"bright", lens:46, fstop:2.6, iso:1500, motion:0.55, hue:86 },
+    { id:879, scene:"abstract", subject:"robot", look:"glitch", lens:47, fstop:2.7, iso:1600, motion:0.65, hue:123 },
+    { id:880, scene:"irl", subject:"dragon", look:"cinematic", lens:48, fstop:1.2, iso:100, motion:0.75, hue:160 },
+    { id:881, scene:"city", subject:"none", look:"handheld", lens:49, fstop:1.3, iso:200, motion:0.85, hue:197 },
+    { id:882, scene:"room", subject:"person", look:"drone", lens:50, fstop:1.4, iso:300, motion:0.95, hue:234 },
+    { id:883, scene:"nature", subject:"car", look:"macro", lens:51, fstop:1.5, iso:400, motion:1.05, hue:271 },
+    { id:884, scene:"ocean", subject:"animal", look:"neon", lens:52, fstop:1.6, iso:500, motion:1.15, hue:308 },
+    { id:885, scene:"space", subject:"product", look:"rain", lens:53, fstop:1.7, iso:600, motion:1.25, hue:345 },
+    { id:886, scene:"ui", subject:"ui", look:"fog", lens:54, fstop:1.8, iso:700, motion:1.35, hue:22 },
+    { id:887, scene:"abstract", subject:"text", look:"dark", lens:55, fstop:1.9, iso:800, motion:1.45, hue:59 },
+    { id:888, scene:"irl", subject:"robot", look:"bright", lens:56, fstop:2.0, iso:900, motion:1.55, hue:96 },
+    { id:889, scene:"city", subject:"dragon", look:"glitch", lens:57, fstop:2.1, iso:1000, motion:1.65, hue:133 },
+    { id:890, scene:"room", subject:"none", look:"cinematic", lens:58, fstop:2.2, iso:1100, motion:1.75, hue:170 },
+    { id:891, scene:"nature", subject:"person", look:"handheld", lens:59, fstop:2.3, iso:1200, motion:1.85, hue:207 },
+    { id:892, scene:"ocean", subject:"car", look:"drone", lens:60, fstop:2.4, iso:1300, motion:1.95, hue:244 },
+    { id:893, scene:"space", subject:"animal", look:"macro", lens:61, fstop:2.5, iso:1400, motion:2.05, hue:281 },
+    { id:894, scene:"ui", subject:"product", look:"neon", lens:62, fstop:2.6, iso:1500, motion:2.15, hue:318 },
+    { id:895, scene:"abstract", subject:"ui", look:"rain", lens:63, fstop:2.7, iso:1600, motion:2.25, hue:355 },
+    { id:896, scene:"irl", subject:"text", look:"fog", lens:64, fstop:1.2, iso:100, motion:2.35, hue:32 },
+    { id:897, scene:"city", subject:"robot", look:"dark", lens:65, fstop:1.3, iso:200, motion:2.45, hue:69 },
+    { id:898, scene:"room", subject:"dragon", look:"bright", lens:66, fstop:1.4, iso:300, motion:2.55, hue:106 },
+    { id:899, scene:"nature", subject:"none", look:"glitch", lens:67, fstop:1.5, iso:400, motion:2.65, hue:143 },
+    { id:900, scene:"ocean", subject:"person", look:"cinematic", lens:68, fstop:1.6, iso:500, motion:0.25, hue:180 },
+    { id:901, scene:"space", subject:"car", look:"handheld", lens:69, fstop:1.7, iso:600, motion:0.35, hue:217 },
+    { id:902, scene:"ui", subject:"animal", look:"drone", lens:70, fstop:1.8, iso:700, motion:0.45, hue:254 },
+    { id:903, scene:"abstract", subject:"product", look:"macro", lens:71, fstop:1.9, iso:800, motion:0.55, hue:291 },
+    { id:904, scene:"irl", subject:"ui", look:"neon", lens:72, fstop:2.0, iso:900, motion:0.65, hue:328 },
+    { id:905, scene:"city", subject:"text", look:"rain", lens:73, fstop:2.1, iso:1000, motion:0.75, hue:5 },
+    { id:906, scene:"room", subject:"robot", look:"fog", lens:74, fstop:2.2, iso:1100, motion:0.85, hue:42 },
+    { id:907, scene:"nature", subject:"dragon", look:"dark", lens:75, fstop:2.3, iso:1200, motion:0.95, hue:79 },
+    { id:908, scene:"ocean", subject:"none", look:"bright", lens:76, fstop:2.4, iso:1300, motion:1.05, hue:116 },
+    { id:909, scene:"space", subject:"person", look:"glitch", lens:77, fstop:2.5, iso:1400, motion:1.15, hue:153 },
+    { id:910, scene:"ui", subject:"car", look:"cinematic", lens:78, fstop:2.6, iso:1500, motion:1.25, hue:190 },
+    { id:911, scene:"abstract", subject:"animal", look:"handheld", lens:79, fstop:2.7, iso:1600, motion:1.35, hue:227 },
+    { id:912, scene:"irl", subject:"product", look:"drone", lens:80, fstop:1.2, iso:100, motion:1.45, hue:264 },
+    { id:913, scene:"city", subject:"ui", look:"macro", lens:81, fstop:1.3, iso:200, motion:1.55, hue:301 },
+    { id:914, scene:"room", subject:"text", look:"neon", lens:82, fstop:1.4, iso:300, motion:1.65, hue:338 },
+    { id:915, scene:"nature", subject:"robot", look:"rain", lens:83, fstop:1.5, iso:400, motion:1.75, hue:15 },
+    { id:916, scene:"ocean", subject:"dragon", look:"fog", lens:84, fstop:1.6, iso:500, motion:1.85, hue:52 },
+    { id:917, scene:"space", subject:"none", look:"dark", lens:85, fstop:1.7, iso:600, motion:1.95, hue:89 },
+    { id:918, scene:"ui", subject:"person", look:"bright", lens:86, fstop:1.8, iso:700, motion:2.05, hue:126 },
+    { id:919, scene:"abstract", subject:"car", look:"glitch", lens:87, fstop:1.9, iso:800, motion:2.15, hue:163 },
+    { id:920, scene:"irl", subject:"animal", look:"cinematic", lens:88, fstop:2.0, iso:900, motion:2.25, hue:200 },
+    { id:921, scene:"city", subject:"product", look:"handheld", lens:89, fstop:2.1, iso:1000, motion:2.35, hue:237 },
+    { id:922, scene:"room", subject:"ui", look:"drone", lens:90, fstop:2.2, iso:1100, motion:2.45, hue:274 },
+    { id:923, scene:"nature", subject:"text", look:"macro", lens:91, fstop:2.3, iso:1200, motion:2.55, hue:311 },
+    { id:924, scene:"ocean", subject:"robot", look:"neon", lens:92, fstop:2.4, iso:1300, motion:2.65, hue:348 },
+    { id:925, scene:"space", subject:"dragon", look:"rain", lens:93, fstop:2.5, iso:1400, motion:0.25, hue:25 },
+    { id:926, scene:"ui", subject:"none", look:"fog", lens:94, fstop:2.6, iso:1500, motion:0.35, hue:62 },
+    { id:927, scene:"abstract", subject:"person", look:"dark", lens:95, fstop:2.7, iso:1600, motion:0.45, hue:99 },
+    { id:928, scene:"irl", subject:"car", look:"bright", lens:96, fstop:1.2, iso:100, motion:0.55, hue:136 },
+    { id:929, scene:"city", subject:"animal", look:"glitch", lens:97, fstop:1.3, iso:200, motion:0.65, hue:173 },
+    { id:930, scene:"room", subject:"product", look:"cinematic", lens:98, fstop:1.4, iso:300, motion:0.75, hue:210 },
+    { id:931, scene:"nature", subject:"ui", look:"handheld", lens:99, fstop:1.5, iso:400, motion:0.85, hue:247 },
+    { id:932, scene:"ocean", subject:"text", look:"drone", lens:100, fstop:1.6, iso:500, motion:0.95, hue:284 },
+    { id:933, scene:"space", subject:"robot", look:"macro", lens:101, fstop:1.7, iso:600, motion:1.05, hue:321 },
+    { id:934, scene:"ui", subject:"dragon", look:"neon", lens:102, fstop:1.8, iso:700, motion:1.15, hue:358 },
+    { id:935, scene:"abstract", subject:"none", look:"rain", lens:18, fstop:1.9, iso:800, motion:1.25, hue:35 },
+    { id:936, scene:"irl", subject:"person", look:"fog", lens:19, fstop:2.0, iso:900, motion:1.35, hue:72 },
+    { id:937, scene:"city", subject:"car", look:"dark", lens:20, fstop:2.1, iso:1000, motion:1.45, hue:109 },
+    { id:938, scene:"room", subject:"animal", look:"bright", lens:21, fstop:2.2, iso:1100, motion:1.55, hue:146 },
+    { id:939, scene:"nature", subject:"product", look:"glitch", lens:22, fstop:2.3, iso:1200, motion:1.65, hue:183 },
+    { id:940, scene:"ocean", subject:"ui", look:"cinematic", lens:23, fstop:2.4, iso:1300, motion:1.75, hue:220 },
+    { id:941, scene:"space", subject:"text", look:"handheld", lens:24, fstop:2.5, iso:1400, motion:1.85, hue:257 },
+    { id:942, scene:"ui", subject:"robot", look:"drone", lens:25, fstop:2.6, iso:1500, motion:1.95, hue:294 },
+    { id:943, scene:"abstract", subject:"dragon", look:"macro", lens:26, fstop:2.7, iso:1600, motion:2.05, hue:331 },
+    { id:944, scene:"irl", subject:"none", look:"neon", lens:27, fstop:1.2, iso:100, motion:2.15, hue:8 },
+    { id:945, scene:"city", subject:"person", look:"rain", lens:28, fstop:1.3, iso:200, motion:2.25, hue:45 },
+    { id:946, scene:"room", subject:"car", look:"fog", lens:29, fstop:1.4, iso:300, motion:2.35, hue:82 },
+    { id:947, scene:"nature", subject:"animal", look:"dark", lens:30, fstop:1.5, iso:400, motion:2.45, hue:119 },
+    { id:948, scene:"ocean", subject:"product", look:"bright", lens:31, fstop:1.6, iso:500, motion:2.55, hue:156 },
+    { id:949, scene:"space", subject:"ui", look:"glitch", lens:32, fstop:1.7, iso:600, motion:2.65, hue:193 },
+    { id:950, scene:"ui", subject:"text", look:"cinematic", lens:33, fstop:1.8, iso:700, motion:0.25, hue:230 },
+    { id:951, scene:"abstract", subject:"robot", look:"handheld", lens:34, fstop:1.9, iso:800, motion:0.35, hue:267 },
+    { id:952, scene:"irl", subject:"dragon", look:"drone", lens:35, fstop:2.0, iso:900, motion:0.45, hue:304 },
+    { id:953, scene:"city", subject:"none", look:"macro", lens:36, fstop:2.1, iso:1000, motion:0.55, hue:341 },
+    { id:954, scene:"room", subject:"person", look:"neon", lens:37, fstop:2.2, iso:1100, motion:0.65, hue:18 },
+    { id:955, scene:"nature", subject:"car", look:"rain", lens:38, fstop:2.3, iso:1200, motion:0.75, hue:55 },
+    { id:956, scene:"ocean", subject:"animal", look:"fog", lens:39, fstop:2.4, iso:1300, motion:0.85, hue:92 },
+    { id:957, scene:"space", subject:"product", look:"dark", lens:40, fstop:2.5, iso:1400, motion:0.95, hue:129 },
+    { id:958, scene:"ui", subject:"ui", look:"bright", lens:41, fstop:2.6, iso:1500, motion:1.05, hue:166 },
+    { id:959, scene:"abstract", subject:"text", look:"glitch", lens:42, fstop:2.7, iso:1600, motion:1.15, hue:203 },
+    { id:960, scene:"irl", subject:"robot", look:"cinematic", lens:43, fstop:1.2, iso:100, motion:1.25, hue:240 },
+    { id:961, scene:"city", subject:"dragon", look:"handheld", lens:44, fstop:1.3, iso:200, motion:1.35, hue:277 },
+    { id:962, scene:"room", subject:"none", look:"drone", lens:45, fstop:1.4, iso:300, motion:1.45, hue:314 },
+    { id:963, scene:"nature", subject:"person", look:"macro", lens:46, fstop:1.5, iso:400, motion:1.55, hue:351 },
+    { id:964, scene:"ocean", subject:"car", look:"neon", lens:47, fstop:1.6, iso:500, motion:1.65, hue:28 },
+    { id:965, scene:"space", subject:"animal", look:"rain", lens:48, fstop:1.7, iso:600, motion:1.75, hue:65 },
+    { id:966, scene:"ui", subject:"product", look:"fog", lens:49, fstop:1.8, iso:700, motion:1.85, hue:102 },
+    { id:967, scene:"abstract", subject:"ui", look:"dark", lens:50, fstop:1.9, iso:800, motion:1.95, hue:139 },
+    { id:968, scene:"irl", subject:"text", look:"bright", lens:51, fstop:2.0, iso:900, motion:2.05, hue:176 },
+    { id:969, scene:"city", subject:"robot", look:"glitch", lens:52, fstop:2.1, iso:1000, motion:2.15, hue:213 },
+    { id:970, scene:"room", subject:"dragon", look:"cinematic", lens:53, fstop:2.2, iso:1100, motion:2.25, hue:250 },
+    { id:971, scene:"nature", subject:"none", look:"handheld", lens:54, fstop:2.3, iso:1200, motion:2.35, hue:287 },
+    { id:972, scene:"ocean", subject:"person", look:"drone", lens:55, fstop:2.4, iso:1300, motion:2.45, hue:324 },
+    { id:973, scene:"space", subject:"car", look:"macro", lens:56, fstop:2.5, iso:1400, motion:2.55, hue:1 },
+    { id:974, scene:"ui", subject:"animal", look:"neon", lens:57, fstop:2.6, iso:1500, motion:2.65, hue:38 },
+    { id:975, scene:"abstract", subject:"product", look:"rain", lens:58, fstop:2.7, iso:1600, motion:0.25, hue:75 },
+    { id:976, scene:"irl", subject:"ui", look:"fog", lens:59, fstop:1.2, iso:100, motion:0.35, hue:112 },
+    { id:977, scene:"city", subject:"text", look:"dark", lens:60, fstop:1.3, iso:200, motion:0.45, hue:149 },
+    { id:978, scene:"room", subject:"robot", look:"bright", lens:61, fstop:1.4, iso:300, motion:0.55, hue:186 },
+    { id:979, scene:"nature", subject:"dragon", look:"glitch", lens:62, fstop:1.5, iso:400, motion:0.65, hue:223 },
+    { id:980, scene:"ocean", subject:"none", look:"cinematic", lens:63, fstop:1.6, iso:500, motion:0.75, hue:260 },
+    { id:981, scene:"space", subject:"person", look:"handheld", lens:64, fstop:1.7, iso:600, motion:0.85, hue:297 },
+    { id:982, scene:"ui", subject:"car", look:"drone", lens:65, fstop:1.8, iso:700, motion:0.95, hue:334 },
+    { id:983, scene:"abstract", subject:"animal", look:"macro", lens:66, fstop:1.9, iso:800, motion:1.05, hue:11 },
+    { id:984, scene:"irl", subject:"product", look:"neon", lens:67, fstop:2.0, iso:900, motion:1.15, hue:48 },
+    { id:985, scene:"city", subject:"ui", look:"rain", lens:68, fstop:2.1, iso:1000, motion:1.25, hue:85 },
+    { id:986, scene:"room", subject:"text", look:"fog", lens:69, fstop:2.2, iso:1100, motion:1.35, hue:122 },
+    { id:987, scene:"nature", subject:"robot", look:"dark", lens:70, fstop:2.3, iso:1200, motion:1.45, hue:159 },
+    { id:988, scene:"ocean", subject:"dragon", look:"bright", lens:71, fstop:2.4, iso:1300, motion:1.55, hue:196 },
+    { id:989, scene:"space", subject:"none", look:"glitch", lens:72, fstop:2.5, iso:1400, motion:1.65, hue:233 },
+    { id:990, scene:"ui", subject:"person", look:"cinematic", lens:73, fstop:2.6, iso:1500, motion:1.75, hue:270 },
+    { id:991, scene:"abstract", subject:"car", look:"handheld", lens:74, fstop:2.7, iso:1600, motion:1.85, hue:307 },
+    { id:992, scene:"irl", subject:"animal", look:"drone", lens:75, fstop:1.2, iso:100, motion:1.95, hue:344 },
+    { id:993, scene:"city", subject:"product", look:"macro", lens:76, fstop:1.3, iso:200, motion:2.05, hue:21 },
+    { id:994, scene:"room", subject:"ui", look:"neon", lens:77, fstop:1.4, iso:300, motion:2.15, hue:58 },
+    { id:995, scene:"nature", subject:"text", look:"rain", lens:78, fstop:1.5, iso:400, motion:2.25, hue:95 },
+    { id:996, scene:"ocean", subject:"robot", look:"fog", lens:79, fstop:1.6, iso:500, motion:2.35, hue:132 },
+    { id:997, scene:"space", subject:"dragon", look:"dark", lens:80, fstop:1.7, iso:600, motion:2.45, hue:169 },
+    { id:998, scene:"ui", subject:"none", look:"bright", lens:81, fstop:1.8, iso:700, motion:2.55, hue:206 },
+    { id:999, scene:"abstract", subject:"person", look:"glitch", lens:82, fstop:1.9, iso:800, motion:2.65, hue:243 },
+    { id:1000, scene:"irl", subject:"car", look:"cinematic", lens:83, fstop:2.0, iso:900, motion:0.25, hue:280 },
+    { id:1001, scene:"city", subject:"animal", look:"handheld", lens:84, fstop:2.1, iso:1000, motion:0.35, hue:317 },
+    { id:1002, scene:"room", subject:"product", look:"drone", lens:85, fstop:2.2, iso:1100, motion:0.45, hue:354 },
+    { id:1003, scene:"nature", subject:"ui", look:"macro", lens:86, fstop:2.3, iso:1200, motion:0.55, hue:31 },
+    { id:1004, scene:"ocean", subject:"text", look:"neon", lens:87, fstop:2.4, iso:1300, motion:0.65, hue:68 },
+    { id:1005, scene:"space", subject:"robot", look:"rain", lens:88, fstop:2.5, iso:1400, motion:0.75, hue:105 },
+    { id:1006, scene:"ui", subject:"dragon", look:"fog", lens:89, fstop:2.6, iso:1500, motion:0.85, hue:142 },
+    { id:1007, scene:"abstract", subject:"none", look:"dark", lens:90, fstop:2.7, iso:1600, motion:0.95, hue:179 },
+    { id:1008, scene:"irl", subject:"person", look:"bright", lens:91, fstop:1.2, iso:100, motion:1.05, hue:216 },
+    { id:1009, scene:"city", subject:"car", look:"glitch", lens:92, fstop:1.3, iso:200, motion:1.15, hue:253 },
+    { id:1010, scene:"room", subject:"animal", look:"cinematic", lens:93, fstop:1.4, iso:300, motion:1.25, hue:290 },
+    { id:1011, scene:"nature", subject:"product", look:"handheld", lens:94, fstop:1.5, iso:400, motion:1.35, hue:327 },
+    { id:1012, scene:"ocean", subject:"ui", look:"drone", lens:95, fstop:1.6, iso:500, motion:1.45, hue:4 },
+    { id:1013, scene:"space", subject:"text", look:"macro", lens:96, fstop:1.7, iso:600, motion:1.55, hue:41 },
+    { id:1014, scene:"ui", subject:"robot", look:"neon", lens:97, fstop:1.8, iso:700, motion:1.65, hue:78 },
+    { id:1015, scene:"abstract", subject:"dragon", look:"rain", lens:98, fstop:1.9, iso:800, motion:1.75, hue:115 },
+    { id:1016, scene:"irl", subject:"none", look:"fog", lens:99, fstop:2.0, iso:900, motion:1.85, hue:152 },
+    { id:1017, scene:"city", subject:"person", look:"dark", lens:100, fstop:2.1, iso:1000, motion:1.95, hue:189 },
+    { id:1018, scene:"room", subject:"car", look:"bright", lens:101, fstop:2.2, iso:1100, motion:2.05, hue:226 },
+    { id:1019, scene:"nature", subject:"animal", look:"glitch", lens:102, fstop:2.3, iso:1200, motion:2.15, hue:263 },
+    { id:1020, scene:"ocean", subject:"product", look:"cinematic", lens:18, fstop:2.4, iso:1300, motion:2.25, hue:300 },
+    { id:1021, scene:"space", subject:"ui", look:"handheld", lens:19, fstop:2.5, iso:1400, motion:2.35, hue:337 },
+    { id:1022, scene:"ui", subject:"text", look:"drone", lens:20, fstop:2.6, iso:1500, motion:2.45, hue:14 },
+    { id:1023, scene:"abstract", subject:"robot", look:"macro", lens:21, fstop:2.7, iso:1600, motion:2.55, hue:51 },
+    { id:1024, scene:"irl", subject:"dragon", look:"neon", lens:22, fstop:1.2, iso:100, motion:2.65, hue:88 },
+    { id:1025, scene:"city", subject:"none", look:"rain", lens:23, fstop:1.3, iso:200, motion:0.25, hue:125 },
+    { id:1026, scene:"room", subject:"person", look:"fog", lens:24, fstop:1.4, iso:300, motion:0.35, hue:162 },
+    { id:1027, scene:"nature", subject:"car", look:"dark", lens:25, fstop:1.5, iso:400, motion:0.45, hue:199 },
+    { id:1028, scene:"ocean", subject:"animal", look:"bright", lens:26, fstop:1.6, iso:500, motion:0.55, hue:236 },
+    { id:1029, scene:"space", subject:"product", look:"glitch", lens:27, fstop:1.7, iso:600, motion:0.65, hue:273 },
+    { id:1030, scene:"ui", subject:"ui", look:"cinematic", lens:28, fstop:1.8, iso:700, motion:0.75, hue:310 },
+    { id:1031, scene:"abstract", subject:"text", look:"handheld", lens:29, fstop:1.9, iso:800, motion:0.85, hue:347 },
+    { id:1032, scene:"irl", subject:"robot", look:"drone", lens:30, fstop:2.0, iso:900, motion:0.95, hue:24 },
+    { id:1033, scene:"city", subject:"dragon", look:"macro", lens:31, fstop:2.1, iso:1000, motion:1.05, hue:61 },
+    { id:1034, scene:"room", subject:"none", look:"neon", lens:32, fstop:2.2, iso:1100, motion:1.15, hue:98 },
+    { id:1035, scene:"nature", subject:"person", look:"rain", lens:33, fstop:2.3, iso:1200, motion:1.25, hue:135 },
+    { id:1036, scene:"ocean", subject:"car", look:"fog", lens:34, fstop:2.4, iso:1300, motion:1.35, hue:172 },
+    { id:1037, scene:"space", subject:"animal", look:"dark", lens:35, fstop:2.5, iso:1400, motion:1.45, hue:209 },
+    { id:1038, scene:"ui", subject:"product", look:"bright", lens:36, fstop:2.6, iso:1500, motion:1.55, hue:246 },
+    { id:1039, scene:"abstract", subject:"ui", look:"glitch", lens:37, fstop:2.7, iso:1600, motion:1.65, hue:283 },
+    { id:1040, scene:"irl", subject:"text", look:"cinematic", lens:38, fstop:1.2, iso:100, motion:1.75, hue:320 },
+    { id:1041, scene:"city", subject:"robot", look:"handheld", lens:39, fstop:1.3, iso:200, motion:1.85, hue:357 },
+    { id:1042, scene:"room", subject:"dragon", look:"drone", lens:40, fstop:1.4, iso:300, motion:1.95, hue:34 },
+    { id:1043, scene:"nature", subject:"none", look:"macro", lens:41, fstop:1.5, iso:400, motion:2.05, hue:71 },
+    { id:1044, scene:"ocean", subject:"person", look:"neon", lens:42, fstop:1.6, iso:500, motion:2.15, hue:108 },
+    { id:1045, scene:"space", subject:"car", look:"rain", lens:43, fstop:1.7, iso:600, motion:2.25, hue:145 },
+    { id:1046, scene:"ui", subject:"animal", look:"fog", lens:44, fstop:1.8, iso:700, motion:2.35, hue:182 },
+    { id:1047, scene:"abstract", subject:"product", look:"dark", lens:45, fstop:1.9, iso:800, motion:2.45, hue:219 },
+    { id:1048, scene:"irl", subject:"ui", look:"bright", lens:46, fstop:2.0, iso:900, motion:2.55, hue:256 },
+    { id:1049, scene:"city", subject:"text", look:"glitch", lens:47, fstop:2.1, iso:1000, motion:2.65, hue:293 },
+    { id:1050, scene:"room", subject:"robot", look:"cinematic", lens:48, fstop:2.2, iso:1100, motion:0.25, hue:330 },
+    { id:1051, scene:"nature", subject:"dragon", look:"handheld", lens:49, fstop:2.3, iso:1200, motion:0.35, hue:7 },
+    { id:1052, scene:"ocean", subject:"none", look:"drone", lens:50, fstop:2.4, iso:1300, motion:0.45, hue:44 },
+    { id:1053, scene:"space", subject:"person", look:"macro", lens:51, fstop:2.5, iso:1400, motion:0.55, hue:81 },
+    { id:1054, scene:"ui", subject:"car", look:"neon", lens:52, fstop:2.6, iso:1500, motion:0.65, hue:118 },
+    { id:1055, scene:"abstract", subject:"animal", look:"rain", lens:53, fstop:2.7, iso:1600, motion:0.75, hue:155 },
+    { id:1056, scene:"irl", subject:"product", look:"fog", lens:54, fstop:1.2, iso:100, motion:0.85, hue:192 },
+    { id:1057, scene:"city", subject:"ui", look:"dark", lens:55, fstop:1.3, iso:200, motion:0.95, hue:229 },
+    { id:1058, scene:"room", subject:"text", look:"bright", lens:56, fstop:1.4, iso:300, motion:1.05, hue:266 },
+    { id:1059, scene:"nature", subject:"robot", look:"glitch", lens:57, fstop:1.5, iso:400, motion:1.15, hue:303 },
+    { id:1060, scene:"ocean", subject:"dragon", look:"cinematic", lens:58, fstop:1.6, iso:500, motion:1.25, hue:340 },
+    { id:1061, scene:"space", subject:"none", look:"handheld", lens:59, fstop:1.7, iso:600, motion:1.35, hue:17 },
+    { id:1062, scene:"ui", subject:"person", look:"drone", lens:60, fstop:1.8, iso:700, motion:1.45, hue:54 },
+    { id:1063, scene:"abstract", subject:"car", look:"macro", lens:61, fstop:1.9, iso:800, motion:1.55, hue:91 },
+    { id:1064, scene:"irl", subject:"animal", look:"neon", lens:62, fstop:2.0, iso:900, motion:1.65, hue:128 },
+    { id:1065, scene:"city", subject:"product", look:"rain", lens:63, fstop:2.1, iso:1000, motion:1.75, hue:165 },
+    { id:1066, scene:"room", subject:"ui", look:"fog", lens:64, fstop:2.2, iso:1100, motion:1.85, hue:202 },
+    { id:1067, scene:"nature", subject:"text", look:"dark", lens:65, fstop:2.3, iso:1200, motion:1.95, hue:239 },
+    { id:1068, scene:"ocean", subject:"robot", look:"bright", lens:66, fstop:2.4, iso:1300, motion:2.05, hue:276 },
+    { id:1069, scene:"space", subject:"dragon", look:"glitch", lens:67, fstop:2.5, iso:1400, motion:2.15, hue:313 },
+    { id:1070, scene:"ui", subject:"none", look:"cinematic", lens:68, fstop:2.6, iso:1500, motion:2.25, hue:350 },
+    { id:1071, scene:"abstract", subject:"person", look:"handheld", lens:69, fstop:2.7, iso:1600, motion:2.35, hue:27 },
+    { id:1072, scene:"irl", subject:"car", look:"drone", lens:70, fstop:1.2, iso:100, motion:2.45, hue:64 },
+    { id:1073, scene:"city", subject:"animal", look:"macro", lens:71, fstop:1.3, iso:200, motion:2.55, hue:101 },
+    { id:1074, scene:"room", subject:"product", look:"neon", lens:72, fstop:1.4, iso:300, motion:2.65, hue:138 },
+    { id:1075, scene:"nature", subject:"ui", look:"rain", lens:73, fstop:1.5, iso:400, motion:0.25, hue:175 },
+    { id:1076, scene:"ocean", subject:"text", look:"fog", lens:74, fstop:1.6, iso:500, motion:0.35, hue:212 },
+    { id:1077, scene:"space", subject:"robot", look:"dark", lens:75, fstop:1.7, iso:600, motion:0.45, hue:249 },
+    { id:1078, scene:"ui", subject:"dragon", look:"bright", lens:76, fstop:1.8, iso:700, motion:0.55, hue:286 },
+    { id:1079, scene:"abstract", subject:"none", look:"glitch", lens:77, fstop:1.9, iso:800, motion:0.65, hue:323 },
+    { id:1080, scene:"irl", subject:"person", look:"cinematic", lens:78, fstop:2.0, iso:900, motion:0.75, hue:0 },
+    { id:1081, scene:"city", subject:"car", look:"handheld", lens:79, fstop:2.1, iso:1000, motion:0.85, hue:37 },
+    { id:1082, scene:"room", subject:"animal", look:"drone", lens:80, fstop:2.2, iso:1100, motion:0.95, hue:74 },
+    { id:1083, scene:"nature", subject:"product", look:"macro", lens:81, fstop:2.3, iso:1200, motion:1.05, hue:111 },
+    { id:1084, scene:"ocean", subject:"ui", look:"neon", lens:82, fstop:2.4, iso:1300, motion:1.15, hue:148 },
+    { id:1085, scene:"space", subject:"text", look:"rain", lens:83, fstop:2.5, iso:1400, motion:1.25, hue:185 },
+    { id:1086, scene:"ui", subject:"robot", look:"fog", lens:84, fstop:2.6, iso:1500, motion:1.35, hue:222 },
+    { id:1087, scene:"abstract", subject:"dragon", look:"dark", lens:85, fstop:2.7, iso:1600, motion:1.45, hue:259 },
+    { id:1088, scene:"irl", subject:"none", look:"bright", lens:86, fstop:1.2, iso:100, motion:1.55, hue:296 },
+    { id:1089, scene:"city", subject:"person", look:"glitch", lens:87, fstop:1.3, iso:200, motion:1.65, hue:333 },
+    { id:1090, scene:"room", subject:"car", look:"cinematic", lens:88, fstop:1.4, iso:300, motion:1.75, hue:10 },
+    { id:1091, scene:"nature", subject:"animal", look:"handheld", lens:89, fstop:1.5, iso:400, motion:1.85, hue:47 },
+    { id:1092, scene:"ocean", subject:"product", look:"drone", lens:90, fstop:1.6, iso:500, motion:1.95, hue:84 },
+    { id:1093, scene:"space", subject:"ui", look:"macro", lens:91, fstop:1.7, iso:600, motion:2.05, hue:121 },
+    { id:1094, scene:"ui", subject:"text", look:"neon", lens:92, fstop:1.8, iso:700, motion:2.15, hue:158 },
+    { id:1095, scene:"abstract", subject:"robot", look:"rain", lens:93, fstop:1.9, iso:800, motion:2.25, hue:195 },
+    { id:1096, scene:"irl", subject:"dragon", look:"fog", lens:94, fstop:2.0, iso:900, motion:2.35, hue:232 },
+    { id:1097, scene:"city", subject:"none", look:"dark", lens:95, fstop:2.1, iso:1000, motion:2.45, hue:269 },
+    { id:1098, scene:"room", subject:"person", look:"bright", lens:96, fstop:2.2, iso:1100, motion:2.55, hue:306 },
+    { id:1099, scene:"nature", subject:"car", look:"glitch", lens:97, fstop:2.3, iso:1200, motion:2.65, hue:343 },
+    { id:1100, scene:"ocean", subject:"animal", look:"cinematic", lens:98, fstop:2.4, iso:1300, motion:0.25, hue:20 },
+    { id:1101, scene:"space", subject:"product", look:"handheld", lens:99, fstop:2.5, iso:1400, motion:0.35, hue:57 },
+    { id:1102, scene:"ui", subject:"ui", look:"drone", lens:100, fstop:2.6, iso:1500, motion:0.45, hue:94 },
+    { id:1103, scene:"abstract", subject:"text", look:"macro", lens:101, fstop:2.7, iso:1600, motion:0.55, hue:131 },
+    { id:1104, scene:"irl", subject:"robot", look:"neon", lens:102, fstop:1.2, iso:100, motion:0.65, hue:168 },
+    { id:1105, scene:"city", subject:"dragon", look:"rain", lens:18, fstop:1.3, iso:200, motion:0.75, hue:205 },
+    { id:1106, scene:"room", subject:"none", look:"fog", lens:19, fstop:1.4, iso:300, motion:0.85, hue:242 },
+    { id:1107, scene:"nature", subject:"person", look:"dark", lens:20, fstop:1.5, iso:400, motion:0.95, hue:279 },
+    { id:1108, scene:"ocean", subject:"car", look:"bright", lens:21, fstop:1.6, iso:500, motion:1.05, hue:316 },
+    { id:1109, scene:"space", subject:"animal", look:"glitch", lens:22, fstop:1.7, iso:600, motion:1.15, hue:353 },
+    { id:1110, scene:"ui", subject:"product", look:"cinematic", lens:23, fstop:1.8, iso:700, motion:1.25, hue:30 },
+    { id:1111, scene:"abstract", subject:"ui", look:"handheld", lens:24, fstop:1.9, iso:800, motion:1.35, hue:67 },
+    { id:1112, scene:"irl", subject:"text", look:"drone", lens:25, fstop:2.0, iso:900, motion:1.45, hue:104 },
+    { id:1113, scene:"city", subject:"robot", look:"macro", lens:26, fstop:2.1, iso:1000, motion:1.55, hue:141 },
+    { id:1114, scene:"room", subject:"dragon", look:"neon", lens:27, fstop:2.2, iso:1100, motion:1.65, hue:178 },
+    { id:1115, scene:"nature", subject:"none", look:"rain", lens:28, fstop:2.3, iso:1200, motion:1.75, hue:215 },
+    { id:1116, scene:"ocean", subject:"person", look:"fog", lens:29, fstop:2.4, iso:1300, motion:1.85, hue:252 },
+    { id:1117, scene:"space", subject:"car", look:"dark", lens:30, fstop:2.5, iso:1400, motion:1.95, hue:289 },
+    { id:1118, scene:"ui", subject:"animal", look:"bright", lens:31, fstop:2.6, iso:1500, motion:2.05, hue:326 },
+    { id:1119, scene:"abstract", subject:"product", look:"glitch", lens:32, fstop:2.7, iso:1600, motion:2.15, hue:3 },
+    { id:1120, scene:"irl", subject:"ui", look:"cinematic", lens:33, fstop:1.2, iso:100, motion:2.25, hue:40 },
+    { id:1121, scene:"city", subject:"text", look:"handheld", lens:34, fstop:1.3, iso:200, motion:2.35, hue:77 },
+    { id:1122, scene:"room", subject:"robot", look:"drone", lens:35, fstop:1.4, iso:300, motion:2.45, hue:114 },
+    { id:1123, scene:"nature", subject:"dragon", look:"macro", lens:36, fstop:1.5, iso:400, motion:2.55, hue:151 },
+    { id:1124, scene:"ocean", subject:"none", look:"neon", lens:37, fstop:1.6, iso:500, motion:2.65, hue:188 },
+    { id:1125, scene:"space", subject:"person", look:"rain", lens:38, fstop:1.7, iso:600, motion:0.25, hue:225 },
+    { id:1126, scene:"ui", subject:"car", look:"fog", lens:39, fstop:1.8, iso:700, motion:0.35, hue:262 },
+    { id:1127, scene:"abstract", subject:"animal", look:"dark", lens:40, fstop:1.9, iso:800, motion:0.45, hue:299 },
+    { id:1128, scene:"irl", subject:"product", look:"bright", lens:41, fstop:2.0, iso:900, motion:0.55, hue:336 },
+    { id:1129, scene:"city", subject:"ui", look:"glitch", lens:42, fstop:2.1, iso:1000, motion:0.65, hue:13 },
+    { id:1130, scene:"room", subject:"text", look:"cinematic", lens:43, fstop:2.2, iso:1100, motion:0.75, hue:50 },
+    { id:1131, scene:"nature", subject:"robot", look:"handheld", lens:44, fstop:2.3, iso:1200, motion:0.85, hue:87 },
+    { id:1132, scene:"ocean", subject:"dragon", look:"drone", lens:45, fstop:2.4, iso:1300, motion:0.95, hue:124 },
+    { id:1133, scene:"space", subject:"none", look:"macro", lens:46, fstop:2.5, iso:1400, motion:1.05, hue:161 },
+    { id:1134, scene:"ui", subject:"person", look:"neon", lens:47, fstop:2.6, iso:1500, motion:1.15, hue:198 },
+    { id:1135, scene:"abstract", subject:"car", look:"rain", lens:48, fstop:2.7, iso:1600, motion:1.25, hue:235 },
+    { id:1136, scene:"irl", subject:"animal", look:"fog", lens:49, fstop:1.2, iso:100, motion:1.35, hue:272 },
+    { id:1137, scene:"city", subject:"product", look:"dark", lens:50, fstop:1.3, iso:200, motion:1.45, hue:309 },
+    { id:1138, scene:"room", subject:"ui", look:"bright", lens:51, fstop:1.4, iso:300, motion:1.55, hue:346 },
+    { id:1139, scene:"nature", subject:"text", look:"glitch", lens:52, fstop:1.5, iso:400, motion:1.65, hue:23 },
+    { id:1140, scene:"ocean", subject:"robot", look:"cinematic", lens:53, fstop:1.6, iso:500, motion:1.75, hue:60 },
+    { id:1141, scene:"space", subject:"dragon", look:"handheld", lens:54, fstop:1.7, iso:600, motion:1.85, hue:97 },
+    { id:1142, scene:"ui", subject:"none", look:"drone", lens:55, fstop:1.8, iso:700, motion:1.95, hue:134 },
+    { id:1143, scene:"abstract", subject:"person", look:"macro", lens:56, fstop:1.9, iso:800, motion:2.05, hue:171 },
+    { id:1144, scene:"irl", subject:"car", look:"neon", lens:57, fstop:2.0, iso:900, motion:2.15, hue:208 },
+    { id:1145, scene:"city", subject:"animal", look:"rain", lens:58, fstop:2.1, iso:1000, motion:2.25, hue:245 },
+    { id:1146, scene:"room", subject:"product", look:"fog", lens:59, fstop:2.2, iso:1100, motion:2.35, hue:282 },
+    { id:1147, scene:"nature", subject:"ui", look:"dark", lens:60, fstop:2.3, iso:1200, motion:2.45, hue:319 },
+    { id:1148, scene:"ocean", subject:"text", look:"bright", lens:61, fstop:2.4, iso:1300, motion:2.55, hue:356 },
+    { id:1149, scene:"space", subject:"robot", look:"glitch", lens:62, fstop:2.5, iso:1400, motion:2.65, hue:33 },
+    { id:1150, scene:"ui", subject:"dragon", look:"cinematic", lens:63, fstop:2.6, iso:1500, motion:0.25, hue:70 },
+    { id:1151, scene:"abstract", subject:"none", look:"handheld", lens:64, fstop:2.7, iso:1600, motion:0.35, hue:107 },
+    { id:1152, scene:"irl", subject:"person", look:"drone", lens:65, fstop:1.2, iso:100, motion:0.45, hue:144 },
+    { id:1153, scene:"city", subject:"car", look:"macro", lens:66, fstop:1.3, iso:200, motion:0.55, hue:181 },
+    { id:1154, scene:"room", subject:"animal", look:"neon", lens:67, fstop:1.4, iso:300, motion:0.65, hue:218 },
+    { id:1155, scene:"nature", subject:"product", look:"rain", lens:68, fstop:1.5, iso:400, motion:0.75, hue:255 },
+    { id:1156, scene:"ocean", subject:"ui", look:"fog", lens:69, fstop:1.6, iso:500, motion:0.85, hue:292 },
+    { id:1157, scene:"space", subject:"text", look:"dark", lens:70, fstop:1.7, iso:600, motion:0.95, hue:329 },
+    { id:1158, scene:"ui", subject:"robot", look:"bright", lens:71, fstop:1.8, iso:700, motion:1.05, hue:6 },
+    { id:1159, scene:"abstract", subject:"dragon", look:"glitch", lens:72, fstop:1.9, iso:800, motion:1.15, hue:43 },
+    { id:1160, scene:"irl", subject:"none", look:"cinematic", lens:73, fstop:2.0, iso:900, motion:1.25, hue:80 },
+    { id:1161, scene:"city", subject:"person", look:"handheld", lens:74, fstop:2.1, iso:1000, motion:1.35, hue:117 },
+    { id:1162, scene:"room", subject:"car", look:"drone", lens:75, fstop:2.2, iso:1100, motion:1.45, hue:154 },
+    { id:1163, scene:"nature", subject:"animal", look:"macro", lens:76, fstop:2.3, iso:1200, motion:1.55, hue:191 },
+    { id:1164, scene:"ocean", subject:"product", look:"neon", lens:77, fstop:2.4, iso:1300, motion:1.65, hue:228 },
+    { id:1165, scene:"space", subject:"ui", look:"rain", lens:78, fstop:2.5, iso:1400, motion:1.75, hue:265 },
+    { id:1166, scene:"ui", subject:"text", look:"fog", lens:79, fstop:2.6, iso:1500, motion:1.85, hue:302 },
+    { id:1167, scene:"abstract", subject:"robot", look:"dark", lens:80, fstop:2.7, iso:1600, motion:1.95, hue:339 },
+    { id:1168, scene:"irl", subject:"dragon", look:"bright", lens:81, fstop:1.2, iso:100, motion:2.05, hue:16 },
+    { id:1169, scene:"city", subject:"none", look:"glitch", lens:82, fstop:1.3, iso:200, motion:2.15, hue:53 },
+    { id:1170, scene:"room", subject:"person", look:"cinematic", lens:83, fstop:1.4, iso:300, motion:2.25, hue:90 },
+    { id:1171, scene:"nature", subject:"car", look:"handheld", lens:84, fstop:1.5, iso:400, motion:2.35, hue:127 },
+    { id:1172, scene:"ocean", subject:"animal", look:"drone", lens:85, fstop:1.6, iso:500, motion:2.45, hue:164 },
+    { id:1173, scene:"space", subject:"product", look:"macro", lens:86, fstop:1.7, iso:600, motion:2.55, hue:201 },
+    { id:1174, scene:"ui", subject:"ui", look:"neon", lens:87, fstop:1.8, iso:700, motion:2.65, hue:238 },
+    { id:1175, scene:"abstract", subject:"text", look:"rain", lens:88, fstop:1.9, iso:800, motion:0.25, hue:275 },
+    { id:1176, scene:"irl", subject:"robot", look:"fog", lens:89, fstop:2.0, iso:900, motion:0.35, hue:312 },
+    { id:1177, scene:"city", subject:"dragon", look:"dark", lens:90, fstop:2.1, iso:1000, motion:0.45, hue:349 },
+    { id:1178, scene:"room", subject:"none", look:"bright", lens:91, fstop:2.2, iso:1100, motion:0.55, hue:26 },
+    { id:1179, scene:"nature", subject:"person", look:"glitch", lens:92, fstop:2.3, iso:1200, motion:0.65, hue:63 },
+    { id:1180, scene:"ocean", subject:"car", look:"cinematic", lens:93, fstop:2.4, iso:1300, motion:0.75, hue:100 },
+    { id:1181, scene:"space", subject:"animal", look:"handheld", lens:94, fstop:2.5, iso:1400, motion:0.85, hue:137 },
+    { id:1182, scene:"ui", subject:"product", look:"drone", lens:95, fstop:2.6, iso:1500, motion:0.95, hue:174 },
+    { id:1183, scene:"abstract", subject:"ui", look:"macro", lens:96, fstop:2.7, iso:1600, motion:1.05, hue:211 },
+    { id:1184, scene:"irl", subject:"text", look:"neon", lens:97, fstop:1.2, iso:100, motion:1.15, hue:248 },
+    { id:1185, scene:"city", subject:"robot", look:"rain", lens:98, fstop:1.3, iso:200, motion:1.25, hue:285 },
+    { id:1186, scene:"room", subject:"dragon", look:"fog", lens:99, fstop:1.4, iso:300, motion:1.35, hue:322 },
+    { id:1187, scene:"nature", subject:"none", look:"dark", lens:100, fstop:1.5, iso:400, motion:1.45, hue:359 },
+    { id:1188, scene:"ocean", subject:"person", look:"bright", lens:101, fstop:1.6, iso:500, motion:1.55, hue:36 },
+    { id:1189, scene:"space", subject:"car", look:"glitch", lens:102, fstop:1.7, iso:600, motion:1.65, hue:73 },
+    { id:1190, scene:"ui", subject:"animal", look:"cinematic", lens:18, fstop:1.8, iso:700, motion:1.75, hue:110 },
+    { id:1191, scene:"abstract", subject:"product", look:"handheld", lens:19, fstop:1.9, iso:800, motion:1.85, hue:147 },
+    { id:1192, scene:"irl", subject:"ui", look:"drone", lens:20, fstop:2.0, iso:900, motion:1.95, hue:184 },
+    { id:1193, scene:"city", subject:"text", look:"macro", lens:21, fstop:2.1, iso:1000, motion:2.05, hue:221 },
+    { id:1194, scene:"room", subject:"robot", look:"neon", lens:22, fstop:2.2, iso:1100, motion:2.15, hue:258 },
+    { id:1195, scene:"nature", subject:"dragon", look:"rain", lens:23, fstop:2.3, iso:1200, motion:2.25, hue:295 },
+    { id:1196, scene:"ocean", subject:"none", look:"fog", lens:24, fstop:2.4, iso:1300, motion:2.35, hue:332 },
+    { id:1197, scene:"space", subject:"person", look:"dark", lens:25, fstop:2.5, iso:1400, motion:2.45, hue:9 },
+    { id:1198, scene:"ui", subject:"car", look:"bright", lens:26, fstop:2.6, iso:1500, motion:2.55, hue:46 },
+    { id:1199, scene:"abstract", subject:"animal", look:"glitch", lens:27, fstop:2.7, iso:1600, motion:2.65, hue:83 },
+    { id:1200, scene:"irl", subject:"product", look:"cinematic", lens:28, fstop:1.2, iso:100, motion:0.25, hue:120 },
+    { id:1201, scene:"city", subject:"ui", look:"handheld", lens:29, fstop:1.3, iso:200, motion:0.35, hue:157 },
+    { id:1202, scene:"room", subject:"text", look:"drone", lens:30, fstop:1.4, iso:300, motion:0.45, hue:194 },
+    { id:1203, scene:"nature", subject:"robot", look:"macro", lens:31, fstop:1.5, iso:400, motion:0.55, hue:231 },
+    { id:1204, scene:"ocean", subject:"dragon", look:"neon", lens:32, fstop:1.6, iso:500, motion:0.65, hue:268 },
+    { id:1205, scene:"space", subject:"none", look:"rain", lens:33, fstop:1.7, iso:600, motion:0.75, hue:305 },
+    { id:1206, scene:"ui", subject:"person", look:"fog", lens:34, fstop:1.8, iso:700, motion:0.85, hue:342 },
+    { id:1207, scene:"abstract", subject:"car", look:"dark", lens:35, fstop:1.9, iso:800, motion:0.95, hue:19 },
+    { id:1208, scene:"irl", subject:"animal", look:"bright", lens:36, fstop:2.0, iso:900, motion:1.05, hue:56 },
+    { id:1209, scene:"city", subject:"product", look:"glitch", lens:37, fstop:2.1, iso:1000, motion:1.15, hue:93 },
+    { id:1210, scene:"room", subject:"ui", look:"cinematic", lens:38, fstop:2.2, iso:1100, motion:1.25, hue:130 },
+    { id:1211, scene:"nature", subject:"text", look:"handheld", lens:39, fstop:2.3, iso:1200, motion:1.35, hue:167 },
+    { id:1212, scene:"ocean", subject:"robot", look:"drone", lens:40, fstop:2.4, iso:1300, motion:1.45, hue:204 },
+    { id:1213, scene:"space", subject:"dragon", look:"macro", lens:41, fstop:2.5, iso:1400, motion:1.55, hue:241 },
+    { id:1214, scene:"ui", subject:"none", look:"neon", lens:42, fstop:2.6, iso:1500, motion:1.65, hue:278 },
+    { id:1215, scene:"abstract", subject:"person", look:"rain", lens:43, fstop:2.7, iso:1600, motion:1.75, hue:315 },
+    { id:1216, scene:"irl", subject:"car", look:"fog", lens:44, fstop:1.2, iso:100, motion:1.85, hue:352 },
+    { id:1217, scene:"city", subject:"animal", look:"dark", lens:45, fstop:1.3, iso:200, motion:1.95, hue:29 },
+    { id:1218, scene:"room", subject:"product", look:"bright", lens:46, fstop:1.4, iso:300, motion:2.05, hue:66 },
+    { id:1219, scene:"nature", subject:"ui", look:"glitch", lens:47, fstop:1.5, iso:400, motion:2.15, hue:103 },
+    { id:1220, scene:"ocean", subject:"text", look:"cinematic", lens:48, fstop:1.6, iso:500, motion:2.25, hue:140 },
+    { id:1221, scene:"space", subject:"robot", look:"handheld", lens:49, fstop:1.7, iso:600, motion:2.35, hue:177 },
+    { id:1222, scene:"ui", subject:"dragon", look:"drone", lens:50, fstop:1.8, iso:700, motion:2.45, hue:214 },
+    { id:1223, scene:"abstract", subject:"none", look:"macro", lens:51, fstop:1.9, iso:800, motion:2.55, hue:251 },
+    { id:1224, scene:"irl", subject:"person", look:"neon", lens:52, fstop:2.0, iso:900, motion:2.65, hue:288 },
+    { id:1225, scene:"city", subject:"car", look:"rain", lens:53, fstop:2.1, iso:1000, motion:0.25, hue:325 },
+    { id:1226, scene:"room", subject:"animal", look:"fog", lens:54, fstop:2.2, iso:1100, motion:0.35, hue:2 },
+    { id:1227, scene:"nature", subject:"product", look:"dark", lens:55, fstop:2.3, iso:1200, motion:0.45, hue:39 },
+    { id:1228, scene:"ocean", subject:"ui", look:"bright", lens:56, fstop:2.4, iso:1300, motion:0.55, hue:76 },
+    { id:1229, scene:"space", subject:"text", look:"glitch", lens:57, fstop:2.5, iso:1400, motion:0.65, hue:113 },
+    { id:1230, scene:"ui", subject:"robot", look:"cinematic", lens:58, fstop:2.6, iso:1500, motion:0.75, hue:150 },
+    { id:1231, scene:"abstract", subject:"dragon", look:"handheld", lens:59, fstop:2.7, iso:1600, motion:0.85, hue:187 },
+    { id:1232, scene:"irl", subject:"none", look:"drone", lens:60, fstop:1.2, iso:100, motion:0.95, hue:224 },
+    { id:1233, scene:"city", subject:"person", look:"macro", lens:61, fstop:1.3, iso:200, motion:1.05, hue:261 },
+    { id:1234, scene:"room", subject:"car", look:"neon", lens:62, fstop:1.4, iso:300, motion:1.15, hue:298 },
+    { id:1235, scene:"nature", subject:"animal", look:"rain", lens:63, fstop:1.5, iso:400, motion:1.25, hue:335 },
+    { id:1236, scene:"ocean", subject:"product", look:"fog", lens:64, fstop:1.6, iso:500, motion:1.35, hue:12 },
+    { id:1237, scene:"space", subject:"ui", look:"dark", lens:65, fstop:1.7, iso:600, motion:1.45, hue:49 },
+    { id:1238, scene:"ui", subject:"text", look:"bright", lens:66, fstop:1.8, iso:700, motion:1.55, hue:86 },
+    { id:1239, scene:"abstract", subject:"robot", look:"glitch", lens:67, fstop:1.9, iso:800, motion:1.65, hue:123 },
+    { id:1240, scene:"irl", subject:"dragon", look:"cinematic", lens:68, fstop:2.0, iso:900, motion:1.75, hue:160 },
+    { id:1241, scene:"city", subject:"none", look:"handheld", lens:69, fstop:2.1, iso:1000, motion:1.85, hue:197 },
+    { id:1242, scene:"room", subject:"person", look:"drone", lens:70, fstop:2.2, iso:1100, motion:1.95, hue:234 },
+    { id:1243, scene:"nature", subject:"car", look:"macro", lens:71, fstop:2.3, iso:1200, motion:2.05, hue:271 },
+    { id:1244, scene:"ocean", subject:"animal", look:"neon", lens:72, fstop:2.4, iso:1300, motion:2.15, hue:308 },
+    { id:1245, scene:"space", subject:"product", look:"rain", lens:73, fstop:2.5, iso:1400, motion:2.25, hue:345 },
+    { id:1246, scene:"ui", subject:"ui", look:"fog", lens:74, fstop:2.6, iso:1500, motion:2.35, hue:22 },
+    { id:1247, scene:"abstract", subject:"text", look:"dark", lens:75, fstop:2.7, iso:1600, motion:2.45, hue:59 },
+    { id:1248, scene:"irl", subject:"robot", look:"bright", lens:76, fstop:1.2, iso:100, motion:2.55, hue:96 },
+    { id:1249, scene:"city", subject:"dragon", look:"glitch", lens:77, fstop:1.3, iso:200, motion:2.65, hue:133 },
+    { id:1250, scene:"room", subject:"none", look:"cinematic", lens:78, fstop:1.4, iso:300, motion:0.25, hue:170 },
+    { id:1251, scene:"nature", subject:"person", look:"handheld", lens:79, fstop:1.5, iso:400, motion:0.35, hue:207 },
+    { id:1252, scene:"ocean", subject:"car", look:"drone", lens:80, fstop:1.6, iso:500, motion:0.45, hue:244 },
+    { id:1253, scene:"space", subject:"animal", look:"macro", lens:81, fstop:1.7, iso:600, motion:0.55, hue:281 },
+    { id:1254, scene:"ui", subject:"product", look:"neon", lens:82, fstop:1.8, iso:700, motion:0.65, hue:318 },
+    { id:1255, scene:"abstract", subject:"ui", look:"rain", lens:83, fstop:1.9, iso:800, motion:0.75, hue:355 },
+    { id:1256, scene:"irl", subject:"text", look:"fog", lens:84, fstop:2.0, iso:900, motion:0.85, hue:32 },
+    { id:1257, scene:"city", subject:"robot", look:"dark", lens:85, fstop:2.1, iso:1000, motion:0.95, hue:69 },
+    { id:1258, scene:"room", subject:"dragon", look:"bright", lens:86, fstop:2.2, iso:1100, motion:1.05, hue:106 },
+    { id:1259, scene:"nature", subject:"none", look:"glitch", lens:87, fstop:2.3, iso:1200, motion:1.15, hue:143 },
+    { id:1260, scene:"ocean", subject:"person", look:"cinematic", lens:88, fstop:2.4, iso:1300, motion:1.25, hue:180 },
+    { id:1261, scene:"space", subject:"car", look:"handheld", lens:89, fstop:2.5, iso:1400, motion:1.35, hue:217 },
+    { id:1262, scene:"ui", subject:"animal", look:"drone", lens:90, fstop:2.6, iso:1500, motion:1.45, hue:254 },
+    { id:1263, scene:"abstract", subject:"product", look:"macro", lens:91, fstop:2.7, iso:1600, motion:1.55, hue:291 },
+    { id:1264, scene:"irl", subject:"ui", look:"neon", lens:92, fstop:1.2, iso:100, motion:1.65, hue:328 },
+    { id:1265, scene:"city", subject:"text", look:"rain", lens:93, fstop:1.3, iso:200, motion:1.75, hue:5 },
+    { id:1266, scene:"room", subject:"robot", look:"fog", lens:94, fstop:1.4, iso:300, motion:1.85, hue:42 },
+    { id:1267, scene:"nature", subject:"dragon", look:"dark", lens:95, fstop:1.5, iso:400, motion:1.95, hue:79 },
+    { id:1268, scene:"ocean", subject:"none", look:"bright", lens:96, fstop:1.6, iso:500, motion:2.05, hue:116 },
+    { id:1269, scene:"space", subject:"person", look:"glitch", lens:97, fstop:1.7, iso:600, motion:2.15, hue:153 },
+    { id:1270, scene:"ui", subject:"car", look:"cinematic", lens:98, fstop:1.8, iso:700, motion:2.25, hue:190 },
+    { id:1271, scene:"abstract", subject:"animal", look:"handheld", lens:99, fstop:1.9, iso:800, motion:2.35, hue:227 },
+    { id:1272, scene:"irl", subject:"product", look:"drone", lens:100, fstop:2.0, iso:900, motion:2.45, hue:264 },
+    { id:1273, scene:"city", subject:"ui", look:"macro", lens:101, fstop:2.1, iso:1000, motion:2.55, hue:301 },
+    { id:1274, scene:"room", subject:"text", look:"neon", lens:102, fstop:2.2, iso:1100, motion:2.65, hue:338 },
+    { id:1275, scene:"nature", subject:"robot", look:"rain", lens:18, fstop:2.3, iso:1200, motion:0.25, hue:15 },
+    { id:1276, scene:"ocean", subject:"dragon", look:"fog", lens:19, fstop:2.4, iso:1300, motion:0.35, hue:52 },
+    { id:1277, scene:"space", subject:"none", look:"dark", lens:20, fstop:2.5, iso:1400, motion:0.45, hue:89 },
+    { id:1278, scene:"ui", subject:"person", look:"bright", lens:21, fstop:2.6, iso:1500, motion:0.55, hue:126 },
+    { id:1279, scene:"abstract", subject:"car", look:"glitch", lens:22, fstop:2.7, iso:1600, motion:0.65, hue:163 },
+    { id:1280, scene:"irl", subject:"animal", look:"cinematic", lens:23, fstop:1.2, iso:100, motion:0.75, hue:200 },
+    { id:1281, scene:"city", subject:"product", look:"handheld", lens:24, fstop:1.3, iso:200, motion:0.85, hue:237 },
+    { id:1282, scene:"room", subject:"ui", look:"drone", lens:25, fstop:1.4, iso:300, motion:0.95, hue:274 },
+    { id:1283, scene:"nature", subject:"text", look:"macro", lens:26, fstop:1.5, iso:400, motion:1.05, hue:311 },
+    { id:1284, scene:"ocean", subject:"robot", look:"neon", lens:27, fstop:1.6, iso:500, motion:1.15, hue:348 },
+    { id:1285, scene:"space", subject:"dragon", look:"rain", lens:28, fstop:1.7, iso:600, motion:1.25, hue:25 },
+    { id:1286, scene:"ui", subject:"none", look:"fog", lens:29, fstop:1.8, iso:700, motion:1.35, hue:62 },
+    { id:1287, scene:"abstract", subject:"person", look:"dark", lens:30, fstop:1.9, iso:800, motion:1.45, hue:99 },
+    { id:1288, scene:"irl", subject:"car", look:"bright", lens:31, fstop:2.0, iso:900, motion:1.55, hue:136 },
+    { id:1289, scene:"city", subject:"animal", look:"glitch", lens:32, fstop:2.1, iso:1000, motion:1.65, hue:173 },
+    { id:1290, scene:"room", subject:"product", look:"cinematic", lens:33, fstop:2.2, iso:1100, motion:1.75, hue:210 },
+    { id:1291, scene:"nature", subject:"ui", look:"handheld", lens:34, fstop:2.3, iso:1200, motion:1.85, hue:247 },
+    { id:1292, scene:"ocean", subject:"text", look:"drone", lens:35, fstop:2.4, iso:1300, motion:1.95, hue:284 },
+    { id:1293, scene:"space", subject:"robot", look:"macro", lens:36, fstop:2.5, iso:1400, motion:2.05, hue:321 },
+    { id:1294, scene:"ui", subject:"dragon", look:"neon", lens:37, fstop:2.6, iso:1500, motion:2.15, hue:358 },
+    { id:1295, scene:"abstract", subject:"none", look:"rain", lens:38, fstop:2.7, iso:1600, motion:2.25, hue:35 },
+    { id:1296, scene:"irl", subject:"person", look:"fog", lens:39, fstop:1.2, iso:100, motion:2.35, hue:72 },
+    { id:1297, scene:"city", subject:"car", look:"dark", lens:40, fstop:1.3, iso:200, motion:2.45, hue:109 },
+    { id:1298, scene:"room", subject:"animal", look:"bright", lens:41, fstop:1.4, iso:300, motion:2.55, hue:146 },
+    { id:1299, scene:"nature", subject:"product", look:"glitch", lens:42, fstop:1.5, iso:400, motion:2.65, hue:183 },
+    { id:1300, scene:"ocean", subject:"ui", look:"cinematic", lens:43, fstop:1.6, iso:500, motion:0.25, hue:220 },
+    { id:1301, scene:"space", subject:"text", look:"handheld", lens:44, fstop:1.7, iso:600, motion:0.35, hue:257 },
+    { id:1302, scene:"ui", subject:"robot", look:"drone", lens:45, fstop:1.8, iso:700, motion:0.45, hue:294 },
+    { id:1303, scene:"abstract", subject:"dragon", look:"macro", lens:46, fstop:1.9, iso:800, motion:0.55, hue:331 },
+    { id:1304, scene:"irl", subject:"none", look:"neon", lens:47, fstop:2.0, iso:900, motion:0.65, hue:8 },
+    { id:1305, scene:"city", subject:"person", look:"rain", lens:48, fstop:2.1, iso:1000, motion:0.75, hue:45 },
+    { id:1306, scene:"room", subject:"car", look:"fog", lens:49, fstop:2.2, iso:1100, motion:0.85, hue:82 },
+    { id:1307, scene:"nature", subject:"animal", look:"dark", lens:50, fstop:2.3, iso:1200, motion:0.95, hue:119 },
+    { id:1308, scene:"ocean", subject:"product", look:"bright", lens:51, fstop:2.4, iso:1300, motion:1.05, hue:156 },
+    { id:1309, scene:"space", subject:"ui", look:"glitch", lens:52, fstop:2.5, iso:1400, motion:1.15, hue:193 },
+    { id:1310, scene:"ui", subject:"text", look:"cinematic", lens:53, fstop:2.6, iso:1500, motion:1.25, hue:230 },
+    { id:1311, scene:"abstract", subject:"robot", look:"handheld", lens:54, fstop:2.7, iso:1600, motion:1.35, hue:267 },
+    { id:1312, scene:"irl", subject:"dragon", look:"drone", lens:55, fstop:1.2, iso:100, motion:1.45, hue:304 },
+    { id:1313, scene:"city", subject:"none", look:"macro", lens:56, fstop:1.3, iso:200, motion:1.55, hue:341 },
+    { id:1314, scene:"room", subject:"person", look:"neon", lens:57, fstop:1.4, iso:300, motion:1.65, hue:18 },
+    { id:1315, scene:"nature", subject:"car", look:"rain", lens:58, fstop:1.5, iso:400, motion:1.75, hue:55 },
+    { id:1316, scene:"ocean", subject:"animal", look:"fog", lens:59, fstop:1.6, iso:500, motion:1.85, hue:92 },
+    { id:1317, scene:"space", subject:"product", look:"dark", lens:60, fstop:1.7, iso:600, motion:1.95, hue:129 },
+    { id:1318, scene:"ui", subject:"ui", look:"bright", lens:61, fstop:1.8, iso:700, motion:2.05, hue:166 },
+    { id:1319, scene:"abstract", subject:"text", look:"glitch", lens:62, fstop:1.9, iso:800, motion:2.15, hue:203 },
+    { id:1320, scene:"irl", subject:"robot", look:"cinematic", lens:63, fstop:2.0, iso:900, motion:2.25, hue:240 },
+    { id:1321, scene:"city", subject:"dragon", look:"handheld", lens:64, fstop:2.1, iso:1000, motion:2.35, hue:277 },
+    { id:1322, scene:"room", subject:"none", look:"drone", lens:65, fstop:2.2, iso:1100, motion:2.45, hue:314 },
+    { id:1323, scene:"nature", subject:"person", look:"macro", lens:66, fstop:2.3, iso:1200, motion:2.55, hue:351 },
+    { id:1324, scene:"ocean", subject:"car", look:"neon", lens:67, fstop:2.4, iso:1300, motion:2.65, hue:28 },
+    { id:1325, scene:"space", subject:"animal", look:"rain", lens:68, fstop:2.5, iso:1400, motion:0.25, hue:65 },
+    { id:1326, scene:"ui", subject:"product", look:"fog", lens:69, fstop:2.6, iso:1500, motion:0.35, hue:102 },
+    { id:1327, scene:"abstract", subject:"ui", look:"dark", lens:70, fstop:2.7, iso:1600, motion:0.45, hue:139 },
+    { id:1328, scene:"irl", subject:"text", look:"bright", lens:71, fstop:1.2, iso:100, motion:0.55, hue:176 },
+    { id:1329, scene:"city", subject:"robot", look:"glitch", lens:72, fstop:1.3, iso:200, motion:0.65, hue:213 },
+    { id:1330, scene:"room", subject:"dragon", look:"cinematic", lens:73, fstop:1.4, iso:300, motion:0.75, hue:250 },
+    { id:1331, scene:"nature", subject:"none", look:"handheld", lens:74, fstop:1.5, iso:400, motion:0.85, hue:287 },
+    { id:1332, scene:"ocean", subject:"person", look:"drone", lens:75, fstop:1.6, iso:500, motion:0.95, hue:324 },
+    { id:1333, scene:"space", subject:"car", look:"macro", lens:76, fstop:1.7, iso:600, motion:1.05, hue:1 },
+    { id:1334, scene:"ui", subject:"animal", look:"neon", lens:77, fstop:1.8, iso:700, motion:1.15, hue:38 },
+    { id:1335, scene:"abstract", subject:"product", look:"rain", lens:78, fstop:1.9, iso:800, motion:1.25, hue:75 },
+    { id:1336, scene:"irl", subject:"ui", look:"fog", lens:79, fstop:2.0, iso:900, motion:1.35, hue:112 },
+    { id:1337, scene:"city", subject:"text", look:"dark", lens:80, fstop:2.1, iso:1000, motion:1.45, hue:149 },
+    { id:1338, scene:"room", subject:"robot", look:"bright", lens:81, fstop:2.2, iso:1100, motion:1.55, hue:186 },
+    { id:1339, scene:"nature", subject:"dragon", look:"glitch", lens:82, fstop:2.3, iso:1200, motion:1.65, hue:223 },
+    { id:1340, scene:"ocean", subject:"none", look:"cinematic", lens:83, fstop:2.4, iso:1300, motion:1.75, hue:260 },
+    { id:1341, scene:"space", subject:"person", look:"handheld", lens:84, fstop:2.5, iso:1400, motion:1.85, hue:297 },
+    { id:1342, scene:"ui", subject:"car", look:"drone", lens:85, fstop:2.6, iso:1500, motion:1.95, hue:334 },
+    { id:1343, scene:"abstract", subject:"animal", look:"macro", lens:86, fstop:2.7, iso:1600, motion:2.05, hue:11 },
+    { id:1344, scene:"irl", subject:"product", look:"neon", lens:87, fstop:1.2, iso:100, motion:2.15, hue:48 },
+    { id:1345, scene:"city", subject:"ui", look:"rain", lens:88, fstop:1.3, iso:200, motion:2.25, hue:85 },
+    { id:1346, scene:"room", subject:"text", look:"fog", lens:89, fstop:1.4, iso:300, motion:2.35, hue:122 },
+    { id:1347, scene:"nature", subject:"robot", look:"dark", lens:90, fstop:1.5, iso:400, motion:2.45, hue:159 },
+    { id:1348, scene:"ocean", subject:"dragon", look:"bright", lens:91, fstop:1.6, iso:500, motion:2.55, hue:196 },
+    { id:1349, scene:"space", subject:"none", look:"glitch", lens:92, fstop:1.7, iso:600, motion:2.65, hue:233 },
+    { id:1350, scene:"ui", subject:"person", look:"cinematic", lens:93, fstop:1.8, iso:700, motion:0.25, hue:270 },
+    { id:1351, scene:"abstract", subject:"car", look:"handheld", lens:94, fstop:1.9, iso:800, motion:0.35, hue:307 },
+    { id:1352, scene:"irl", subject:"animal", look:"drone", lens:95, fstop:2.0, iso:900, motion:0.45, hue:344 },
+    { id:1353, scene:"city", subject:"product", look:"macro", lens:96, fstop:2.1, iso:1000, motion:0.55, hue:21 },
+    { id:1354, scene:"room", subject:"ui", look:"neon", lens:97, fstop:2.2, iso:1100, motion:0.65, hue:58 },
+    { id:1355, scene:"nature", subject:"text", look:"rain", lens:98, fstop:2.3, iso:1200, motion:0.75, hue:95 },
+    { id:1356, scene:"ocean", subject:"robot", look:"fog", lens:99, fstop:2.4, iso:1300, motion:0.85, hue:132 },
+    { id:1357, scene:"space", subject:"dragon", look:"dark", lens:100, fstop:2.5, iso:1400, motion:0.95, hue:169 },
+    { id:1358, scene:"ui", subject:"none", look:"bright", lens:101, fstop:2.6, iso:1500, motion:1.05, hue:206 },
+    { id:1359, scene:"abstract", subject:"person", look:"glitch", lens:102, fstop:2.7, iso:1600, motion:1.15, hue:243 },
+    { id:1360, scene:"irl", subject:"car", look:"cinematic", lens:18, fstop:1.2, iso:100, motion:1.25, hue:280 },
+    { id:1361, scene:"city", subject:"animal", look:"handheld", lens:19, fstop:1.3, iso:200, motion:1.35, hue:317 },
+    { id:1362, scene:"room", subject:"product", look:"drone", lens:20, fstop:1.4, iso:300, motion:1.45, hue:354 },
+    { id:1363, scene:"nature", subject:"ui", look:"macro", lens:21, fstop:1.5, iso:400, motion:1.55, hue:31 },
+    { id:1364, scene:"ocean", subject:"text", look:"neon", lens:22, fstop:1.6, iso:500, motion:1.65, hue:68 },
+    { id:1365, scene:"space", subject:"robot", look:"rain", lens:23, fstop:1.7, iso:600, motion:1.75, hue:105 },
+    { id:1366, scene:"ui", subject:"dragon", look:"fog", lens:24, fstop:1.8, iso:700, motion:1.85, hue:142 },
+    { id:1367, scene:"abstract", subject:"none", look:"dark", lens:25, fstop:1.9, iso:800, motion:1.95, hue:179 },
+    { id:1368, scene:"irl", subject:"person", look:"bright", lens:26, fstop:2.0, iso:900, motion:2.05, hue:216 },
+    { id:1369, scene:"city", subject:"car", look:"glitch", lens:27, fstop:2.1, iso:1000, motion:2.15, hue:253 },
+    { id:1370, scene:"room", subject:"animal", look:"cinematic", lens:28, fstop:2.2, iso:1100, motion:2.25, hue:290 },
+    { id:1371, scene:"nature", subject:"product", look:"handheld", lens:29, fstop:2.3, iso:1200, motion:2.35, hue:327 },
+    { id:1372, scene:"ocean", subject:"ui", look:"drone", lens:30, fstop:2.4, iso:1300, motion:2.45, hue:4 },
+    { id:1373, scene:"space", subject:"text", look:"macro", lens:31, fstop:2.5, iso:1400, motion:2.55, hue:41 },
+    { id:1374, scene:"ui", subject:"robot", look:"neon", lens:32, fstop:2.6, iso:1500, motion:2.65, hue:78 },
+    { id:1375, scene:"abstract", subject:"dragon", look:"rain", lens:33, fstop:2.7, iso:1600, motion:0.25, hue:115 },
+    { id:1376, scene:"irl", subject:"none", look:"fog", lens:34, fstop:1.2, iso:100, motion:0.35, hue:152 },
+    { id:1377, scene:"city", subject:"person", look:"dark", lens:35, fstop:1.3, iso:200, motion:0.45, hue:189 },
+    { id:1378, scene:"room", subject:"car", look:"bright", lens:36, fstop:1.4, iso:300, motion:0.55, hue:226 },
+    { id:1379, scene:"nature", subject:"animal", look:"glitch", lens:37, fstop:1.5, iso:400, motion:0.65, hue:263 },
+    { id:1380, scene:"ocean", subject:"product", look:"cinematic", lens:38, fstop:1.6, iso:500, motion:0.75, hue:300 },
+    { id:1381, scene:"space", subject:"ui", look:"handheld", lens:39, fstop:1.7, iso:600, motion:0.85, hue:337 },
+    { id:1382, scene:"ui", subject:"text", look:"drone", lens:40, fstop:1.8, iso:700, motion:0.95, hue:14 },
+    { id:1383, scene:"abstract", subject:"robot", look:"macro", lens:41, fstop:1.9, iso:800, motion:1.05, hue:51 },
+    { id:1384, scene:"irl", subject:"dragon", look:"neon", lens:42, fstop:2.0, iso:900, motion:1.15, hue:88 },
+    { id:1385, scene:"city", subject:"none", look:"rain", lens:43, fstop:2.1, iso:1000, motion:1.25, hue:125 },
+    { id:1386, scene:"room", subject:"person", look:"fog", lens:44, fstop:2.2, iso:1100, motion:1.35, hue:162 },
+    { id:1387, scene:"nature", subject:"car", look:"dark", lens:45, fstop:2.3, iso:1200, motion:1.45, hue:199 },
+    { id:1388, scene:"ocean", subject:"animal", look:"bright", lens:46, fstop:2.4, iso:1300, motion:1.55, hue:236 },
+    { id:1389, scene:"space", subject:"product", look:"glitch", lens:47, fstop:2.5, iso:1400, motion:1.65, hue:273 },
+    { id:1390, scene:"ui", subject:"ui", look:"cinematic", lens:48, fstop:2.6, iso:1500, motion:1.75, hue:310 },
+    { id:1391, scene:"abstract", subject:"text", look:"handheld", lens:49, fstop:2.7, iso:1600, motion:1.85, hue:347 },
+    { id:1392, scene:"irl", subject:"robot", look:"drone", lens:50, fstop:1.2, iso:100, motion:1.95, hue:24 },
+    { id:1393, scene:"city", subject:"dragon", look:"macro", lens:51, fstop:1.3, iso:200, motion:2.05, hue:61 },
+    { id:1394, scene:"room", subject:"none", look:"neon", lens:52, fstop:1.4, iso:300, motion:2.15, hue:98 },
+    { id:1395, scene:"nature", subject:"person", look:"rain", lens:53, fstop:1.5, iso:400, motion:2.25, hue:135 },
+    { id:1396, scene:"ocean", subject:"car", look:"fog", lens:54, fstop:1.6, iso:500, motion:2.35, hue:172 },
+    { id:1397, scene:"space", subject:"animal", look:"dark", lens:55, fstop:1.7, iso:600, motion:2.45, hue:209 },
+    { id:1398, scene:"ui", subject:"product", look:"bright", lens:56, fstop:1.8, iso:700, motion:2.55, hue:246 },
+    { id:1399, scene:"abstract", subject:"ui", look:"glitch", lens:57, fstop:1.9, iso:800, motion:2.65, hue:283 },
+    { id:1400, scene:"irl", subject:"text", look:"cinematic", lens:58, fstop:2.0, iso:900, motion:0.25, hue:320 },
+    { id:1401, scene:"city", subject:"robot", look:"handheld", lens:59, fstop:2.1, iso:1000, motion:0.35, hue:357 },
+    { id:1402, scene:"room", subject:"dragon", look:"drone", lens:60, fstop:2.2, iso:1100, motion:0.45, hue:34 },
+    { id:1403, scene:"nature", subject:"none", look:"macro", lens:61, fstop:2.3, iso:1200, motion:0.55, hue:71 },
+    { id:1404, scene:"ocean", subject:"person", look:"neon", lens:62, fstop:2.4, iso:1300, motion:0.65, hue:108 },
+    { id:1405, scene:"space", subject:"car", look:"rain", lens:63, fstop:2.5, iso:1400, motion:0.75, hue:145 },
+    { id:1406, scene:"ui", subject:"animal", look:"fog", lens:64, fstop:2.6, iso:1500, motion:0.85, hue:182 },
+    { id:1407, scene:"abstract", subject:"product", look:"dark", lens:65, fstop:2.7, iso:1600, motion:0.95, hue:219 },
+    { id:1408, scene:"irl", subject:"ui", look:"bright", lens:66, fstop:1.2, iso:100, motion:1.05, hue:256 },
+    { id:1409, scene:"city", subject:"text", look:"glitch", lens:67, fstop:1.3, iso:200, motion:1.15, hue:293 },
+    { id:1410, scene:"room", subject:"robot", look:"cinematic", lens:68, fstop:1.4, iso:300, motion:1.25, hue:330 },
+    { id:1411, scene:"nature", subject:"dragon", look:"handheld", lens:69, fstop:1.5, iso:400, motion:1.35, hue:7 },
+    { id:1412, scene:"ocean", subject:"none", look:"drone", lens:70, fstop:1.6, iso:500, motion:1.45, hue:44 },
+    { id:1413, scene:"space", subject:"person", look:"macro", lens:71, fstop:1.7, iso:600, motion:1.55, hue:81 },
+    { id:1414, scene:"ui", subject:"car", look:"neon", lens:72, fstop:1.8, iso:700, motion:1.65, hue:118 },
+    { id:1415, scene:"abstract", subject:"animal", look:"rain", lens:73, fstop:1.9, iso:800, motion:1.75, hue:155 },
+    { id:1416, scene:"irl", subject:"product", look:"fog", lens:74, fstop:2.0, iso:900, motion:1.85, hue:192 },
+    { id:1417, scene:"city", subject:"ui", look:"dark", lens:75, fstop:2.1, iso:1000, motion:1.95, hue:229 },
+    { id:1418, scene:"room", subject:"text", look:"bright", lens:76, fstop:2.2, iso:1100, motion:2.05, hue:266 },
+    { id:1419, scene:"nature", subject:"robot", look:"glitch", lens:77, fstop:2.3, iso:1200, motion:2.15, hue:303 },
+    { id:1420, scene:"ocean", subject:"dragon", look:"cinematic", lens:78, fstop:2.4, iso:1300, motion:2.25, hue:340 },
+    { id:1421, scene:"space", subject:"none", look:"handheld", lens:79, fstop:2.5, iso:1400, motion:2.35, hue:17 },
+    { id:1422, scene:"ui", subject:"person", look:"drone", lens:80, fstop:2.6, iso:1500, motion:2.45, hue:54 },
+    { id:1423, scene:"abstract", subject:"car", look:"macro", lens:81, fstop:2.7, iso:1600, motion:2.55, hue:91 },
+    { id:1424, scene:"irl", subject:"animal", look:"neon", lens:82, fstop:1.2, iso:100, motion:2.65, hue:128 },
+    { id:1425, scene:"city", subject:"product", look:"rain", lens:83, fstop:1.3, iso:200, motion:0.25, hue:165 },
+    { id:1426, scene:"room", subject:"ui", look:"fog", lens:84, fstop:1.4, iso:300, motion:0.35, hue:202 },
+    { id:1427, scene:"nature", subject:"text", look:"dark", lens:85, fstop:1.5, iso:400, motion:0.45, hue:239 },
+    { id:1428, scene:"ocean", subject:"robot", look:"bright", lens:86, fstop:1.6, iso:500, motion:0.55, hue:276 },
+    { id:1429, scene:"space", subject:"dragon", look:"glitch", lens:87, fstop:1.7, iso:600, motion:0.65, hue:313 },
+    { id:1430, scene:"ui", subject:"none", look:"cinematic", lens:88, fstop:1.8, iso:700, motion:0.75, hue:350 },
+    { id:1431, scene:"abstract", subject:"person", look:"handheld", lens:89, fstop:1.9, iso:800, motion:0.85, hue:27 },
+    { id:1432, scene:"irl", subject:"car", look:"drone", lens:90, fstop:2.0, iso:900, motion:0.95, hue:64 },
+    { id:1433, scene:"city", subject:"animal", look:"macro", lens:91, fstop:2.1, iso:1000, motion:1.05, hue:101 },
+    { id:1434, scene:"room", subject:"product", look:"neon", lens:92, fstop:2.2, iso:1100, motion:1.15, hue:138 },
+    { id:1435, scene:"nature", subject:"ui", look:"rain", lens:93, fstop:2.3, iso:1200, motion:1.25, hue:175 },
+    { id:1436, scene:"ocean", subject:"text", look:"fog", lens:94, fstop:2.4, iso:1300, motion:1.35, hue:212 },
+    { id:1437, scene:"space", subject:"robot", look:"dark", lens:95, fstop:2.5, iso:1400, motion:1.45, hue:249 },
+    { id:1438, scene:"ui", subject:"dragon", look:"bright", lens:96, fstop:2.6, iso:1500, motion:1.55, hue:286 },
+    { id:1439, scene:"abstract", subject:"none", look:"glitch", lens:97, fstop:2.7, iso:1600, motion:1.65, hue:323 },
+    { id:1440, scene:"irl", subject:"person", look:"cinematic", lens:98, fstop:1.2, iso:100, motion:1.75, hue:0 },
+    { id:1441, scene:"city", subject:"car", look:"handheld", lens:99, fstop:1.3, iso:200, motion:1.85, hue:37 },
+    { id:1442, scene:"room", subject:"animal", look:"drone", lens:100, fstop:1.4, iso:300, motion:1.95, hue:74 },
+    { id:1443, scene:"nature", subject:"product", look:"macro", lens:101, fstop:1.5, iso:400, motion:2.05, hue:111 },
+    { id:1444, scene:"ocean", subject:"ui", look:"neon", lens:102, fstop:1.6, iso:500, motion:2.15, hue:148 },
+    { id:1445, scene:"space", subject:"text", look:"rain", lens:18, fstop:1.7, iso:600, motion:2.25, hue:185 },
+    { id:1446, scene:"ui", subject:"robot", look:"fog", lens:19, fstop:1.8, iso:700, motion:2.35, hue:222 },
+    { id:1447, scene:"abstract", subject:"dragon", look:"dark", lens:20, fstop:1.9, iso:800, motion:2.45, hue:259 },
+    { id:1448, scene:"irl", subject:"none", look:"bright", lens:21, fstop:2.0, iso:900, motion:2.55, hue:296 },
+    { id:1449, scene:"city", subject:"person", look:"glitch", lens:22, fstop:2.1, iso:1000, motion:2.65, hue:333 },
+    { id:1450, scene:"room", subject:"car", look:"cinematic", lens:23, fstop:2.2, iso:1100, motion:0.25, hue:10 },
+    { id:1451, scene:"nature", subject:"animal", look:"handheld", lens:24, fstop:2.3, iso:1200, motion:0.35, hue:47 },
+    { id:1452, scene:"ocean", subject:"product", look:"drone", lens:25, fstop:2.4, iso:1300, motion:0.45, hue:84 },
+    { id:1453, scene:"space", subject:"ui", look:"macro", lens:26, fstop:2.5, iso:1400, motion:0.55, hue:121 },
+    { id:1454, scene:"ui", subject:"text", look:"neon", lens:27, fstop:2.6, iso:1500, motion:0.65, hue:158 },
+    { id:1455, scene:"abstract", subject:"robot", look:"rain", lens:28, fstop:2.7, iso:1600, motion:0.75, hue:195 },
+    { id:1456, scene:"irl", subject:"dragon", look:"fog", lens:29, fstop:1.2, iso:100, motion:0.85, hue:232 },
+    { id:1457, scene:"city", subject:"none", look:"dark", lens:30, fstop:1.3, iso:200, motion:0.95, hue:269 },
+    { id:1458, scene:"room", subject:"person", look:"bright", lens:31, fstop:1.4, iso:300, motion:1.05, hue:306 },
+    { id:1459, scene:"nature", subject:"car", look:"glitch", lens:32, fstop:1.5, iso:400, motion:1.15, hue:343 },
+    { id:1460, scene:"ocean", subject:"animal", look:"cinematic", lens:33, fstop:1.6, iso:500, motion:1.25, hue:20 },
+    { id:1461, scene:"space", subject:"product", look:"handheld", lens:34, fstop:1.7, iso:600, motion:1.35, hue:57 },
+    { id:1462, scene:"ui", subject:"ui", look:"drone", lens:35, fstop:1.8, iso:700, motion:1.45, hue:94 },
+    { id:1463, scene:"abstract", subject:"text", look:"macro", lens:36, fstop:1.9, iso:800, motion:1.55, hue:131 },
+    { id:1464, scene:"irl", subject:"robot", look:"neon", lens:37, fstop:2.0, iso:900, motion:1.65, hue:168 },
+    { id:1465, scene:"city", subject:"dragon", look:"rain", lens:38, fstop:2.1, iso:1000, motion:1.75, hue:205 },
+    { id:1466, scene:"room", subject:"none", look:"fog", lens:39, fstop:2.2, iso:1100, motion:1.85, hue:242 },
+    { id:1467, scene:"nature", subject:"person", look:"dark", lens:40, fstop:2.3, iso:1200, motion:1.95, hue:279 },
+    { id:1468, scene:"ocean", subject:"car", look:"bright", lens:41, fstop:2.4, iso:1300, motion:2.05, hue:316 },
+    { id:1469, scene:"space", subject:"animal", look:"glitch", lens:42, fstop:2.5, iso:1400, motion:2.15, hue:353 },
+    { id:1470, scene:"ui", subject:"product", look:"cinematic", lens:43, fstop:2.6, iso:1500, motion:2.25, hue:30 },
+    { id:1471, scene:"abstract", subject:"ui", look:"handheld", lens:44, fstop:2.7, iso:1600, motion:2.35, hue:67 },
+    { id:1472, scene:"irl", subject:"text", look:"drone", lens:45, fstop:1.2, iso:100, motion:2.45, hue:104 },
+    { id:1473, scene:"city", subject:"robot", look:"macro", lens:46, fstop:1.3, iso:200, motion:2.55, hue:141 },
+    { id:1474, scene:"room", subject:"dragon", look:"neon", lens:47, fstop:1.4, iso:300, motion:2.65, hue:178 },
+    { id:1475, scene:"nature", subject:"none", look:"rain", lens:48, fstop:1.5, iso:400, motion:0.25, hue:215 },
+    { id:1476, scene:"ocean", subject:"person", look:"fog", lens:49, fstop:1.6, iso:500, motion:0.35, hue:252 },
+    { id:1477, scene:"space", subject:"car", look:"dark", lens:50, fstop:1.7, iso:600, motion:0.45, hue:289 },
+    { id:1478, scene:"ui", subject:"animal", look:"bright", lens:51, fstop:1.8, iso:700, motion:0.55, hue:326 },
+    { id:1479, scene:"abstract", subject:"product", look:"glitch", lens:52, fstop:1.9, iso:800, motion:0.65, hue:3 },
+    { id:1480, scene:"irl", subject:"ui", look:"cinematic", lens:53, fstop:2.0, iso:900, motion:0.75, hue:40 },
+    { id:1481, scene:"city", subject:"text", look:"handheld", lens:54, fstop:2.1, iso:1000, motion:0.85, hue:77 },
+    { id:1482, scene:"room", subject:"robot", look:"drone", lens:55, fstop:2.2, iso:1100, motion:0.95, hue:114 },
+    { id:1483, scene:"nature", subject:"dragon", look:"macro", lens:56, fstop:2.3, iso:1200, motion:1.05, hue:151 },
+    { id:1484, scene:"ocean", subject:"none", look:"neon", lens:57, fstop:2.4, iso:1300, motion:1.15, hue:188 },
+    { id:1485, scene:"space", subject:"person", look:"rain", lens:58, fstop:2.5, iso:1400, motion:1.25, hue:225 },
+    { id:1486, scene:"ui", subject:"car", look:"fog", lens:59, fstop:2.6, iso:1500, motion:1.35, hue:262 },
+    { id:1487, scene:"abstract", subject:"animal", look:"dark", lens:60, fstop:2.7, iso:1600, motion:1.45, hue:299 },
+    { id:1488, scene:"irl", subject:"product", look:"bright", lens:61, fstop:1.2, iso:100, motion:1.55, hue:336 },
+    { id:1489, scene:"city", subject:"ui", look:"glitch", lens:62, fstop:1.3, iso:200, motion:1.65, hue:13 },
+    { id:1490, scene:"room", subject:"text", look:"cinematic", lens:63, fstop:1.4, iso:300, motion:1.75, hue:50 },
+    { id:1491, scene:"nature", subject:"robot", look:"handheld", lens:64, fstop:1.5, iso:400, motion:1.85, hue:87 },
+    { id:1492, scene:"ocean", subject:"dragon", look:"drone", lens:65, fstop:1.6, iso:500, motion:1.95, hue:124 },
+    { id:1493, scene:"space", subject:"none", look:"macro", lens:66, fstop:1.7, iso:600, motion:2.05, hue:161 },
+    { id:1494, scene:"ui", subject:"person", look:"neon", lens:67, fstop:1.8, iso:700, motion:2.15, hue:198 },
+    { id:1495, scene:"abstract", subject:"car", look:"rain", lens:68, fstop:1.9, iso:800, motion:2.25, hue:235 },
+    { id:1496, scene:"irl", subject:"animal", look:"fog", lens:69, fstop:2.0, iso:900, motion:2.35, hue:272 },
+    { id:1497, scene:"city", subject:"product", look:"dark", lens:70, fstop:2.1, iso:1000, motion:2.45, hue:309 },
+    { id:1498, scene:"room", subject:"ui", look:"bright", lens:71, fstop:2.2, iso:1100, motion:2.55, hue:346 },
+    { id:1499, scene:"nature", subject:"text", look:"glitch", lens:72, fstop:2.3, iso:1200, motion:2.65, hue:23 },
+    { id:1500, scene:"ocean", subject:"robot", look:"cinematic", lens:73, fstop:2.4, iso:1300, motion:0.25, hue:60 },
+    { id:1501, scene:"space", subject:"dragon", look:"handheld", lens:74, fstop:2.5, iso:1400, motion:0.35, hue:97 },
+    { id:1502, scene:"ui", subject:"none", look:"drone", lens:75, fstop:2.6, iso:1500, motion:0.45, hue:134 },
+    { id:1503, scene:"abstract", subject:"person", look:"macro", lens:76, fstop:2.7, iso:1600, motion:0.55, hue:171 },
+    { id:1504, scene:"irl", subject:"car", look:"neon", lens:77, fstop:1.2, iso:100, motion:0.65, hue:208 },
+    { id:1505, scene:"city", subject:"animal", look:"rain", lens:78, fstop:1.3, iso:200, motion:0.75, hue:245 },
+    { id:1506, scene:"room", subject:"product", look:"fog", lens:79, fstop:1.4, iso:300, motion:0.85, hue:282 },
+    { id:1507, scene:"nature", subject:"ui", look:"dark", lens:80, fstop:1.5, iso:400, motion:0.95, hue:319 },
+    { id:1508, scene:"ocean", subject:"text", look:"bright", lens:81, fstop:1.6, iso:500, motion:1.05, hue:356 },
+    { id:1509, scene:"space", subject:"robot", look:"glitch", lens:82, fstop:1.7, iso:600, motion:1.15, hue:33 },
+    { id:1510, scene:"ui", subject:"dragon", look:"cinematic", lens:83, fstop:1.8, iso:700, motion:1.25, hue:70 },
+    { id:1511, scene:"abstract", subject:"none", look:"handheld", lens:84, fstop:1.9, iso:800, motion:1.35, hue:107 },
+    { id:1512, scene:"irl", subject:"person", look:"drone", lens:85, fstop:2.0, iso:900, motion:1.45, hue:144 },
+    { id:1513, scene:"city", subject:"car", look:"macro", lens:86, fstop:2.1, iso:1000, motion:1.55, hue:181 },
+    { id:1514, scene:"room", subject:"animal", look:"neon", lens:87, fstop:2.2, iso:1100, motion:1.65, hue:218 },
+    { id:1515, scene:"nature", subject:"product", look:"rain", lens:88, fstop:2.3, iso:1200, motion:1.75, hue:255 },
+    { id:1516, scene:"ocean", subject:"ui", look:"fog", lens:89, fstop:2.4, iso:1300, motion:1.85, hue:292 },
+    { id:1517, scene:"space", subject:"text", look:"dark", lens:90, fstop:2.5, iso:1400, motion:1.95, hue:329 },
+    { id:1518, scene:"ui", subject:"robot", look:"bright", lens:91, fstop:2.6, iso:1500, motion:2.05, hue:6 },
+    { id:1519, scene:"abstract", subject:"dragon", look:"glitch", lens:92, fstop:2.7, iso:1600, motion:2.15, hue:43 },
+    { id:1520, scene:"irl", subject:"none", look:"cinematic", lens:93, fstop:1.2, iso:100, motion:2.25, hue:80 },
+    { id:1521, scene:"city", subject:"person", look:"handheld", lens:94, fstop:1.3, iso:200, motion:2.35, hue:117 },
+    { id:1522, scene:"room", subject:"car", look:"drone", lens:95, fstop:1.4, iso:300, motion:2.45, hue:154 },
+    { id:1523, scene:"nature", subject:"animal", look:"macro", lens:96, fstop:1.5, iso:400, motion:2.55, hue:191 },
+    { id:1524, scene:"ocean", subject:"product", look:"neon", lens:97, fstop:1.6, iso:500, motion:2.65, hue:228 },
+    { id:1525, scene:"space", subject:"ui", look:"rain", lens:98, fstop:1.7, iso:600, motion:0.25, hue:265 },
+    { id:1526, scene:"ui", subject:"text", look:"fog", lens:99, fstop:1.8, iso:700, motion:0.35, hue:302 },
+    { id:1527, scene:"abstract", subject:"robot", look:"dark", lens:100, fstop:1.9, iso:800, motion:0.45, hue:339 },
+    { id:1528, scene:"irl", subject:"dragon", look:"bright", lens:101, fstop:2.0, iso:900, motion:0.55, hue:16 },
+    { id:1529, scene:"city", subject:"none", look:"glitch", lens:102, fstop:2.1, iso:1000, motion:0.65, hue:53 },
+    { id:1530, scene:"room", subject:"person", look:"cinematic", lens:18, fstop:2.2, iso:1100, motion:0.75, hue:90 },
+    { id:1531, scene:"nature", subject:"car", look:"handheld", lens:19, fstop:2.3, iso:1200, motion:0.85, hue:127 },
+    { id:1532, scene:"ocean", subject:"animal", look:"drone", lens:20, fstop:2.4, iso:1300, motion:0.95, hue:164 },
+    { id:1533, scene:"space", subject:"product", look:"macro", lens:21, fstop:2.5, iso:1400, motion:1.05, hue:201 },
+    { id:1534, scene:"ui", subject:"ui", look:"neon", lens:22, fstop:2.6, iso:1500, motion:1.15, hue:238 },
+    { id:1535, scene:"abstract", subject:"text", look:"rain", lens:23, fstop:2.7, iso:1600, motion:1.25, hue:275 },
+    { id:1536, scene:"irl", subject:"robot", look:"fog", lens:24, fstop:1.2, iso:100, motion:1.35, hue:312 },
+    { id:1537, scene:"city", subject:"dragon", look:"dark", lens:25, fstop:1.3, iso:200, motion:1.45, hue:349 },
+    { id:1538, scene:"room", subject:"none", look:"bright", lens:26, fstop:1.4, iso:300, motion:1.55, hue:26 },
+    { id:1539, scene:"nature", subject:"person", look:"glitch", lens:27, fstop:1.5, iso:400, motion:1.65, hue:63 },
+    { id:1540, scene:"ocean", subject:"car", look:"cinematic", lens:28, fstop:1.6, iso:500, motion:1.75, hue:100 },
+    { id:1541, scene:"space", subject:"animal", look:"handheld", lens:29, fstop:1.7, iso:600, motion:1.85, hue:137 },
+    { id:1542, scene:"ui", subject:"product", look:"drone", lens:30, fstop:1.8, iso:700, motion:1.95, hue:174 },
+    { id:1543, scene:"abstract", subject:"ui", look:"macro", lens:31, fstop:1.9, iso:800, motion:2.05, hue:211 },
+    { id:1544, scene:"irl", subject:"text", look:"neon", lens:32, fstop:2.0, iso:900, motion:2.15, hue:248 },
+    { id:1545, scene:"city", subject:"robot", look:"rain", lens:33, fstop:2.1, iso:1000, motion:2.25, hue:285 },
+    { id:1546, scene:"room", subject:"dragon", look:"fog", lens:34, fstop:2.2, iso:1100, motion:2.35, hue:322 },
+    { id:1547, scene:"nature", subject:"none", look:"dark", lens:35, fstop:2.3, iso:1200, motion:2.45, hue:359 },
+    { id:1548, scene:"ocean", subject:"person", look:"bright", lens:36, fstop:2.4, iso:1300, motion:2.55, hue:36 },
+    { id:1549, scene:"space", subject:"car", look:"glitch", lens:37, fstop:2.5, iso:1400, motion:2.65, hue:73 },
+    { id:1550, scene:"ui", subject:"animal", look:"cinematic", lens:38, fstop:2.6, iso:1500, motion:0.25, hue:110 },
+    { id:1551, scene:"abstract", subject:"product", look:"handheld", lens:39, fstop:2.7, iso:1600, motion:0.35, hue:147 },
+    { id:1552, scene:"irl", subject:"ui", look:"drone", lens:40, fstop:1.2, iso:100, motion:0.45, hue:184 },
+    { id:1553, scene:"city", subject:"text", look:"macro", lens:41, fstop:1.3, iso:200, motion:0.55, hue:221 },
+    { id:1554, scene:"room", subject:"robot", look:"neon", lens:42, fstop:1.4, iso:300, motion:0.65, hue:258 },
+    { id:1555, scene:"nature", subject:"dragon", look:"rain", lens:43, fstop:1.5, iso:400, motion:0.75, hue:295 },
+    { id:1556, scene:"ocean", subject:"none", look:"fog", lens:44, fstop:1.6, iso:500, motion:0.85, hue:332 },
+    { id:1557, scene:"space", subject:"person", look:"dark", lens:45, fstop:1.7, iso:600, motion:0.95, hue:9 },
+    { id:1558, scene:"ui", subject:"car", look:"bright", lens:46, fstop:1.8, iso:700, motion:1.05, hue:46 },
+    { id:1559, scene:"abstract", subject:"animal", look:"glitch", lens:47, fstop:1.9, iso:800, motion:1.15, hue:83 },
+    { id:1560, scene:"irl", subject:"product", look:"cinematic", lens:48, fstop:2.0, iso:900, motion:1.25, hue:120 },
+    { id:1561, scene:"city", subject:"ui", look:"handheld", lens:49, fstop:2.1, iso:1000, motion:1.35, hue:157 },
+    { id:1562, scene:"room", subject:"text", look:"drone", lens:50, fstop:2.2, iso:1100, motion:1.45, hue:194 },
+    { id:1563, scene:"nature", subject:"robot", look:"macro", lens:51, fstop:2.3, iso:1200, motion:1.55, hue:231 },
+    { id:1564, scene:"ocean", subject:"dragon", look:"neon", lens:52, fstop:2.4, iso:1300, motion:1.65, hue:268 },
+    { id:1565, scene:"space", subject:"none", look:"rain", lens:53, fstop:2.5, iso:1400, motion:1.75, hue:305 },
+    { id:1566, scene:"ui", subject:"person", look:"fog", lens:54, fstop:2.6, iso:1500, motion:1.85, hue:342 },
+    { id:1567, scene:"abstract", subject:"car", look:"dark", lens:55, fstop:2.7, iso:1600, motion:1.95, hue:19 },
+    { id:1568, scene:"irl", subject:"animal", look:"bright", lens:56, fstop:1.2, iso:100, motion:2.05, hue:56 },
+    { id:1569, scene:"city", subject:"product", look:"glitch", lens:57, fstop:1.3, iso:200, motion:2.15, hue:93 },
+    { id:1570, scene:"room", subject:"ui", look:"cinematic", lens:58, fstop:1.4, iso:300, motion:2.25, hue:130 },
+    { id:1571, scene:"nature", subject:"text", look:"handheld", lens:59, fstop:1.5, iso:400, motion:2.35, hue:167 },
+    { id:1572, scene:"ocean", subject:"robot", look:"drone", lens:60, fstop:1.6, iso:500, motion:2.45, hue:204 },
+    { id:1573, scene:"space", subject:"dragon", look:"macro", lens:61, fstop:1.7, iso:600, motion:2.55, hue:241 },
+    { id:1574, scene:"ui", subject:"none", look:"neon", lens:62, fstop:1.8, iso:700, motion:2.65, hue:278 },
+    { id:1575, scene:"abstract", subject:"person", look:"rain", lens:63, fstop:1.9, iso:800, motion:0.25, hue:315 },
+    { id:1576, scene:"irl", subject:"car", look:"fog", lens:64, fstop:2.0, iso:900, motion:0.35, hue:352 },
+    { id:1577, scene:"city", subject:"animal", look:"dark", lens:65, fstop:2.1, iso:1000, motion:0.45, hue:29 },
+    { id:1578, scene:"room", subject:"product", look:"bright", lens:66, fstop:2.2, iso:1100, motion:0.55, hue:66 },
+    { id:1579, scene:"nature", subject:"ui", look:"glitch", lens:67, fstop:2.3, iso:1200, motion:0.65, hue:103 },
+    { id:1580, scene:"ocean", subject:"text", look:"cinematic", lens:68, fstop:2.4, iso:1300, motion:0.75, hue:140 },
+    { id:1581, scene:"space", subject:"robot", look:"handheld", lens:69, fstop:2.5, iso:1400, motion:0.85, hue:177 },
+    { id:1582, scene:"ui", subject:"dragon", look:"drone", lens:70, fstop:2.6, iso:1500, motion:0.95, hue:214 },
+    { id:1583, scene:"abstract", subject:"none", look:"macro", lens:71, fstop:2.7, iso:1600, motion:1.05, hue:251 },
+    { id:1584, scene:"irl", subject:"person", look:"neon", lens:72, fstop:1.2, iso:100, motion:1.15, hue:288 },
+    { id:1585, scene:"city", subject:"car", look:"rain", lens:73, fstop:1.3, iso:200, motion:1.25, hue:325 },
+    { id:1586, scene:"room", subject:"animal", look:"fog", lens:74, fstop:1.4, iso:300, motion:1.35, hue:2 },
+    { id:1587, scene:"nature", subject:"product", look:"dark", lens:75, fstop:1.5, iso:400, motion:1.45, hue:39 },
+    { id:1588, scene:"ocean", subject:"ui", look:"bright", lens:76, fstop:1.6, iso:500, motion:1.55, hue:76 },
+    { id:1589, scene:"space", subject:"text", look:"glitch", lens:77, fstop:1.7, iso:600, motion:1.65, hue:113 },
+    { id:1590, scene:"ui", subject:"robot", look:"cinematic", lens:78, fstop:1.8, iso:700, motion:1.75, hue:150 },
+    { id:1591, scene:"abstract", subject:"dragon", look:"handheld", lens:79, fstop:1.9, iso:800, motion:1.85, hue:187 },
+    { id:1592, scene:"irl", subject:"none", look:"drone", lens:80, fstop:2.0, iso:900, motion:1.95, hue:224 },
+    { id:1593, scene:"city", subject:"person", look:"macro", lens:81, fstop:2.1, iso:1000, motion:2.05, hue:261 },
+    { id:1594, scene:"room", subject:"car", look:"neon", lens:82, fstop:2.2, iso:1100, motion:2.15, hue:298 },
+    { id:1595, scene:"nature", subject:"animal", look:"rain", lens:83, fstop:2.3, iso:1200, motion:2.25, hue:335 },
+    { id:1596, scene:"ocean", subject:"product", look:"fog", lens:84, fstop:2.4, iso:1300, motion:2.35, hue:12 },
+    { id:1597, scene:"space", subject:"ui", look:"dark", lens:85, fstop:2.5, iso:1400, motion:2.45, hue:49 },
+    { id:1598, scene:"ui", subject:"text", look:"bright", lens:86, fstop:2.6, iso:1500, motion:2.55, hue:86 },
+    { id:1599, scene:"abstract", subject:"robot", look:"glitch", lens:87, fstop:2.7, iso:1600, motion:2.65, hue:123 },
+  ];
 
-      for (let j = 0; j <= b.length; j++) prev[j] = curr[j];
-    }
+  const UI_BLUEPRINT_PRIORS = [
+    { id:0, type:"dashboard", cards:2, buttons:1, charts:0, density:0.50, rounded:8, hue:0, glass:true },
+    { id:1, type:"login", cards:3, buttons:2, charts:1, density:0.55, rounded:9, hue:53, glass:false },
+    { id:2, type:"settings", cards:4, buttons:3, charts:2, density:0.60, rounded:10, hue:106, glass:false },
+    { id:3, type:"chat", cards:5, buttons:4, charts:3, density:0.65, rounded:11, hue:159, glass:true },
+    { id:4, type:"store", cards:6, buttons:5, charts:4, density:0.70, rounded:12, hue:212, glass:false },
+    { id:5, type:"video", cards:7, buttons:6, charts:0, density:0.75, rounded:13, hue:265, glass:false },
+    { id:6, type:"music", cards:8, buttons:7, charts:1, density:0.80, rounded:14, hue:318, glass:true },
+    { id:7, type:"gallery", cards:9, buttons:1, charts:2, density:0.85, rounded:15, hue:11, glass:false },
+    { id:8, type:"gamehud", cards:10, buttons:2, charts:3, density:0.90, rounded:16, hue:64, glass:false },
+    { id:9, type:"admin", cards:2, buttons:3, charts:4, density:0.95, rounded:17, hue:117, glass:true },
+    { id:10, type:"analytics", cards:3, buttons:4, charts:0, density:1.00, rounded:18, hue:170, glass:false },
+    { id:11, type:"profile", cards:4, buttons:5, charts:1, density:1.05, rounded:19, hue:223, glass:false },
+    { id:12, type:"dashboard", cards:5, buttons:6, charts:2, density:1.10, rounded:20, hue:276, glass:true },
+    { id:13, type:"login", cards:6, buttons:7, charts:3, density:1.15, rounded:21, hue:329, glass:false },
+    { id:14, type:"settings", cards:7, buttons:1, charts:4, density:1.20, rounded:22, hue:22, glass:false },
+    { id:15, type:"chat", cards:8, buttons:2, charts:0, density:1.25, rounded:23, hue:75, glass:true },
+    { id:16, type:"store", cards:9, buttons:3, charts:1, density:1.30, rounded:24, hue:128, glass:false },
+    { id:17, type:"video", cards:10, buttons:4, charts:2, density:1.35, rounded:25, hue:181, glass:false },
+    { id:18, type:"music", cards:2, buttons:5, charts:3, density:1.40, rounded:26, hue:234, glass:true },
+    { id:19, type:"gallery", cards:3, buttons:6, charts:4, density:1.45, rounded:27, hue:287, glass:false },
+    { id:20, type:"gamehud", cards:4, buttons:7, charts:0, density:0.50, rounded:28, hue:340, glass:false },
+    { id:21, type:"admin", cards:5, buttons:1, charts:1, density:0.55, rounded:29, hue:33, glass:true },
+    { id:22, type:"analytics", cards:6, buttons:2, charts:2, density:0.60, rounded:8, hue:86, glass:false },
+    { id:23, type:"profile", cards:7, buttons:3, charts:3, density:0.65, rounded:9, hue:139, glass:false },
+    { id:24, type:"dashboard", cards:8, buttons:4, charts:4, density:0.70, rounded:10, hue:192, glass:true },
+    { id:25, type:"login", cards:9, buttons:5, charts:0, density:0.75, rounded:11, hue:245, glass:false },
+    { id:26, type:"settings", cards:10, buttons:6, charts:1, density:0.80, rounded:12, hue:298, glass:false },
+    { id:27, type:"chat", cards:2, buttons:7, charts:2, density:0.85, rounded:13, hue:351, glass:true },
+    { id:28, type:"store", cards:3, buttons:1, charts:3, density:0.90, rounded:14, hue:44, glass:false },
+    { id:29, type:"video", cards:4, buttons:2, charts:4, density:0.95, rounded:15, hue:97, glass:false },
+    { id:30, type:"music", cards:5, buttons:3, charts:0, density:1.00, rounded:16, hue:150, glass:true },
+    { id:31, type:"gallery", cards:6, buttons:4, charts:1, density:1.05, rounded:17, hue:203, glass:false },
+    { id:32, type:"gamehud", cards:7, buttons:5, charts:2, density:1.10, rounded:18, hue:256, glass:false },
+    { id:33, type:"admin", cards:8, buttons:6, charts:3, density:1.15, rounded:19, hue:309, glass:true },
+    { id:34, type:"analytics", cards:9, buttons:7, charts:4, density:1.20, rounded:20, hue:2, glass:false },
+    { id:35, type:"profile", cards:10, buttons:1, charts:0, density:1.25, rounded:21, hue:55, glass:false },
+    { id:36, type:"dashboard", cards:2, buttons:2, charts:1, density:1.30, rounded:22, hue:108, glass:true },
+    { id:37, type:"login", cards:3, buttons:3, charts:2, density:1.35, rounded:23, hue:161, glass:false },
+    { id:38, type:"settings", cards:4, buttons:4, charts:3, density:1.40, rounded:24, hue:214, glass:false },
+    { id:39, type:"chat", cards:5, buttons:5, charts:4, density:1.45, rounded:25, hue:267, glass:true },
+    { id:40, type:"store", cards:6, buttons:6, charts:0, density:0.50, rounded:26, hue:320, glass:false },
+    { id:41, type:"video", cards:7, buttons:7, charts:1, density:0.55, rounded:27, hue:13, glass:false },
+    { id:42, type:"music", cards:8, buttons:1, charts:2, density:0.60, rounded:28, hue:66, glass:true },
+    { id:43, type:"gallery", cards:9, buttons:2, charts:3, density:0.65, rounded:29, hue:119, glass:false },
+    { id:44, type:"gamehud", cards:10, buttons:3, charts:4, density:0.70, rounded:8, hue:172, glass:false },
+    { id:45, type:"admin", cards:2, buttons:4, charts:0, density:0.75, rounded:9, hue:225, glass:true },
+    { id:46, type:"analytics", cards:3, buttons:5, charts:1, density:0.80, rounded:10, hue:278, glass:false },
+    { id:47, type:"profile", cards:4, buttons:6, charts:2, density:0.85, rounded:11, hue:331, glass:false },
+    { id:48, type:"dashboard", cards:5, buttons:7, charts:3, density:0.90, rounded:12, hue:24, glass:true },
+    { id:49, type:"login", cards:6, buttons:1, charts:4, density:0.95, rounded:13, hue:77, glass:false },
+    { id:50, type:"settings", cards:7, buttons:2, charts:0, density:1.00, rounded:14, hue:130, glass:false },
+    { id:51, type:"chat", cards:8, buttons:3, charts:1, density:1.05, rounded:15, hue:183, glass:true },
+    { id:52, type:"store", cards:9, buttons:4, charts:2, density:1.10, rounded:16, hue:236, glass:false },
+    { id:53, type:"video", cards:10, buttons:5, charts:3, density:1.15, rounded:17, hue:289, glass:false },
+    { id:54, type:"music", cards:2, buttons:6, charts:4, density:1.20, rounded:18, hue:342, glass:true },
+    { id:55, type:"gallery", cards:3, buttons:7, charts:0, density:1.25, rounded:19, hue:35, glass:false },
+    { id:56, type:"gamehud", cards:4, buttons:1, charts:1, density:1.30, rounded:20, hue:88, glass:false },
+    { id:57, type:"admin", cards:5, buttons:2, charts:2, density:1.35, rounded:21, hue:141, glass:true },
+    { id:58, type:"analytics", cards:6, buttons:3, charts:3, density:1.40, rounded:22, hue:194, glass:false },
+    { id:59, type:"profile", cards:7, buttons:4, charts:4, density:1.45, rounded:23, hue:247, glass:false },
+    { id:60, type:"dashboard", cards:8, buttons:5, charts:0, density:0.50, rounded:24, hue:300, glass:true },
+    { id:61, type:"login", cards:9, buttons:6, charts:1, density:0.55, rounded:25, hue:353, glass:false },
+    { id:62, type:"settings", cards:10, buttons:7, charts:2, density:0.60, rounded:26, hue:46, glass:false },
+    { id:63, type:"chat", cards:2, buttons:1, charts:3, density:0.65, rounded:27, hue:99, glass:true },
+    { id:64, type:"store", cards:3, buttons:2, charts:4, density:0.70, rounded:28, hue:152, glass:false },
+    { id:65, type:"video", cards:4, buttons:3, charts:0, density:0.75, rounded:29, hue:205, glass:false },
+    { id:66, type:"music", cards:5, buttons:4, charts:1, density:0.80, rounded:8, hue:258, glass:true },
+    { id:67, type:"gallery", cards:6, buttons:5, charts:2, density:0.85, rounded:9, hue:311, glass:false },
+    { id:68, type:"gamehud", cards:7, buttons:6, charts:3, density:0.90, rounded:10, hue:4, glass:false },
+    { id:69, type:"admin", cards:8, buttons:7, charts:4, density:0.95, rounded:11, hue:57, glass:true },
+    { id:70, type:"analytics", cards:9, buttons:1, charts:0, density:1.00, rounded:12, hue:110, glass:false },
+    { id:71, type:"profile", cards:10, buttons:2, charts:1, density:1.05, rounded:13, hue:163, glass:false },
+    { id:72, type:"dashboard", cards:2, buttons:3, charts:2, density:1.10, rounded:14, hue:216, glass:true },
+    { id:73, type:"login", cards:3, buttons:4, charts:3, density:1.15, rounded:15, hue:269, glass:false },
+    { id:74, type:"settings", cards:4, buttons:5, charts:4, density:1.20, rounded:16, hue:322, glass:false },
+    { id:75, type:"chat", cards:5, buttons:6, charts:0, density:1.25, rounded:17, hue:15, glass:true },
+    { id:76, type:"store", cards:6, buttons:7, charts:1, density:1.30, rounded:18, hue:68, glass:false },
+    { id:77, type:"video", cards:7, buttons:1, charts:2, density:1.35, rounded:19, hue:121, glass:false },
+    { id:78, type:"music", cards:8, buttons:2, charts:3, density:1.40, rounded:20, hue:174, glass:true },
+    { id:79, type:"gallery", cards:9, buttons:3, charts:4, density:1.45, rounded:21, hue:227, glass:false },
+    { id:80, type:"gamehud", cards:10, buttons:4, charts:0, density:0.50, rounded:22, hue:280, glass:false },
+    { id:81, type:"admin", cards:2, buttons:5, charts:1, density:0.55, rounded:23, hue:333, glass:true },
+    { id:82, type:"analytics", cards:3, buttons:6, charts:2, density:0.60, rounded:24, hue:26, glass:false },
+    { id:83, type:"profile", cards:4, buttons:7, charts:3, density:0.65, rounded:25, hue:79, glass:false },
+    { id:84, type:"dashboard", cards:5, buttons:1, charts:4, density:0.70, rounded:26, hue:132, glass:true },
+    { id:85, type:"login", cards:6, buttons:2, charts:0, density:0.75, rounded:27, hue:185, glass:false },
+    { id:86, type:"settings", cards:7, buttons:3, charts:1, density:0.80, rounded:28, hue:238, glass:false },
+    { id:87, type:"chat", cards:8, buttons:4, charts:2, density:0.85, rounded:29, hue:291, glass:true },
+    { id:88, type:"store", cards:9, buttons:5, charts:3, density:0.90, rounded:8, hue:344, glass:false },
+    { id:89, type:"video", cards:10, buttons:6, charts:4, density:0.95, rounded:9, hue:37, glass:false },
+    { id:90, type:"music", cards:2, buttons:7, charts:0, density:1.00, rounded:10, hue:90, glass:true },
+    { id:91, type:"gallery", cards:3, buttons:1, charts:1, density:1.05, rounded:11, hue:143, glass:false },
+    { id:92, type:"gamehud", cards:4, buttons:2, charts:2, density:1.10, rounded:12, hue:196, glass:false },
+    { id:93, type:"admin", cards:5, buttons:3, charts:3, density:1.15, rounded:13, hue:249, glass:true },
+    { id:94, type:"analytics", cards:6, buttons:4, charts:4, density:1.20, rounded:14, hue:302, glass:false },
+    { id:95, type:"profile", cards:7, buttons:5, charts:0, density:1.25, rounded:15, hue:355, glass:false },
+    { id:96, type:"dashboard", cards:8, buttons:6, charts:1, density:1.30, rounded:16, hue:48, glass:true },
+    { id:97, type:"login", cards:9, buttons:7, charts:2, density:1.35, rounded:17, hue:101, glass:false },
+    { id:98, type:"settings", cards:10, buttons:1, charts:3, density:1.40, rounded:18, hue:154, glass:false },
+    { id:99, type:"chat", cards:2, buttons:2, charts:4, density:1.45, rounded:19, hue:207, glass:true },
+    { id:100, type:"store", cards:3, buttons:3, charts:0, density:0.50, rounded:20, hue:260, glass:false },
+    { id:101, type:"video", cards:4, buttons:4, charts:1, density:0.55, rounded:21, hue:313, glass:false },
+    { id:102, type:"music", cards:5, buttons:5, charts:2, density:0.60, rounded:22, hue:6, glass:true },
+    { id:103, type:"gallery", cards:6, buttons:6, charts:3, density:0.65, rounded:23, hue:59, glass:false },
+    { id:104, type:"gamehud", cards:7, buttons:7, charts:4, density:0.70, rounded:24, hue:112, glass:false },
+    { id:105, type:"admin", cards:8, buttons:1, charts:0, density:0.75, rounded:25, hue:165, glass:true },
+    { id:106, type:"analytics", cards:9, buttons:2, charts:1, density:0.80, rounded:26, hue:218, glass:false },
+    { id:107, type:"profile", cards:10, buttons:3, charts:2, density:0.85, rounded:27, hue:271, glass:false },
+    { id:108, type:"dashboard", cards:2, buttons:4, charts:3, density:0.90, rounded:28, hue:324, glass:true },
+    { id:109, type:"login", cards:3, buttons:5, charts:4, density:0.95, rounded:29, hue:17, glass:false },
+    { id:110, type:"settings", cards:4, buttons:6, charts:0, density:1.00, rounded:8, hue:70, glass:false },
+    { id:111, type:"chat", cards:5, buttons:7, charts:1, density:1.05, rounded:9, hue:123, glass:true },
+    { id:112, type:"store", cards:6, buttons:1, charts:2, density:1.10, rounded:10, hue:176, glass:false },
+    { id:113, type:"video", cards:7, buttons:2, charts:3, density:1.15, rounded:11, hue:229, glass:false },
+    { id:114, type:"music", cards:8, buttons:3, charts:4, density:1.20, rounded:12, hue:282, glass:true },
+    { id:115, type:"gallery", cards:9, buttons:4, charts:0, density:1.25, rounded:13, hue:335, glass:false },
+    { id:116, type:"gamehud", cards:10, buttons:5, charts:1, density:1.30, rounded:14, hue:28, glass:false },
+    { id:117, type:"admin", cards:2, buttons:6, charts:2, density:1.35, rounded:15, hue:81, glass:true },
+    { id:118, type:"analytics", cards:3, buttons:7, charts:3, density:1.40, rounded:16, hue:134, glass:false },
+    { id:119, type:"profile", cards:4, buttons:1, charts:4, density:1.45, rounded:17, hue:187, glass:false },
+    { id:120, type:"dashboard", cards:5, buttons:2, charts:0, density:0.50, rounded:18, hue:240, glass:true },
+    { id:121, type:"login", cards:6, buttons:3, charts:1, density:0.55, rounded:19, hue:293, glass:false },
+    { id:122, type:"settings", cards:7, buttons:4, charts:2, density:0.60, rounded:20, hue:346, glass:false },
+    { id:123, type:"chat", cards:8, buttons:5, charts:3, density:0.65, rounded:21, hue:39, glass:true },
+    { id:124, type:"store", cards:9, buttons:6, charts:4, density:0.70, rounded:22, hue:92, glass:false },
+    { id:125, type:"video", cards:10, buttons:7, charts:0, density:0.75, rounded:23, hue:145, glass:false },
+    { id:126, type:"music", cards:2, buttons:1, charts:1, density:0.80, rounded:24, hue:198, glass:true },
+    { id:127, type:"gallery", cards:3, buttons:2, charts:2, density:0.85, rounded:25, hue:251, glass:false },
+    { id:128, type:"gamehud", cards:4, buttons:3, charts:3, density:0.90, rounded:26, hue:304, glass:false },
+    { id:129, type:"admin", cards:5, buttons:4, charts:4, density:0.95, rounded:27, hue:357, glass:true },
+    { id:130, type:"analytics", cards:6, buttons:5, charts:0, density:1.00, rounded:28, hue:50, glass:false },
+    { id:131, type:"profile", cards:7, buttons:6, charts:1, density:1.05, rounded:29, hue:103, glass:false },
+    { id:132, type:"dashboard", cards:8, buttons:7, charts:2, density:1.10, rounded:8, hue:156, glass:true },
+    { id:133, type:"login", cards:9, buttons:1, charts:3, density:1.15, rounded:9, hue:209, glass:false },
+    { id:134, type:"settings", cards:10, buttons:2, charts:4, density:1.20, rounded:10, hue:262, glass:false },
+    { id:135, type:"chat", cards:2, buttons:3, charts:0, density:1.25, rounded:11, hue:315, glass:true },
+    { id:136, type:"store", cards:3, buttons:4, charts:1, density:1.30, rounded:12, hue:8, glass:false },
+    { id:137, type:"video", cards:4, buttons:5, charts:2, density:1.35, rounded:13, hue:61, glass:false },
+    { id:138, type:"music", cards:5, buttons:6, charts:3, density:1.40, rounded:14, hue:114, glass:true },
+    { id:139, type:"gallery", cards:6, buttons:7, charts:4, density:1.45, rounded:15, hue:167, glass:false },
+    { id:140, type:"gamehud", cards:7, buttons:1, charts:0, density:0.50, rounded:16, hue:220, glass:false },
+    { id:141, type:"admin", cards:8, buttons:2, charts:1, density:0.55, rounded:17, hue:273, glass:true },
+    { id:142, type:"analytics", cards:9, buttons:3, charts:2, density:0.60, rounded:18, hue:326, glass:false },
+    { id:143, type:"profile", cards:10, buttons:4, charts:3, density:0.65, rounded:19, hue:19, glass:false },
+    { id:144, type:"dashboard", cards:2, buttons:5, charts:4, density:0.70, rounded:20, hue:72, glass:true },
+    { id:145, type:"login", cards:3, buttons:6, charts:0, density:0.75, rounded:21, hue:125, glass:false },
+    { id:146, type:"settings", cards:4, buttons:7, charts:1, density:0.80, rounded:22, hue:178, glass:false },
+    { id:147, type:"chat", cards:5, buttons:1, charts:2, density:0.85, rounded:23, hue:231, glass:true },
+    { id:148, type:"store", cards:6, buttons:2, charts:3, density:0.90, rounded:24, hue:284, glass:false },
+    { id:149, type:"video", cards:7, buttons:3, charts:4, density:0.95, rounded:25, hue:337, glass:false },
+    { id:150, type:"music", cards:8, buttons:4, charts:0, density:1.00, rounded:26, hue:30, glass:true },
+    { id:151, type:"gallery", cards:9, buttons:5, charts:1, density:1.05, rounded:27, hue:83, glass:false },
+    { id:152, type:"gamehud", cards:10, buttons:6, charts:2, density:1.10, rounded:28, hue:136, glass:false },
+    { id:153, type:"admin", cards:2, buttons:7, charts:3, density:1.15, rounded:29, hue:189, glass:true },
+    { id:154, type:"analytics", cards:3, buttons:1, charts:4, density:1.20, rounded:8, hue:242, glass:false },
+    { id:155, type:"profile", cards:4, buttons:2, charts:0, density:1.25, rounded:9, hue:295, glass:false },
+    { id:156, type:"dashboard", cards:5, buttons:3, charts:1, density:1.30, rounded:10, hue:348, glass:true },
+    { id:157, type:"login", cards:6, buttons:4, charts:2, density:1.35, rounded:11, hue:41, glass:false },
+    { id:158, type:"settings", cards:7, buttons:5, charts:3, density:1.40, rounded:12, hue:94, glass:false },
+    { id:159, type:"chat", cards:8, buttons:6, charts:4, density:1.45, rounded:13, hue:147, glass:true },
+    { id:160, type:"store", cards:9, buttons:7, charts:0, density:0.50, rounded:14, hue:200, glass:false },
+    { id:161, type:"video", cards:10, buttons:1, charts:1, density:0.55, rounded:15, hue:253, glass:false },
+    { id:162, type:"music", cards:2, buttons:2, charts:2, density:0.60, rounded:16, hue:306, glass:true },
+    { id:163, type:"gallery", cards:3, buttons:3, charts:3, density:0.65, rounded:17, hue:359, glass:false },
+    { id:164, type:"gamehud", cards:4, buttons:4, charts:4, density:0.70, rounded:18, hue:52, glass:false },
+    { id:165, type:"admin", cards:5, buttons:5, charts:0, density:0.75, rounded:19, hue:105, glass:true },
+    { id:166, type:"analytics", cards:6, buttons:6, charts:1, density:0.80, rounded:20, hue:158, glass:false },
+    { id:167, type:"profile", cards:7, buttons:7, charts:2, density:0.85, rounded:21, hue:211, glass:false },
+    { id:168, type:"dashboard", cards:8, buttons:1, charts:3, density:0.90, rounded:22, hue:264, glass:true },
+    { id:169, type:"login", cards:9, buttons:2, charts:4, density:0.95, rounded:23, hue:317, glass:false },
+    { id:170, type:"settings", cards:10, buttons:3, charts:0, density:1.00, rounded:24, hue:10, glass:false },
+    { id:171, type:"chat", cards:2, buttons:4, charts:1, density:1.05, rounded:25, hue:63, glass:true },
+    { id:172, type:"store", cards:3, buttons:5, charts:2, density:1.10, rounded:26, hue:116, glass:false },
+    { id:173, type:"video", cards:4, buttons:6, charts:3, density:1.15, rounded:27, hue:169, glass:false },
+    { id:174, type:"music", cards:5, buttons:7, charts:4, density:1.20, rounded:28, hue:222, glass:true },
+    { id:175, type:"gallery", cards:6, buttons:1, charts:0, density:1.25, rounded:29, hue:275, glass:false },
+    { id:176, type:"gamehud", cards:7, buttons:2, charts:1, density:1.30, rounded:8, hue:328, glass:false },
+    { id:177, type:"admin", cards:8, buttons:3, charts:2, density:1.35, rounded:9, hue:21, glass:true },
+    { id:178, type:"analytics", cards:9, buttons:4, charts:3, density:1.40, rounded:10, hue:74, glass:false },
+    { id:179, type:"profile", cards:10, buttons:5, charts:4, density:1.45, rounded:11, hue:127, glass:false },
+    { id:180, type:"dashboard", cards:2, buttons:6, charts:0, density:0.50, rounded:12, hue:180, glass:true },
+    { id:181, type:"login", cards:3, buttons:7, charts:1, density:0.55, rounded:13, hue:233, glass:false },
+    { id:182, type:"settings", cards:4, buttons:1, charts:2, density:0.60, rounded:14, hue:286, glass:false },
+    { id:183, type:"chat", cards:5, buttons:2, charts:3, density:0.65, rounded:15, hue:339, glass:true },
+    { id:184, type:"store", cards:6, buttons:3, charts:4, density:0.70, rounded:16, hue:32, glass:false },
+    { id:185, type:"video", cards:7, buttons:4, charts:0, density:0.75, rounded:17, hue:85, glass:false },
+    { id:186, type:"music", cards:8, buttons:5, charts:1, density:0.80, rounded:18, hue:138, glass:true },
+    { id:187, type:"gallery", cards:9, buttons:6, charts:2, density:0.85, rounded:19, hue:191, glass:false },
+    { id:188, type:"gamehud", cards:10, buttons:7, charts:3, density:0.90, rounded:20, hue:244, glass:false },
+    { id:189, type:"admin", cards:2, buttons:1, charts:4, density:0.95, rounded:21, hue:297, glass:true },
+    { id:190, type:"analytics", cards:3, buttons:2, charts:0, density:1.00, rounded:22, hue:350, glass:false },
+    { id:191, type:"profile", cards:4, buttons:3, charts:1, density:1.05, rounded:23, hue:43, glass:false },
+    { id:192, type:"dashboard", cards:5, buttons:4, charts:2, density:1.10, rounded:24, hue:96, glass:true },
+    { id:193, type:"login", cards:6, buttons:5, charts:3, density:1.15, rounded:25, hue:149, glass:false },
+    { id:194, type:"settings", cards:7, buttons:6, charts:4, density:1.20, rounded:26, hue:202, glass:false },
+    { id:195, type:"chat", cards:8, buttons:7, charts:0, density:1.25, rounded:27, hue:255, glass:true },
+    { id:196, type:"store", cards:9, buttons:1, charts:1, density:1.30, rounded:28, hue:308, glass:false },
+    { id:197, type:"video", cards:10, buttons:2, charts:2, density:1.35, rounded:29, hue:1, glass:false },
+    { id:198, type:"music", cards:2, buttons:3, charts:3, density:1.40, rounded:8, hue:54, glass:true },
+    { id:199, type:"gallery", cards:3, buttons:4, charts:4, density:1.45, rounded:9, hue:107, glass:false },
+    { id:200, type:"gamehud", cards:4, buttons:5, charts:0, density:0.50, rounded:10, hue:160, glass:false },
+    { id:201, type:"admin", cards:5, buttons:6, charts:1, density:0.55, rounded:11, hue:213, glass:true },
+    { id:202, type:"analytics", cards:6, buttons:7, charts:2, density:0.60, rounded:12, hue:266, glass:false },
+    { id:203, type:"profile", cards:7, buttons:1, charts:3, density:0.65, rounded:13, hue:319, glass:false },
+    { id:204, type:"dashboard", cards:8, buttons:2, charts:4, density:0.70, rounded:14, hue:12, glass:true },
+    { id:205, type:"login", cards:9, buttons:3, charts:0, density:0.75, rounded:15, hue:65, glass:false },
+    { id:206, type:"settings", cards:10, buttons:4, charts:1, density:0.80, rounded:16, hue:118, glass:false },
+    { id:207, type:"chat", cards:2, buttons:5, charts:2, density:0.85, rounded:17, hue:171, glass:true },
+    { id:208, type:"store", cards:3, buttons:6, charts:3, density:0.90, rounded:18, hue:224, glass:false },
+    { id:209, type:"video", cards:4, buttons:7, charts:4, density:0.95, rounded:19, hue:277, glass:false },
+    { id:210, type:"music", cards:5, buttons:1, charts:0, density:1.00, rounded:20, hue:330, glass:true },
+    { id:211, type:"gallery", cards:6, buttons:2, charts:1, density:1.05, rounded:21, hue:23, glass:false },
+    { id:212, type:"gamehud", cards:7, buttons:3, charts:2, density:1.10, rounded:22, hue:76, glass:false },
+    { id:213, type:"admin", cards:8, buttons:4, charts:3, density:1.15, rounded:23, hue:129, glass:true },
+    { id:214, type:"analytics", cards:9, buttons:5, charts:4, density:1.20, rounded:24, hue:182, glass:false },
+    { id:215, type:"profile", cards:10, buttons:6, charts:0, density:1.25, rounded:25, hue:235, glass:false },
+    { id:216, type:"dashboard", cards:2, buttons:7, charts:1, density:1.30, rounded:26, hue:288, glass:true },
+    { id:217, type:"login", cards:3, buttons:1, charts:2, density:1.35, rounded:27, hue:341, glass:false },
+    { id:218, type:"settings", cards:4, buttons:2, charts:3, density:1.40, rounded:28, hue:34, glass:false },
+    { id:219, type:"chat", cards:5, buttons:3, charts:4, density:1.45, rounded:29, hue:87, glass:true },
+    { id:220, type:"store", cards:6, buttons:4, charts:0, density:0.50, rounded:8, hue:140, glass:false },
+    { id:221, type:"video", cards:7, buttons:5, charts:1, density:0.55, rounded:9, hue:193, glass:false },
+    { id:222, type:"music", cards:8, buttons:6, charts:2, density:0.60, rounded:10, hue:246, glass:true },
+    { id:223, type:"gallery", cards:9, buttons:7, charts:3, density:0.65, rounded:11, hue:299, glass:false },
+    { id:224, type:"gamehud", cards:10, buttons:1, charts:4, density:0.70, rounded:12, hue:352, glass:false },
+    { id:225, type:"admin", cards:2, buttons:2, charts:0, density:0.75, rounded:13, hue:45, glass:true },
+    { id:226, type:"analytics", cards:3, buttons:3, charts:1, density:0.80, rounded:14, hue:98, glass:false },
+    { id:227, type:"profile", cards:4, buttons:4, charts:2, density:0.85, rounded:15, hue:151, glass:false },
+    { id:228, type:"dashboard", cards:5, buttons:5, charts:3, density:0.90, rounded:16, hue:204, glass:true },
+    { id:229, type:"login", cards:6, buttons:6, charts:4, density:0.95, rounded:17, hue:257, glass:false },
+    { id:230, type:"settings", cards:7, buttons:7, charts:0, density:1.00, rounded:18, hue:310, glass:false },
+    { id:231, type:"chat", cards:8, buttons:1, charts:1, density:1.05, rounded:19, hue:3, glass:true },
+    { id:232, type:"store", cards:9, buttons:2, charts:2, density:1.10, rounded:20, hue:56, glass:false },
+    { id:233, type:"video", cards:10, buttons:3, charts:3, density:1.15, rounded:21, hue:109, glass:false },
+    { id:234, type:"music", cards:2, buttons:4, charts:4, density:1.20, rounded:22, hue:162, glass:true },
+    { id:235, type:"gallery", cards:3, buttons:5, charts:0, density:1.25, rounded:23, hue:215, glass:false },
+    { id:236, type:"gamehud", cards:4, buttons:6, charts:1, density:1.30, rounded:24, hue:268, glass:false },
+    { id:237, type:"admin", cards:5, buttons:7, charts:2, density:1.35, rounded:25, hue:321, glass:true },
+    { id:238, type:"analytics", cards:6, buttons:1, charts:3, density:1.40, rounded:26, hue:14, glass:false },
+    { id:239, type:"profile", cards:7, buttons:2, charts:4, density:1.45, rounded:27, hue:67, glass:false },
+    { id:240, type:"dashboard", cards:8, buttons:3, charts:0, density:0.50, rounded:28, hue:120, glass:true },
+    { id:241, type:"login", cards:9, buttons:4, charts:1, density:0.55, rounded:29, hue:173, glass:false },
+    { id:242, type:"settings", cards:10, buttons:5, charts:2, density:0.60, rounded:8, hue:226, glass:false },
+    { id:243, type:"chat", cards:2, buttons:6, charts:3, density:0.65, rounded:9, hue:279, glass:true },
+    { id:244, type:"store", cards:3, buttons:7, charts:4, density:0.70, rounded:10, hue:332, glass:false },
+    { id:245, type:"video", cards:4, buttons:1, charts:0, density:0.75, rounded:11, hue:25, glass:false },
+    { id:246, type:"music", cards:5, buttons:2, charts:1, density:0.80, rounded:12, hue:78, glass:true },
+    { id:247, type:"gallery", cards:6, buttons:3, charts:2, density:0.85, rounded:13, hue:131, glass:false },
+    { id:248, type:"gamehud", cards:7, buttons:4, charts:3, density:0.90, rounded:14, hue:184, glass:false },
+    { id:249, type:"admin", cards:8, buttons:5, charts:4, density:0.95, rounded:15, hue:237, glass:true },
+    { id:250, type:"analytics", cards:9, buttons:6, charts:0, density:1.00, rounded:16, hue:290, glass:false },
+    { id:251, type:"profile", cards:10, buttons:7, charts:1, density:1.05, rounded:17, hue:343, glass:false },
+    { id:252, type:"dashboard", cards:2, buttons:1, charts:2, density:1.10, rounded:18, hue:36, glass:true },
+    { id:253, type:"login", cards:3, buttons:2, charts:3, density:1.15, rounded:19, hue:89, glass:false },
+    { id:254, type:"settings", cards:4, buttons:3, charts:4, density:1.20, rounded:20, hue:142, glass:false },
+    { id:255, type:"chat", cards:5, buttons:4, charts:0, density:1.25, rounded:21, hue:195, glass:true },
+    { id:256, type:"store", cards:6, buttons:5, charts:1, density:1.30, rounded:22, hue:248, glass:false },
+    { id:257, type:"video", cards:7, buttons:6, charts:2, density:1.35, rounded:23, hue:301, glass:false },
+    { id:258, type:"music", cards:8, buttons:7, charts:3, density:1.40, rounded:24, hue:354, glass:true },
+    { id:259, type:"gallery", cards:9, buttons:1, charts:4, density:1.45, rounded:25, hue:47, glass:false },
+    { id:260, type:"gamehud", cards:10, buttons:2, charts:0, density:0.50, rounded:26, hue:100, glass:false },
+    { id:261, type:"admin", cards:2, buttons:3, charts:1, density:0.55, rounded:27, hue:153, glass:true },
+    { id:262, type:"analytics", cards:3, buttons:4, charts:2, density:0.60, rounded:28, hue:206, glass:false },
+    { id:263, type:"profile", cards:4, buttons:5, charts:3, density:0.65, rounded:29, hue:259, glass:false },
+    { id:264, type:"dashboard", cards:5, buttons:6, charts:4, density:0.70, rounded:8, hue:312, glass:true },
+    { id:265, type:"login", cards:6, buttons:7, charts:0, density:0.75, rounded:9, hue:5, glass:false },
+    { id:266, type:"settings", cards:7, buttons:1, charts:1, density:0.80, rounded:10, hue:58, glass:false },
+    { id:267, type:"chat", cards:8, buttons:2, charts:2, density:0.85, rounded:11, hue:111, glass:true },
+    { id:268, type:"store", cards:9, buttons:3, charts:3, density:0.90, rounded:12, hue:164, glass:false },
+    { id:269, type:"video", cards:10, buttons:4, charts:4, density:0.95, rounded:13, hue:217, glass:false },
+    { id:270, type:"music", cards:2, buttons:5, charts:0, density:1.00, rounded:14, hue:270, glass:true },
+    { id:271, type:"gallery", cards:3, buttons:6, charts:1, density:1.05, rounded:15, hue:323, glass:false },
+    { id:272, type:"gamehud", cards:4, buttons:7, charts:2, density:1.10, rounded:16, hue:16, glass:false },
+    { id:273, type:"admin", cards:5, buttons:1, charts:3, density:1.15, rounded:17, hue:69, glass:true },
+    { id:274, type:"analytics", cards:6, buttons:2, charts:4, density:1.20, rounded:18, hue:122, glass:false },
+    { id:275, type:"profile", cards:7, buttons:3, charts:0, density:1.25, rounded:19, hue:175, glass:false },
+    { id:276, type:"dashboard", cards:8, buttons:4, charts:1, density:1.30, rounded:20, hue:228, glass:true },
+    { id:277, type:"login", cards:9, buttons:5, charts:2, density:1.35, rounded:21, hue:281, glass:false },
+    { id:278, type:"settings", cards:10, buttons:6, charts:3, density:1.40, rounded:22, hue:334, glass:false },
+    { id:279, type:"chat", cards:2, buttons:7, charts:4, density:1.45, rounded:23, hue:27, glass:true },
+    { id:280, type:"store", cards:3, buttons:1, charts:0, density:0.50, rounded:24, hue:80, glass:false },
+    { id:281, type:"video", cards:4, buttons:2, charts:1, density:0.55, rounded:25, hue:133, glass:false },
+    { id:282, type:"music", cards:5, buttons:3, charts:2, density:0.60, rounded:26, hue:186, glass:true },
+    { id:283, type:"gallery", cards:6, buttons:4, charts:3, density:0.65, rounded:27, hue:239, glass:false },
+    { id:284, type:"gamehud", cards:7, buttons:5, charts:4, density:0.70, rounded:28, hue:292, glass:false },
+    { id:285, type:"admin", cards:8, buttons:6, charts:0, density:0.75, rounded:29, hue:345, glass:true },
+    { id:286, type:"analytics", cards:9, buttons:7, charts:1, density:0.80, rounded:8, hue:38, glass:false },
+    { id:287, type:"profile", cards:10, buttons:1, charts:2, density:0.85, rounded:9, hue:91, glass:false },
+    { id:288, type:"dashboard", cards:2, buttons:2, charts:3, density:0.90, rounded:10, hue:144, glass:true },
+    { id:289, type:"login", cards:3, buttons:3, charts:4, density:0.95, rounded:11, hue:197, glass:false },
+    { id:290, type:"settings", cards:4, buttons:4, charts:0, density:1.00, rounded:12, hue:250, glass:false },
+    { id:291, type:"chat", cards:5, buttons:5, charts:1, density:1.05, rounded:13, hue:303, glass:true },
+    { id:292, type:"store", cards:6, buttons:6, charts:2, density:1.10, rounded:14, hue:356, glass:false },
+    { id:293, type:"video", cards:7, buttons:7, charts:3, density:1.15, rounded:15, hue:49, glass:false },
+    { id:294, type:"music", cards:8, buttons:1, charts:4, density:1.20, rounded:16, hue:102, glass:true },
+    { id:295, type:"gallery", cards:9, buttons:2, charts:0, density:1.25, rounded:17, hue:155, glass:false },
+    { id:296, type:"gamehud", cards:10, buttons:3, charts:1, density:1.30, rounded:18, hue:208, glass:false },
+    { id:297, type:"admin", cards:2, buttons:4, charts:2, density:1.35, rounded:19, hue:261, glass:true },
+    { id:298, type:"analytics", cards:3, buttons:5, charts:3, density:1.40, rounded:20, hue:314, glass:false },
+    { id:299, type:"profile", cards:4, buttons:6, charts:4, density:1.45, rounded:21, hue:7, glass:false },
+    { id:300, type:"dashboard", cards:5, buttons:7, charts:0, density:0.50, rounded:22, hue:60, glass:true },
+    { id:301, type:"login", cards:6, buttons:1, charts:1, density:0.55, rounded:23, hue:113, glass:false },
+    { id:302, type:"settings", cards:7, buttons:2, charts:2, density:0.60, rounded:24, hue:166, glass:false },
+    { id:303, type:"chat", cards:8, buttons:3, charts:3, density:0.65, rounded:25, hue:219, glass:true },
+    { id:304, type:"store", cards:9, buttons:4, charts:4, density:0.70, rounded:26, hue:272, glass:false },
+    { id:305, type:"video", cards:10, buttons:5, charts:0, density:0.75, rounded:27, hue:325, glass:false },
+    { id:306, type:"music", cards:2, buttons:6, charts:1, density:0.80, rounded:28, hue:18, glass:true },
+    { id:307, type:"gallery", cards:3, buttons:7, charts:2, density:0.85, rounded:29, hue:71, glass:false },
+    { id:308, type:"gamehud", cards:4, buttons:1, charts:3, density:0.90, rounded:8, hue:124, glass:false },
+    { id:309, type:"admin", cards:5, buttons:2, charts:4, density:0.95, rounded:9, hue:177, glass:true },
+    { id:310, type:"analytics", cards:6, buttons:3, charts:0, density:1.00, rounded:10, hue:230, glass:false },
+    { id:311, type:"profile", cards:7, buttons:4, charts:1, density:1.05, rounded:11, hue:283, glass:false },
+    { id:312, type:"dashboard", cards:8, buttons:5, charts:2, density:1.10, rounded:12, hue:336, glass:true },
+    { id:313, type:"login", cards:9, buttons:6, charts:3, density:1.15, rounded:13, hue:29, glass:false },
+    { id:314, type:"settings", cards:10, buttons:7, charts:4, density:1.20, rounded:14, hue:82, glass:false },
+    { id:315, type:"chat", cards:2, buttons:1, charts:0, density:1.25, rounded:15, hue:135, glass:true },
+    { id:316, type:"store", cards:3, buttons:2, charts:1, density:1.30, rounded:16, hue:188, glass:false },
+    { id:317, type:"video", cards:4, buttons:3, charts:2, density:1.35, rounded:17, hue:241, glass:false },
+    { id:318, type:"music", cards:5, buttons:4, charts:3, density:1.40, rounded:18, hue:294, glass:true },
+    { id:319, type:"gallery", cards:6, buttons:5, charts:4, density:1.45, rounded:19, hue:347, glass:false },
+    { id:320, type:"gamehud", cards:7, buttons:6, charts:0, density:0.50, rounded:20, hue:40, glass:false },
+    { id:321, type:"admin", cards:8, buttons:7, charts:1, density:0.55, rounded:21, hue:93, glass:true },
+    { id:322, type:"analytics", cards:9, buttons:1, charts:2, density:0.60, rounded:22, hue:146, glass:false },
+    { id:323, type:"profile", cards:10, buttons:2, charts:3, density:0.65, rounded:23, hue:199, glass:false },
+    { id:324, type:"dashboard", cards:2, buttons:3, charts:4, density:0.70, rounded:24, hue:252, glass:true },
+    { id:325, type:"login", cards:3, buttons:4, charts:0, density:0.75, rounded:25, hue:305, glass:false },
+    { id:326, type:"settings", cards:4, buttons:5, charts:1, density:0.80, rounded:26, hue:358, glass:false },
+    { id:327, type:"chat", cards:5, buttons:6, charts:2, density:0.85, rounded:27, hue:51, glass:true },
+    { id:328, type:"store", cards:6, buttons:7, charts:3, density:0.90, rounded:28, hue:104, glass:false },
+    { id:329, type:"video", cards:7, buttons:1, charts:4, density:0.95, rounded:29, hue:157, glass:false },
+    { id:330, type:"music", cards:8, buttons:2, charts:0, density:1.00, rounded:8, hue:210, glass:true },
+    { id:331, type:"gallery", cards:9, buttons:3, charts:1, density:1.05, rounded:9, hue:263, glass:false },
+    { id:332, type:"gamehud", cards:10, buttons:4, charts:2, density:1.10, rounded:10, hue:316, glass:false },
+    { id:333, type:"admin", cards:2, buttons:5, charts:3, density:1.15, rounded:11, hue:9, glass:true },
+    { id:334, type:"analytics", cards:3, buttons:6, charts:4, density:1.20, rounded:12, hue:62, glass:false },
+    { id:335, type:"profile", cards:4, buttons:7, charts:0, density:1.25, rounded:13, hue:115, glass:false },
+    { id:336, type:"dashboard", cards:5, buttons:1, charts:1, density:1.30, rounded:14, hue:168, glass:true },
+    { id:337, type:"login", cards:6, buttons:2, charts:2, density:1.35, rounded:15, hue:221, glass:false },
+    { id:338, type:"settings", cards:7, buttons:3, charts:3, density:1.40, rounded:16, hue:274, glass:false },
+    { id:339, type:"chat", cards:8, buttons:4, charts:4, density:1.45, rounded:17, hue:327, glass:true },
+    { id:340, type:"store", cards:9, buttons:5, charts:0, density:0.50, rounded:18, hue:20, glass:false },
+    { id:341, type:"video", cards:10, buttons:6, charts:1, density:0.55, rounded:19, hue:73, glass:false },
+    { id:342, type:"music", cards:2, buttons:7, charts:2, density:0.60, rounded:20, hue:126, glass:true },
+    { id:343, type:"gallery", cards:3, buttons:1, charts:3, density:0.65, rounded:21, hue:179, glass:false },
+    { id:344, type:"gamehud", cards:4, buttons:2, charts:4, density:0.70, rounded:22, hue:232, glass:false },
+    { id:345, type:"admin", cards:5, buttons:3, charts:0, density:0.75, rounded:23, hue:285, glass:true },
+    { id:346, type:"analytics", cards:6, buttons:4, charts:1, density:0.80, rounded:24, hue:338, glass:false },
+    { id:347, type:"profile", cards:7, buttons:5, charts:2, density:0.85, rounded:25, hue:31, glass:false },
+    { id:348, type:"dashboard", cards:8, buttons:6, charts:3, density:0.90, rounded:26, hue:84, glass:true },
+    { id:349, type:"login", cards:9, buttons:7, charts:4, density:0.95, rounded:27, hue:137, glass:false },
+    { id:350, type:"settings", cards:10, buttons:1, charts:0, density:1.00, rounded:28, hue:190, glass:false },
+    { id:351, type:"chat", cards:2, buttons:2, charts:1, density:1.05, rounded:29, hue:243, glass:true },
+    { id:352, type:"store", cards:3, buttons:3, charts:2, density:1.10, rounded:8, hue:296, glass:false },
+    { id:353, type:"video", cards:4, buttons:4, charts:3, density:1.15, rounded:9, hue:349, glass:false },
+    { id:354, type:"music", cards:5, buttons:5, charts:4, density:1.20, rounded:10, hue:42, glass:true },
+    { id:355, type:"gallery", cards:6, buttons:6, charts:0, density:1.25, rounded:11, hue:95, glass:false },
+    { id:356, type:"gamehud", cards:7, buttons:7, charts:1, density:1.30, rounded:12, hue:148, glass:false },
+    { id:357, type:"admin", cards:8, buttons:1, charts:2, density:1.35, rounded:13, hue:201, glass:true },
+    { id:358, type:"analytics", cards:9, buttons:2, charts:3, density:1.40, rounded:14, hue:254, glass:false },
+    { id:359, type:"profile", cards:10, buttons:3, charts:4, density:1.45, rounded:15, hue:307, glass:false },
+    { id:360, type:"dashboard", cards:2, buttons:4, charts:0, density:0.50, rounded:16, hue:0, glass:true },
+    { id:361, type:"login", cards:3, buttons:5, charts:1, density:0.55, rounded:17, hue:53, glass:false },
+    { id:362, type:"settings", cards:4, buttons:6, charts:2, density:0.60, rounded:18, hue:106, glass:false },
+    { id:363, type:"chat", cards:5, buttons:7, charts:3, density:0.65, rounded:19, hue:159, glass:true },
+    { id:364, type:"store", cards:6, buttons:1, charts:4, density:0.70, rounded:20, hue:212, glass:false },
+    { id:365, type:"video", cards:7, buttons:2, charts:0, density:0.75, rounded:21, hue:265, glass:false },
+    { id:366, type:"music", cards:8, buttons:3, charts:1, density:0.80, rounded:22, hue:318, glass:true },
+    { id:367, type:"gallery", cards:9, buttons:4, charts:2, density:0.85, rounded:23, hue:11, glass:false },
+    { id:368, type:"gamehud", cards:10, buttons:5, charts:3, density:0.90, rounded:24, hue:64, glass:false },
+    { id:369, type:"admin", cards:2, buttons:6, charts:4, density:0.95, rounded:25, hue:117, glass:true },
+    { id:370, type:"analytics", cards:3, buttons:7, charts:0, density:1.00, rounded:26, hue:170, glass:false },
+    { id:371, type:"profile", cards:4, buttons:1, charts:1, density:1.05, rounded:27, hue:223, glass:false },
+    { id:372, type:"dashboard", cards:5, buttons:2, charts:2, density:1.10, rounded:28, hue:276, glass:true },
+    { id:373, type:"login", cards:6, buttons:3, charts:3, density:1.15, rounded:29, hue:329, glass:false },
+    { id:374, type:"settings", cards:7, buttons:4, charts:4, density:1.20, rounded:8, hue:22, glass:false },
+    { id:375, type:"chat", cards:8, buttons:5, charts:0, density:1.25, rounded:9, hue:75, glass:true },
+    { id:376, type:"store", cards:9, buttons:6, charts:1, density:1.30, rounded:10, hue:128, glass:false },
+    { id:377, type:"video", cards:10, buttons:7, charts:2, density:1.35, rounded:11, hue:181, glass:false },
+    { id:378, type:"music", cards:2, buttons:1, charts:3, density:1.40, rounded:12, hue:234, glass:true },
+    { id:379, type:"gallery", cards:3, buttons:2, charts:4, density:1.45, rounded:13, hue:287, glass:false },
+    { id:380, type:"gamehud", cards:4, buttons:3, charts:0, density:0.50, rounded:14, hue:340, glass:false },
+    { id:381, type:"admin", cards:5, buttons:4, charts:1, density:0.55, rounded:15, hue:33, glass:true },
+    { id:382, type:"analytics", cards:6, buttons:5, charts:2, density:0.60, rounded:16, hue:86, glass:false },
+    { id:383, type:"profile", cards:7, buttons:6, charts:3, density:0.65, rounded:17, hue:139, glass:false },
+    { id:384, type:"dashboard", cards:8, buttons:7, charts:4, density:0.70, rounded:18, hue:192, glass:true },
+    { id:385, type:"login", cards:9, buttons:1, charts:0, density:0.75, rounded:19, hue:245, glass:false },
+    { id:386, type:"settings", cards:10, buttons:2, charts:1, density:0.80, rounded:20, hue:298, glass:false },
+    { id:387, type:"chat", cards:2, buttons:3, charts:2, density:0.85, rounded:21, hue:351, glass:true },
+    { id:388, type:"store", cards:3, buttons:4, charts:3, density:0.90, rounded:22, hue:44, glass:false },
+    { id:389, type:"video", cards:4, buttons:5, charts:4, density:0.95, rounded:23, hue:97, glass:false },
+    { id:390, type:"music", cards:5, buttons:6, charts:0, density:1.00, rounded:24, hue:150, glass:true },
+    { id:391, type:"gallery", cards:6, buttons:7, charts:1, density:1.05, rounded:25, hue:203, glass:false },
+    { id:392, type:"gamehud", cards:7, buttons:1, charts:2, density:1.10, rounded:26, hue:256, glass:false },
+    { id:393, type:"admin", cards:8, buttons:2, charts:3, density:1.15, rounded:27, hue:309, glass:true },
+    { id:394, type:"analytics", cards:9, buttons:3, charts:4, density:1.20, rounded:28, hue:2, glass:false },
+    { id:395, type:"profile", cards:10, buttons:4, charts:0, density:1.25, rounded:29, hue:55, glass:false },
+    { id:396, type:"dashboard", cards:2, buttons:5, charts:1, density:1.30, rounded:8, hue:108, glass:true },
+    { id:397, type:"login", cards:3, buttons:6, charts:2, density:1.35, rounded:9, hue:161, glass:false },
+    { id:398, type:"settings", cards:4, buttons:7, charts:3, density:1.40, rounded:10, hue:214, glass:false },
+    { id:399, type:"chat", cards:5, buttons:1, charts:4, density:1.45, rounded:11, hue:267, glass:true },
+    { id:400, type:"store", cards:6, buttons:2, charts:0, density:0.50, rounded:12, hue:320, glass:false },
+    { id:401, type:"video", cards:7, buttons:3, charts:1, density:0.55, rounded:13, hue:13, glass:false },
+    { id:402, type:"music", cards:8, buttons:4, charts:2, density:0.60, rounded:14, hue:66, glass:true },
+    { id:403, type:"gallery", cards:9, buttons:5, charts:3, density:0.65, rounded:15, hue:119, glass:false },
+    { id:404, type:"gamehud", cards:10, buttons:6, charts:4, density:0.70, rounded:16, hue:172, glass:false },
+    { id:405, type:"admin", cards:2, buttons:7, charts:0, density:0.75, rounded:17, hue:225, glass:true },
+    { id:406, type:"analytics", cards:3, buttons:1, charts:1, density:0.80, rounded:18, hue:278, glass:false },
+    { id:407, type:"profile", cards:4, buttons:2, charts:2, density:0.85, rounded:19, hue:331, glass:false },
+    { id:408, type:"dashboard", cards:5, buttons:3, charts:3, density:0.90, rounded:20, hue:24, glass:true },
+    { id:409, type:"login", cards:6, buttons:4, charts:4, density:0.95, rounded:21, hue:77, glass:false },
+    { id:410, type:"settings", cards:7, buttons:5, charts:0, density:1.00, rounded:22, hue:130, glass:false },
+    { id:411, type:"chat", cards:8, buttons:6, charts:1, density:1.05, rounded:23, hue:183, glass:true },
+    { id:412, type:"store", cards:9, buttons:7, charts:2, density:1.10, rounded:24, hue:236, glass:false },
+    { id:413, type:"video", cards:10, buttons:1, charts:3, density:1.15, rounded:25, hue:289, glass:false },
+    { id:414, type:"music", cards:2, buttons:2, charts:4, density:1.20, rounded:26, hue:342, glass:true },
+    { id:415, type:"gallery", cards:3, buttons:3, charts:0, density:1.25, rounded:27, hue:35, glass:false },
+    { id:416, type:"gamehud", cards:4, buttons:4, charts:1, density:1.30, rounded:28, hue:88, glass:false },
+    { id:417, type:"admin", cards:5, buttons:5, charts:2, density:1.35, rounded:29, hue:141, glass:true },
+    { id:418, type:"analytics", cards:6, buttons:6, charts:3, density:1.40, rounded:8, hue:194, glass:false },
+    { id:419, type:"profile", cards:7, buttons:7, charts:4, density:1.45, rounded:9, hue:247, glass:false },
+    { id:420, type:"dashboard", cards:8, buttons:1, charts:0, density:0.50, rounded:10, hue:300, glass:true },
+    { id:421, type:"login", cards:9, buttons:2, charts:1, density:0.55, rounded:11, hue:353, glass:false },
+    { id:422, type:"settings", cards:10, buttons:3, charts:2, density:0.60, rounded:12, hue:46, glass:false },
+    { id:423, type:"chat", cards:2, buttons:4, charts:3, density:0.65, rounded:13, hue:99, glass:true },
+    { id:424, type:"store", cards:3, buttons:5, charts:4, density:0.70, rounded:14, hue:152, glass:false },
+    { id:425, type:"video", cards:4, buttons:6, charts:0, density:0.75, rounded:15, hue:205, glass:false },
+    { id:426, type:"music", cards:5, buttons:7, charts:1, density:0.80, rounded:16, hue:258, glass:true },
+    { id:427, type:"gallery", cards:6, buttons:1, charts:2, density:0.85, rounded:17, hue:311, glass:false },
+    { id:428, type:"gamehud", cards:7, buttons:2, charts:3, density:0.90, rounded:18, hue:4, glass:false },
+    { id:429, type:"admin", cards:8, buttons:3, charts:4, density:0.95, rounded:19, hue:57, glass:true },
+    { id:430, type:"analytics", cards:9, buttons:4, charts:0, density:1.00, rounded:20, hue:110, glass:false },
+    { id:431, type:"profile", cards:10, buttons:5, charts:1, density:1.05, rounded:21, hue:163, glass:false },
+    { id:432, type:"dashboard", cards:2, buttons:6, charts:2, density:1.10, rounded:22, hue:216, glass:true },
+    { id:433, type:"login", cards:3, buttons:7, charts:3, density:1.15, rounded:23, hue:269, glass:false },
+    { id:434, type:"settings", cards:4, buttons:1, charts:4, density:1.20, rounded:24, hue:322, glass:false },
+    { id:435, type:"chat", cards:5, buttons:2, charts:0, density:1.25, rounded:25, hue:15, glass:true },
+    { id:436, type:"store", cards:6, buttons:3, charts:1, density:1.30, rounded:26, hue:68, glass:false },
+    { id:437, type:"video", cards:7, buttons:4, charts:2, density:1.35, rounded:27, hue:121, glass:false },
+    { id:438, type:"music", cards:8, buttons:5, charts:3, density:1.40, rounded:28, hue:174, glass:true },
+    { id:439, type:"gallery", cards:9, buttons:6, charts:4, density:1.45, rounded:29, hue:227, glass:false },
+    { id:440, type:"gamehud", cards:10, buttons:7, charts:0, density:0.50, rounded:8, hue:280, glass:false },
+    { id:441, type:"admin", cards:2, buttons:1, charts:1, density:0.55, rounded:9, hue:333, glass:true },
+    { id:442, type:"analytics", cards:3, buttons:2, charts:2, density:0.60, rounded:10, hue:26, glass:false },
+    { id:443, type:"profile", cards:4, buttons:3, charts:3, density:0.65, rounded:11, hue:79, glass:false },
+    { id:444, type:"dashboard", cards:5, buttons:4, charts:4, density:0.70, rounded:12, hue:132, glass:true },
+    { id:445, type:"login", cards:6, buttons:5, charts:0, density:0.75, rounded:13, hue:185, glass:false },
+    { id:446, type:"settings", cards:7, buttons:6, charts:1, density:0.80, rounded:14, hue:238, glass:false },
+    { id:447, type:"chat", cards:8, buttons:7, charts:2, density:0.85, rounded:15, hue:291, glass:true },
+    { id:448, type:"store", cards:9, buttons:1, charts:3, density:0.90, rounded:16, hue:344, glass:false },
+    { id:449, type:"video", cards:10, buttons:2, charts:4, density:0.95, rounded:17, hue:37, glass:false },
+    { id:450, type:"music", cards:2, buttons:3, charts:0, density:1.00, rounded:18, hue:90, glass:true },
+    { id:451, type:"gallery", cards:3, buttons:4, charts:1, density:1.05, rounded:19, hue:143, glass:false },
+    { id:452, type:"gamehud", cards:4, buttons:5, charts:2, density:1.10, rounded:20, hue:196, glass:false },
+    { id:453, type:"admin", cards:5, buttons:6, charts:3, density:1.15, rounded:21, hue:249, glass:true },
+    { id:454, type:"analytics", cards:6, buttons:7, charts:4, density:1.20, rounded:22, hue:302, glass:false },
+    { id:455, type:"profile", cards:7, buttons:1, charts:0, density:1.25, rounded:23, hue:355, glass:false },
+    { id:456, type:"dashboard", cards:8, buttons:2, charts:1, density:1.30, rounded:24, hue:48, glass:true },
+    { id:457, type:"login", cards:9, buttons:3, charts:2, density:1.35, rounded:25, hue:101, glass:false },
+    { id:458, type:"settings", cards:10, buttons:4, charts:3, density:1.40, rounded:26, hue:154, glass:false },
+    { id:459, type:"chat", cards:2, buttons:5, charts:4, density:1.45, rounded:27, hue:207, glass:true },
+    { id:460, type:"store", cards:3, buttons:6, charts:0, density:0.50, rounded:28, hue:260, glass:false },
+    { id:461, type:"video", cards:4, buttons:7, charts:1, density:0.55, rounded:29, hue:313, glass:false },
+    { id:462, type:"music", cards:5, buttons:1, charts:2, density:0.60, rounded:8, hue:6, glass:true },
+    { id:463, type:"gallery", cards:6, buttons:2, charts:3, density:0.65, rounded:9, hue:59, glass:false },
+    { id:464, type:"gamehud", cards:7, buttons:3, charts:4, density:0.70, rounded:10, hue:112, glass:false },
+    { id:465, type:"admin", cards:8, buttons:4, charts:0, density:0.75, rounded:11, hue:165, glass:true },
+    { id:466, type:"analytics", cards:9, buttons:5, charts:1, density:0.80, rounded:12, hue:218, glass:false },
+    { id:467, type:"profile", cards:10, buttons:6, charts:2, density:0.85, rounded:13, hue:271, glass:false },
+    { id:468, type:"dashboard", cards:2, buttons:7, charts:3, density:0.90, rounded:14, hue:324, glass:true },
+    { id:469, type:"login", cards:3, buttons:1, charts:4, density:0.95, rounded:15, hue:17, glass:false },
+    { id:470, type:"settings", cards:4, buttons:2, charts:0, density:1.00, rounded:16, hue:70, glass:false },
+    { id:471, type:"chat", cards:5, buttons:3, charts:1, density:1.05, rounded:17, hue:123, glass:true },
+    { id:472, type:"store", cards:6, buttons:4, charts:2, density:1.10, rounded:18, hue:176, glass:false },
+    { id:473, type:"video", cards:7, buttons:5, charts:3, density:1.15, rounded:19, hue:229, glass:false },
+    { id:474, type:"music", cards:8, buttons:6, charts:4, density:1.20, rounded:20, hue:282, glass:true },
+    { id:475, type:"gallery", cards:9, buttons:7, charts:0, density:1.25, rounded:21, hue:335, glass:false },
+    { id:476, type:"gamehud", cards:10, buttons:1, charts:1, density:1.30, rounded:22, hue:28, glass:false },
+    { id:477, type:"admin", cards:2, buttons:2, charts:2, density:1.35, rounded:23, hue:81, glass:true },
+    { id:478, type:"analytics", cards:3, buttons:3, charts:3, density:1.40, rounded:24, hue:134, glass:false },
+    { id:479, type:"profile", cards:4, buttons:4, charts:4, density:1.45, rounded:25, hue:187, glass:false },
+    { id:480, type:"dashboard", cards:5, buttons:5, charts:0, density:0.50, rounded:26, hue:240, glass:true },
+    { id:481, type:"login", cards:6, buttons:6, charts:1, density:0.55, rounded:27, hue:293, glass:false },
+    { id:482, type:"settings", cards:7, buttons:7, charts:2, density:0.60, rounded:28, hue:346, glass:false },
+    { id:483, type:"chat", cards:8, buttons:1, charts:3, density:0.65, rounded:29, hue:39, glass:true },
+    { id:484, type:"store", cards:9, buttons:2, charts:4, density:0.70, rounded:8, hue:92, glass:false },
+    { id:485, type:"video", cards:10, buttons:3, charts:0, density:0.75, rounded:9, hue:145, glass:false },
+    { id:486, type:"music", cards:2, buttons:4, charts:1, density:0.80, rounded:10, hue:198, glass:true },
+    { id:487, type:"gallery", cards:3, buttons:5, charts:2, density:0.85, rounded:11, hue:251, glass:false },
+    { id:488, type:"gamehud", cards:4, buttons:6, charts:3, density:0.90, rounded:12, hue:304, glass:false },
+    { id:489, type:"admin", cards:5, buttons:7, charts:4, density:0.95, rounded:13, hue:357, glass:true },
+    { id:490, type:"analytics", cards:6, buttons:1, charts:0, density:1.00, rounded:14, hue:50, glass:false },
+    { id:491, type:"profile", cards:7, buttons:2, charts:1, density:1.05, rounded:15, hue:103, glass:false },
+    { id:492, type:"dashboard", cards:8, buttons:3, charts:2, density:1.10, rounded:16, hue:156, glass:true },
+    { id:493, type:"login", cards:9, buttons:4, charts:3, density:1.15, rounded:17, hue:209, glass:false },
+    { id:494, type:"settings", cards:10, buttons:5, charts:4, density:1.20, rounded:18, hue:262, glass:false },
+    { id:495, type:"chat", cards:2, buttons:6, charts:0, density:1.25, rounded:19, hue:315, glass:true },
+    { id:496, type:"store", cards:3, buttons:7, charts:1, density:1.30, rounded:20, hue:8, glass:false },
+    { id:497, type:"video", cards:4, buttons:1, charts:2, density:1.35, rounded:21, hue:61, glass:false },
+    { id:498, type:"music", cards:5, buttons:2, charts:3, density:1.40, rounded:22, hue:114, glass:true },
+    { id:499, type:"gallery", cards:6, buttons:3, charts:4, density:1.45, rounded:23, hue:167, glass:false },
+    { id:500, type:"gamehud", cards:7, buttons:4, charts:0, density:0.50, rounded:24, hue:220, glass:false },
+    { id:501, type:"admin", cards:8, buttons:5, charts:1, density:0.55, rounded:25, hue:273, glass:true },
+    { id:502, type:"analytics", cards:9, buttons:6, charts:2, density:0.60, rounded:26, hue:326, glass:false },
+    { id:503, type:"profile", cards:10, buttons:7, charts:3, density:0.65, rounded:27, hue:19, glass:false },
+    { id:504, type:"dashboard", cards:2, buttons:1, charts:4, density:0.70, rounded:28, hue:72, glass:true },
+    { id:505, type:"login", cards:3, buttons:2, charts:0, density:0.75, rounded:29, hue:125, glass:false },
+    { id:506, type:"settings", cards:4, buttons:3, charts:1, density:0.80, rounded:8, hue:178, glass:false },
+    { id:507, type:"chat", cards:5, buttons:4, charts:2, density:0.85, rounded:9, hue:231, glass:true },
+    { id:508, type:"store", cards:6, buttons:5, charts:3, density:0.90, rounded:10, hue:284, glass:false },
+    { id:509, type:"video", cards:7, buttons:6, charts:4, density:0.95, rounded:11, hue:337, glass:false },
+    { id:510, type:"music", cards:8, buttons:7, charts:0, density:1.00, rounded:12, hue:30, glass:true },
+    { id:511, type:"gallery", cards:9, buttons:1, charts:1, density:1.05, rounded:13, hue:83, glass:false },
+    { id:512, type:"gamehud", cards:10, buttons:2, charts:2, density:1.10, rounded:14, hue:136, glass:false },
+    { id:513, type:"admin", cards:2, buttons:3, charts:3, density:1.15, rounded:15, hue:189, glass:true },
+    { id:514, type:"analytics", cards:3, buttons:4, charts:4, density:1.20, rounded:16, hue:242, glass:false },
+    { id:515, type:"profile", cards:4, buttons:5, charts:0, density:1.25, rounded:17, hue:295, glass:false },
+    { id:516, type:"dashboard", cards:5, buttons:6, charts:1, density:1.30, rounded:18, hue:348, glass:true },
+    { id:517, type:"login", cards:6, buttons:7, charts:2, density:1.35, rounded:19, hue:41, glass:false },
+    { id:518, type:"settings", cards:7, buttons:1, charts:3, density:1.40, rounded:20, hue:94, glass:false },
+    { id:519, type:"chat", cards:8, buttons:2, charts:4, density:1.45, rounded:21, hue:147, glass:true },
+    { id:520, type:"store", cards:9, buttons:3, charts:0, density:0.50, rounded:22, hue:200, glass:false },
+    { id:521, type:"video", cards:10, buttons:4, charts:1, density:0.55, rounded:23, hue:253, glass:false },
+    { id:522, type:"music", cards:2, buttons:5, charts:2, density:0.60, rounded:24, hue:306, glass:true },
+    { id:523, type:"gallery", cards:3, buttons:6, charts:3, density:0.65, rounded:25, hue:359, glass:false },
+    { id:524, type:"gamehud", cards:4, buttons:7, charts:4, density:0.70, rounded:26, hue:52, glass:false },
+    { id:525, type:"admin", cards:5, buttons:1, charts:0, density:0.75, rounded:27, hue:105, glass:true },
+    { id:526, type:"analytics", cards:6, buttons:2, charts:1, density:0.80, rounded:28, hue:158, glass:false },
+    { id:527, type:"profile", cards:7, buttons:3, charts:2, density:0.85, rounded:29, hue:211, glass:false },
+    { id:528, type:"dashboard", cards:8, buttons:4, charts:3, density:0.90, rounded:8, hue:264, glass:true },
+    { id:529, type:"login", cards:9, buttons:5, charts:4, density:0.95, rounded:9, hue:317, glass:false },
+    { id:530, type:"settings", cards:10, buttons:6, charts:0, density:1.00, rounded:10, hue:10, glass:false },
+    { id:531, type:"chat", cards:2, buttons:7, charts:1, density:1.05, rounded:11, hue:63, glass:true },
+    { id:532, type:"store", cards:3, buttons:1, charts:2, density:1.10, rounded:12, hue:116, glass:false },
+    { id:533, type:"video", cards:4, buttons:2, charts:3, density:1.15, rounded:13, hue:169, glass:false },
+    { id:534, type:"music", cards:5, buttons:3, charts:4, density:1.20, rounded:14, hue:222, glass:true },
+    { id:535, type:"gallery", cards:6, buttons:4, charts:0, density:1.25, rounded:15, hue:275, glass:false },
+    { id:536, type:"gamehud", cards:7, buttons:5, charts:1, density:1.30, rounded:16, hue:328, glass:false },
+    { id:537, type:"admin", cards:8, buttons:6, charts:2, density:1.35, rounded:17, hue:21, glass:true },
+    { id:538, type:"analytics", cards:9, buttons:7, charts:3, density:1.40, rounded:18, hue:74, glass:false },
+    { id:539, type:"profile", cards:10, buttons:1, charts:4, density:1.45, rounded:19, hue:127, glass:false },
+    { id:540, type:"dashboard", cards:2, buttons:2, charts:0, density:0.50, rounded:20, hue:180, glass:true },
+    { id:541, type:"login", cards:3, buttons:3, charts:1, density:0.55, rounded:21, hue:233, glass:false },
+    { id:542, type:"settings", cards:4, buttons:4, charts:2, density:0.60, rounded:22, hue:286, glass:false },
+    { id:543, type:"chat", cards:5, buttons:5, charts:3, density:0.65, rounded:23, hue:339, glass:true },
+    { id:544, type:"store", cards:6, buttons:6, charts:4, density:0.70, rounded:24, hue:32, glass:false },
+    { id:545, type:"video", cards:7, buttons:7, charts:0, density:0.75, rounded:25, hue:85, glass:false },
+    { id:546, type:"music", cards:8, buttons:1, charts:1, density:0.80, rounded:26, hue:138, glass:true },
+    { id:547, type:"gallery", cards:9, buttons:2, charts:2, density:0.85, rounded:27, hue:191, glass:false },
+    { id:548, type:"gamehud", cards:10, buttons:3, charts:3, density:0.90, rounded:28, hue:244, glass:false },
+    { id:549, type:"admin", cards:2, buttons:4, charts:4, density:0.95, rounded:29, hue:297, glass:true },
+    { id:550, type:"analytics", cards:3, buttons:5, charts:0, density:1.00, rounded:8, hue:350, glass:false },
+    { id:551, type:"profile", cards:4, buttons:6, charts:1, density:1.05, rounded:9, hue:43, glass:false },
+    { id:552, type:"dashboard", cards:5, buttons:7, charts:2, density:1.10, rounded:10, hue:96, glass:true },
+    { id:553, type:"login", cards:6, buttons:1, charts:3, density:1.15, rounded:11, hue:149, glass:false },
+    { id:554, type:"settings", cards:7, buttons:2, charts:4, density:1.20, rounded:12, hue:202, glass:false },
+    { id:555, type:"chat", cards:8, buttons:3, charts:0, density:1.25, rounded:13, hue:255, glass:true },
+    { id:556, type:"store", cards:9, buttons:4, charts:1, density:1.30, rounded:14, hue:308, glass:false },
+    { id:557, type:"video", cards:10, buttons:5, charts:2, density:1.35, rounded:15, hue:1, glass:false },
+    { id:558, type:"music", cards:2, buttons:6, charts:3, density:1.40, rounded:16, hue:54, glass:true },
+    { id:559, type:"gallery", cards:3, buttons:7, charts:4, density:1.45, rounded:17, hue:107, glass:false },
+    { id:560, type:"gamehud", cards:4, buttons:1, charts:0, density:0.50, rounded:18, hue:160, glass:false },
+    { id:561, type:"admin", cards:5, buttons:2, charts:1, density:0.55, rounded:19, hue:213, glass:true },
+    { id:562, type:"analytics", cards:6, buttons:3, charts:2, density:0.60, rounded:20, hue:266, glass:false },
+    { id:563, type:"profile", cards:7, buttons:4, charts:3, density:0.65, rounded:21, hue:319, glass:false },
+    { id:564, type:"dashboard", cards:8, buttons:5, charts:4, density:0.70, rounded:22, hue:12, glass:true },
+    { id:565, type:"login", cards:9, buttons:6, charts:0, density:0.75, rounded:23, hue:65, glass:false },
+    { id:566, type:"settings", cards:10, buttons:7, charts:1, density:0.80, rounded:24, hue:118, glass:false },
+    { id:567, type:"chat", cards:2, buttons:1, charts:2, density:0.85, rounded:25, hue:171, glass:true },
+    { id:568, type:"store", cards:3, buttons:2, charts:3, density:0.90, rounded:26, hue:224, glass:false },
+    { id:569, type:"video", cards:4, buttons:3, charts:4, density:0.95, rounded:27, hue:277, glass:false },
+    { id:570, type:"music", cards:5, buttons:4, charts:0, density:1.00, rounded:28, hue:330, glass:true },
+    { id:571, type:"gallery", cards:6, buttons:5, charts:1, density:1.05, rounded:29, hue:23, glass:false },
+    { id:572, type:"gamehud", cards:7, buttons:6, charts:2, density:1.10, rounded:8, hue:76, glass:false },
+    { id:573, type:"admin", cards:8, buttons:7, charts:3, density:1.15, rounded:9, hue:129, glass:true },
+    { id:574, type:"analytics", cards:9, buttons:1, charts:4, density:1.20, rounded:10, hue:182, glass:false },
+    { id:575, type:"profile", cards:10, buttons:2, charts:0, density:1.25, rounded:11, hue:235, glass:false },
+    { id:576, type:"dashboard", cards:2, buttons:3, charts:1, density:1.30, rounded:12, hue:288, glass:true },
+    { id:577, type:"login", cards:3, buttons:4, charts:2, density:1.35, rounded:13, hue:341, glass:false },
+    { id:578, type:"settings", cards:4, buttons:5, charts:3, density:1.40, rounded:14, hue:34, glass:false },
+    { id:579, type:"chat", cards:5, buttons:6, charts:4, density:1.45, rounded:15, hue:87, glass:true },
+    { id:580, type:"store", cards:6, buttons:7, charts:0, density:0.50, rounded:16, hue:140, glass:false },
+    { id:581, type:"video", cards:7, buttons:1, charts:1, density:0.55, rounded:17, hue:193, glass:false },
+    { id:582, type:"music", cards:8, buttons:2, charts:2, density:0.60, rounded:18, hue:246, glass:true },
+    { id:583, type:"gallery", cards:9, buttons:3, charts:3, density:0.65, rounded:19, hue:299, glass:false },
+    { id:584, type:"gamehud", cards:10, buttons:4, charts:4, density:0.70, rounded:20, hue:352, glass:false },
+    { id:585, type:"admin", cards:2, buttons:5, charts:0, density:0.75, rounded:21, hue:45, glass:true },
+    { id:586, type:"analytics", cards:3, buttons:6, charts:1, density:0.80, rounded:22, hue:98, glass:false },
+    { id:587, type:"profile", cards:4, buttons:7, charts:2, density:0.85, rounded:23, hue:151, glass:false },
+    { id:588, type:"dashboard", cards:5, buttons:1, charts:3, density:0.90, rounded:24, hue:204, glass:true },
+    { id:589, type:"login", cards:6, buttons:2, charts:4, density:0.95, rounded:25, hue:257, glass:false },
+    { id:590, type:"settings", cards:7, buttons:3, charts:0, density:1.00, rounded:26, hue:310, glass:false },
+    { id:591, type:"chat", cards:8, buttons:4, charts:1, density:1.05, rounded:27, hue:3, glass:true },
+    { id:592, type:"store", cards:9, buttons:5, charts:2, density:1.10, rounded:28, hue:56, glass:false },
+    { id:593, type:"video", cards:10, buttons:6, charts:3, density:1.15, rounded:29, hue:109, glass:false },
+    { id:594, type:"music", cards:2, buttons:7, charts:4, density:1.20, rounded:8, hue:162, glass:true },
+    { id:595, type:"gallery", cards:3, buttons:1, charts:0, density:1.25, rounded:9, hue:215, glass:false },
+    { id:596, type:"gamehud", cards:4, buttons:2, charts:1, density:1.30, rounded:10, hue:268, glass:false },
+    { id:597, type:"admin", cards:5, buttons:3, charts:2, density:1.35, rounded:11, hue:321, glass:true },
+    { id:598, type:"analytics", cards:6, buttons:4, charts:3, density:1.40, rounded:12, hue:14, glass:false },
+    { id:599, type:"profile", cards:7, buttons:5, charts:4, density:1.45, rounded:13, hue:67, glass:false },
+    { id:600, type:"dashboard", cards:8, buttons:6, charts:0, density:0.50, rounded:14, hue:120, glass:true },
+    { id:601, type:"login", cards:9, buttons:7, charts:1, density:0.55, rounded:15, hue:173, glass:false },
+    { id:602, type:"settings", cards:10, buttons:1, charts:2, density:0.60, rounded:16, hue:226, glass:false },
+    { id:603, type:"chat", cards:2, buttons:2, charts:3, density:0.65, rounded:17, hue:279, glass:true },
+    { id:604, type:"store", cards:3, buttons:3, charts:4, density:0.70, rounded:18, hue:332, glass:false },
+    { id:605, type:"video", cards:4, buttons:4, charts:0, density:0.75, rounded:19, hue:25, glass:false },
+    { id:606, type:"music", cards:5, buttons:5, charts:1, density:0.80, rounded:20, hue:78, glass:true },
+    { id:607, type:"gallery", cards:6, buttons:6, charts:2, density:0.85, rounded:21, hue:131, glass:false },
+    { id:608, type:"gamehud", cards:7, buttons:7, charts:3, density:0.90, rounded:22, hue:184, glass:false },
+    { id:609, type:"admin", cards:8, buttons:1, charts:4, density:0.95, rounded:23, hue:237, glass:true },
+    { id:610, type:"analytics", cards:9, buttons:2, charts:0, density:1.00, rounded:24, hue:290, glass:false },
+    { id:611, type:"profile", cards:10, buttons:3, charts:1, density:1.05, rounded:25, hue:343, glass:false },
+    { id:612, type:"dashboard", cards:2, buttons:4, charts:2, density:1.10, rounded:26, hue:36, glass:true },
+    { id:613, type:"login", cards:3, buttons:5, charts:3, density:1.15, rounded:27, hue:89, glass:false },
+    { id:614, type:"settings", cards:4, buttons:6, charts:4, density:1.20, rounded:28, hue:142, glass:false },
+    { id:615, type:"chat", cards:5, buttons:7, charts:0, density:1.25, rounded:29, hue:195, glass:true },
+    { id:616, type:"store", cards:6, buttons:1, charts:1, density:1.30, rounded:8, hue:248, glass:false },
+    { id:617, type:"video", cards:7, buttons:2, charts:2, density:1.35, rounded:9, hue:301, glass:false },
+    { id:618, type:"music", cards:8, buttons:3, charts:3, density:1.40, rounded:10, hue:354, glass:true },
+    { id:619, type:"gallery", cards:9, buttons:4, charts:4, density:1.45, rounded:11, hue:47, glass:false },
+    { id:620, type:"gamehud", cards:10, buttons:5, charts:0, density:0.50, rounded:12, hue:100, glass:false },
+    { id:621, type:"admin", cards:2, buttons:6, charts:1, density:0.55, rounded:13, hue:153, glass:true },
+    { id:622, type:"analytics", cards:3, buttons:7, charts:2, density:0.60, rounded:14, hue:206, glass:false },
+    { id:623, type:"profile", cards:4, buttons:1, charts:3, density:0.65, rounded:15, hue:259, glass:false },
+    { id:624, type:"dashboard", cards:5, buttons:2, charts:4, density:0.70, rounded:16, hue:312, glass:true },
+    { id:625, type:"login", cards:6, buttons:3, charts:0, density:0.75, rounded:17, hue:5, glass:false },
+    { id:626, type:"settings", cards:7, buttons:4, charts:1, density:0.80, rounded:18, hue:58, glass:false },
+    { id:627, type:"chat", cards:8, buttons:5, charts:2, density:0.85, rounded:19, hue:111, glass:true },
+    { id:628, type:"store", cards:9, buttons:6, charts:3, density:0.90, rounded:20, hue:164, glass:false },
+    { id:629, type:"video", cards:10, buttons:7, charts:4, density:0.95, rounded:21, hue:217, glass:false },
+    { id:630, type:"music", cards:2, buttons:1, charts:0, density:1.00, rounded:22, hue:270, glass:true },
+    { id:631, type:"gallery", cards:3, buttons:2, charts:1, density:1.05, rounded:23, hue:323, glass:false },
+    { id:632, type:"gamehud", cards:4, buttons:3, charts:2, density:1.10, rounded:24, hue:16, glass:false },
+    { id:633, type:"admin", cards:5, buttons:4, charts:3, density:1.15, rounded:25, hue:69, glass:true },
+    { id:634, type:"analytics", cards:6, buttons:5, charts:4, density:1.20, rounded:26, hue:122, glass:false },
+    { id:635, type:"profile", cards:7, buttons:6, charts:0, density:1.25, rounded:27, hue:175, glass:false },
+    { id:636, type:"dashboard", cards:8, buttons:7, charts:1, density:1.30, rounded:28, hue:228, glass:true },
+    { id:637, type:"login", cards:9, buttons:1, charts:2, density:1.35, rounded:29, hue:281, glass:false },
+    { id:638, type:"settings", cards:10, buttons:2, charts:3, density:1.40, rounded:8, hue:334, glass:false },
+    { id:639, type:"chat", cards:2, buttons:3, charts:4, density:1.45, rounded:9, hue:27, glass:true },
+    { id:640, type:"store", cards:3, buttons:4, charts:0, density:0.50, rounded:10, hue:80, glass:false },
+    { id:641, type:"video", cards:4, buttons:5, charts:1, density:0.55, rounded:11, hue:133, glass:false },
+    { id:642, type:"music", cards:5, buttons:6, charts:2, density:0.60, rounded:12, hue:186, glass:true },
+    { id:643, type:"gallery", cards:6, buttons:7, charts:3, density:0.65, rounded:13, hue:239, glass:false },
+    { id:644, type:"gamehud", cards:7, buttons:1, charts:4, density:0.70, rounded:14, hue:292, glass:false },
+    { id:645, type:"admin", cards:8, buttons:2, charts:0, density:0.75, rounded:15, hue:345, glass:true },
+    { id:646, type:"analytics", cards:9, buttons:3, charts:1, density:0.80, rounded:16, hue:38, glass:false },
+    { id:647, type:"profile", cards:10, buttons:4, charts:2, density:0.85, rounded:17, hue:91, glass:false },
+    { id:648, type:"dashboard", cards:2, buttons:5, charts:3, density:0.90, rounded:18, hue:144, glass:true },
+    { id:649, type:"login", cards:3, buttons:6, charts:4, density:0.95, rounded:19, hue:197, glass:false },
+    { id:650, type:"settings", cards:4, buttons:7, charts:0, density:1.00, rounded:20, hue:250, glass:false },
+    { id:651, type:"chat", cards:5, buttons:1, charts:1, density:1.05, rounded:21, hue:303, glass:true },
+    { id:652, type:"store", cards:6, buttons:2, charts:2, density:1.10, rounded:22, hue:356, glass:false },
+    { id:653, type:"video", cards:7, buttons:3, charts:3, density:1.15, rounded:23, hue:49, glass:false },
+    { id:654, type:"music", cards:8, buttons:4, charts:4, density:1.20, rounded:24, hue:102, glass:true },
+    { id:655, type:"gallery", cards:9, buttons:5, charts:0, density:1.25, rounded:25, hue:155, glass:false },
+    { id:656, type:"gamehud", cards:10, buttons:6, charts:1, density:1.30, rounded:26, hue:208, glass:false },
+    { id:657, type:"admin", cards:2, buttons:7, charts:2, density:1.35, rounded:27, hue:261, glass:true },
+    { id:658, type:"analytics", cards:3, buttons:1, charts:3, density:1.40, rounded:28, hue:314, glass:false },
+    { id:659, type:"profile", cards:4, buttons:2, charts:4, density:1.45, rounded:29, hue:7, glass:false },
+    { id:660, type:"dashboard", cards:5, buttons:3, charts:0, density:0.50, rounded:8, hue:60, glass:true },
+    { id:661, type:"login", cards:6, buttons:4, charts:1, density:0.55, rounded:9, hue:113, glass:false },
+    { id:662, type:"settings", cards:7, buttons:5, charts:2, density:0.60, rounded:10, hue:166, glass:false },
+    { id:663, type:"chat", cards:8, buttons:6, charts:3, density:0.65, rounded:11, hue:219, glass:true },
+    { id:664, type:"store", cards:9, buttons:7, charts:4, density:0.70, rounded:12, hue:272, glass:false },
+    { id:665, type:"video", cards:10, buttons:1, charts:0, density:0.75, rounded:13, hue:325, glass:false },
+    { id:666, type:"music", cards:2, buttons:2, charts:1, density:0.80, rounded:14, hue:18, glass:true },
+    { id:667, type:"gallery", cards:3, buttons:3, charts:2, density:0.85, rounded:15, hue:71, glass:false },
+    { id:668, type:"gamehud", cards:4, buttons:4, charts:3, density:0.90, rounded:16, hue:124, glass:false },
+    { id:669, type:"admin", cards:5, buttons:5, charts:4, density:0.95, rounded:17, hue:177, glass:true },
+    { id:670, type:"analytics", cards:6, buttons:6, charts:0, density:1.00, rounded:18, hue:230, glass:false },
+    { id:671, type:"profile", cards:7, buttons:7, charts:1, density:1.05, rounded:19, hue:283, glass:false },
+    { id:672, type:"dashboard", cards:8, buttons:1, charts:2, density:1.10, rounded:20, hue:336, glass:true },
+    { id:673, type:"login", cards:9, buttons:2, charts:3, density:1.15, rounded:21, hue:29, glass:false },
+    { id:674, type:"settings", cards:10, buttons:3, charts:4, density:1.20, rounded:22, hue:82, glass:false },
+    { id:675, type:"chat", cards:2, buttons:4, charts:0, density:1.25, rounded:23, hue:135, glass:true },
+    { id:676, type:"store", cards:3, buttons:5, charts:1, density:1.30, rounded:24, hue:188, glass:false },
+    { id:677, type:"video", cards:4, buttons:6, charts:2, density:1.35, rounded:25, hue:241, glass:false },
+    { id:678, type:"music", cards:5, buttons:7, charts:3, density:1.40, rounded:26, hue:294, glass:true },
+    { id:679, type:"gallery", cards:6, buttons:1, charts:4, density:1.45, rounded:27, hue:347, glass:false },
+    { id:680, type:"gamehud", cards:7, buttons:2, charts:0, density:0.50, rounded:28, hue:40, glass:false },
+    { id:681, type:"admin", cards:8, buttons:3, charts:1, density:0.55, rounded:29, hue:93, glass:true },
+    { id:682, type:"analytics", cards:9, buttons:4, charts:2, density:0.60, rounded:8, hue:146, glass:false },
+    { id:683, type:"profile", cards:10, buttons:5, charts:3, density:0.65, rounded:9, hue:199, glass:false },
+    { id:684, type:"dashboard", cards:2, buttons:6, charts:4, density:0.70, rounded:10, hue:252, glass:true },
+    { id:685, type:"login", cards:3, buttons:7, charts:0, density:0.75, rounded:11, hue:305, glass:false },
+    { id:686, type:"settings", cards:4, buttons:1, charts:1, density:0.80, rounded:12, hue:358, glass:false },
+    { id:687, type:"chat", cards:5, buttons:2, charts:2, density:0.85, rounded:13, hue:51, glass:true },
+    { id:688, type:"store", cards:6, buttons:3, charts:3, density:0.90, rounded:14, hue:104, glass:false },
+    { id:689, type:"video", cards:7, buttons:4, charts:4, density:0.95, rounded:15, hue:157, glass:false },
+    { id:690, type:"music", cards:8, buttons:5, charts:0, density:1.00, rounded:16, hue:210, glass:true },
+    { id:691, type:"gallery", cards:9, buttons:6, charts:1, density:1.05, rounded:17, hue:263, glass:false },
+    { id:692, type:"gamehud", cards:10, buttons:7, charts:2, density:1.10, rounded:18, hue:316, glass:false },
+    { id:693, type:"admin", cards:2, buttons:1, charts:3, density:1.15, rounded:19, hue:9, glass:true },
+    { id:694, type:"analytics", cards:3, buttons:2, charts:4, density:1.20, rounded:20, hue:62, glass:false },
+    { id:695, type:"profile", cards:4, buttons:3, charts:0, density:1.25, rounded:21, hue:115, glass:false },
+    { id:696, type:"dashboard", cards:5, buttons:4, charts:1, density:1.30, rounded:22, hue:168, glass:true },
+    { id:697, type:"login", cards:6, buttons:5, charts:2, density:1.35, rounded:23, hue:221, glass:false },
+    { id:698, type:"settings", cards:7, buttons:6, charts:3, density:1.40, rounded:24, hue:274, glass:false },
+    { id:699, type:"chat", cards:8, buttons:7, charts:4, density:1.45, rounded:25, hue:327, glass:true },
+    { id:700, type:"store", cards:9, buttons:1, charts:0, density:0.50, rounded:26, hue:20, glass:false },
+    { id:701, type:"video", cards:10, buttons:2, charts:1, density:0.55, rounded:27, hue:73, glass:false },
+    { id:702, type:"music", cards:2, buttons:3, charts:2, density:0.60, rounded:28, hue:126, glass:true },
+    { id:703, type:"gallery", cards:3, buttons:4, charts:3, density:0.65, rounded:29, hue:179, glass:false },
+    { id:704, type:"gamehud", cards:4, buttons:5, charts:4, density:0.70, rounded:8, hue:232, glass:false },
+    { id:705, type:"admin", cards:5, buttons:6, charts:0, density:0.75, rounded:9, hue:285, glass:true },
+    { id:706, type:"analytics", cards:6, buttons:7, charts:1, density:0.80, rounded:10, hue:338, glass:false },
+    { id:707, type:"profile", cards:7, buttons:1, charts:2, density:0.85, rounded:11, hue:31, glass:false },
+    { id:708, type:"dashboard", cards:8, buttons:2, charts:3, density:0.90, rounded:12, hue:84, glass:true },
+    { id:709, type:"login", cards:9, buttons:3, charts:4, density:0.95, rounded:13, hue:137, glass:false },
+    { id:710, type:"settings", cards:10, buttons:4, charts:0, density:1.00, rounded:14, hue:190, glass:false },
+    { id:711, type:"chat", cards:2, buttons:5, charts:1, density:1.05, rounded:15, hue:243, glass:true },
+    { id:712, type:"store", cards:3, buttons:6, charts:2, density:1.10, rounded:16, hue:296, glass:false },
+    { id:713, type:"video", cards:4, buttons:7, charts:3, density:1.15, rounded:17, hue:349, glass:false },
+    { id:714, type:"music", cards:5, buttons:1, charts:4, density:1.20, rounded:18, hue:42, glass:true },
+    { id:715, type:"gallery", cards:6, buttons:2, charts:0, density:1.25, rounded:19, hue:95, glass:false },
+    { id:716, type:"gamehud", cards:7, buttons:3, charts:1, density:1.30, rounded:20, hue:148, glass:false },
+    { id:717, type:"admin", cards:8, buttons:4, charts:2, density:1.35, rounded:21, hue:201, glass:true },
+    { id:718, type:"analytics", cards:9, buttons:5, charts:3, density:1.40, rounded:22, hue:254, glass:false },
+    { id:719, type:"profile", cards:10, buttons:6, charts:4, density:1.45, rounded:23, hue:307, glass:false },
+    { id:720, type:"dashboard", cards:2, buttons:7, charts:0, density:0.50, rounded:24, hue:0, glass:true },
+    { id:721, type:"login", cards:3, buttons:1, charts:1, density:0.55, rounded:25, hue:53, glass:false },
+    { id:722, type:"settings", cards:4, buttons:2, charts:2, density:0.60, rounded:26, hue:106, glass:false },
+    { id:723, type:"chat", cards:5, buttons:3, charts:3, density:0.65, rounded:27, hue:159, glass:true },
+    { id:724, type:"store", cards:6, buttons:4, charts:4, density:0.70, rounded:28, hue:212, glass:false },
+    { id:725, type:"video", cards:7, buttons:5, charts:0, density:0.75, rounded:29, hue:265, glass:false },
+    { id:726, type:"music", cards:8, buttons:6, charts:1, density:0.80, rounded:8, hue:318, glass:true },
+    { id:727, type:"gallery", cards:9, buttons:7, charts:2, density:0.85, rounded:9, hue:11, glass:false },
+    { id:728, type:"gamehud", cards:10, buttons:1, charts:3, density:0.90, rounded:10, hue:64, glass:false },
+    { id:729, type:"admin", cards:2, buttons:2, charts:4, density:0.95, rounded:11, hue:117, glass:true },
+    { id:730, type:"analytics", cards:3, buttons:3, charts:0, density:1.00, rounded:12, hue:170, glass:false },
+    { id:731, type:"profile", cards:4, buttons:4, charts:1, density:1.05, rounded:13, hue:223, glass:false },
+    { id:732, type:"dashboard", cards:5, buttons:5, charts:2, density:1.10, rounded:14, hue:276, glass:true },
+    { id:733, type:"login", cards:6, buttons:6, charts:3, density:1.15, rounded:15, hue:329, glass:false },
+    { id:734, type:"settings", cards:7, buttons:7, charts:4, density:1.20, rounded:16, hue:22, glass:false },
+    { id:735, type:"chat", cards:8, buttons:1, charts:0, density:1.25, rounded:17, hue:75, glass:true },
+    { id:736, type:"store", cards:9, buttons:2, charts:1, density:1.30, rounded:18, hue:128, glass:false },
+    { id:737, type:"video", cards:10, buttons:3, charts:2, density:1.35, rounded:19, hue:181, glass:false },
+    { id:738, type:"music", cards:2, buttons:4, charts:3, density:1.40, rounded:20, hue:234, glass:true },
+    { id:739, type:"gallery", cards:3, buttons:5, charts:4, density:1.45, rounded:21, hue:287, glass:false },
+    { id:740, type:"gamehud", cards:4, buttons:6, charts:0, density:0.50, rounded:22, hue:340, glass:false },
+    { id:741, type:"admin", cards:5, buttons:7, charts:1, density:0.55, rounded:23, hue:33, glass:true },
+    { id:742, type:"analytics", cards:6, buttons:1, charts:2, density:0.60, rounded:24, hue:86, glass:false },
+    { id:743, type:"profile", cards:7, buttons:2, charts:3, density:0.65, rounded:25, hue:139, glass:false },
+    { id:744, type:"dashboard", cards:8, buttons:3, charts:4, density:0.70, rounded:26, hue:192, glass:true },
+    { id:745, type:"login", cards:9, buttons:4, charts:0, density:0.75, rounded:27, hue:245, glass:false },
+    { id:746, type:"settings", cards:10, buttons:5, charts:1, density:0.80, rounded:28, hue:298, glass:false },
+    { id:747, type:"chat", cards:2, buttons:6, charts:2, density:0.85, rounded:29, hue:351, glass:true },
+    { id:748, type:"store", cards:3, buttons:7, charts:3, density:0.90, rounded:8, hue:44, glass:false },
+    { id:749, type:"video", cards:4, buttons:1, charts:4, density:0.95, rounded:9, hue:97, glass:false },
+    { id:750, type:"music", cards:5, buttons:2, charts:0, density:1.00, rounded:10, hue:150, glass:true },
+    { id:751, type:"gallery", cards:6, buttons:3, charts:1, density:1.05, rounded:11, hue:203, glass:false },
+    { id:752, type:"gamehud", cards:7, buttons:4, charts:2, density:1.10, rounded:12, hue:256, glass:false },
+    { id:753, type:"admin", cards:8, buttons:5, charts:3, density:1.15, rounded:13, hue:309, glass:true },
+    { id:754, type:"analytics", cards:9, buttons:6, charts:4, density:1.20, rounded:14, hue:2, glass:false },
+    { id:755, type:"profile", cards:10, buttons:7, charts:0, density:1.25, rounded:15, hue:55, glass:false },
+    { id:756, type:"dashboard", cards:2, buttons:1, charts:1, density:1.30, rounded:16, hue:108, glass:true },
+    { id:757, type:"login", cards:3, buttons:2, charts:2, density:1.35, rounded:17, hue:161, glass:false },
+    { id:758, type:"settings", cards:4, buttons:3, charts:3, density:1.40, rounded:18, hue:214, glass:false },
+    { id:759, type:"chat", cards:5, buttons:4, charts:4, density:1.45, rounded:19, hue:267, glass:true },
+    { id:760, type:"store", cards:6, buttons:5, charts:0, density:0.50, rounded:20, hue:320, glass:false },
+    { id:761, type:"video", cards:7, buttons:6, charts:1, density:0.55, rounded:21, hue:13, glass:false },
+    { id:762, type:"music", cards:8, buttons:7, charts:2, density:0.60, rounded:22, hue:66, glass:true },
+    { id:763, type:"gallery", cards:9, buttons:1, charts:3, density:0.65, rounded:23, hue:119, glass:false },
+    { id:764, type:"gamehud", cards:10, buttons:2, charts:4, density:0.70, rounded:24, hue:172, glass:false },
+    { id:765, type:"admin", cards:2, buttons:3, charts:0, density:0.75, rounded:25, hue:225, glass:true },
+    { id:766, type:"analytics", cards:3, buttons:4, charts:1, density:0.80, rounded:26, hue:278, glass:false },
+    { id:767, type:"profile", cards:4, buttons:5, charts:2, density:0.85, rounded:27, hue:331, glass:false },
+    { id:768, type:"dashboard", cards:5, buttons:6, charts:3, density:0.90, rounded:28, hue:24, glass:true },
+    { id:769, type:"login", cards:6, buttons:7, charts:4, density:0.95, rounded:29, hue:77, glass:false },
+    { id:770, type:"settings", cards:7, buttons:1, charts:0, density:1.00, rounded:8, hue:130, glass:false },
+    { id:771, type:"chat", cards:8, buttons:2, charts:1, density:1.05, rounded:9, hue:183, glass:true },
+    { id:772, type:"store", cards:9, buttons:3, charts:2, density:1.10, rounded:10, hue:236, glass:false },
+    { id:773, type:"video", cards:10, buttons:4, charts:3, density:1.15, rounded:11, hue:289, glass:false },
+    { id:774, type:"music", cards:2, buttons:5, charts:4, density:1.20, rounded:12, hue:342, glass:true },
+    { id:775, type:"gallery", cards:3, buttons:6, charts:0, density:1.25, rounded:13, hue:35, glass:false },
+    { id:776, type:"gamehud", cards:4, buttons:7, charts:1, density:1.30, rounded:14, hue:88, glass:false },
+    { id:777, type:"admin", cards:5, buttons:1, charts:2, density:1.35, rounded:15, hue:141, glass:true },
+    { id:778, type:"analytics", cards:6, buttons:2, charts:3, density:1.40, rounded:16, hue:194, glass:false },
+    { id:779, type:"profile", cards:7, buttons:3, charts:4, density:1.45, rounded:17, hue:247, glass:false },
+    { id:780, type:"dashboard", cards:8, buttons:4, charts:0, density:0.50, rounded:18, hue:300, glass:true },
+    { id:781, type:"login", cards:9, buttons:5, charts:1, density:0.55, rounded:19, hue:353, glass:false },
+    { id:782, type:"settings", cards:10, buttons:6, charts:2, density:0.60, rounded:20, hue:46, glass:false },
+    { id:783, type:"chat", cards:2, buttons:7, charts:3, density:0.65, rounded:21, hue:99, glass:true },
+    { id:784, type:"store", cards:3, buttons:1, charts:4, density:0.70, rounded:22, hue:152, glass:false },
+    { id:785, type:"video", cards:4, buttons:2, charts:0, density:0.75, rounded:23, hue:205, glass:false },
+    { id:786, type:"music", cards:5, buttons:3, charts:1, density:0.80, rounded:24, hue:258, glass:true },
+    { id:787, type:"gallery", cards:6, buttons:4, charts:2, density:0.85, rounded:25, hue:311, glass:false },
+    { id:788, type:"gamehud", cards:7, buttons:5, charts:3, density:0.90, rounded:26, hue:4, glass:false },
+    { id:789, type:"admin", cards:8, buttons:6, charts:4, density:0.95, rounded:27, hue:57, glass:true },
+    { id:790, type:"analytics", cards:9, buttons:7, charts:0, density:1.00, rounded:28, hue:110, glass:false },
+    { id:791, type:"profile", cards:10, buttons:1, charts:1, density:1.05, rounded:29, hue:163, glass:false },
+    { id:792, type:"dashboard", cards:2, buttons:2, charts:2, density:1.10, rounded:8, hue:216, glass:true },
+    { id:793, type:"login", cards:3, buttons:3, charts:3, density:1.15, rounded:9, hue:269, glass:false },
+    { id:794, type:"settings", cards:4, buttons:4, charts:4, density:1.20, rounded:10, hue:322, glass:false },
+    { id:795, type:"chat", cards:5, buttons:5, charts:0, density:1.25, rounded:11, hue:15, glass:true },
+    { id:796, type:"store", cards:6, buttons:6, charts:1, density:1.30, rounded:12, hue:68, glass:false },
+    { id:797, type:"video", cards:7, buttons:7, charts:2, density:1.35, rounded:13, hue:121, glass:false },
+    { id:798, type:"music", cards:8, buttons:1, charts:3, density:1.40, rounded:14, hue:174, glass:true },
+    { id:799, type:"gallery", cards:9, buttons:2, charts:4, density:1.45, rounded:15, hue:227, glass:false },
+    { id:800, type:"gamehud", cards:10, buttons:3, charts:0, density:0.50, rounded:16, hue:280, glass:false },
+    { id:801, type:"admin", cards:2, buttons:4, charts:1, density:0.55, rounded:17, hue:333, glass:true },
+    { id:802, type:"analytics", cards:3, buttons:5, charts:2, density:0.60, rounded:18, hue:26, glass:false },
+    { id:803, type:"profile", cards:4, buttons:6, charts:3, density:0.65, rounded:19, hue:79, glass:false },
+    { id:804, type:"dashboard", cards:5, buttons:7, charts:4, density:0.70, rounded:20, hue:132, glass:true },
+    { id:805, type:"login", cards:6, buttons:1, charts:0, density:0.75, rounded:21, hue:185, glass:false },
+    { id:806, type:"settings", cards:7, buttons:2, charts:1, density:0.80, rounded:22, hue:238, glass:false },
+    { id:807, type:"chat", cards:8, buttons:3, charts:2, density:0.85, rounded:23, hue:291, glass:true },
+    { id:808, type:"store", cards:9, buttons:4, charts:3, density:0.90, rounded:24, hue:344, glass:false },
+    { id:809, type:"video", cards:10, buttons:5, charts:4, density:0.95, rounded:25, hue:37, glass:false },
+    { id:810, type:"music", cards:2, buttons:6, charts:0, density:1.00, rounded:26, hue:90, glass:true },
+    { id:811, type:"gallery", cards:3, buttons:7, charts:1, density:1.05, rounded:27, hue:143, glass:false },
+    { id:812, type:"gamehud", cards:4, buttons:1, charts:2, density:1.10, rounded:28, hue:196, glass:false },
+    { id:813, type:"admin", cards:5, buttons:2, charts:3, density:1.15, rounded:29, hue:249, glass:true },
+    { id:814, type:"analytics", cards:6, buttons:3, charts:4, density:1.20, rounded:8, hue:302, glass:false },
+    { id:815, type:"profile", cards:7, buttons:4, charts:0, density:1.25, rounded:9, hue:355, glass:false },
+    { id:816, type:"dashboard", cards:8, buttons:5, charts:1, density:1.30, rounded:10, hue:48, glass:true },
+    { id:817, type:"login", cards:9, buttons:6, charts:2, density:1.35, rounded:11, hue:101, glass:false },
+    { id:818, type:"settings", cards:10, buttons:7, charts:3, density:1.40, rounded:12, hue:154, glass:false },
+    { id:819, type:"chat", cards:2, buttons:1, charts:4, density:1.45, rounded:13, hue:207, glass:true },
+    { id:820, type:"store", cards:3, buttons:2, charts:0, density:0.50, rounded:14, hue:260, glass:false },
+    { id:821, type:"video", cards:4, buttons:3, charts:1, density:0.55, rounded:15, hue:313, glass:false },
+    { id:822, type:"music", cards:5, buttons:4, charts:2, density:0.60, rounded:16, hue:6, glass:true },
+    { id:823, type:"gallery", cards:6, buttons:5, charts:3, density:0.65, rounded:17, hue:59, glass:false },
+    { id:824, type:"gamehud", cards:7, buttons:6, charts:4, density:0.70, rounded:18, hue:112, glass:false },
+    { id:825, type:"admin", cards:8, buttons:7, charts:0, density:0.75, rounded:19, hue:165, glass:true },
+    { id:826, type:"analytics", cards:9, buttons:1, charts:1, density:0.80, rounded:20, hue:218, glass:false },
+    { id:827, type:"profile", cards:10, buttons:2, charts:2, density:0.85, rounded:21, hue:271, glass:false },
+    { id:828, type:"dashboard", cards:2, buttons:3, charts:3, density:0.90, rounded:22, hue:324, glass:true },
+    { id:829, type:"login", cards:3, buttons:4, charts:4, density:0.95, rounded:23, hue:17, glass:false },
+    { id:830, type:"settings", cards:4, buttons:5, charts:0, density:1.00, rounded:24, hue:70, glass:false },
+    { id:831, type:"chat", cards:5, buttons:6, charts:1, density:1.05, rounded:25, hue:123, glass:true },
+    { id:832, type:"store", cards:6, buttons:7, charts:2, density:1.10, rounded:26, hue:176, glass:false },
+    { id:833, type:"video", cards:7, buttons:1, charts:3, density:1.15, rounded:27, hue:229, glass:false },
+    { id:834, type:"music", cards:8, buttons:2, charts:4, density:1.20, rounded:28, hue:282, glass:true },
+    { id:835, type:"gallery", cards:9, buttons:3, charts:0, density:1.25, rounded:29, hue:335, glass:false },
+    { id:836, type:"gamehud", cards:10, buttons:4, charts:1, density:1.30, rounded:8, hue:28, glass:false },
+    { id:837, type:"admin", cards:2, buttons:5, charts:2, density:1.35, rounded:9, hue:81, glass:true },
+    { id:838, type:"analytics", cards:3, buttons:6, charts:3, density:1.40, rounded:10, hue:134, glass:false },
+    { id:839, type:"profile", cards:4, buttons:7, charts:4, density:1.45, rounded:11, hue:187, glass:false },
+    { id:840, type:"dashboard", cards:5, buttons:1, charts:0, density:0.50, rounded:12, hue:240, glass:true },
+    { id:841, type:"login", cards:6, buttons:2, charts:1, density:0.55, rounded:13, hue:293, glass:false },
+    { id:842, type:"settings", cards:7, buttons:3, charts:2, density:0.60, rounded:14, hue:346, glass:false },
+    { id:843, type:"chat", cards:8, buttons:4, charts:3, density:0.65, rounded:15, hue:39, glass:true },
+    { id:844, type:"store", cards:9, buttons:5, charts:4, density:0.70, rounded:16, hue:92, glass:false },
+    { id:845, type:"video", cards:10, buttons:6, charts:0, density:0.75, rounded:17, hue:145, glass:false },
+    { id:846, type:"music", cards:2, buttons:7, charts:1, density:0.80, rounded:18, hue:198, glass:true },
+    { id:847, type:"gallery", cards:3, buttons:1, charts:2, density:0.85, rounded:19, hue:251, glass:false },
+    { id:848, type:"gamehud", cards:4, buttons:2, charts:3, density:0.90, rounded:20, hue:304, glass:false },
+    { id:849, type:"admin", cards:5, buttons:3, charts:4, density:0.95, rounded:21, hue:357, glass:true },
+    { id:850, type:"analytics", cards:6, buttons:4, charts:0, density:1.00, rounded:22, hue:50, glass:false },
+    { id:851, type:"profile", cards:7, buttons:5, charts:1, density:1.05, rounded:23, hue:103, glass:false },
+    { id:852, type:"dashboard", cards:8, buttons:6, charts:2, density:1.10, rounded:24, hue:156, glass:true },
+    { id:853, type:"login", cards:9, buttons:7, charts:3, density:1.15, rounded:25, hue:209, glass:false },
+    { id:854, type:"settings", cards:10, buttons:1, charts:4, density:1.20, rounded:26, hue:262, glass:false },
+    { id:855, type:"chat", cards:2, buttons:2, charts:0, density:1.25, rounded:27, hue:315, glass:true },
+    { id:856, type:"store", cards:3, buttons:3, charts:1, density:1.30, rounded:28, hue:8, glass:false },
+    { id:857, type:"video", cards:4, buttons:4, charts:2, density:1.35, rounded:29, hue:61, glass:false },
+    { id:858, type:"music", cards:5, buttons:5, charts:3, density:1.40, rounded:8, hue:114, glass:true },
+    { id:859, type:"gallery", cards:6, buttons:6, charts:4, density:1.45, rounded:9, hue:167, glass:false },
+    { id:860, type:"gamehud", cards:7, buttons:7, charts:0, density:0.50, rounded:10, hue:220, glass:false },
+    { id:861, type:"admin", cards:8, buttons:1, charts:1, density:0.55, rounded:11, hue:273, glass:true },
+    { id:862, type:"analytics", cards:9, buttons:2, charts:2, density:0.60, rounded:12, hue:326, glass:false },
+    { id:863, type:"profile", cards:10, buttons:3, charts:3, density:0.65, rounded:13, hue:19, glass:false },
+    { id:864, type:"dashboard", cards:2, buttons:4, charts:4, density:0.70, rounded:14, hue:72, glass:true },
+    { id:865, type:"login", cards:3, buttons:5, charts:0, density:0.75, rounded:15, hue:125, glass:false },
+    { id:866, type:"settings", cards:4, buttons:6, charts:1, density:0.80, rounded:16, hue:178, glass:false },
+    { id:867, type:"chat", cards:5, buttons:7, charts:2, density:0.85, rounded:17, hue:231, glass:true },
+    { id:868, type:"store", cards:6, buttons:1, charts:3, density:0.90, rounded:18, hue:284, glass:false },
+    { id:869, type:"video", cards:7, buttons:2, charts:4, density:0.95, rounded:19, hue:337, glass:false },
+    { id:870, type:"music", cards:8, buttons:3, charts:0, density:1.00, rounded:20, hue:30, glass:true },
+    { id:871, type:"gallery", cards:9, buttons:4, charts:1, density:1.05, rounded:21, hue:83, glass:false },
+    { id:872, type:"gamehud", cards:10, buttons:5, charts:2, density:1.10, rounded:22, hue:136, glass:false },
+    { id:873, type:"admin", cards:2, buttons:6, charts:3, density:1.15, rounded:23, hue:189, glass:true },
+    { id:874, type:"analytics", cards:3, buttons:7, charts:4, density:1.20, rounded:24, hue:242, glass:false },
+    { id:875, type:"profile", cards:4, buttons:1, charts:0, density:1.25, rounded:25, hue:295, glass:false },
+    { id:876, type:"dashboard", cards:5, buttons:2, charts:1, density:1.30, rounded:26, hue:348, glass:true },
+    { id:877, type:"login", cards:6, buttons:3, charts:2, density:1.35, rounded:27, hue:41, glass:false },
+    { id:878, type:"settings", cards:7, buttons:4, charts:3, density:1.40, rounded:28, hue:94, glass:false },
+    { id:879, type:"chat", cards:8, buttons:5, charts:4, density:1.45, rounded:29, hue:147, glass:true },
+    { id:880, type:"store", cards:9, buttons:6, charts:0, density:0.50, rounded:8, hue:200, glass:false },
+    { id:881, type:"video", cards:10, buttons:7, charts:1, density:0.55, rounded:9, hue:253, glass:false },
+    { id:882, type:"music", cards:2, buttons:1, charts:2, density:0.60, rounded:10, hue:306, glass:true },
+    { id:883, type:"gallery", cards:3, buttons:2, charts:3, density:0.65, rounded:11, hue:359, glass:false },
+    { id:884, type:"gamehud", cards:4, buttons:3, charts:4, density:0.70, rounded:12, hue:52, glass:false },
+    { id:885, type:"admin", cards:5, buttons:4, charts:0, density:0.75, rounded:13, hue:105, glass:true },
+    { id:886, type:"analytics", cards:6, buttons:5, charts:1, density:0.80, rounded:14, hue:158, glass:false },
+    { id:887, type:"profile", cards:7, buttons:6, charts:2, density:0.85, rounded:15, hue:211, glass:false },
+    { id:888, type:"dashboard", cards:8, buttons:7, charts:3, density:0.90, rounded:16, hue:264, glass:true },
+    { id:889, type:"login", cards:9, buttons:1, charts:4, density:0.95, rounded:17, hue:317, glass:false },
+    { id:890, type:"settings", cards:10, buttons:2, charts:0, density:1.00, rounded:18, hue:10, glass:false },
+    { id:891, type:"chat", cards:2, buttons:3, charts:1, density:1.05, rounded:19, hue:63, glass:true },
+    { id:892, type:"store", cards:3, buttons:4, charts:2, density:1.10, rounded:20, hue:116, glass:false },
+    { id:893, type:"video", cards:4, buttons:5, charts:3, density:1.15, rounded:21, hue:169, glass:false },
+    { id:894, type:"music", cards:5, buttons:6, charts:4, density:1.20, rounded:22, hue:222, glass:true },
+    { id:895, type:"gallery", cards:6, buttons:7, charts:0, density:1.25, rounded:23, hue:275, glass:false },
+    { id:896, type:"gamehud", cards:7, buttons:1, charts:1, density:1.30, rounded:24, hue:328, glass:false },
+    { id:897, type:"admin", cards:8, buttons:2, charts:2, density:1.35, rounded:25, hue:21, glass:true },
+    { id:898, type:"analytics", cards:9, buttons:3, charts:3, density:1.40, rounded:26, hue:74, glass:false },
+    { id:899, type:"profile", cards:10, buttons:4, charts:4, density:1.45, rounded:27, hue:127, glass:false },
+    { id:900, type:"dashboard", cards:2, buttons:5, charts:0, density:0.50, rounded:28, hue:180, glass:true },
+    { id:901, type:"login", cards:3, buttons:6, charts:1, density:0.55, rounded:29, hue:233, glass:false },
+    { id:902, type:"settings", cards:4, buttons:7, charts:2, density:0.60, rounded:8, hue:286, glass:false },
+    { id:903, type:"chat", cards:5, buttons:1, charts:3, density:0.65, rounded:9, hue:339, glass:true },
+    { id:904, type:"store", cards:6, buttons:2, charts:4, density:0.70, rounded:10, hue:32, glass:false },
+    { id:905, type:"video", cards:7, buttons:3, charts:0, density:0.75, rounded:11, hue:85, glass:false },
+    { id:906, type:"music", cards:8, buttons:4, charts:1, density:0.80, rounded:12, hue:138, glass:true },
+    { id:907, type:"gallery", cards:9, buttons:5, charts:2, density:0.85, rounded:13, hue:191, glass:false },
+    { id:908, type:"gamehud", cards:10, buttons:6, charts:3, density:0.90, rounded:14, hue:244, glass:false },
+    { id:909, type:"admin", cards:2, buttons:7, charts:4, density:0.95, rounded:15, hue:297, glass:true },
+    { id:910, type:"analytics", cards:3, buttons:1, charts:0, density:1.00, rounded:16, hue:350, glass:false },
+    { id:911, type:"profile", cards:4, buttons:2, charts:1, density:1.05, rounded:17, hue:43, glass:false },
+    { id:912, type:"dashboard", cards:5, buttons:3, charts:2, density:1.10, rounded:18, hue:96, glass:true },
+    { id:913, type:"login", cards:6, buttons:4, charts:3, density:1.15, rounded:19, hue:149, glass:false },
+    { id:914, type:"settings", cards:7, buttons:5, charts:4, density:1.20, rounded:20, hue:202, glass:false },
+    { id:915, type:"chat", cards:8, buttons:6, charts:0, density:1.25, rounded:21, hue:255, glass:true },
+    { id:916, type:"store", cards:9, buttons:7, charts:1, density:1.30, rounded:22, hue:308, glass:false },
+    { id:917, type:"video", cards:10, buttons:1, charts:2, density:1.35, rounded:23, hue:1, glass:false },
+    { id:918, type:"music", cards:2, buttons:2, charts:3, density:1.40, rounded:24, hue:54, glass:true },
+    { id:919, type:"gallery", cards:3, buttons:3, charts:4, density:1.45, rounded:25, hue:107, glass:false },
+    { id:920, type:"gamehud", cards:4, buttons:4, charts:0, density:0.50, rounded:26, hue:160, glass:false },
+    { id:921, type:"admin", cards:5, buttons:5, charts:1, density:0.55, rounded:27, hue:213, glass:true },
+    { id:922, type:"analytics", cards:6, buttons:6, charts:2, density:0.60, rounded:28, hue:266, glass:false },
+    { id:923, type:"profile", cards:7, buttons:7, charts:3, density:0.65, rounded:29, hue:319, glass:false },
+    { id:924, type:"dashboard", cards:8, buttons:1, charts:4, density:0.70, rounded:8, hue:12, glass:true },
+    { id:925, type:"login", cards:9, buttons:2, charts:0, density:0.75, rounded:9, hue:65, glass:false },
+    { id:926, type:"settings", cards:10, buttons:3, charts:1, density:0.80, rounded:10, hue:118, glass:false },
+    { id:927, type:"chat", cards:2, buttons:4, charts:2, density:0.85, rounded:11, hue:171, glass:true },
+    { id:928, type:"store", cards:3, buttons:5, charts:3, density:0.90, rounded:12, hue:224, glass:false },
+    { id:929, type:"video", cards:4, buttons:6, charts:4, density:0.95, rounded:13, hue:277, glass:false },
+    { id:930, type:"music", cards:5, buttons:7, charts:0, density:1.00, rounded:14, hue:330, glass:true },
+    { id:931, type:"gallery", cards:6, buttons:1, charts:1, density:1.05, rounded:15, hue:23, glass:false },
+    { id:932, type:"gamehud", cards:7, buttons:2, charts:2, density:1.10, rounded:16, hue:76, glass:false },
+    { id:933, type:"admin", cards:8, buttons:3, charts:3, density:1.15, rounded:17, hue:129, glass:true },
+    { id:934, type:"analytics", cards:9, buttons:4, charts:4, density:1.20, rounded:18, hue:182, glass:false },
+    { id:935, type:"profile", cards:10, buttons:5, charts:0, density:1.25, rounded:19, hue:235, glass:false },
+    { id:936, type:"dashboard", cards:2, buttons:6, charts:1, density:1.30, rounded:20, hue:288, glass:true },
+    { id:937, type:"login", cards:3, buttons:7, charts:2, density:1.35, rounded:21, hue:341, glass:false },
+    { id:938, type:"settings", cards:4, buttons:1, charts:3, density:1.40, rounded:22, hue:34, glass:false },
+    { id:939, type:"chat", cards:5, buttons:2, charts:4, density:1.45, rounded:23, hue:87, glass:true },
+    { id:940, type:"store", cards:6, buttons:3, charts:0, density:0.50, rounded:24, hue:140, glass:false },
+    { id:941, type:"video", cards:7, buttons:4, charts:1, density:0.55, rounded:25, hue:193, glass:false },
+    { id:942, type:"music", cards:8, buttons:5, charts:2, density:0.60, rounded:26, hue:246, glass:true },
+    { id:943, type:"gallery", cards:9, buttons:6, charts:3, density:0.65, rounded:27, hue:299, glass:false },
+    { id:944, type:"gamehud", cards:10, buttons:7, charts:4, density:0.70, rounded:28, hue:352, glass:false },
+    { id:945, type:"admin", cards:2, buttons:1, charts:0, density:0.75, rounded:29, hue:45, glass:true },
+    { id:946, type:"analytics", cards:3, buttons:2, charts:1, density:0.80, rounded:8, hue:98, glass:false },
+    { id:947, type:"profile", cards:4, buttons:3, charts:2, density:0.85, rounded:9, hue:151, glass:false },
+    { id:948, type:"dashboard", cards:5, buttons:4, charts:3, density:0.90, rounded:10, hue:204, glass:true },
+    { id:949, type:"login", cards:6, buttons:5, charts:4, density:0.95, rounded:11, hue:257, glass:false },
+    { id:950, type:"settings", cards:7, buttons:6, charts:0, density:1.00, rounded:12, hue:310, glass:false },
+    { id:951, type:"chat", cards:8, buttons:7, charts:1, density:1.05, rounded:13, hue:3, glass:true },
+    { id:952, type:"store", cards:9, buttons:1, charts:2, density:1.10, rounded:14, hue:56, glass:false },
+    { id:953, type:"video", cards:10, buttons:2, charts:3, density:1.15, rounded:15, hue:109, glass:false },
+    { id:954, type:"music", cards:2, buttons:3, charts:4, density:1.20, rounded:16, hue:162, glass:true },
+    { id:955, type:"gallery", cards:3, buttons:4, charts:0, density:1.25, rounded:17, hue:215, glass:false },
+    { id:956, type:"gamehud", cards:4, buttons:5, charts:1, density:1.30, rounded:18, hue:268, glass:false },
+    { id:957, type:"admin", cards:5, buttons:6, charts:2, density:1.35, rounded:19, hue:321, glass:true },
+    { id:958, type:"analytics", cards:6, buttons:7, charts:3, density:1.40, rounded:20, hue:14, glass:false },
+    { id:959, type:"profile", cards:7, buttons:1, charts:4, density:1.45, rounded:21, hue:67, glass:false },
+    { id:960, type:"dashboard", cards:8, buttons:2, charts:0, density:0.50, rounded:22, hue:120, glass:true },
+    { id:961, type:"login", cards:9, buttons:3, charts:1, density:0.55, rounded:23, hue:173, glass:false },
+    { id:962, type:"settings", cards:10, buttons:4, charts:2, density:0.60, rounded:24, hue:226, glass:false },
+    { id:963, type:"chat", cards:2, buttons:5, charts:3, density:0.65, rounded:25, hue:279, glass:true },
+    { id:964, type:"store", cards:3, buttons:6, charts:4, density:0.70, rounded:26, hue:332, glass:false },
+    { id:965, type:"video", cards:4, buttons:7, charts:0, density:0.75, rounded:27, hue:25, glass:false },
+    { id:966, type:"music", cards:5, buttons:1, charts:1, density:0.80, rounded:28, hue:78, glass:true },
+    { id:967, type:"gallery", cards:6, buttons:2, charts:2, density:0.85, rounded:29, hue:131, glass:false },
+    { id:968, type:"gamehud", cards:7, buttons:3, charts:3, density:0.90, rounded:8, hue:184, glass:false },
+    { id:969, type:"admin", cards:8, buttons:4, charts:4, density:0.95, rounded:9, hue:237, glass:true },
+    { id:970, type:"analytics", cards:9, buttons:5, charts:0, density:1.00, rounded:10, hue:290, glass:false },
+    { id:971, type:"profile", cards:10, buttons:6, charts:1, density:1.05, rounded:11, hue:343, glass:false },
+    { id:972, type:"dashboard", cards:2, buttons:7, charts:2, density:1.10, rounded:12, hue:36, glass:true },
+    { id:973, type:"login", cards:3, buttons:1, charts:3, density:1.15, rounded:13, hue:89, glass:false },
+    { id:974, type:"settings", cards:4, buttons:2, charts:4, density:1.20, rounded:14, hue:142, glass:false },
+    { id:975, type:"chat", cards:5, buttons:3, charts:0, density:1.25, rounded:15, hue:195, glass:true },
+    { id:976, type:"store", cards:6, buttons:4, charts:1, density:1.30, rounded:16, hue:248, glass:false },
+    { id:977, type:"video", cards:7, buttons:5, charts:2, density:1.35, rounded:17, hue:301, glass:false },
+    { id:978, type:"music", cards:8, buttons:6, charts:3, density:1.40, rounded:18, hue:354, glass:true },
+    { id:979, type:"gallery", cards:9, buttons:7, charts:4, density:1.45, rounded:19, hue:47, glass:false },
+    { id:980, type:"gamehud", cards:10, buttons:1, charts:0, density:0.50, rounded:20, hue:100, glass:false },
+    { id:981, type:"admin", cards:2, buttons:2, charts:1, density:0.55, rounded:21, hue:153, glass:true },
+    { id:982, type:"analytics", cards:3, buttons:3, charts:2, density:0.60, rounded:22, hue:206, glass:false },
+    { id:983, type:"profile", cards:4, buttons:4, charts:3, density:0.65, rounded:23, hue:259, glass:false },
+    { id:984, type:"dashboard", cards:5, buttons:5, charts:4, density:0.70, rounded:24, hue:312, glass:true },
+    { id:985, type:"login", cards:6, buttons:6, charts:0, density:0.75, rounded:25, hue:5, glass:false },
+    { id:986, type:"settings", cards:7, buttons:7, charts:1, density:0.80, rounded:26, hue:58, glass:false },
+    { id:987, type:"chat", cards:8, buttons:1, charts:2, density:0.85, rounded:27, hue:111, glass:true },
+    { id:988, type:"store", cards:9, buttons:2, charts:3, density:0.90, rounded:28, hue:164, glass:false },
+    { id:989, type:"video", cards:10, buttons:3, charts:4, density:0.95, rounded:29, hue:217, glass:false },
+    { id:990, type:"music", cards:2, buttons:4, charts:0, density:1.00, rounded:8, hue:270, glass:true },
+    { id:991, type:"gallery", cards:3, buttons:5, charts:1, density:1.05, rounded:9, hue:323, glass:false },
+    { id:992, type:"gamehud", cards:4, buttons:6, charts:2, density:1.10, rounded:10, hue:16, glass:false },
+    { id:993, type:"admin", cards:5, buttons:7, charts:3, density:1.15, rounded:11, hue:69, glass:true },
+    { id:994, type:"analytics", cards:6, buttons:1, charts:4, density:1.20, rounded:12, hue:122, glass:false },
+    { id:995, type:"profile", cards:7, buttons:2, charts:0, density:1.25, rounded:13, hue:175, glass:false },
+    { id:996, type:"dashboard", cards:8, buttons:3, charts:1, density:1.30, rounded:14, hue:228, glass:true },
+    { id:997, type:"login", cards:9, buttons:4, charts:2, density:1.35, rounded:15, hue:281, glass:false },
+    { id:998, type:"settings", cards:10, buttons:5, charts:3, density:1.40, rounded:16, hue:334, glass:false },
+    { id:999, type:"chat", cards:2, buttons:6, charts:4, density:1.45, rounded:17, hue:27, glass:true },
+  ];
 
+  const MICRO_IF_RENDERERS = [
+    function microIfRenderer_0(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*2.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*3.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_3(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*4.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_4(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*5.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_5(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*6.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_6(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*7.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_7(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*8.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_8(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*9.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_9(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*10.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_10(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*11.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_11(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*12.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_12(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*13.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_13(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*14.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_14(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*15.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_15(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*16.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_16(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*17.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_17(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*18.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_18(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*19.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_19(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*20.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_20(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*21.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_21(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*22.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_22(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*23.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_23(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*24.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_24(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*25.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_25(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*26.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_26(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*27.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_27(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*28.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_28(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*29.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_29(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*30.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_30(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*31.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_31(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*32.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_32(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*33.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_33(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*34.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_34(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*35.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_35(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*36.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_36(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*37.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_37(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*38.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_38(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*39.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_39(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*40.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_40(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*41.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_41(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*42.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_42(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*43.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_43(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*44.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_44(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*45.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_45(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*46.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_46(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*47.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_47(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*48.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_48(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*49.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_49(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*50.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_50(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*51.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_51(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*52.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_52(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*53.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_53(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*54.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_54(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*55.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_55(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*56.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_56(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*57.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_57(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*58.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_58(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*59.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_59(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*60.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_60(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*61.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_61(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*62.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_62(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*63.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_63(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*64.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_64(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*65.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_65(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*66.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_66(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*67.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_67(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*68.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_68(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*69.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_69(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*70.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_70(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*71.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_71(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*72.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_72(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*73.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_73(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*74.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_74(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*75.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_75(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*76.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_76(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*77.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_77(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*78.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_78(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*79.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_79(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*80.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_80(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*81.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_81(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*82.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_82(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*83.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_83(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*84.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_84(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*85.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_85(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*86.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_86(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*87.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_87(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*88.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_88(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*89.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_89(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*90.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_90(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*91.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_91(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*92.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_92(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*93.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_93(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*94.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_94(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*95.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_95(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*96.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_96(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*97.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_97(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*98.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_98(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*99.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_99(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*100.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_100(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*101.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_101(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*102.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_102(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*103.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_103(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*104.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_104(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*105.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_105(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*106.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_106(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*107.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_107(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*108.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_108(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*109.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_109(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*110.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_110(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*111.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_111(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*112.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_112(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*113.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_113(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*114.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_114(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*115.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_115(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*116.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_116(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*117.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_117(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*118.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_118(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*119.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_119(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*120.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_120(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*121.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_121(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*122.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_122(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*123.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_123(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*124.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_124(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*125.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_125(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*126.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_126(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*127.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_127(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*128.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_128(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*129.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_129(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*130.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_130(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*131.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_131(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*132.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_132(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*133.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_133(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*134.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_134(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*135.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_135(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*136.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_136(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*137.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_137(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*138.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_138(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*139.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_139(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*140.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_140(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*141.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_141(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*142.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_142(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*143.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_143(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*144.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_144(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*145.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_145(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*146.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_146(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*147.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_147(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*148.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_148(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*149.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_149(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*150.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_150(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*151.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_151(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*152.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_152(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*153.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_153(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*154.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_154(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*155.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_155(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*156.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_156(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*157.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_157(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*158.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_158(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*159.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_159(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*160.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_160(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*161.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_161(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*162.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_162(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*163.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_163(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*164.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_164(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*165.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_165(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*166.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_166(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*167.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_167(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*168.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_168(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*169.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_169(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*170.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_170(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*171.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_171(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*172.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_172(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*173.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_173(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*174.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_174(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*175.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_175(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*176.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_176(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*177.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_177(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*178.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_178(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*179.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_179(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*180.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_180(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*181.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_181(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*182.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_182(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*183.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_183(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*184.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_184(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*185.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_185(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*186.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_186(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*187.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_187(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*188.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_188(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*189.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_189(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*190.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_190(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*191.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_191(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*192.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_192(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*193.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_193(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*194.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_194(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*195.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_195(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*196.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_196(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*197.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_197(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*198.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_198(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*199.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_199(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*200.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_200(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*201.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_201(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*202.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_202(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*203.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_203(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*204.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_204(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*205.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_205(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*206.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_206(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*207.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_207(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*208.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_208(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*209.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_209(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*210.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_210(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*211.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_211(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*212.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_212(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*213.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_213(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*214.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_214(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*215.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_215(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*216.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_216(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*217.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_217(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*218.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_218(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*219.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_219(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*220.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_220(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*221.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_221(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*222.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_222(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*223.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_223(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*224.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_224(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*225.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_225(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*226.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_226(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*227.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_227(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*228.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_228(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*229.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_229(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*230.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_230(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*231.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_231(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*232.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_232(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*233.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_233(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*234.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_234(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*235.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_235(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*236.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_236(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*237.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_237(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*238.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_238(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*239.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_239(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*240.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_240(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*241.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_241(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*242.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_242(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*243.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_243(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*244.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_244(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*245.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_245(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*246.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_246(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*247.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_247(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*248.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_248(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*249.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_249(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*250.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_250(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*251.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_251(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*252.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_252(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*253.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_253(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*254.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_254(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*255.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_255(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*256.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_256(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*257.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_257(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*258.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_258(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*259.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_259(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*260.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_260(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*261.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_261(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*262.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_262(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*263.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_263(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*264.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_264(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*265.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_265(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*266.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_266(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*267.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_267(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*268.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_268(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*269.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_269(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*270.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_270(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*271.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_271(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*272.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_272(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*273.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_273(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*274.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_274(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*275.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_275(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*276.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_276(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*277.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_277(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*278.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_278(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*279.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_279(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*280.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_280(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*281.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_281(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*282.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_282(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*283.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_283(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*284.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_284(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*285.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_285(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*286.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_286(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*287.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_287(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*288.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_288(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*289.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_289(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*290.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_290(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*291.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_291(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*292.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_292(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*293.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_293(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*294.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_294(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*295.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_295(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*296.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_296(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*297.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_297(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*298.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_298(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*299.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_299(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*300.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_300(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*301.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_301(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*302.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_302(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*303.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_303(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*304.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_304(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*305.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_305(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*306.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_306(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*307.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_307(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*308.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_308(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*309.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_309(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*310.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_310(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*311.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_311(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*312.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_312(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*313.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_313(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*314.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_314(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*315.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_315(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*316.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_316(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*317.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_317(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*318.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_318(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*319.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_319(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*320.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_320(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*321.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_321(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*322.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_322(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*323.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_323(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*324.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_324(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*325.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_325(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*326.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_326(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*327.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_327(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*328.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_328(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*329.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_329(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*330.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_330(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*331.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_331(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*332.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_332(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*333.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_333(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*334.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_334(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*335.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_335(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*336.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_336(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*337.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_337(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*338.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_338(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*339.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_339(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*340.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_340(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*341.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_341(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*342.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_342(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*343.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_343(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*344.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_344(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*345.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_345(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*346.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_346(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*347.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_347(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*348.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_348(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*349.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_349(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*350.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_350(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*351.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_351(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*352.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_352(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*353.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_353(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*354.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_354(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*355.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_355(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*356.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_356(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*357.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_357(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*358.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_358(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*359.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_359(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*360.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_360(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*361.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_361(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*362.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_362(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*363.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_363(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*364.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_364(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*365.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_365(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*366.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_366(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*367.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_367(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*368.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_368(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*369.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_369(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*370.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_370(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*371.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_371(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*372.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_372(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*373.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_373(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*374.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_374(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*375.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_375(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*376.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_376(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*377.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_377(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*378.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_378(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*379.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_379(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*380.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_380(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*381.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_381(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*382.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_382(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*383.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_383(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*384.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_384(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*385.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_385(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*386.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_386(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*387.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_387(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*388.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_388(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*389.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_389(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*390.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_390(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*391.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_391(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*392.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_392(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*393.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_393(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*394.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_394(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*395.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_395(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*396.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_396(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*397.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_397(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*398.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_398(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*399.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_399(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*400.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_400(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*401.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_401(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*402.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_402(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*403.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_403(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*404.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_404(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*405.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_405(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*406.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_406(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*407.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_407(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*408.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_408(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*409.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_409(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*410.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_410(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*411.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_411(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*412.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_412(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*413.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_413(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*414.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_414(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*415.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_415(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*416.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_416(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*417.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_417(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*418.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_418(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*419.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_419(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*420.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_420(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*421.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_421(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*422.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_422(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*423.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_423(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*424.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_424(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*425.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_425(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*426.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_426(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*427.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_427(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*428.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_428(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*429.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_429(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*430.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_430(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*431.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_431(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*432.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_432(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*433.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_433(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*434.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_434(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*435.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_435(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*436.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_436(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*437.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_437(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*438.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_438(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*439.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_439(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*440.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_440(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*441.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_441(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*442.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_442(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*443.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_443(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*444.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_444(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*445.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_445(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*446.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_446(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*447.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_447(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*448.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_448(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*449.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_449(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*450.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_450(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*451.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_451(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*452.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_452(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*453.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_453(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*454.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_454(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*455.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_455(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*456.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_456(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*457.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_457(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*458.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_458(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*459.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_459(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*460.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_460(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*461.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_461(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*462.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_462(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*463.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_463(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*464.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_464(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*465.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_465(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*466.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_466(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*467.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_467(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*468.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_468(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*469.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_469(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*470.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_470(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*471.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_471(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*472.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_472(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*473.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_473(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*474.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_474(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*475.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_475(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*476.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_476(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*477.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_477(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*478.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_478(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*479.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_479(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*480.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_480(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*481.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_481(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*482.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_482(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*483.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_483(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*484.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_484(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*485.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_485(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*486.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_486(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*487.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_487(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*488.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_488(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*489.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_489(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*490.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_490(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*491.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_491(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*492.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_492(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*493.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_493(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*494.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_494(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*495.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_495(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*496.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_496(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*497.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_497(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*498.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_498(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*499.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_499(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*500.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_500(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*501.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_501(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*502.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_502(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*503.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_503(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*504.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_504(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*505.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_505(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*506.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_506(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*507.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_507(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*508.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_508(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*509.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_509(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*510.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_510(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*511.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_511(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*512.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_512(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*513.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_513(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*514.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_514(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*515.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_515(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*516.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_516(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*517.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_517(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*518.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_518(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*519.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_519(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*520.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_520(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*521.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_521(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*522.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_522(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*523.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_523(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*524.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_524(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*525.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_525(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*526.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_526(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*527.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_527(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*528.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_528(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*529.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_529(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*530.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_530(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*531.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_531(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*532.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_532(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*533.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_533(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*534.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_534(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*535.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_535(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*536.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_536(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*537.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_537(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*538.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_538(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*539.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_539(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*540.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_540(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*541.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_541(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*542.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_542(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*543.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_543(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*544.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_544(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*545.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_545(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*546.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_546(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*547.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_547(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*548.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_548(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*549.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_549(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*550.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_550(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*551.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_551(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*552.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_552(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*553.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_553(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*554.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_554(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*555.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_555(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*556.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_556(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*557.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_557(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*558.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_558(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*559.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_559(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*560.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_560(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*561.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_561(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*562.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_562(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*563.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_563(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*564.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_564(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*565.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_565(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*566.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_566(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*567.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_567(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*568.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_568(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*569.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_569(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*570.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_570(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*571.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_571(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*572.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_572(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*573.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_573(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*574.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_574(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*575.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_575(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*576.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_576(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*577.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_577(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*578.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_578(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*579.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_579(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*580.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_580(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*581.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_581(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*582.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_582(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*583.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_583(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*584.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_584(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*585.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_585(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*586.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_586(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*587.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_587(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*588.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_588(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*589.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_589(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*590.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_590(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*591.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_591(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*592.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_592(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*593.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_593(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*594.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_594(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*595.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_595(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*596.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_596(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*597.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_597(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*598.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_598(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*599.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_599(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*600.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_600(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*601.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_601(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*602.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_602(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*603.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_603(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*604.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_604(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*605.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_605(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*606.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_606(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*607.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_607(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*608.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_608(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*609.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_609(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*610.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_610(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*611.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_611(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*612.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_612(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*613.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_613(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*614.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_614(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*615.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_615(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*616.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_616(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*617.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_617(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*618.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_618(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*619.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_619(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*620.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_620(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*621.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_621(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*622.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_622(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*623.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_623(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*624.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_624(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*625.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_625(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*626.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_626(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*627.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_627(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*628.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_628(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*629.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_629(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*630.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_630(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*631.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_631(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*632.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_632(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*633.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_633(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*634.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_634(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*635.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_635(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*636.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_636(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*637.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_637(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*638.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_638(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*639.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_639(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*640.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_640(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*641.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_641(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*642.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_642(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*643.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_643(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*644.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_644(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*645.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_645(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*646.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_646(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*647.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_647(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*648.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_648(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*649.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_649(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*650.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_650(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*651.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_651(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*652.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_652(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*653.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_653(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*654.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_654(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*655.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_655(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*656.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_656(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*657.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_657(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*658.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_658(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*659.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_659(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*660.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_660(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*661.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_661(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*662.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_662(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*663.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_663(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*664.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_664(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*665.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_665(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*666.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_666(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*667.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_667(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*668.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_668(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*669.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_669(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*670.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_670(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*671.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_671(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*672.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_672(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*673.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_673(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*674.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_674(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*675.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_675(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*676.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_676(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*677.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_677(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*678.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_678(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*679.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_679(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*680.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_680(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*681.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_681(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*682.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_682(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*683.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_683(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*684.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_684(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*685.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_685(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*686.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_686(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*687.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_687(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*688.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_688(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*689.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_689(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*690.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_690(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*691.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_691(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*692.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_692(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*693.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_693(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*694.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_694(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*695.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_695(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*696.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_696(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*697.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_697(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*698.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_698(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*699.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_699(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*700.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_700(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*701.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_701(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*702.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_702(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*703.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_703(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*704.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_704(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*705.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_705(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*706.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_706(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*707.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_707(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*708.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_708(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*709.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_709(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*710.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_710(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*711.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_711(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*712.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_712(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*713.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_713(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*714.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_714(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*715.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_715(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*716.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_716(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*717.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_717(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*718.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_718(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*719.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_719(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*720.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_720(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*721.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_721(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*722.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_722(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*723.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_723(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*724.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_724(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*725.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_725(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*726.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_726(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*727.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_727(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*728.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_728(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*729.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_729(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*730.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_730(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*731.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_731(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*732.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_732(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*733.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_733(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*734.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_734(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*735.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_735(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*736.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_736(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*737.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_737(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*738.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_738(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*739.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_739(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*740.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_740(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*741.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_741(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*742.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_742(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*743.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_743(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*744.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_744(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*745.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_745(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*746.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_746(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*747.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_747(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*748.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_748(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*749.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_749(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*750.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_750(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*751.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_751(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*752.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_752(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*753.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_753(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*754.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_754(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*755.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_755(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*756.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_756(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*757.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_757(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*758.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_758(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*759.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_759(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*760.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_760(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*761.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_761(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*762.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_762(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*763.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_763(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*764.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_764(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*765.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_765(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*766.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_766(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*767.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_767(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*768.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_768(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*769.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_769(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*770.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_770(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*771.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_771(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*772.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_772(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*773.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_773(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*774.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_774(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*775.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_775(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*776.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_776(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*777.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_777(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*778.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_778(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*779.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_779(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*780.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_780(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*781.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_781(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*782.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_782(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*783.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_783(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*784.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_784(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*785.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_785(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*786.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_786(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*787.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_787(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*788.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_788(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*789.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_789(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*790.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_790(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*791.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_791(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*792.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_792(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*793.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_793(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*794.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_794(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*795.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_795(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*796.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_796(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*797.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_797(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*798.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_798(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*799.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_799(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*800.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_800(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*801.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_801(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*802.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_802(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*803.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_803(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*804.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_804(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*805.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_805(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*806.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_806(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*807.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_807(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*808.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_808(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*809.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_809(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*810.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_810(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*811.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_811(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*812.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_812(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*813.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_813(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*814.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_814(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*815.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_815(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*816.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_816(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*817.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_817(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*818.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_818(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*819.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_819(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*820.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_820(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*821.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_821(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*822.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_822(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*823.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_823(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*824.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_824(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*825.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_825(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*826.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_826(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*827.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_827(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*828.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_828(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*829.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_829(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*830.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_830(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*831.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_831(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*832.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_832(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*833.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_833(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*834.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_834(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*835.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_835(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*836.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_836(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*837.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_837(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*838.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_838(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*839.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_839(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*840.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_840(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*841.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_841(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*842.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_842(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*843.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_843(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*844.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_844(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*845.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_845(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*846.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_846(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*847.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_847(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*848.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_848(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*849.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_849(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*850.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_850(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*851.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_851(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*852.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_852(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*853.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_853(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*854.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_854(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*855.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_855(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*856.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_856(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*857.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_857(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*858.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_858(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*859.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_859(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*860.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_860(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*861.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_861(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*862.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_862(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*863.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_863(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*864.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_864(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*865.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_865(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*866.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_866(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*867.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_867(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*868.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_868(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*869.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_869(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*870.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_870(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*871.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_871(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*872.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_872(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*873.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_873(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*874.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_874(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*875.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_875(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*876.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_876(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*877.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_877(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*878.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_878(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*879.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_879(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*880.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_880(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*881.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_881(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*882.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_882(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*883.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_883(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*884.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_884(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*885.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_885(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*886.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_886(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*887.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_887(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*888.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_888(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*889.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_889(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*890.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_890(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*891.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_891(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*892.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_892(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*893.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_893(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*894.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_894(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*895.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_895(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*896.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_896(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*897.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_897(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*898.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_898(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*899.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_899(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*900.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_900(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*901.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_901(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*902.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_902(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*903.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_903(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*904.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_904(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*905.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_905(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*906.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_906(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*907.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_907(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*908.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_908(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*909.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_909(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*910.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_910(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*911.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_911(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*912.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_912(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*913.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_913(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*914.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_914(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*915.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_915(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*916.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_916(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*917.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_917(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*918.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_918(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*919.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_919(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*920.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_920(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*921.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_921(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*922.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_922(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*923.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_923(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*924.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_924(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*925.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_925(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*926.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_926(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*927.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_927(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*928.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_928(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*929.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_929(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*930.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_930(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*931.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_931(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*932.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_932(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*933.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_933(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*934.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_934(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*935.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_935(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*936.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_936(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*937.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_937(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*938.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_938(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*939.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_939(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*940.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_940(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*941.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_941(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*942.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_942(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*943.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_943(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*944.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_944(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*945.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_945(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*946.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_946(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*947.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_947(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*948.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_948(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*949.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_949(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*950.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_950(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*951.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_951(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*952.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_952(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*953.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_953(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*954.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_954(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*955.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_955(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*956.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_956(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*957.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_957(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*958.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_958(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*959.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_959(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*960.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_960(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*961.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_961(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*962.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_962(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*963.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_963(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*964.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_964(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*965.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_965(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*966.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_966(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*967.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_967(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*968.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_968(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*969.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_969(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*970.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_970(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*971.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_971(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*972.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_972(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*973.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_973(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*974.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_974(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*975.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_975(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*976.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_976(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*977.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_977(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*978.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_978(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*979.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_979(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*980.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_980(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*981.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_981(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*982.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_982(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*983.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_983(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*984.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_984(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*985.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_985(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*986.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_986(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*987.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_987(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*988.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_988(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*989.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_989(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*990.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_990(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*991.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_991(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*992.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_992(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*993.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_993(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*994.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_994(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*995.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_995(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*996.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_996(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*997.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_997(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*998.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_998(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*999.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_999(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1000.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1000(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1001.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1001(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1002.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1002(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1003.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1003(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1004.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1004(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1005.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1005(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1006.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1006(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1007.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1007(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1008.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1008(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1009.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1009(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1010.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1010(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1011.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1011(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1012.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1012(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1013.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1013(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1014.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1014(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1015.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1015(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1016.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1016(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1017.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1017(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1018.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1018(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1019.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1019(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1020.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1020(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1021.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1021(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1022.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1022(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1023.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1023(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1024.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1024(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1025.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1025(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1026.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1026(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1027.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1027(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1028.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1028(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1029.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1029(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1030.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1030(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1031.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1031(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1032.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1032(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1033.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1033(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1034.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1034(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1035.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1035(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1036.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1036(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1037.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1037(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1038.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1038(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1039.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1039(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1040.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1040(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1041.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1041(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1042.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1042(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1043.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1043(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1044.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1044(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1045.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1045(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1046.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1046(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1047.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1047(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1048.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1048(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1049.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1049(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1050.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1050(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1051.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1051(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1052.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1052(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1053.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1053(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1054.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1054(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1055.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1055(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1056.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1056(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1057.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1057(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1058.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1058(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1059.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1059(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1060.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1060(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1061.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1061(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1062.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1062(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1063.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1063(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1064.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1064(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1065.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1065(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1066.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1066(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1067.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1067(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1068.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1068(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1069.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1069(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1070.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1070(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1071.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1071(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1072.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1072(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1073.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1073(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1074.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1074(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1075.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1075(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1076.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1076(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1077.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1077(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1078.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1078(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1079.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1079(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1080.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1080(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1081.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1081(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1082.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1082(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1083.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1083(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1084.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1084(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1085.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1085(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1086.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1086(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1087.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1087(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1088.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1088(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1089.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1089(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1090.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1090(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1091.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1091(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1092.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1092(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1093.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1093(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1094.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1094(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1095.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1095(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1096.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1096(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1097.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1097(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1098.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1098(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1099.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1099(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1100.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1100(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1101.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1101(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1102.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1102(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1103.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1103(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1104.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1104(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1105.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1105(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1106.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1106(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1107.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1107(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1108.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1108(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1109.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1109(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1110.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1110(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1111.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1111(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1112.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1112(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1113.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1113(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1114.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1114(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1115.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1115(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1116.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1116(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1117.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1117(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1118.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1118(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1119.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1119(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1120.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1120(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1121.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1121(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1122.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1122(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1123.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1123(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1124.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1124(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1125.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1125(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1126.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1126(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1127.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1127(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1128.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1128(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1129.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1129(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1130.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1130(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1131.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1131(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1132.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1132(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1133.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1133(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1134.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1134(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1135.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1135(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1136.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1136(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1137.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1137(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1138.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1138(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1139.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1139(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1140.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1140(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1141.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1141(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1142.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1142(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1143.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1143(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1144.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1144(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1145.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1145(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1146.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1146(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1147.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1147(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1148.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1148(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1149.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1149(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1150.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1150(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1151.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1151(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1152.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1152(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1153.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1153(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1154.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1154(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1155.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1155(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1156.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1156(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1157.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1157(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1158.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1158(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1159.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1159(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1160.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1160(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1161.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1161(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1162.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1162(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1163.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1163(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1164.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1164(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1165.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1165(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1166.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1166(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1167.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1167(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1168.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1168(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1169.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1169(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1170.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1170(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1171.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1171(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1172.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1172(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1173.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1173(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1174.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1174(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1175.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1175(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1176.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1176(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1177.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1177(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1178.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1178(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1179.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1179(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1180.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1180(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1181.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1181(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1182.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1182(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1183.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1183(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1184.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1184(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1185.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1185(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1186.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1186(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1187.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1187(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1188.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1188(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1189.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1189(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1190.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1190(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1191.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1191(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1192.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1192(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1193.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1193(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1194.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1194(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1195.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1195(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1196.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1196(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1197.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1197(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1198.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1198(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1199.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1199(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1200.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1200(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1201.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1201(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1202.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1202(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1203.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1203(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1204.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1204(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1205.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1205(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1206.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1206(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1207.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1207(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1208.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1208(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1209.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1209(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1210.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1210(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1211.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1211(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1212.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1212(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1213.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1213(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1214.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1214(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1215.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1215(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1216.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1216(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1217.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1217(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1218.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1218(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1219.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1219(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1220.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1220(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1221.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1221(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1222.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1222(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1223.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1223(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1224.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1224(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1225.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1225(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1226.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1226(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1227.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1227(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1228.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1228(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1229.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1229(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1230.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1230(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1231.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1231(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1232.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1232(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1233.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1233(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1234.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1234(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1235.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1235(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1236.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1236(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1237.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1237(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1238.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1238(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1239.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1239(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1240.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1240(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1241.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1241(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1242.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1242(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1243.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1243(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1244.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1244(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1245.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1245(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1246.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1246(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1247.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1247(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1248.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1248(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1249.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1249(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1250.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1250(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1251.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1251(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1252.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1252(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1253.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1253(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1254.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1254(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1255.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1255(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1256.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1256(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1257.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1257(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1258.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1258(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1259.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1259(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1260.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1260(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1261.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1261(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1262.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1262(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1263.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1263(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1264.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1264(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1265.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1265(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1266.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1266(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1267.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1267(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1268.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1268(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1269.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1269(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1270.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1270(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1271.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1271(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1272.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1272(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1273.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1273(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1274.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1274(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1275.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1275(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1276.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1276(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1277.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1277(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1278.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1278(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1279.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1279(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1280.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1280(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1281.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1281(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1282.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1282(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1283.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1283(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1284.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1284(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1285.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1285(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1286.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1286(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1287.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1287(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1288.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1288(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1289.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1289(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1290.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1290(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1291.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1291(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1292.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1292(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1293.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1293(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1294.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1294(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1295.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1295(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1296.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1296(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1297.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1297(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1298.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1298(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1299.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1299(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1300.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1300(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1301.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1301(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1302.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1302(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1303.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1303(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1304.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1304(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1305.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1305(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1306.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1306(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1307.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1307(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1308.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1308(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1309.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1309(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1310.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1310(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1311.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1311(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1312.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1312(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1313.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1313(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1314.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1314(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1315.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1315(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1316.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1316(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1317.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1317(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1318.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1318(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1319.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1319(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1320.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1320(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1321.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1321(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1322.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1322(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1323.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1323(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1324.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1324(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1325.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1325(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1326.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1326(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1327.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1327(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1328.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1328(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1329.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1329(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1330.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1330(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1331.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1331(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1332.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1332(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1333.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1333(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1334.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1334(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1335.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1335(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1336.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1336(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1337.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1337(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1338.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1338(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1339.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1339(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1340.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1340(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1341.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1341(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1342.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1342(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1343.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1343(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1344.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1344(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1345.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1345(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1346.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1346(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1347.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1347(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1348.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1348(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1349.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1349(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1350.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1350(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1351.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1351(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1352.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1352(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1353.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1353(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1354.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1354(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1355.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1355(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1356.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1356(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1357.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1357(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1358.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1358(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1359.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1359(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1360.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1360(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1361.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1361(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1362.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1362(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1363.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1363(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1364.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1364(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1365.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1365(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1366.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1366(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1367.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1367(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1368.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1368(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1369.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1369(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1370.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1370(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1371.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1371(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1372.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1372(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1373.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1373(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1374.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1374(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1375.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1375(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1376.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1376(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1377.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1377(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1378.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1378(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1379.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1379(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1380.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1380(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1381.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1381(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1382.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1382(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1383.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1383(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1384.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1384(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1385.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1385(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1386.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1386(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1387.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1387(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1388.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1388(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1389.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1389(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1390.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1390(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1391.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1391(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1392.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1392(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1393.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1393(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1394.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1394(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1395.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1395(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1396.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1396(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1397.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1397(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1398.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1398(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1399.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1399(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1400.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1400(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1401.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1401(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1402.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1402(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1403.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1403(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1404.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1404(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1405.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1405(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1406.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1406(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1407.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1407(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1408.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1408(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1409.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1409(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1410.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1410(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1411.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1411(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1412.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1412(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1413.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1413(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1414.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1414(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1415.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1415(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1416.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1416(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1417.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1417(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1418.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1418(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1419.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1419(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1420.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1420(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1421.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1421(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1422.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1422(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1423.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1423(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1424.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1424(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1425.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1425(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1426.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1426(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1427.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1427(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1428.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1428(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1429.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1429(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1430.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1430(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1431.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1431(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1432.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1432(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1433.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1433(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1434.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1434(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1435.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1435(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1436.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1436(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1437.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1437(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1438.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1438(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1439.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1439(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1440.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1440(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1441.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1441(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1442.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1442(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1443.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1443(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1444.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1444(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1445.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1445(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1446.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1446(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1447.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1447(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1448.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1448(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1449.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1449(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1450.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1450(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1451.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1451(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1452.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1452(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1453.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1453(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1454.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1454(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1455.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1455(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1456.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1456(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1457.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1457(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1458.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1458(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1459.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1459(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1460.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1460(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1461.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1461(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1462.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1462(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1463.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1463(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1464.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1464(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1465.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1465(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1466.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1466(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1467.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1467(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1468.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1468(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1469.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1469(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1470.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1470(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1471.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1471(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1472.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1472(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1473.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1473(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1474.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1474(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1475.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1475(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1476.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1476(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1477.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1477(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1478.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1478(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1479.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1479(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1480.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1480(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1481.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1481(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1482.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1482(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1483.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1483(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1484.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1484(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1485.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1485(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1486.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1486(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1487.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1487(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1488.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1488(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1489.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1489(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1490.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1490(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1491.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1491(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1492.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1492(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1493.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1493(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1494.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1494(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1495.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1495(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1496.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1496(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1497.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1497(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1498.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1498(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1499.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1499(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1500.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1500(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1501.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1501(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1502.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1502(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1503.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1503(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1504.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1504(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1505.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1505(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1506.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1506(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1507.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1507(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1508.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1508(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1509.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1509(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1510.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1510(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1511.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1511(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1512.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1512(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1513.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1513(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1514.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1514(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1515.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1515(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1516.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1516(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1517.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1517(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1518.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1518(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1519.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1519(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1520.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1520(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1521.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1521(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1522.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1522(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1523.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1523(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1524.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1524(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1525.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1525(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1526.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1526(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1527.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1527(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1528.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1528(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1529.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1529(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1530.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1530(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1531.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1531(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1532.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1532(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1533.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1533(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1534.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1534(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1535.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1535(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1536.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1536(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1537.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1537(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1538.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1538(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1539.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1539(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1540.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1540(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1541.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1541(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1542.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1542(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1543.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1543(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1544.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1544(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1545.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1545(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1546.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1546(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1547.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1547(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1548.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1548(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1549.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1549(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1550.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1550(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1551.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1551(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1552.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1552(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1553.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1553(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1554.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1554(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1555.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1555(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1556.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1556(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1557.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1557(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1558.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1558(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1559.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1559(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1560.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1560(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1561.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1561(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1562.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1562(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1563.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1563(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1564.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1564(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1565.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1565(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1566.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1566(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1567.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1567(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1568.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1568(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1569.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1569(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1570.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1570(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1571.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1571(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1572.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1572(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1573.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1573(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1574.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1574(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1575.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1575(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1576.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1576(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1577.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1577(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1578.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1578(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1579.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1579(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1580.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1580(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1581.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1581(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1582.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1582(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1583.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1583(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1584.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1584(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1585.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1585(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1586.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1586(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1587.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1587(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1588.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1588(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1589.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1589(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1590.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1590(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1591.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1591(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1592.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1592(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1593.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1593(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1594.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1594(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1595.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1595(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1596.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1596(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1597.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1597(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1598.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1598(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1599.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1599(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1600.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1600(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1601.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1601(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1602.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1602(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1603.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1603(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1604.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1604(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1605.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1605(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1606.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1606(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1607.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1607(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1608.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1608(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1609.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1609(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1610.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1610(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1611.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1611(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1612.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1612(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1613.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1613(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1614.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1614(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1615.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1615(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1616.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1616(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1617.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1617(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1618.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1618(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1619.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1619(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1620.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1620(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1621.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1621(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1622.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1622(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1623.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1623(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1624.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1624(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1625.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1625(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1626.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1626(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1627.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1627(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1628.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1628(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1629.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1629(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1630.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1630(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1631.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1631(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1632.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1632(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1633.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1633(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1634.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1634(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1635.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1635(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1636.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1636(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1637.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1637(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1638.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1638(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1639.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1639(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1640.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1640(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1641.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1641(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1642.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1642(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1643.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1643(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1644.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1644(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1645.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1645(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1646.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1646(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1647.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1647(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1648.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1648(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1649.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1649(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1650.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1650(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1651.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1651(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1652.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1652(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1653.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1653(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1654.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1654(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1655.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1655(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1656.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1656(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1657.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1657(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1658.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1658(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1659.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1659(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1660.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1660(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1661.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1661(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1662.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1662(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1663.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1663(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1664.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1664(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1665.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1665(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1666.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1666(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1667.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1667(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1668.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1668(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1669.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1669(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1670.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1670(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1671.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1671(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1672.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1672(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1673.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1673(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1674.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1674(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1675.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1675(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1676.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1676(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1677.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1677(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1678.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1678(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1679.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1679(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1680.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1680(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1681.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1681(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1682.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1682(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1683.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1683(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1684.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1684(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1685.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1685(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1686.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1686(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1687.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1687(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1688.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1688(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1689.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1689(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1690.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1690(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1691.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1691(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1692.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1692(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1693.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1693(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1694.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1694(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1695.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1695(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1696.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1696(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1697.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1697(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1698.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1698(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1699.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1699(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1700.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1700(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1701.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1701(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1702.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1702(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1703.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1703(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1704.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1704(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1705.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1705(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1706.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1706(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1707.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1707(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1708.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1708(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1709.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1709(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1710.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1710(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1711.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1711(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1712.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1712(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1713.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1713(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1714.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1714(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1715.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1715(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1716.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1716(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1717.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1717(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1718.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1718(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1719.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1719(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1720.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1720(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1721.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1721(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1722.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1722(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1723.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1723(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1724.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1724(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1725.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1725(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1726.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1726(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1727.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1727(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1728.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1728(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1729.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1729(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1730.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1730(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1731.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1731(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1732.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1732(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1733.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1733(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1734.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1734(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1735.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1735(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1736.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1736(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1737.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1737(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1738.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1738(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1739.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1739(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1740.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1740(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1741.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1741(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1742.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1742(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1743.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1743(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1744.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1744(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1745.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1745(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1746.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1746(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1747.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1747(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1748.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1748(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1749.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1749(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1750.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1750(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1751.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1751(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1752.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1752(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1753.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1753(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1754.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1754(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1755.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1755(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1756.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1756(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1757.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1757(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1758.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1758(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1759.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1759(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1760.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1760(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1761.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1761(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1762.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1762(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1763.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1763(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1764.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1764(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1765.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1765(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1766.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1766(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1767.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1767(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1768.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1768(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1769.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1769(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1770.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1770(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1771.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1771(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1772.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1772(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1773.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1773(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1774.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1774(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1775.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1775(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1776.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1776(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1777.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1777(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1778.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1778(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1779.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1779(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1780.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1780(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1781.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1781(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1782.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1782(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1783.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1783(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1784.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1784(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1785.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1785(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1786.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1786(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1787.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1787(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1788.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1788(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1789.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1789(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1790.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1790(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1791.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1791(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1792.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1792(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1793.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1793(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1794.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1794(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1795.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1795(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1796.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1796(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1797.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1797(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1798.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1798(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1799.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1799(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1800.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1800(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1801.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1801(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1802.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1802(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1803.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1803(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1804.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1804(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1805.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1805(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1806.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1806(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1807.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1807(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1808.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1808(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1809.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1809(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1810.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1810(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1811.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1811(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1812.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1812(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1813.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1813(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1814.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1814(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1815.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1815(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1816.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1816(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1817.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1817(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1818.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1818(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1819.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1819(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1820.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1820(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1821.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1821(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1822.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1822(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1823.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1823(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1824.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1824(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1825.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1825(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1826.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1826(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1827.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1827(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1828.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1828(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1829.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1829(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1830.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1830(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1831.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1831(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1832.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1832(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1833.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1833(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1834.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1834(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1835.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1835(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1836.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1836(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1837.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1837(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1838.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1838(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1839.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1839(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1840.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1840(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1841.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1841(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1842.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1842(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1843.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1843(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1844.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1844(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1845.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1845(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1846.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1846(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1847.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1847(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1848.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1848(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1849.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1849(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1850.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1850(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1851.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1851(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1852.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1852(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1853.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1853(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1854.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1854(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1855.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1855(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1856.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1856(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1857.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1857(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1858.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1858(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1859.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1859(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1860.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1860(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1861.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1861(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1862.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1862(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1863.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1863(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1864.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1864(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1865.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1865(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1866.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1866(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1867.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1867(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1868.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1868(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1869.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1869(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1870.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1870(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1871.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1871(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1872.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1872(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1873.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1873(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1874.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1874(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1875.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1875(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1876.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1876(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1877.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1877(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1878.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1878(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1879.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1879(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1880.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1880(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1881.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1881(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1882.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1882(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1883.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1883(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1884.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1884(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1885.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1885(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1886.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1886(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1887.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1887(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1888.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1888(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1889.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1889(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1890.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1890(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1891.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1891(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1892.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1892(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1893.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1893(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1894.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1894(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1895.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1895(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1896.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1896(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1897.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1897(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1898.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1898(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1899.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1899(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1900.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1900(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1901.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1901(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1902.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1902(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1903.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1903(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1904.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1904(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1905.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1905(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1906.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1906(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1907.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1907(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1908.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1908(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1909.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1909(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1910.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1910(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1911.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1911(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1912.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1912(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1913.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1913(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1914.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1914(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1915.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1915(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1916.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1916(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1917.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1917(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1918.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1918(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1919.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1919(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1920.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1920(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1921.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1921(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1922.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1922(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1923.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1923(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1924.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1924(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1925.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1925(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1926.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1926(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1927.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1927(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1928.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1928(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1929.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1929(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1930.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1930(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1931.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1931(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1932.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1932(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1933.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1933(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1934.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1934(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1935.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1935(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1936.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1936(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1937.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1937(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1938.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1938(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1939.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1939(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1940.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1940(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1941.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1941(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1942.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1942(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1943.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1943(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1944.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1944(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1945.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1945(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1946.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1946(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1947.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1947(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1948.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1948(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1949.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1949(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1950.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1950(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1951.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1951(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1952.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1952(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1953.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1953(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1954.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1954(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1955.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1955(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1956.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1956(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1957.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1957(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1958.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1958(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1959.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1959(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1960.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1960(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1961.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1961(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1962.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1962(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1963.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1963(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1964.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1964(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1965.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1965(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1966.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1966(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1967.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1967(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1968.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1968(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1969.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1969(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1970.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1970(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1971.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1971(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1972.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1972(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1973.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1973(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1974.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1974(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1975.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1975(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1976.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1976(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1977.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1977(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1978.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1978(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1979.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1979(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1980.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1980(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1981.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1981(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1982.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1982(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*1983.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1983(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*1984.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1984(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*1985.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1985(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*1986.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1986(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*1987.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1987(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*1988.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1988(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*1989.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1989(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*1990.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1990(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*1991.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1991(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*1992.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1992(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*1993.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1993(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*1994.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1994(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*1995.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1995(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*1996.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1996(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*1997.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1997(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*1998.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1998(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*1999.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_1999(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*2000.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2000(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*2001.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2001(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*2002.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2002(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*2003.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2003(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*2004.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2004(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*2005.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2005(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*2006.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2006(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*2007.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2007(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*2008.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2008(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*2009.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2009(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*2010.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2010(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*2011.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2011(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*2012.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2012(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*2013.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2013(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*2014.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2014(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*2015.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2015(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*2016.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2016(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*2017.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2017(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*2018.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2018(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*2019.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2019(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*2020.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2020(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*2021.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2021(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*2022.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2022(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*2023.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2023(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*2024.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2024(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*2025.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2025(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*2026.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2026(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*2027.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2027(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*2028.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2028(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*2029.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2029(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*2030.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2030(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*2031.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2031(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*2032.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2032(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*2033.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2033(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*2034.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2034(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*2035.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2035(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*2036.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2036(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*2037.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2037(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*2038.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2038(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*2039.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2039(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*2040.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2040(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*2041.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2041(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*2042.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2042(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*2043.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2043(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*2044.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2044(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*2045.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2045(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*2046.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2046(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*2047.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2047(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*2048.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2048(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*2049.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2049(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*2050.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2050(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*2051.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2051(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*2052.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2052(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*2053.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2053(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*2054.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2054(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*2055.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2055(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*2056.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2056(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*2057.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2057(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*2058.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2058(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*2059.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2059(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*2060.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2060(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*2061.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2061(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*2062.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2062(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*2063.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2063(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*2064.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2064(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*2065.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2065(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*2066.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2066(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*2067.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2067(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*2068.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2068(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*2069.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2069(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*2070.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2070(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*2071.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2071(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*2072.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2072(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*2073.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2073(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*2074.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2074(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*2075.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2075(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*2076.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2076(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*2077.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2077(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*2078.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2078(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*2079.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2079(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*2080.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2080(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*2081.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2081(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*2082.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2082(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*2083.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2083(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*2084.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2084(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*2085.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2085(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*2086.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2086(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*2087.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2087(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*2088.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2088(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*2089.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2089(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*2090.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2090(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*2091.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2091(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*2092.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2092(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*2093.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2093(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*2094.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2094(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*2095.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2095(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*2096.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2096(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*2097.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2097(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*2098.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2098(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*2099.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2099(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*2100.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2100(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*2101.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2101(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*2102.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2102(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*2103.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2103(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*2104.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2104(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*2105.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2105(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*2106.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2106(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*2107.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2107(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*2108.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2108(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*2109.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2109(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*2110.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2110(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*2111.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2111(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*2112.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2112(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*2113.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2113(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*2114.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2114(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*2115.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2115(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*2116.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2116(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*2117.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2117(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*2118.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2118(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*2119.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2119(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*2120.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2120(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*2121.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2121(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*2122.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2122(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*2123.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2123(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*2124.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2124(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*2125.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2125(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*2126.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2126(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*2127.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2127(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*2128.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2128(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*2129.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2129(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*2130.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2130(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*2131.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2131(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*2132.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2132(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*2133.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2133(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*2134.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2134(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*2135.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2135(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*2136.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2136(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*2137.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2137(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*2138.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2138(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*2139.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2139(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*2140.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2140(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*2141.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2141(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*2142.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2142(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*2143.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2143(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*2144.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2144(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*2145.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2145(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*2146.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2146(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*2147.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2147(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*2148.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2148(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*2149.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2149(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*2150.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2150(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*2151.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2151(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*2152.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2152(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*2153.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2153(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*2154.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2154(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*2155.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2155(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*2156.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2156(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*2157.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2157(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*2158.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2158(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*2159.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2159(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*2160.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2160(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*2161.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2161(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*2162.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2162(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*2163.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2163(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*2164.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2164(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*2165.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2165(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*2166.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2166(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*2167.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2167(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*2168.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2168(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*2169.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2169(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*2170.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2170(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*2171.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2171(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*2172.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2172(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*2173.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2173(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*2174.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2174(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*2175.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2175(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*2176.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2176(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*2177.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2177(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*2178.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2178(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*2179.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2179(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*2180.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2180(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*2181.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2181(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*2182.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2182(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*2183.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2183(ctx, s) { if (s.energy > 0.35) { s.mix += Math.sin(s.t*2184.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2184(ctx, s) { if (s.energy > 0.40) { s.mix += Math.sin(s.t*2185.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2185(ctx, s) { if (s.energy > 0.45) { s.mix += Math.sin(s.t*2186.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2186(ctx, s) { if (s.energy > 0.50) { s.mix += Math.sin(s.t*2187.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2187(ctx, s) { if (s.energy > 0.55) { s.mix += Math.sin(s.t*2188.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2188(ctx, s) { if (s.energy > 0.60) { s.mix += Math.sin(s.t*2189.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2189(ctx, s) { if (s.energy > 0.65) { s.mix += Math.sin(s.t*2190.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2190(ctx, s) { if (s.energy > 0.70) { s.mix += Math.sin(s.t*2191.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2191(ctx, s) { if (s.energy > 0.75) { s.mix += Math.sin(s.t*2192.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2192(ctx, s) { if (s.energy > 0.80) { s.mix += Math.sin(s.t*2193.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2193(ctx, s) { if (s.energy > 0.00) { s.mix += Math.sin(s.t*2194.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2194(ctx, s) { if (s.energy > 0.05) { s.mix += Math.sin(s.t*2195.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2195(ctx, s) { if (s.energy > 0.10) { s.mix += Math.sin(s.t*2196.0)*0.0001; } if (s.ui && true) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2196(ctx, s) { if (s.energy > 0.15) { s.mix += Math.sin(s.t*2197.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2197(ctx, s) { if (s.energy > 0.20) { s.mix += Math.sin(s.t*2198.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2198(ctx, s) { if (s.energy > 0.25) { s.mix += Math.sin(s.t*2199.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+    function microIfRenderer_2199(ctx, s) { if (s.energy > 0.30) { s.mix += Math.sin(s.t*2200.0)*0.0001; } if (s.ui && false) { s.uiBoost += 0.0002; } return s.mix; },
+  ];
+
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function unique(a){ return Array.from(new Set(a)); }
+  function flat(o){ return Object.values(o).reduce((x,y)=>x.concat(y),[]); }
+  function escapeRegExp(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
+  function hashString(str){ let h=2166136261>>>0; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+  function makeRng(seed){ let s=seed>>>0; return function(){ s+=0x6D2B79F5; let t=s; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
+  function hasTerm(text, term){ return new RegExp("(?:^|\\b)"+escapeRegExp(term)+"(?:\\b|$)","i").test(text); }
+  function includesAny(text, list){ return list.some(x=>hasTerm(text,x)); }
+  function scoreAliases(text, aliases){ let s=0; for(const a of aliases) if(hasTerm(text,a)) s += a.length+2; return s; }
+  function bestKey(text, group, fallback){ let b=fallback, bs=-1; for(const k of Object.keys(group)){ const s=scoreAliases(text,group[k]); if(s>bs){ bs=s; b=k; } } return bs>0?b:fallback; }
+  function flags(text, group){ const o={}; for(const k of Object.keys(group)) o[k]=includesAny(text,group[k]); return o; }
+  function colorToRgb(hex){ const c=String(hex||"#fff").replace("#",""); const n=parseInt(c.length===3?c.split("").map(x=>x+x).join(""):c,16); return {r:(n>>16)&255,g:(n>>8)&255,b:n&255}; }
+  function colorAlpha(hex,a){ const c=colorToRgb(hex); return `rgba(${c.r},${c.g},${c.b},${a})`; }
+  function lerp(a,b,t){ return a+(b-a)*t; }
+  function smoothstep(a,b,x){ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); }
+
+  function levenshtein(a,b,max=99){
+    if(a===b) return 0; if(!a) return b.length; if(!b) return a.length; if(Math.abs(a.length-b.length)>max) return max+1;
+    const prev=new Array(b.length+1), cur=new Array(b.length+1); for(let j=0;j<=b.length;j++) prev[j]=j;
+    for(let i=1;i<=a.length;i++){ cur[0]=i; let row=cur[0]; for(let j=1;j<=b.length;j++){ const cost=a[i-1]===b[j-1]?0:1; cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+cost); if(cur[j]<row) row=cur[j]; } if(row>max) return max+1; for(let j=0;j<=b.length;j++) prev[j]=cur[j]; }
     return prev[b.length];
   }
 
-  function buildKnownWords() {
-    return unique(
-      Object.keys(TYPO_MAP)
-        .concat(Object.values(TYPO_MAP))
-        .concat(flatValues(DICT.styles))
-        .concat(flatValues(DICT.scenes))
-        .concat(flatValues(DICT.objects))
-        .concat(flatValues(DICT.actions))
-        .concat(flatValues(DICT.effects))
-        .concat(Object.keys(DICT.colors))
-        .concat(Object.keys(DICT.modifiers))
-    )
-      .filter(Boolean)
-      .map((x) => String(x).toLowerCase())
-      .filter((x) => !x.includes(" "));
+  const KNOWN_WORDS = unique(
+    Object.keys(TYPO_MAP)
+      .concat(Object.values(TYPO_MAP))
+      .concat(flat(LEXICON.scenes))
+      .concat(flat(LEXICON.subjects))
+      .concat(flat(LEXICON.actions))
+      .concat(flat(LEXICON.looks))
+      .concat(Object.keys(LEXICON.colors))
+  ).map(x=>String(x).toLowerCase()).filter(x=>x&&!x.includes(" "));
+
+
+  function collapseRepeats(w){ return String(w).replace(/([a-z])\1{2,}/gi,"$1$1"); }
+  function normalizePrompt(prompt, options={}){
+    let text=String(prompt||"").toLowerCase().replace(/[“”]/g,'"').replace(/[’]/g,"'").replace(/[_-]+/g," ").replace(/[^a-z0-9\s'".,:;!?/]+/gi," ").replace(/\s+/g," ").trim();
+    const phraseFixes={"real life":"irl","hyper real":"hyper realistic","google veo":"local video model","ai video":"procedural video","not ui":"no ui","not a ui":"no ui","three js":"three.js"};
+    for(const bad of Object.keys(phraseFixes)) text=text.replace(new RegExp("\\b"+escapeRegExp(bad)+"\\b","g"),phraseFixes[bad]);
+    const maxDistance=options.typoDistance==null?DEFAULTS.typoDistance:options.typoDistance;
+    return text.split(" ").filter(Boolean).map(raw=>{ const word=collapseRepeats(raw.replace(/^['"]+|['"]+$/g,"")); if(TYPO_MAP[word]) return TYPO_MAP[word]; if(word.length<4||/\d/.test(word)) return word; let best=word,dist=Infinity; const allowed=word.length>=8?Math.max(maxDistance,2):maxDistance; for(const cand of KNOWN_WORDS){ const d=levenshtein(word,cand,allowed); if(d<dist){dist=d;best=cand;} } return dist<=allowed?best:word; }).join(" ").replace(/\s+/g," ").trim();
   }
 
-  const KNOWN_WORDS = buildKnownWords();
-
-  function collapseRepeats(word) {
-    return String(word).replace(/([a-z])\1{2,}/gi, "$1$1");
-  }
-
-  function normalizePrompt(prompt, options = {}) {
-    let text = String(prompt || "")
-      .toLowerCase()
-      .replace(/[“”]/g, "\"")
-      .replace(/[’]/g, "'")
-      .replace(/[_-]+/g, " ")
-      .replace(/[^a-z0-9\s'".,:;!?/]+/gi, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    const phraseFixes = {
-      "with the efect": "with effect",
-      "with the effect": "with effect",
-      "using effect": "with effect",
-      "add effect": "with effect",
-      "make it": "make",
-      "real life": "realistic",
-      "black white": "black and white",
-      "side scroller": "side-scroller",
-      "mine craft": "minecraft",
-      "slow motion": "slow motion",
-      "time lapse": "timelapse",
-      "r p g": "rpg",
-      "in vid": "in video",
-      "as vid": "as video",
-      "recreate usi": "recreate using",
-      "being in use": "being used",
-      "not ui": "no ui",
-      "not a ui": "no ui"
+  function parsePrompt(prompt, options={}){
+    const originalPrompt=String(prompt||"");
+    const correctedPrompt=normalizePrompt(originalPrompt,options);
+    const text=correctedPrompt;
+    const words=unique(text.split(/\s+/).filter(Boolean));
+    const lookFlags=flags(text,LEXICON.looks);
+    const noUi=text.includes("no ui")||text.includes("without ui");
+    let scene=bestKey(text,LEXICON.scenes,"abstract");
+    let subject=bestKey(text,LEXICON.subjects,"none");
+    const action=bestKey(text,LEXICON.actions,subject==="ui"?"use":"idle");
+    if(!noUi && (scene==="ui"||subject==="ui"||text.includes("app")||text.includes("interface")||text.includes("dashboard"))){ scene="ui"; subject="ui"; }
+    const mc = options.mc || options.minecraftMode || scene==="mc" || text.includes("minecraft") || text.includes("voxel") || text.includes("blocky") || text.includes("creeper") || text.includes("nether");
+    const irl = !mc && (options.irl || options.hyperRealistic || lookFlags.realistic || scene==="irl" || text.includes("hyper realistic") || text.includes("photoreal") || text.includes("anywhere"));
+    if(mc) scene="mc";
+    if(irl && scene==="abstract") scene="irl";
+    const mode = options.mode && options.mode!=="auto" ? options.mode : (scene==="ui" ? "ui" : mc ? "mc" : irl ? "irl" : scene);
+    const palette=words.filter(w=>LEXICON.colors[w]).map(w=>LEXICON.colors[w]);
+    const energy=(lookFlags.glitch?0.45:0)+(lookFlags.fire?0.35:0)+(lookFlags.rain?0.2:0)+(["run","drive","fly"].includes(action)?0.45:0)+(irl?0.25:0);
+    const camera=lookFlags.drone?"drone":lookFlags.handheld?"handheld":lookFlags.macro?"macro":"dolly";
+    const uiBlueprint = UI_BLUEPRINT_PRIORS[hashString(text)%UI_BLUEPRINT_PRIORS.length];
+    const mediaPrior = HYPER_REAL_PRIORS.find(p=>p.scene===scene&&p.subject===subject) || HYPER_REAL_PRIORS[hashString(text+"prior")%HYPER_REAL_PRIORS.length];
+    const parsed={
+      originalPrompt, correctedPrompt, words, mode, scene, subject, action, camera, looks:lookFlags, noUi, mc, minecraftMode:mc, irl, uiMode:scene==="ui"&&!noUi,
+      hyperRealistic:irl, palette, uiBlueprint, mediaPrior,
+      motion:{speed:lookFlags.fast?1.8:1, energy, shake:lookFlags.handheld||lookFlags.glitch?1:0, glow:lookFlags.neon||lookFlags.hologram?1:0},
+      localModel:{kind:"Three.js + GLSL procedural browser generator", neural:false, server:false, guarantee:false, note:"Procedural math can approximate but not guarantee true AI realism or perfect UI interpretation."},
+      promptSignature:words.map(w=>{const h=hashString(w);return{word:w,hash:h,hue:h%360,shape:h%12,motion:h%9,size:8+h%42};})
     };
-
-    for (const bad of Object.keys(phraseFixes)) {
-      text = text.replace(new RegExp("\\b" + escapeRegExp(bad) + "\\b", "g"), phraseFixes[bad]);
-    }
-
-    const maxDistance = options.typoDistance == null ? DEFAULTS.typoDistance : options.typoDistance;
-
-    const corrected = text.split(" ").filter(Boolean).map((raw) => {
-      const word = collapseRepeats(raw.replace(/^['"]+|['"]+$/g, ""));
-
-      if (TYPO_MAP[word]) return TYPO_MAP[word];
-      if (word.length < 4 || /\d/.test(word)) return word;
-
-      let best = word;
-      let bestDistance = Infinity;
-      const allowed = word.length >= 8 ? Math.max(maxDistance, 2) : maxDistance;
-
-      for (const candidate of KNOWN_WORDS) {
-        const d = levenshtein(word, candidate, allowed);
-        if (d < bestDistance) {
-          bestDistance = d;
-          best = candidate;
-        }
-      }
-
-      return bestDistance <= allowed ? best : word;
-    });
-
-    return corrected.join(" ").replace(/\s+/g, " ").trim();
+    parsed.shotPlan=buildShotPlan(parsed,Object.assign({},DEFAULTS,options));
+    return parsed;
   }
 
-  function hasTerm(text, term) {
-    return new RegExp("(?:^|\\b)" + escapeRegExp(term) + "(?:\\b|$)", "i").test(text);
+  function buildShotPlan(parsed, options){
+    const count=clamp(Math.floor(options.shotCount||DEFAULTS.shotCount),1,16), len=options.seconds/count;
+    const cams=[parsed.camera,"dolly","pan","orbit","drone","macro","handheld","crane"];
+    const plan=[];
+    for(let i=0;i<count;i++){ const start=i*len,end=i===count-1?options.seconds:(i+1)*len; plan.push({index:i,start,end,duration:end-start,camera:cams[(hashString(parsed.correctedPrompt+i)%cams.length)],intensity:clamp(0.65+i/Math.max(1,count-1)*0.7+parsed.motion.energy*0.18,0.4,1.9),transition:i===0?"cut":parsed.looks.glitch?"glitch":i%3===0?"whip":"crossfade"}); }
+    return plan;
   }
 
-  function includesAny(text, list) {
-    return list.some((term) => hasTerm(text, term));
-  }
-
-  function scoreAliases(text, aliases) {
-    let score = 0;
-    for (const alias of aliases) {
-      if (hasTerm(text, alias)) score += alias.length + 2;
-    }
-    return score;
-  }
-
-  function flagsFromAliases(text, aliases) {
-    const out = {};
-    for (const key of Object.keys(aliases)) {
-      out[key] = includesAny(text, aliases[key]);
-    }
-    return out;
-  }
-
-  function bestKeyByAliases(text, aliases, fallback) {
-    let best = fallback;
-    let bestScore = -1;
-
-    for (const key of Object.keys(aliases)) {
-      const score = scoreAliases(text, aliases[key]);
-      if (score > bestScore) {
-        bestScore = score;
-        best = key;
-      }
-    }
-
-    return bestScore > 0 ? best : fallback;
-  }
-
-  function extractCommand(text) {
-    const command = {
-      requested: false,
-      recreate: false,
-      using: false,
-      inUse: false,
-      object: null,
-      action: null,
-      effect: null,
-      raw: null
-    };
-
-    command.recreate =
-      hasTerm(text, "recreate") ||
-      hasTerm(text, "remake") ||
-      hasTerm(text, "copy") ||
-      hasTerm(text, "rebuild") ||
-      text.includes("based on");
-
-    command.using =
-      hasTerm(text, "using") ||
-      hasTerm(text, "use") ||
-      text.includes("with this") ||
-      text.includes("from this");
-
-    command.inUse =
-      text.includes("in use") ||
-      text.includes("being used") ||
-      text.includes("user using") ||
-      text.includes("using the ui") ||
-      text.includes("using the app");
-
-    const match = text.match(
-      /\b(?:make|create|generate|spawn|show|recreate|remake|rebuild)\s+(.+?)(?:\s+(?:with|using|add)\s+(?:the\s+)?effect\s+(.+)|$)/i
-    );
-
-    if (!match && !command.recreate && !command.inUse) return command;
-
-    command.requested = true;
-    command.raw = match ? match[0] : text;
-
-    const core = match ? match[1].trim() : text;
-    command.effect = match && match[2] ? match[2].trim().split(/\s+/).slice(0, 8).join(" ") : null;
-
-    let foundObject = null;
-    let foundAction = null;
-
-    for (const key of Object.keys(DICT.objects)) {
-      if (includesAny(core, DICT.objects[key].concat([key]))) {
-        foundObject = key;
-        break;
-      }
-    }
-
-    for (const key of Object.keys(DICT.actions)) {
-      if (includesAny(core, DICT.actions[key].concat([key]))) {
-        foundAction = key;
-        break;
-      }
-    }
-
-    const parts = core.split(/\s+/).filter(Boolean);
-
-    command.object = foundObject || parts.find((w) => !["a", "an", "the", "it", "in", "with", "using"].includes(w)) || null;
-    command.action = foundAction || (command.inUse ? "use" : "idle");
-
-    return command;
-  }
-
-  function parsePrompt(prompt, options = {}) {
-    const originalPrompt = String(prompt || "");
-    const correctedPrompt = normalizePrompt(originalPrompt, options);
-    const text = correctedPrompt;
-    const words = unique(text.split(/\s+/).filter(Boolean));
-
-    const styles = flagsFromAliases(text, DICT.styles);
-    const objects = flagsFromAliases(text, DICT.objects);
-    const actions = flagsFromAliases(text, DICT.actions);
-    const effects = flagsFromAliases(text, DICT.effects);
-
-    const sceneScores = {};
-    for (const key of Object.keys(DICT.scenes)) {
-      sceneScores[key] = scoreAliases(text, DICT.scenes[key]);
-    }
-
-    const command = extractCommand(text);
-
-    const noUi = text.includes("no ui") || text.includes("not ui") || text.includes("without ui");
-    const uiRequested =
-      !noUi &&
-      (
-        styles.ui ||
-        styles.dashboard ||
-        styles.mobile ||
-        styles.desktop ||
-        styles.gameUi ||
-        objects.buttons ||
-        objects.cards ||
-        objects.charts ||
-        objects.menu ||
-        objects.login ||
-        objects.cursor ||
-        text.includes("app") ||
-        text.includes("website") ||
-        text.includes("interface")
-      );
-
-    let scene = bestKeyByAliases(text, DICT.scenes, "abstract");
-    if (uiRequested) scene = "uiStudio";
-    if ((styles.futuristic || effects.future || objects.hologram) && !uiRequested) {
-      scene = scene === "abstract" ? "futureCity" : scene;
-    }
-
-    if (scene === "city" || scene === "futureCity") {
-      objects.cars = objects.cars || hasTerm(text, "street") || hasTerm(text, "traffic");
-      objects.people = objects.people || hasTerm(text, "walking");
-    }
-
-    if (scene === "ocean" || scene === "underwater") {
-      objects.water = true;
-      objects.birds = objects.birds || hasTerm(text, "beach") || hasTerm(text, "shore");
-    }
-
-    if (scene === "space") {
-      objects.clouds = false;
-      objects.spaceship = objects.spaceship || styles.scifi;
-    }
-
-    if (styles.voxel) objects.cubes = true;
-    if (styles.rpg) styles.fantasy = true;
-    if (styles.futuristic) styles.scifi = true;
-    if (effects.fire) objects.fire = true;
-    if (effects.lightning) objects.lightning = true;
-    if (effects.hearts) objects.hearts = true;
-    if (effects.coins) objects.coins = true;
-    if (effects.hologram) objects.hologram = true;
-
-    if (command.object && DICT.objects[command.object]) {
-      objects[command.object] = true;
-    }
-
-    if (command.action && DICT.actions[command.action]) {
-      actions[command.action] = true;
-    }
-
-    if (command.effect) {
-      for (const key of Object.keys(DICT.effects)) {
-        if (includesAny(command.effect, DICT.effects[key].concat([key]))) effects[key] = true;
-      }
-    }
-
-    const modifiers = {
-      speed: 1,
-      density: 1,
-      scale: 1,
-      glow: 0,
-      chaos: 0,
-      shake: 0,
-      zoom: 0,
-      dream: 0,
-      epic: 0,
-      fear: 0,
-      cute: 0,
-      colors: []
-    };
-
-    for (const word of words) {
-      if (DICT.colors[word]) modifiers.colors.push(DICT.colors[word]);
-
-      const mod = DICT.modifiers[word];
-      if (!mod) continue;
-
-      if (mod.speed) modifiers.speed *= mod.speed;
-      if (mod.density) modifiers.density *= mod.density;
-      if (mod.scale) modifiers.scale *= mod.scale;
-      if (mod.chaos) modifiers.chaos += mod.chaos;
-      if (mod.shake) modifiers.shake += mod.shake;
-      if (mod.dream) modifiers.dream += mod.dream;
-      if (mod.epic) modifiers.epic += mod.epic;
-      if (mod.fear) modifiers.fear += mod.fear;
-      if (mod.cute) modifiers.cute += mod.cute;
-    }
-
-    if (effects.neon || effects.bloom || effects.hologram) modifiers.glow += 1;
-    if (effects.glitch) modifiers.chaos += 0.75;
-    if (effects.fast) modifiers.speed *= 1.7;
-    if (effects.slowmo || styles.slowmo) modifiers.speed *= 0.55;
-    if (actions.run || actions.fly || actions.drift) modifiers.speed *= 1.25;
-    if (actions.shake) modifiers.shake += 1;
-    if (uiRequested) modifiers.glow += styles.futuristic || effects.hologram ? 0.8 : 0.2;
-
-    const gameMode =
-      styles.voxel ? "voxel-sandbox" :
-      styles.pixel ? "pixel-arcade" :
-      styles.racing ? "racing" :
-      styles.platformer ? "platformer" :
-      styles.rpg ? "rpg" :
-      styles.arcade ? "arcade" :
-      uiRequested ? "ui-video" :
-      "cinematic-sim";
-
-    const promptSignature = words.map((word) => {
-      const h = hashString(word);
-      return {
-        word,
-        hash: h,
-        influence: {
-          hue: h % 360,
-          shape: h % 8,
-          motion: h % 6,
-          size: 8 + (h % 34)
-        }
-      };
-    });
-
-    return {
-      originalPrompt,
-      correctedPrompt,
-      words,
-      promptSignature,
-      scene,
-      sceneScores,
-      styles,
-      objects,
-      actions,
-      effects,
-      command,
-      modifiers,
-      gameMode,
-      uiMode: uiRequested,
-      noUi,
-      futureMode: !!(styles.futuristic || effects.future || objects.hologram),
-      referenceMode: {
-        requested:
-          command.recreate ||
-          hasTerm(text, "reference") ||
-          text.includes("style of") ||
-          hasTerm(text, "like"),
-        note: "Reference/recreate words are broad procedural hints, not exact copies."
-      }
-    };
-  }
-
-  function chooseMimeType(preferred) {
-    if (typeof MediaRecorder === "undefined") return "";
-
-    if (preferred && MediaRecorder.isTypeSupported(preferred)) return preferred;
-
-    const candidates = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
-    for (const type of candidates) {
-      if (MediaRecorder.isTypeSupported(type)) return type;
-    }
-    return "";
-  }
-
-  class World {
-    constructor(parsed, options) {
-      this.parsed = parsed;
-      this.options = options;
-      this.width = options.width;
-      this.height = options.height;
-      this.seed = options.seed || hashString(parsed.correctedPrompt || "spudzy-vid");
-      this.rng = makeRng(this.seed);
-      this.palette = this.makePalette();
-
-      this.items = {
-        stars: [],
-        clouds: [],
-        particles: [],
-        buildings: [],
-        cars: [],
-        people: [],
-        birds: [],
-        trees: [],
-        waves: [],
-        mountains: [],
-        blocks: [],
-        platforms: [],
-        coins: [],
-        enemies: [],
-        roomObjects: [],
-        rain: [],
-        snow: [],
-        wordObjects: [],
-        sparks: [],
-        icons: [],
-        uiCards: [],
-        uiLines: [],
-        uiButtons: []
-      };
-
-      this.generate();
-    }
-
-    rand(min = 0, max = 1) {
-      return min + this.rng() * (max - min);
-    }
-
-    pick(arr) {
-      return arr[Math.floor(this.rand(0, arr.length))];
-    }
-
-    density(base) {
-      return Math.max(1, Math.floor(base * this.parsed.modifiers.density));
-    }
-
-    makePalette() {
-      const p = this.parsed;
-      const custom = p.modifiers.colors;
-
-      if (custom.length) {
-        return {
-          skyTop: custom[0],
-          skyMid: custom[1] || "#111827",
-          skyBottom: "#020617",
-          ground: "#111827",
-          dark: "#020617",
-          light: "#f8fafc",
-          accent: custom[0],
-          accent2: custom[1] || "#06b6d4",
-          sun: custom[2] || "#fde68a"
-        };
-      }
-
-      if (p.uiMode || p.futureMode || p.styles.cyberpunk || p.effects.neon) {
-        return {
-          skyTop: "#020617",
-          skyMid: "#111827",
-          skyBottom: "#030712",
-          ground: "#050816",
-          dark: "#020617",
-          light: "#e0f2fe",
-          accent: "#22d3ee",
-          accent2: "#a855f7",
-          sun: "#67e8f9"
-        };
-      }
-
-      if (p.styles.rpg || p.styles.fantasy || p.objects.dragon) {
-        return {
-          skyTop: "#312e81",
-          skyMid: "#6d28d9",
-          skyBottom: "#111827",
-          ground: "#14532d",
-          dark: "#020617",
-          light: "#fef3c7",
-          accent: "#f97316",
-          accent2: "#a855f7",
-          sun: "#fde68a"
-        };
-      }
-
-      if (p.styles.voxel) {
-        return {
-          skyTop: "#60a5fa",
-          skyMid: "#93c5fd",
-          skyBottom: "#dbeafe",
-          ground: "#15803d",
-          dark: "#3f2f1f",
-          light: "#fefce8",
-          accent: "#22c55e",
-          accent2: "#a16207",
-          sun: "#fde047"
-        };
-      }
-
-      if (p.styles.pixel || p.effects.matrix) {
-        return {
-          skyTop: "#111827",
-          skyMid: "#312e81",
-          skyBottom: "#020617",
-          ground: "#171717",
-          dark: "#000000",
-          light: "#f8fafc",
-          accent: "#22d3ee",
-          accent2: "#f472b6",
-          sun: "#facc15"
-        };
-      }
-
-      if (p.styles.horror || p.objects.night) {
-        return {
-          skyTop: "#020617",
-          skyMid: "#111827",
-          skyBottom: "#030712",
-          ground: "#0a0a0a",
-          dark: "#000000",
-          light: "#d1d5db",
-          accent: "#ef4444",
-          accent2: "#7f1d1d",
-          sun: "#9ca3af"
-        };
-      }
-
-      if (p.scene === "ocean" || p.scene === "underwater") {
-        return {
-          skyTop: "#38bdf8",
-          skyMid: "#7dd3fc",
-          skyBottom: "#e0f2fe",
-          ground: "#075985",
-          dark: "#082f49",
-          light: "#ecfeff",
-          accent: "#0284c7",
-          accent2: "#facc15",
-          sun: "#fde68a"
-        };
-      }
-
-      return {
-        skyTop: "#60a5fa",
-        skyMid: "#93c5fd",
-        skyBottom: "#e0f2fe",
-        ground: "#334155",
-        dark: "#0f172a",
-        light: "#f8fafc",
-        accent: "#2563eb",
-        accent2: "#f59e0b",
-        sun: "#fde68a"
-      };
-    }
-
-    generate() {
-      this.generateStars();
-      this.generateClouds();
-      this.generateParticles();
-      this.generateMountains();
-      this.generateBuildings();
-      this.generateCars();
-      this.generatePeople();
-      this.generateBirds();
-      this.generateTrees();
-      this.generateWaves();
-      this.generateBlocks();
-      this.generatePlatforms();
-      this.generateGameItems();
-      this.generateRoomObjects();
-      this.generateWeather();
-      this.generateWordObjects();
-      this.generateSparks();
-      this.generateIcons();
-      this.generateUi();
-    }
-
-    generateStars() {
-      for (let i = 0; i < this.density(260); i++) {
-        this.items.stars.push({
-          x: this.rand(0, this.width),
-          y: this.rand(0, this.height * 0.72),
-          r: this.rand(0.5, 2.4),
-          a: this.rand(0.2, 1),
-          tw: this.rand(0, Math.PI * 2)
-        });
-      }
-    }
-
-    generateClouds() {
-      for (let i = 0; i < this.density(34); i++) {
-        this.items.clouds.push({
-          x: this.rand(-this.width, this.width),
-          y: this.rand(30, this.height * 0.45),
-          w: this.rand(90, 320),
-          h: this.rand(22, 80),
-          speed: this.rand(4, 28),
-          alpha: this.rand(0.05, 0.25)
-        });
-      }
-    }
-
-    generateParticles() {
-      const count = Math.min(this.options.maxParticles, this.density(320));
-      for (let i = 0; i < count; i++) {
-        this.items.particles.push({
-          x: this.rand(0, this.width),
-          y: this.rand(0, this.height),
-          vx: this.rand(-0.9, 0.9),
-          vy: this.rand(-0.7, 0.5),
-          r: this.rand(0.6, 3.4),
-          a: this.rand(0.08, 0.52),
-          hue: this.rand(0, 360)
-        });
-      }
-    }
-
-    generateMountains() {
-      for (let i = 0; i < 12; i++) {
-        this.items.mountains.push({
-          x: i * (this.width / 8) - this.rand(60, 140),
-          base: this.rand(this.height * 0.55, this.height * 0.82),
-          w: this.rand(170, 390),
-          h: this.rand(120, 330),
-          shade: this.rand(0.25, 0.78)
-        });
-      }
-    }
-
-    generateBuildings() {
-      let x = -40;
-      while (x < this.width + 120) {
-        const w = this.rand(34, 95);
-        const h = this.rand(this.height * 0.18, this.height * 0.6);
-        this.items.buildings.push({
-          x,
-          y: this.height * 0.78 - h,
-          w,
-          h,
-          rows: Math.max(2, Math.floor(h / 18)),
-          cols: Math.max(2, Math.floor(w / 13)),
-          phase: this.rand(0, 100)
-        });
-        x += w + this.rand(4, 14);
-      }
-    }
-
-    generateCars() {
-      for (let i = 0; i < this.density(24); i++) {
-        this.items.cars.push({
-          x: this.rand(-this.width, this.width),
-          y: this.rand(this.height * 0.78, this.height * 0.93),
-          speed: this.rand(35, 150) * (this.rng() > 0.5 ? 1 : -1),
-          size: this.rand(0.65, 1.45) * this.parsed.modifiers.scale,
-          color: this.pick(["#ef4444", "#3b82f6", "#eab308", "#f8fafc", "#22c55e", "#a855f7"])
-        });
-      }
-    }
-
-    generatePeople() {
-      for (let i = 0; i < this.density(42); i++) {
-        this.items.people.push({
-          x: this.rand(0, this.width),
-          y: this.rand(this.height * 0.7, this.height * 0.93),
-          speed: this.rand(8, 48) * (this.rng() > 0.5 ? 1 : -1),
-          scale: this.rand(0.55, 1.3) * this.parsed.modifiers.scale,
-          phase: this.rand(0, Math.PI * 2),
-          coat: this.pick(["#111827", "#1f2937", "#7f1d1d", "#172554", "#064e3b", "#581c87"])
-        });
-      }
-    }
-
-    generateBirds() {
-      for (let i = 0; i < this.density(30); i++) {
-        this.items.birds.push({
-          x: this.rand(-100, this.width),
-          y: this.rand(45, this.height * 0.42),
-          speed: this.rand(20, 90),
-          scale: this.rand(0.45, 1.35),
-          phase: this.rand(0, Math.PI * 2)
-        });
-      }
-    }
-
-    generateTrees() {
-      for (let i = 0; i < this.density(100); i++) {
-        this.items.trees.push({
-          x: this.rand(-60, this.width + 60),
-          y: this.rand(this.height * 0.58, this.height),
-          h: this.rand(55, 200),
-          w: this.rand(18, 60),
-          layer: this.rand(0, 1)
-        });
-      }
-    }
-
-    generateWaves() {
-      for (let i = 0; i < 16; i++) {
-        this.items.waves.push({
-          y: this.height * (0.56 + i * 0.035),
-          amp: this.rand(4, 18),
-          freq: this.rand(0.006, 0.022),
-          speed: this.rand(0.6, 2.2),
-          alpha: this.rand(0.12, 0.36)
-        });
-      }
-    }
-
-    generateBlocks() {
-      const block = Math.max(18, Math.floor(this.width / 48));
-      for (let y = this.height * 0.54; y < this.height + block; y += block) {
-        for (let x = -block; x < this.width + block; x += block) {
-          this.items.blocks.push({
-            x,
-            y: y + Math.sin(x * 0.02 + this.seed) * block * 0.5,
-            s: block,
-            type: y < this.height * 0.65 ? "grass" : this.rng() > 0.3 ? "dirt" : "stone"
-          });
-        }
-      }
-    }
-
-    generatePlatforms() {
-      for (let i = 0; i < this.density(20); i++) {
-        this.items.platforms.push({
-          x: this.rand(0, this.width),
-          y: this.rand(this.height * 0.35, this.height * 0.82),
-          w: this.rand(70, 220),
-          h: this.rand(12, 34),
-          type: this.pick(["grass", "metal", "stone", "wood"])
-        });
-      }
-    }
-
-    generateGameItems() {
-      for (let i = 0; i < this.density(38); i++) {
-        this.items.coins.push({
-          x: this.rand(30, this.width - 30),
-          y: this.rand(this.height * 0.25, this.height * 0.78),
-          r: this.rand(6, 14),
-          phase: this.rand(0, Math.PI * 2)
-        });
-      }
-
-      for (let i = 0; i < this.density(15); i++) {
-        this.items.enemies.push({
-          x: this.rand(0, this.width),
-          y: this.rand(this.height * 0.68, this.height * 0.9),
-          s: this.rand(18, 45),
-          phase: this.rand(0, Math.PI * 2),
-          color: this.pick(["#ef4444", "#7c2d12", "#581c87", "#0f766e"])
-        });
-      }
-    }
-
-    generateRoomObjects() {
-      for (let i = 0; i < this.density(20); i++) {
-        this.items.roomObjects.push({
-          x: this.rand(this.width * 0.08, this.width * 0.92),
-          y: this.rand(this.height * 0.45, this.height * 0.86),
-          w: this.rand(35, 130),
-          h: this.rand(28, 120),
-          color: this.pick(["#78350f", "#334155", "#57534e", "#1e293b", "#7c2d12"])
-        });
-      }
-    }
-
-    generateWeather() {
-      for (let i = 0; i < this.density(600); i++) {
-        this.items.rain.push({
-          x: this.rand(0, this.width),
-          y: this.rand(0, this.height),
-          len: this.rand(8, 26),
-          speed: this.rand(360, 800),
-          drift: this.rand(-110, -20),
-          a: this.rand(0.16, 0.58)
-        });
-      }
-
-      for (let i = 0; i < this.density(420); i++) {
-        this.items.snow.push({
-          x: this.rand(0, this.width),
-          y: this.rand(0, this.height),
-          r: this.rand(1, 3.8),
-          speed: this.rand(18, 85),
-          drift: this.rand(-24, 28),
-          phase: this.rand(0, Math.PI * 2),
-          a: this.rand(0.28, 0.92)
-        });
-      }
-    }
-
-    generateWordObjects() {
-      const limit = this.options.wordLayerLimit || 260;
-      const visualWords = this.parsed.words.filter((word) => word.length > 1).slice(0, limit);
-
-      for (const word of visualWords) {
-        const h = hashString(word);
-        this.items.wordObjects.push({
-          word,
-          hash: h,
-          x: this.rand(0, this.width),
-          y: this.rand(0, this.height),
-          size: 8 + (h % 34),
-          speed: 4 + (h % 52),
-          phase: this.rand(0, Math.PI * 2),
-          color: `hsl(${h % 360}, 90%, 65%)`
-        });
-      }
-    }
-
-    generateSparks() {
-      for (let i = 0; i < this.density(150); i++) {
-        this.items.sparks.push({
-          x: this.rand(0, this.width),
-          y: this.rand(0, this.height),
-          r: this.rand(1, 5),
-          h: this.rand(0, 360),
-          phase: this.rand(0, Math.PI * 2),
-          speed: this.rand(20, 120)
-        });
-      }
-    }
-
-    generateIcons() {
-      for (let i = 0; i < this.density(60); i++) {
-        this.items.icons.push({
-          x: this.rand(0, this.width),
-          y: this.rand(0, this.height),
-          s: this.rand(8, 28),
-          phase: this.rand(0, Math.PI * 2),
-          speed: this.rand(15, 80)
-        });
-      }
-    }
-
-    generateUi() {
-      for (let i = 0; i < 10; i++) {
-        this.items.uiCards.push({
-          x: this.rand(this.width * 0.08, this.width * 0.78),
-          y: this.rand(this.height * 0.12, this.height * 0.72),
-          w: this.rand(110, 260),
-          h: this.rand(56, 150),
-          phase: this.rand(0, Math.PI * 2),
-          hue: this.rand(180, 300)
-        });
-      }
-
-      for (let i = 0; i < 34; i++) {
-        this.items.uiLines.push({
-          x: this.rand(this.width * 0.12, this.width * 0.85),
-          y: this.rand(this.height * 0.16, this.height * 0.82),
-          w: this.rand(35, 180),
-          phase: this.rand(0, Math.PI * 2)
-        });
-      }
-
-      for (let i = 0; i < 8; i++) {
-        this.items.uiButtons.push({
-          x: this.rand(this.width * 0.14, this.width * 0.76),
-          y: this.rand(this.height * 0.2, this.height * 0.78),
-          w: this.rand(80, 180),
-          h: this.rand(26, 46),
-          phase: this.rand(0, Math.PI * 2)
-        });
-      }
+  function chooseMimeType(preferred){ if(typeof MediaRecorder==="undefined") return ""; if(preferred&&MediaRecorder.isTypeSupported(preferred)) return preferred; const c=["video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"]; for(const x of c) if(MediaRecorder.isTypeSupported(x)) return x; return ""; }
+
+  class BrowserTTS {
+    static speak(parsed, options){
+      if(!options.tts && !parsed.looks.tts) return null;
+      if(typeof speechSynthesis==="undefined" || typeof SpeechSynthesisUtterance==="undefined") return null;
+      const text=options.ttsText || parsed.correctedPrompt || "Generated video.";
+      const u=new SpeechSynthesisUtterance(text); u.rate=options.ttsRate; u.pitch=options.ttsPitch; u.volume=options.ttsVolume;
+      try{ speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){}
+      return u;
     }
   }
 
-  class Renderer {
-    constructor(canvas, world, options) {
-      this.canvas = canvas;
-      this.ctx = canvas.getContext("2d", { alpha: !!options.transparent });
-      this.world = world;
-      this.options = options;
-      this.w = canvas.width;
-      this.h = canvas.height;
-      this.frame = 0;
-    }
-
-    render(t) {
-      const ctx = this.ctx;
-      const p = this.world.parsed;
-
-      ctx.save();
-      ctx.clearRect(0, 0, this.w, this.h);
-
-      const cam = this.camera(t);
-      ctx.translate(cam.x, cam.y);
-      ctx.scale(cam.zoom, cam.zoom);
-
-      this.drawBackground(t);
-
-      if (p.uiMode) this.drawUiVideo(t);
-      else if (p.scene === "futureCity") this.drawFutureCity(t);
-      else if (p.styles.voxel) this.drawVoxelWorld(t);
-      else if (p.styles.pixel || p.gameMode === "pixel-arcade") this.drawPixelGame(t);
-      else if (p.styles.racing || p.scene === "track") this.drawRacing(t);
-      else if (p.scene === "space") this.drawSpace(t);
-      else if (p.scene === "ocean" || p.scene === "underwater") this.drawOcean(t);
-      else if (p.scene === "forest" || p.scene === "farm") this.drawForest(t);
-      else if (p.scene === "desert") this.drawDesert(t);
-      else if (p.scene === "mountain") this.drawMountainScene(t);
-      else if (p.scene === "dungeon" || p.scene === "castle") this.drawDungeon(t);
-      else if (p.scene === "city" || p.scene === "factory") this.drawCity(t);
-      else if (p.scene === "room" || p.scene === "lab") this.drawRoom(t);
-      else this.drawAbstract(t);
-
-      if (p.objects.dragon || p.styles.fantasy || p.styles.rpg) this.drawFantasyLayer(t);
-      if (p.objects.robot || p.styles.scifi || p.objects.spaceship) this.drawSciFiLayer(t);
-      if (p.objects.rain) this.drawRain(t);
-      if (p.objects.snow) this.drawSnow(t);
-      if (p.objects.fog) this.drawFog(t);
-      if (p.objects.fire || p.effects.fire) this.drawFire(t);
-      if (p.objects.lightning || p.effects.lightning) this.drawLightning(t);
-      if (p.effects.matrix || p.styles.matrix) this.drawMatrix(t);
-      if (p.effects.hearts || p.objects.hearts) this.drawFloatingHearts(t);
-      if (p.effects.coins || p.objects.coins || p.styles.rpg) this.drawCoinBurst(t);
-      if (p.effects.stars || p.effects.magic) this.drawSparkBurst(t);
-
-      this.drawCommandSubject(t);
-      this.drawPromptWordLayer(t);
-      this.drawParticles(t);
-      this.drawStyleOverlay(t);
-      this.drawGrain();
-
-      if (p.styles.cinematic || p.modifiers.epic) this.drawCinematicBars();
-
-      ctx.restore();
-      this.frame++;
-    }
-
-    camera(t) {
-      const p = this.world.parsed;
-      const speed = p.modifiers.speed;
-      const chaos = p.modifiers.chaos + p.modifiers.shake;
-      const cinematic = p.styles.cinematic || p.futureMode ? 1 : 0.45;
-
-      return {
-        x: Math.sin(t * 0.55 * speed) * 8 * cinematic + Math.sin(t * 18) * chaos * 2,
-        y: Math.cos(t * 0.4 * speed) * 4 * cinematic + Math.cos(t * 15) * chaos * 2,
-        zoom: 1 + Math.sin(t * 0.18) * 0.014 * cinematic
-      };
-    }
-
-    drawBackground(t) {
-      const ctx = this.ctx;
-      const p = this.world.parsed;
-      const pal = this.world.palette;
-
-      const g = ctx.createLinearGradient(0, 0, 0, this.h);
-      g.addColorStop(0, pal.skyTop);
-      g.addColorStop(0.5, pal.skyMid);
-      g.addColorStop(1, pal.skyBottom);
-
-      ctx.fillStyle = g;
-      ctx.fillRect(-60, -60, this.w + 120, this.h + 120);
-
-      if (!p.objects.night && p.scene !== "space" && !p.uiMode && !p.futureMode) {
-        this.drawSun(this.w * 0.78, this.h * 0.22, 46, pal.sun);
-      }
-
-      if (p.objects.night || p.scene === "space" || p.futureMode || p.uiMode) this.drawStars(t);
-      if ((p.objects.clouds || p.scene !== "space") && !p.uiMode) this.drawClouds(t);
-    }
-
-    drawSun(x, y, r, color) {
-      const ctx = this.ctx;
-      const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 4);
-      glow.addColorStop(0, color);
-      glow.addColorStop(0.36, colorWithAlpha(color, 0.34));
-      glow.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(x, y, r * 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    drawStars(t) {
-      const ctx = this.ctx;
-      for (const s of this.world.items.stars) {
-        const a = clamp(s.a + Math.sin(t * 2 + s.tw) * 0.25, 0, 1);
-        ctx.fillStyle = `rgba(255,255,255,${a})`;
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    drawClouds(t) {
-      const ctx = this.ctx;
-      const night = this.world.parsed.objects.night;
-      const color = night ? "180,190,210" : "255,255,255";
-
-      for (const c of this.world.items.clouds) {
-        const x = ((c.x + t * c.speed) % (this.w + c.w * 2)) - c.w;
-        const y = c.y + Math.sin(t * 0.4 + c.x) * 3;
-        ctx.fillStyle = `rgba(${color},${c.alpha})`;
-        ctx.beginPath();
-        ctx.ellipse(x, y, c.w * 0.35, c.h * 0.72, 0, 0, Math.PI * 2);
-        ctx.ellipse(x + c.w * 0.24, y - c.h * 0.35, c.w * 0.34, c.h, 0, 0, Math.PI * 2);
-        ctx.ellipse(x + c.w * 0.56, y, c.w * 0.45, c.h * 0.82, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    drawUiVideo(t) {
-      const ctx = this.ctx;
-      const p = this.world.parsed;
-      const pal = this.world.palette;
-
-      const pad = Math.min(this.w, this.h) * 0.06;
-      const mainX = pad;
-      const mainY = pad;
-      const mainW = this.w - pad * 2;
-      const mainH = this.h - pad * 2;
-
-      ctx.save();
-
-      if (p.effects.hologram || p.futureMode) {
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = pal.accent;
-      }
-
-      ctx.fillStyle = "rgba(2,6,23,0.78)";
-      this.roundRect(mainX, mainY, mainW, mainH, 28);
-      ctx.fill();
-
-      ctx.strokeStyle = colorWithAlpha(pal.accent, 0.6);
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      const sidebarW = mainW * 0.18;
-      ctx.fillStyle = "rgba(15,23,42,0.85)";
-      this.roundRect(mainX + 16, mainY + 16, sidebarW, mainH - 32, 18);
-      ctx.fill();
-
-      for (let i = 0; i < 7; i++) {
-        const y = mainY + 48 + i * 42;
-        ctx.fillStyle = i === Math.floor((t * 1.2) % 7)
-          ? colorWithAlpha(pal.accent, 0.5)
-          : "rgba(148,163,184,0.22)";
-        this.roundRect(mainX + 34, y, sidebarW - 36, 18, 9);
-        ctx.fill();
-      }
-
-      const contentX = mainX + sidebarW + 34;
-      const contentW = mainW - sidebarW - 54;
-
-      ctx.fillStyle = "rgba(15,23,42,0.64)";
-      this.roundRect(contentX, mainY + 18, contentW, 70, 18);
-      ctx.fill();
-
-      ctx.fillStyle = colorWithAlpha(pal.light, 0.85);
-      ctx.font = `${Math.max(18, Math.floor(this.w / 45))}px system-ui, sans-serif`;
-      ctx.fillText(p.command.recreate ? "Recreated Video UI" : "Live Generated Interface", contentX + 24, mainY + 62);
-
-      for (const card of this.world.items.uiCards) {
-        const pulse = 0.88 + Math.sin(t * 2 + card.phase) * 0.06;
-        const x = contentX + ((card.x - contentX + t * 8) % Math.max(100, contentW - card.w));
-        const y = card.y;
-        ctx.fillStyle = p.effects.glass
-          ? "rgba(255,255,255,0.11)"
-          : `hsla(${card.hue},70%,35%,0.28)`;
-        this.roundRect(x, y, card.w * pulse, card.h * pulse, 18);
-        ctx.fill();
-        ctx.strokeStyle = colorWithAlpha(pal.accent, 0.28);
-        ctx.stroke();
-
-        if (p.objects.charts || p.styles.dashboard) {
-          this.drawMiniChart(x + 14, y + 18, card.w - 28, card.h - 34, t + card.phase);
-        }
-      }
-
-      for (const line of this.world.items.uiLines) {
-        const alpha = 0.18 + Math.abs(Math.sin(t * 2 + line.phase)) * 0.3;
-        ctx.fillStyle = colorWithAlpha(pal.light, alpha);
-        this.roundRect(line.x, line.y, line.w, 5, 3);
-        ctx.fill();
-      }
-
-      for (const btn of this.world.items.uiButtons) {
-        const active = Math.sin(t * 3 + btn.phase) > 0.35;
-        ctx.fillStyle = active ? colorWithAlpha(pal.accent, 0.65) : "rgba(30,41,59,0.8)";
-        this.roundRect(btn.x, btn.y, btn.w, btn.h, 14);
-        ctx.fill();
-      }
-
-      if (p.command.inUse || p.actions.click || p.actions.use) {
-        this.drawCursor(t);
-      }
-
-      if (p.effects.hologram || p.futureMode) {
-        this.drawHologramGrid(t);
-      }
-
-      ctx.restore();
-    }
-
-    drawMiniChart(x, y, w, h, t) {
-      const ctx = this.ctx;
-      ctx.strokeStyle = "rgba(34,211,238,0.65)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-
-      for (let i = 0; i <= 18; i++) {
-        const px = x + (i / 18) * w;
-        const py = y + h * 0.55 + Math.sin(t + i * 0.7) * h * 0.25;
-        if (i === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-      }
-
-      ctx.stroke();
-
-      ctx.fillStyle = "rgba(168,85,247,0.18)";
-      ctx.fillRect(x, y + h * 0.62, w, h * 0.28);
-    }
-
-    drawCursor(t) {
-      const ctx = this.ctx;
-      const x = this.w * 0.55 + Math.sin(t * 1.4) * this.w * 0.22;
-      const y = this.h * 0.52 + Math.cos(t * 1.1) * this.h * 0.22;
-
-      ctx.fillStyle = "rgba(255,255,255,0.92)";
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x + 22, y + 10);
-      ctx.lineTo(x + 10, y + 15);
-      ctx.lineTo(x + 4, y + 31);
-      ctx.lineTo(x - 4, y + 28);
-      ctx.lineTo(x + 3, y + 13);
-      ctx.closePath();
-      ctx.fill();
-
-      const click = Math.sin(t * 5) > 0.55;
-      if (click) {
-        ctx.strokeStyle = "rgba(34,211,238,0.6)";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(x, y, 28 + Math.sin(t * 20) * 5, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-    }
-
-    drawHologramGrid(t) {
-      const ctx = this.ctx;
-      ctx.strokeStyle = "rgba(34,211,238,0.12)";
-      ctx.lineWidth = 1;
-
-      for (let x = 0; x < this.w; x += 34) {
-        ctx.beginPath();
-        ctx.moveTo(x + Math.sin(t + x) * 4, 0);
-        ctx.lineTo(x, this.h);
-        ctx.stroke();
-      }
-
-      for (let y = 0; y < this.h; y += 34) {
-        ctx.beginPath();
-        ctx.moveTo(0, y + Math.cos(t + y) * 4);
-        ctx.lineTo(this.w, y);
-        ctx.stroke();
-      }
-    }
-
-    drawFutureCity(t) {
-      this.drawCity(t);
-      const ctx = this.ctx;
-      const pal = this.world.palette;
-
-      for (let i = 0; i < 12; i++) {
-        const x = (i * 120 + Math.sin(t + i) * 20) % this.w;
-        const y = this.h * 0.22 + Math.cos(t * 0.9 + i) * 45;
-
-        ctx.strokeStyle = colorWithAlpha(pal.accent, 0.55);
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.ellipse(x, y, 44, 14, Math.sin(t + i), 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.fillStyle = colorWithAlpha(pal.accent2, 0.15);
-        ctx.beginPath();
-        ctx.ellipse(x, y, 58, 18, Math.sin(t + i), 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      this.drawHologramGrid(t);
-    }
-
-    drawCity(t) {
-      this.drawBuildings(t);
-      this.drawRoad(t);
-      if (this.world.parsed.objects.cars) this.drawCars(t);
-      if (this.world.parsed.objects.people) this.drawPeople(t);
-      if (this.world.parsed.objects.birds) this.drawBirds(t);
-    }
-
-    drawBuildings(t) {
-      const ctx = this.ctx;
-      const p = this.world.parsed;
-      const pal = this.world.palette;
-
-      for (const b of this.world.items.buildings) {
-        ctx.fillStyle = p.objects.night || p.futureMode ? "#020617" : "#1e293b";
-        ctx.fillRect(b.x, b.y, b.w, b.h);
-
-        ctx.strokeStyle = "rgba(255,255,255,0.07)";
-        ctx.strokeRect(b.x, b.y, b.w, b.h);
-
-        for (let iy = 0; iy < b.rows; iy++) {
-          for (let ix = 0; ix < b.cols; ix++) {
-            const flicker = Math.sin(ix * 7.13 + iy * 11.91 + b.phase + t * 1.8);
-            if (flicker > -0.15) {
-              ctx.fillStyle =
-                p.styles.synthwave || p.styles.scifi || p.styles.cyberpunk || p.futureMode
-                  ? ix % 2 ? pal.accent : pal.accent2
-                  : "rgba(255,226,130,0.82)";
-              ctx.fillRect(b.x + 7 + ix * 13, b.y + 8 + iy * 17, 5, 8);
-            }
-          }
-        }
-      }
-    }
-
-    drawRoad(t) {
-      const ctx = this.ctx;
-      const p = this.world.parsed;
-
-      ctx.fillStyle = p.objects.rain ? "#111827" : "#1f2937";
-      ctx.fillRect(0, this.h * 0.78, this.w, this.h * 0.22);
-
-      ctx.strokeStyle = p.futureMode || p.styles.synthwave || p.styles.cyberpunk
-        ? "rgba(0,245,255,0.8)"
-        : "rgba(255,255,255,0.35)";
-
-      ctx.lineWidth = 3;
-      ctx.setLineDash([34, 28]);
-      ctx.lineDashOffset = -t * 70;
-      ctx.beginPath();
-      ctx.moveTo(0, this.h * 0.885);
-      ctx.lineTo(this.w, this.h * 0.885);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-
-    drawCars(t) {
-      for (const car of this.world.items.cars) {
-        const x = ((car.x + t * car.speed * this.world.parsed.modifiers.speed) % (this.w + 260)) - 130;
-        this.drawCar(x, car.y, car.size, car.color, car.speed < 0);
-      }
-    }
-
-    drawCar(x, y, scale, color, flip) {
-      const ctx = this.ctx;
-      const dir = flip ? -1 : 1;
-      const w = 72 * scale;
-      const h = 28 * scale;
-
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.scale(dir, 1);
-
-      ctx.fillStyle = color;
-      this.roundRect(-w / 2, -h, w, h, 8 * scale);
-      ctx.fill();
-
-      ctx.fillStyle = "rgba(180,220,255,0.8)";
-      this.roundRect(-w * 0.22, -h * 1.48, w * 0.42, h * 0.55, 6 * scale);
-      ctx.fill();
-
-      ctx.fillStyle = "#020617";
-      ctx.beginPath();
-      ctx.arc(-w * 0.28, 0, 8 * scale, 0, Math.PI * 2);
-      ctx.arc(w * 0.28, 0, 8 * scale, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.restore();
-    }
-
-    drawPeople(t) {
-      for (const person of this.world.items.people) {
-        const x = ((person.x + t * person.speed * this.world.parsed.modifiers.speed) % (this.w + 80)) - 40;
-        const bob = Math.sin(t * 6 + person.phase) * 2.2;
-        this.drawPerson(x, person.y + bob, person.scale, person.coat, t + person.phase);
-      }
-    }
-
-    drawPerson(x, y, scale, coat, phase) {
-      const ctx = this.ctx;
-      const s = 17 * scale;
-      const walk = Math.sin(phase * 5) * 7 * scale;
-
-      ctx.strokeStyle = "rgba(0,0,0,0.35)";
-      ctx.lineWidth = 6 * scale;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(x, y - s * 1.6);
-      ctx.lineTo(x - walk, y - s * 0.6);
-      ctx.moveTo(x, y - s * 1.6);
-      ctx.lineTo(x + walk, y - s * 0.6);
-      ctx.stroke();
-
-      ctx.fillStyle = coat;
-      this.roundRect(x - s * 0.34, y - s * 2.35, s * 0.68, s * 1.1, 5 * scale);
-      ctx.fill();
-
-      ctx.fillStyle = "#d6a77a";
-      ctx.beginPath();
-      ctx.arc(x, y - s * 2.68, s * 0.34, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    drawBirds(t) {
-      const ctx = this.ctx;
-      ctx.strokeStyle = "rgba(15,23,42,0.78)";
-      ctx.lineWidth = 2;
-
-      for (const b of this.world.items.birds) {
-        const x = ((b.x + t * b.speed) % (this.w + 100)) - 50;
-        const y = b.y + Math.sin(t * 2 + b.phase) * 9;
-        const flap = Math.sin(t * 12 + b.phase) * 8 * b.scale;
-
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.quadraticCurveTo(x - 13 * b.scale, y - flap, x - 25 * b.scale, y);
-        ctx.moveTo(x, y);
-        ctx.quadraticCurveTo(x + 13 * b.scale, y - flap, x + 25 * b.scale, y);
-        ctx.stroke();
-      }
-    }
-
-    drawForest(t) {
-      this.drawMountains();
-      this.drawGround(this.world.palette.ground, 0.68);
-      const trees = this.world.items.trees.slice().sort((a, b) => a.y - b.y);
-      for (const tree of trees) this.drawTree(tree.x, tree.y, tree.w, tree.h, tree.layer);
-      if (this.world.parsed.objects.animals) this.drawAnimals(t);
-      if (this.world.parsed.objects.birds) this.drawBirds(t);
-    }
-
-    drawTree(x, y, w, h, layer) {
-      const ctx = this.ctx;
-      const dark = layer > 0.52 ? "#022c22" : "#065f46";
-      const mid = layer > 0.52 ? "#064e3b" : "#047857";
-
-      ctx.fillStyle = "#3f2f1f";
-      ctx.fillRect(x - w * 0.12, y - h * 0.38, w * 0.24, h * 0.38);
-
-      ctx.fillStyle = mid;
-      ctx.beginPath();
-      ctx.moveTo(x, y - h);
-      ctx.lineTo(x - w, y - h * 0.2);
-      ctx.lineTo(x + w, y - h * 0.2);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.fillStyle = dark;
-      ctx.beginPath();
-      ctx.moveTo(x, y - h * 1.16);
-      ctx.lineTo(x - w * 0.78, y - h * 0.48);
-      ctx.lineTo(x + w * 0.78, y - h * 0.48);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    drawOcean(t) {
-      const ctx = this.ctx;
-
-      ctx.fillStyle = "#075985";
-      ctx.fillRect(0, this.h * 0.56, this.w, this.h * 0.5);
-
-      const water = ctx.createLinearGradient(0, this.h * 0.56, 0, this.h);
-      water.addColorStop(0, "rgba(14,165,233,0.76)");
-      water.addColorStop(1, "rgba(3,7,18,0.62)");
-
-      ctx.fillStyle = water;
-      ctx.fillRect(0, this.h * 0.56, this.w, this.h * 0.5);
-
-      for (const wave of this.world.items.waves) {
-        ctx.beginPath();
-        for (let x = -20; x <= this.w + 20; x += 8) {
-          const y =
-            wave.y +
-            Math.sin(x * wave.freq + t * wave.speed * 2.2) * wave.amp +
-            Math.cos(x * wave.freq * 0.47 + t * 0.9) * wave.amp * 0.42;
-
-          if (x === -20) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.strokeStyle = `rgba(255,255,255,${wave.alpha})`;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-      }
-    }
-
-    drawDesert(t) {
-      const ctx = this.ctx;
-      for (let i = 0; i < 7; i++) {
-        const yBase = this.h * (0.58 + i * 0.065);
-        ctx.beginPath();
-        ctx.moveTo(0, this.h);
-        for (let x = 0; x <= this.w; x += 18) {
-          const y = yBase + Math.sin(x * 0.006 + t * 0.24 + i) * (24 + i * 4);
-          ctx.lineTo(x, y);
-        }
-        ctx.lineTo(this.w, this.h);
-        ctx.closePath();
-        ctx.fillStyle = `rgba(180,83,9,${0.18 + i * 0.08})`;
-        ctx.fill();
-      }
-    }
-
-    drawMountainScene(t) {
-      this.drawMountains();
-      this.drawGround("#1f2937", 0.74);
-      if (this.world.parsed.objects.birds) this.drawBirds(t);
-    }
-
-    drawMountains() {
-      const ctx = this.ctx;
-
-      for (const m of this.world.items.mountains) {
-        ctx.fillStyle = `rgba(15,23,42,${m.shade})`;
-        ctx.beginPath();
-        ctx.moveTo(m.x, this.h);
-        ctx.lineTo(m.x + m.w * 0.5, m.base - m.h);
-        ctx.lineTo(m.x + m.w, this.h);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.fillStyle = "rgba(255,255,255,0.18)";
-        ctx.beginPath();
-        ctx.moveTo(m.x + m.w * 0.5, m.base - m.h);
-        ctx.lineTo(m.x + m.w * 0.37, m.base - m.h * 0.62);
-        ctx.lineTo(m.x + m.w * 0.63, m.base - m.h * 0.62);
-        ctx.closePath();
-        ctx.fill();
-      }
-    }
-
-    drawGround(color, start) {
-      this.ctx.fillStyle = color;
-      this.ctx.fillRect(0, this.h * start, this.w, this.h * (1 - start));
-    }
-
-    drawRoom() {
-      const ctx = this.ctx;
-      ctx.fillStyle = "#292524";
-      ctx.fillRect(0, 0, this.w, this.h);
-
-      const wall = ctx.createLinearGradient(0, 0, 0, this.h);
-      wall.addColorStop(0, "#44403c");
-      wall.addColorStop(1, "#1c1917");
-
-      ctx.fillStyle = wall;
-      ctx.fillRect(0, 0, this.w, this.h * 0.68);
-
-      ctx.fillStyle = "#1f2937";
-      ctx.fillRect(0, this.h * 0.68, this.w, this.h * 0.32);
-
-      for (const o of this.world.items.roomObjects) {
-        ctx.fillStyle = o.color;
-        this.roundRect(o.x, o.y, o.w, o.h, 9);
-        ctx.fill();
-      }
-    }
-
-    drawDungeon(t) {
-      const ctx = this.ctx;
-      const tile = Math.max(32, Math.floor(this.w / 24));
-
-      ctx.fillStyle = "#111827";
-      ctx.fillRect(0, 0, this.w, this.h);
-
-      for (let y = 0; y < this.h; y += tile) {
-        for (let x = 0; x < this.w; x += tile) {
-          ctx.fillStyle = (x / tile + y / tile) % 2 ? "#1f2937" : "#0f172a";
-          ctx.fillRect(x, y, tile, tile);
-          ctx.strokeStyle = "rgba(255,255,255,0.05)";
-          ctx.strokeRect(x, y, tile, tile);
-        }
-      }
-
-      this.drawGameItems(t);
-    }
-
-    drawSpace(t) {
-      const ctx = this.ctx;
-      const pal = this.world.palette;
-
-      for (let i = 0; i < 8; i++) {
-        const x = this.w * 0.2 + i * this.w * 0.08 + Math.sin(t * 0.4 + i) * 30;
-        const y = this.h * 0.34 + Math.cos(t * 0.3 + i) * 25;
-        const g = ctx.createRadialGradient(x, y, 0, x, y, 170);
-        g.addColorStop(0, i % 2 ? colorWithAlpha(pal.accent, 0.13) : colorWithAlpha(pal.accent2, 0.12));
-        g.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, this.w, this.h);
-      }
-
-      const px = this.w * 0.7 + Math.sin(t * 0.2) * 20;
-      const py = this.h * 0.42 + Math.cos(t * 0.17) * 12;
-      const planet = ctx.createRadialGradient(px - 35, py - 35, 4, px, py, 120);
-      planet.addColorStop(0, pal.accent);
-      planet.addColorStop(0.55, pal.accent2);
-      planet.addColorStop(1, "#020617");
-
-      ctx.fillStyle = planet;
-      ctx.beginPath();
-      ctx.arc(px, py, 96, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.strokeStyle = "rgba(255,255,255,0.25)";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.ellipse(px, py + 8, 165, 36, -0.16, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-
-    drawVoxelWorld(t) {
-      const ctx = this.ctx;
-      const p = this.world.parsed;
-      const pal = this.world.palette;
-
-      ctx.fillStyle = pal.sun;
-      ctx.fillRect(this.w * 0.78, this.h * 0.18, 58, 58);
-
-      for (const b of this.world.items.blocks) this.drawBlock(b.x, b.y, b.s, b.type);
-
-      for (let i = 0; i < 18; i++) {
-        const s = 30 + (i % 5) * 7;
-        const x = (i * 89 + Math.sin(t + i) * 10) % this.w;
-        const y = this.h * 0.46 + Math.sin(t * 0.7 + i) * 35;
-        this.drawCube(x, y, s, i % 2 ? pal.accent : pal.accent2);
-      }
-
-      if (p.objects.people) this.drawBlockyPeople(t);
-      if (p.objects.animals) this.drawBlockyAnimals(t);
-    }
-
-    drawBlock(x, y, s, type) {
-      const ctx = this.ctx;
-      const colors = {
-        grass: ["#22c55e", "#15803d"],
-        dirt: ["#92400e", "#78350f"],
-        stone: ["#78716c", "#57534e"],
-        sand: ["#facc15", "#ca8a04"],
-        water: ["#0284c7", "#075985"]
-      };
-      const c = colors[type] || colors.dirt;
-      ctx.fillStyle = c[0];
-      ctx.fillRect(x, y, s, s);
-      ctx.fillStyle = c[1];
-      ctx.fillRect(x, y + s * 0.68, s, s * 0.32);
-      ctx.strokeStyle = "rgba(0,0,0,0.18)";
-      ctx.strokeRect(x, y, s, s);
-    }
-
-    drawCube(x, y, s, color) {
-      const ctx = this.ctx;
-      ctx.fillStyle = color;
-      ctx.fillRect(x, y, s, s);
-      ctx.fillStyle = colorWithAlpha("#000000", 0.18);
-      ctx.fillRect(x, y + s * 0.7, s, s * 0.3);
-      ctx.strokeStyle = "rgba(255,255,255,0.25)";
-      ctx.strokeRect(x, y, s, s);
-    }
-
-    drawBlockyPeople(t) {
-      const ctx = this.ctx;
-      for (let i = 0; i < 12; i++) {
-        const x = ((i * 100 + t * 25) % (this.w + 100)) - 50;
-        const y = this.h * 0.68 + Math.sin(i) * 40;
-        ctx.fillStyle = "#2563eb";
-        ctx.fillRect(x, y, 20, 42);
-        ctx.fillStyle = "#d6a77a";
-        ctx.fillRect(x - 2, y - 22, 24, 22);
-      }
-    }
-
-    drawBlockyAnimals(t) {
-      const ctx = this.ctx;
-      for (let i = 0; i < 8; i++) {
-        const x = ((i * 140 + t * 18) % (this.w + 120)) - 60;
-        const y = this.h * 0.72 + Math.sin(i) * 35;
-        ctx.fillStyle = "#f8fafc";
-        ctx.fillRect(x, y, 44, 24);
-        ctx.fillRect(x + 34, y - 12, 18, 18);
-        ctx.fillStyle = "#111827";
-        ctx.fillRect(x + 39, y - 6, 4, 4);
-      }
-    }
-
-    drawPixelGame(t) {
-      const ctx = this.ctx;
-      const pixel = Math.max(4, Math.floor(this.w / 180));
-
-      ctx.imageSmoothingEnabled = false;
-      ctx.strokeStyle = "rgba(255,255,255,0.045)";
-      ctx.lineWidth = 1;
-
-      for (let x = 0; x < this.w; x += pixel * 8) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, this.h);
-        ctx.stroke();
-      }
-
-      for (let y = 0; y < this.h; y += pixel * 8) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(this.w, y);
-        ctx.stroke();
-      }
-
-      this.drawPlatforms();
-      this.drawGameItems(t);
-      this.drawPixelHero(t);
-
-      ctx.imageSmoothingEnabled = true;
-    }
-
-    drawPlatforms() {
-      const ctx = this.ctx;
-      for (const pl of this.world.items.platforms) {
-        ctx.fillStyle = pl.type === "metal" ? "#64748b" : pl.type === "wood" ? "#92400e" : "#22c55e";
-        ctx.fillRect(pl.x, pl.y, pl.w, pl.h);
-        ctx.fillStyle = "rgba(0,0,0,0.2)";
-        ctx.fillRect(pl.x, pl.y + pl.h * 0.65, pl.w, pl.h * 0.35);
-      }
-    }
-
-    drawGameItems(t) {
-      const ctx = this.ctx;
-      const p = this.world.parsed;
-
-      if (p.objects.coins || p.styles.arcade || p.styles.platformer || p.styles.pixel || p.styles.rpg || p.effects.coins) {
-        for (const c of this.world.items.coins) {
-          const wobble = Math.sin(t * 4 + c.phase);
-          ctx.fillStyle = "#facc15";
-          ctx.beginPath();
-          ctx.ellipse(c.x, c.y, c.r * (0.35 + Math.abs(wobble) * 0.65), c.r, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = "#ca8a04";
-          ctx.stroke();
-        }
-      }
-
-      for (const e of this.world.items.enemies) {
-        const x = e.x + Math.sin(t * 1.8 + e.phase) * 40;
-        const y = e.y + Math.sin(t * 5 + e.phase) * 4;
-        ctx.fillStyle = e.color;
-        ctx.fillRect(x, y, e.s, e.s);
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(x + e.s * 0.22, y + e.s * 0.25, e.s * 0.18, e.s * 0.18);
-        ctx.fillRect(x + e.s * 0.62, y + e.s * 0.25, e.s * 0.18, e.s * 0.18);
-      }
-    }
-
-    drawPixelHero(t) {
-      const ctx = this.ctx;
-      const x = this.w * 0.5 + Math.sin(t * 1.8) * 120;
-      const y = this.h * 0.62 + Math.sin(t * 5) * 8;
-      const s = 32;
-
-      ctx.fillStyle = "#3b82f6";
-      ctx.fillRect(x - s / 2, y - s, s, s);
-
-      ctx.fillStyle = "#d6a77a";
-      ctx.fillRect(x - s * 0.35, y - s * 1.55, s * 0.7, s * 0.55);
-
-      ctx.fillStyle = "#111827";
-      ctx.fillRect(x - s * 0.2, y - s * 1.35, 5, 5);
-      ctx.fillRect(x + s * 0.1, y - s * 1.35, 5, 5);
-    }
-
-    drawRacing(t) {
-      const ctx = this.ctx;
-
-      ctx.fillStyle = "#111827";
-      ctx.fillRect(0, this.h * 0.45, this.w, this.h * 0.55);
-
-      ctx.fillStyle = "#1f2937";
-      ctx.beginPath();
-      ctx.moveTo(this.w * 0.42, this.h * 0.45);
-      ctx.lineTo(this.w * 0.58, this.h * 0.45);
-      ctx.lineTo(this.w, this.h);
-      ctx.lineTo(0, this.h);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.strokeStyle = "#facc15";
-      ctx.lineWidth = 4;
-      ctx.setLineDash([30, 30]);
-      ctx.lineDashOffset = -t * 180;
-
-      ctx.beginPath();
-      ctx.moveTo(this.w * 0.5, this.h * 0.48);
-      ctx.lineTo(this.w * 0.5, this.h);
-      ctx.stroke();
-
-      ctx.setLineDash([]);
-      this.drawCars(t);
-    }
-
-    drawAbstract(t) {
-      const ctx = this.ctx;
-      const pal = this.world.palette;
-
-      for (let i = 0; i < 58; i++) {
-        const angle = t * 0.42 + i * 0.57;
-        const radius = 40 + i * 9;
-        const x = this.w / 2 + Math.cos(angle) * radius;
-        const y = this.h / 2 + Math.sin(angle * 1.2) * radius * 0.55;
-        const r = 22 + Math.sin(t + i) * 10 + i * 0.4;
-
-        const g = ctx.createRadialGradient(x, y, 0, x, y, r * 4);
-        g.addColorStop(0, i % 2 ? pal.accent : pal.accent2);
-        g.addColorStop(1, "rgba(0,0,0,0)");
-
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(x, y, r * 4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    drawAnimals(t) {
-      const ctx = this.ctx;
-      for (let i = 0; i < 7; i++) {
-        const x = ((i * 190 + t * 18) % (this.w + 120)) - 60;
-        const y = this.h * 0.78 + Math.sin(i) * 28;
-        ctx.fillStyle = "rgba(0,0,0,0.45)";
-        ctx.beginPath();
-        ctx.ellipse(x, y, 24, 12, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(x + 24, y - 8, 9, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    drawFantasyLayer(t) {
-      const ctx = this.ctx;
-      const x = this.w * 0.7 + Math.sin(t) * 45;
-      const y = this.h * 0.38 + Math.cos(t * 0.8) * 20;
-
-      ctx.fillStyle = "rgba(124,58,237,0.45)";
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x - 70, y + 45);
-      ctx.lineTo(x - 15, y + 20);
-      ctx.lineTo(x, y + 60);
-      ctx.lineTo(x + 15, y + 20);
-      ctx.lineTo(x + 70, y + 45);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.fillStyle = "rgba(250,204,21,0.8)";
-      ctx.beginPath();
-      ctx.arc(x, y - 10, 8, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    drawSciFiLayer(t) {
-      const ctx = this.ctx;
-      for (let i = 0; i < 5; i++) {
-        const x = (i * 220 + t * 50) % (this.w + 120) - 60;
-        const y = this.h * 0.22 + Math.sin(t + i) * 35;
-        ctx.strokeStyle = "rgba(0,245,255,0.75)";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(x - 30, y);
-        ctx.lineTo(x + 30, y);
-        ctx.stroke();
-        ctx.fillStyle = "rgba(0,245,255,0.25)";
-        ctx.beginPath();
-        ctx.ellipse(x, y, 44, 16, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    drawRain(t) {
-      const ctx = this.ctx;
-      ctx.save();
-      ctx.strokeStyle = "rgba(180,220,255,0.44)";
-      ctx.lineWidth = 1;
-
-      for (const r of this.world.items.rain) {
-        const y = (r.y + t * r.speed) % (this.h + 80);
-        const x = (r.x + t * r.drift + this.w) % this.w;
-        ctx.globalAlpha = r.a;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x - r.len * 0.45, y + r.len);
-        ctx.stroke();
-      }
-
-      ctx.restore();
-    }
-
-    drawSnow(t) {
-      const ctx = this.ctx;
-      for (const s of this.world.items.snow) {
-        const y = (s.y + t * s.speed) % (this.h + 30);
-        const x = (s.x + Math.sin(t + s.phase) * 18 + t * s.drift + this.w) % this.w;
-        ctx.fillStyle = `rgba(255,255,255,${s.a})`;
-        ctx.beginPath();
-        ctx.arc(x, y, s.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    drawFog(t) {
-      const ctx = this.ctx;
-      for (let i = 0; i < 9; i++) {
-        const y = this.h * (0.18 + i * 0.08);
-        const x = Math.sin(t * 0.16 + i) * this.w * 0.08;
-        const g = ctx.createLinearGradient(0, y - 60, 0, y + 60);
-        g.addColorStop(0, "rgba(255,255,255,0)");
-        g.addColorStop(0.5, "rgba(255,255,255,0.095)");
-        g.addColorStop(1, "rgba(255,255,255,0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(x - 120, y - 80, this.w + 240, 160);
-      }
-    }
-
-    drawFire(t) {
-      const ctx = this.ctx;
-      for (let i = 0; i < 32; i++) {
-        const x = (i * 47 + Math.sin(t + i) * 30) % this.w;
-        const y = this.h * 0.75 + Math.sin(t * 3 + i) * 20;
-        const r = 20 + Math.sin(t * 5 + i) * 10;
-        const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2);
-        g.addColorStop(0, "rgba(250,204,21,0.75)");
-        g.addColorStop(0.45, "rgba(249,115,22,0.38)");
-        g.addColorStop(1, "rgba(239,68,68,0)");
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(x, y, r * 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    drawLightning(t) {
-      const ctx = this.ctx;
-      if (Math.sin(t * 7) < 0.35) return;
-
-      ctx.strokeStyle = "rgba(255,255,255,0.75)";
-      ctx.lineWidth = 3;
-
-      for (let i = 0; i < 3; i++) {
-        let x = this.w * (0.2 + i * 0.27);
-        let y = 0;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        for (let k = 0; k < 8; k++) {
-          x += Math.sin(t * 20 + i + k) * 25;
-          y += this.h * 0.08;
-          ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-      }
-    }
-
-    drawMatrix(t) {
-      const ctx = this.ctx;
-      ctx.fillStyle = "rgba(0,255,120,0.18)";
-      ctx.font = "16px monospace";
-      for (let x = 0; x < this.w; x += 20) {
-        const y = (t * 80 + x * 7) % this.h;
-        ctx.fillText(String.fromCharCode(0x30A0 + ((x + y) | 0) % 96), x, y);
-      }
-    }
-
-    drawFloatingHearts(t) {
-      const ctx = this.ctx;
-      for (const icon of this.world.items.icons) {
-        const x = (icon.x + Math.sin(t + icon.phase) * 35) % this.w;
-        const y = this.h - ((t * icon.speed + icon.y) % this.h);
-        const s = icon.s;
-        ctx.fillStyle = "rgba(236,72,153,0.38)";
-        ctx.beginPath();
-        ctx.arc(x - s * 0.25, y, s * 0.35, 0, Math.PI * 2);
-        ctx.arc(x + s * 0.25, y, s * 0.35, 0, Math.PI * 2);
-        ctx.lineTo(x, y + s * 0.9);
-        ctx.closePath();
-        ctx.fill();
-      }
-    }
-
-    drawCoinBurst(t) {
-      const ctx = this.ctx;
-      for (const icon of this.world.items.icons) {
-        const x = (icon.x + Math.sin(t * 2 + icon.phase) * 60 + this.w) % this.w;
-        const y = (icon.y + Math.cos(t + icon.phase) * 40 + this.h) % this.h;
-        const s = icon.s * 0.45;
-        ctx.fillStyle = "rgba(250,204,21,0.42)";
-        ctx.beginPath();
-        ctx.ellipse(x, y, s, s * 1.35, Math.sin(t + icon.phase), 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    drawSparkBurst(t) {
-      const ctx = this.ctx;
-      for (const s of this.world.items.sparks) {
-        const x = (s.x + Math.sin(t + s.phase) * s.speed + this.w) % this.w;
-        const y = (s.y + Math.cos(t * 0.8 + s.phase) * s.speed + this.h) % this.h;
-        ctx.fillStyle = `hsla(${s.h},100%,70%,0.35)`;
-        ctx.beginPath();
-        ctx.arc(x, y, s.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    drawCommandSubject(t) {
-      const ctx = this.ctx;
-      const p = this.world.parsed;
-
-      if (p.uiMode) return;
-
-      const hasSubject = p.command.requested || p.objects.dragon || p.objects.robot || p.objects.cars;
-      if (!hasSubject) return;
-
-      const obj =
-        p.command.object ||
-        (p.objects.dragon ? "dragon" : p.objects.robot ? "robot" : p.objects.cars ? "cars" : "object");
-
-      const action = p.command.action || (p.actions.fly ? "fly" : p.actions.run ? "run" : "idle");
-      const flyY = action === "fly" ? Math.sin(t * 2.4) * 70 - 70 : 0;
-      const x = this.w * 0.5 + Math.sin(t * 1.5 * p.modifiers.speed) * 100;
-      const y = this.h * 0.48 + Math.cos(t * 1.2) * 35 + flyY;
-      const s = 48 * p.modifiers.scale;
-
-      ctx.save();
-
-      if (p.effects.neon || p.modifiers.glow || p.effects.fire) {
-        ctx.shadowBlur = 28;
-        ctx.shadowColor = p.effects.fire ? "#f97316" : this.world.palette.accent;
-      }
-
-      if (obj === "dragon") {
-        ctx.fillStyle = p.effects.fire ? "rgba(239,68,68,0.78)" : "rgba(124,58,237,0.72)";
-        ctx.beginPath();
-        ctx.moveTo(x, y - s);
-        ctx.lineTo(x - s * 1.8, y + s * 0.25);
-        ctx.lineTo(x - s * 0.4, y + s * 0.12);
-        ctx.lineTo(x, y + s);
-        ctx.lineTo(x + s * 0.4, y + s * 0.12);
-        ctx.lineTo(x + s * 1.8, y + s * 0.25);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.fillStyle = "rgba(250,204,21,0.9)";
-        ctx.beginPath();
-        ctx.arc(x + s * 0.25, y - s * 0.35, s * 0.13, 0, Math.PI * 2);
-        ctx.fill();
-
-        if (p.effects.fire || p.objects.fire) {
-          for (let i = 0; i < 7; i++) {
-            const fx = x + s * 1.1 + i * 13;
-            const fy = y - s * 0.25 + Math.sin(t * 8 + i) * 8;
-            const g = ctx.createRadialGradient(fx, fy, 0, fx, fy, 32);
-            g.addColorStop(0, "rgba(250,204,21,0.9)");
-            g.addColorStop(0.4, "rgba(249,115,22,0.55)");
-            g.addColorStop(1, "rgba(239,68,68,0)");
-            ctx.fillStyle = g;
-            ctx.beginPath();
-            ctx.arc(fx, fy, 32, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
-      } else if (obj === "robot") {
-        ctx.fillStyle = "#64748b";
-        this.roundRect(x - s * 0.5, y - s * 0.6, s, s * 1.1, 8);
-        ctx.fill();
-        ctx.fillStyle = "#22d3ee";
-        ctx.fillRect(x - s * 0.25, y - s * 0.25, s * 0.18, s * 0.18);
-        ctx.fillRect(x + s * 0.08, y - s * 0.25, s * 0.18, s * 0.18);
-      } else if (obj === "cars" || obj === "car") {
-        this.drawCar(x, y, 1.5 * p.modifiers.scale, this.world.palette.accent, false);
-      } else {
-        ctx.fillStyle = this.world.palette.accent;
-        ctx.beginPath();
-        ctx.arc(x, y, s * 0.75, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      ctx.restore();
-    }
-
-    drawPromptWordLayer(t) {
-      const ctx = this.ctx;
-      const p = this.world.parsed;
-
-      for (const obj of this.world.items.wordObjects) {
-        const mode = obj.hash % 8;
-        const motion = obj.hash % 6;
-        let x = obj.x;
-        let y = obj.y;
-
-        if (motion === 0) {
-          x = (obj.x + Math.sin(t + obj.phase) * obj.speed + this.w) % this.w;
-          y = (obj.y + Math.cos(t * 0.7 + obj.phase) * obj.speed * 0.5 + this.h) % this.h;
-        } else if (motion === 1) {
-          x = (obj.x + t * obj.speed + this.w) % this.w;
-        } else if (motion === 2) {
-          y = (obj.y + t * obj.speed + this.h) % this.h;
-        } else if (motion === 3) {
-          x = this.w * 0.5 + Math.cos(t + obj.phase) * obj.speed * 2;
-          y = this.h * 0.5 + Math.sin(t + obj.phase) * obj.speed;
-        } else {
-          x = (obj.x + Math.sin(t * 2 + obj.phase) * obj.speed + this.w) % this.w;
-          y = (obj.y + Math.sin(t * 3 + obj.phase) * obj.speed + this.h) % this.h;
-        }
-
-        ctx.save();
-        ctx.globalAlpha = p.uiMode ? 0.035 : 0.045 + ((obj.hash % 100) / 100) * 0.09;
-        ctx.fillStyle = obj.color;
-
-        if (p.styles.pixel || p.styles.voxel) {
-          const s = obj.size;
-          ctx.fillRect(x, y, s, s);
-          if (mode % 2) ctx.fillRect(x + s * 0.4, y - s * 0.4, s, s);
-        } else {
-          ctx.beginPath();
-          if (mode === 0) ctx.arc(x, y, obj.size, 0, Math.PI * 2);
-          else if (mode === 1) ctx.rect(x, y, obj.size * 1.5, obj.size);
-          else if (mode === 2) ctx.ellipse(x, y, obj.size * 1.4, obj.size * 0.7, t, 0, Math.PI * 2);
-          else {
-            ctx.moveTo(x, y - obj.size);
-            ctx.lineTo(x - obj.size, y + obj.size);
-            ctx.lineTo(x + obj.size, y + obj.size);
-            ctx.closePath();
-          }
-          ctx.fill();
-        }
-
-        ctx.restore();
-      }
-    }
-
-    drawParticles(t) {
-      const ctx = this.ctx;
-      const p = this.world.parsed;
-
-      for (const part of this.world.items.particles) {
-        const x = (part.x + part.vx * t * 60 + this.w) % this.w;
-        const y = (part.y + part.vy * t * 60 + this.h) % this.h;
-
-        ctx.fillStyle =
-          p.styles.synthwave || p.modifiers.glow || p.effects.neon || p.uiMode || p.futureMode
-            ? `hsla(${part.hue},100%,70%,${part.a})`
-            : `rgba(255,255,255,${part.a * 0.6})`;
-
-        ctx.beginPath();
-        ctx.arc(x, y, part.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    drawStyleOverlay(t) {
-      const ctx = this.ctx;
-      const p = this.world.parsed;
-
-      if (p.styles.noir) {
-        ctx.fillStyle = "rgba(0,0,0,0.28)";
-        ctx.fillRect(0, 0, this.w, this.h);
-      }
-
-      if (p.styles.comic) {
-        this.drawHalftone(t);
-        ctx.strokeStyle = "rgba(0,0,0,0.28)";
-        ctx.lineWidth = 5;
-        ctx.strokeRect(8, 8, this.w - 16, this.h - 16);
-      }
-
-      if (p.styles.anime) {
-        ctx.fillStyle = "rgba(255,255,255,0.035)";
-        ctx.fillRect(0, 0, this.w, this.h);
-        ctx.strokeStyle = "rgba(0,0,0,0.18)";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(0, 0, this.w, this.h);
-      }
-
-      if (p.styles.watercolor || p.modifiers.dream || p.styles.dream) {
-        for (let i = 0; i < 14; i++) {
-          ctx.fillStyle = "rgba(255,255,255,0.018)";
-          ctx.beginPath();
-          ctx.ellipse(
-            (i * 97 + Math.sin(t + i) * 20) % this.w,
-            (i * 53) % this.h,
-            120,
-            45,
-            Math.sin(i),
-            0,
-            Math.PI * 2
-          );
-          ctx.fill();
-        }
-      }
-
-      if (p.styles.glitch || p.effects.glitch) {
-        for (let i = 0; i < 10; i++) {
-          const y = Math.random() * this.h;
-          const h = Math.random() * 8 + 2;
-          ctx.fillStyle = i % 2 ? "rgba(0,255,255,0.08)" : "rgba(255,0,255,0.08)";
-          ctx.fillRect(Math.random() * 20 - 10, y, this.w, h);
-        }
-      }
-
-      if (p.effects.scanlines || p.effects.vhs || p.uiMode) {
-        ctx.fillStyle = p.uiMode ? "rgba(34,211,238,0.035)" : "rgba(0,0,0,0.12)";
-        for (let y = 0; y < this.h; y += 4) ctx.fillRect(0, y, this.w, 1);
-      }
-
-      if (p.styles.blueprint) {
-        ctx.strokeStyle = "rgba(147,197,253,0.14)";
-        for (let x = 0; x < this.w; x += 32) {
-          ctx.beginPath();
-          ctx.moveTo(x, 0);
-          ctx.lineTo(x, this.h);
-          ctx.stroke();
-        }
-        for (let y = 0; y < this.h; y += 32) {
-          ctx.beginPath();
-          ctx.moveTo(0, y);
-          ctx.lineTo(this.w, y);
-          ctx.stroke();
-        }
-      }
-
-      const vignette = ctx.createRadialGradient(
-        this.w * 0.5,
-        this.h * 0.45,
-        this.w * 0.1,
-        this.w * 0.5,
-        this.h * 0.5,
-        this.w * 0.78
-      );
-      vignette.addColorStop(0, "rgba(0,0,0,0)");
-      vignette.addColorStop(1, "rgba(0,0,0,0.36)");
-      ctx.fillStyle = vignette;
-      ctx.fillRect(0, 0, this.w, this.h);
-    }
-
-    drawHalftone(t) {
-      const ctx = this.ctx;
-      const gap = 18;
-      ctx.fillStyle = "rgba(0,0,0,0.07)";
-
-      for (let y = 0; y < this.h; y += gap) {
-        for (let x = 0; x < this.w; x += gap) {
-          const r = 1.5 + Math.sin(x * 0.02 + y * 0.02 + t) * 1.2;
-          ctx.beginPath();
-          ctx.arc(x, y, Math.max(0.5, r), 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-    }
-
-    drawGrain() {
-      const ctx = this.ctx;
-      const p = this.world.parsed;
-      const amount = Math.floor((this.w * this.h) / 1100);
-
-      ctx.save();
-      ctx.globalAlpha =
-        p.styles.pixel ? 0.025 :
-        p.effects.grain || p.effects.vhs ? 0.09 :
-        0.052;
-
-      for (let i = 0; i < amount; i++) {
-        const x = Math.random() * this.w;
-        const y = Math.random() * this.h;
-        const v = 130 + Math.random() * 125;
-        ctx.fillStyle = `rgb(${v},${v},${v})`;
-        ctx.fillRect(x, y, 1, 1);
-      }
-
-      ctx.restore();
-    }
-
-    drawCinematicBars() {
-      const ctx = this.ctx;
-      const bar = Math.floor(this.h * 0.09);
-      ctx.fillStyle = "rgba(0,0,0,0.92)";
-      ctx.fillRect(0, 0, this.w, bar);
-      ctx.fillRect(0, this.h - bar, this.w, bar);
-    }
-
-    roundRect(x, y, w, h, r) {
-      const ctx = this.ctx;
-      r = Math.min(r, w / 2, h / 2);
-
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.lineTo(x + w - r, y);
-      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-      ctx.lineTo(x + w, y + h - r);
-      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-      ctx.lineTo(x + r, y + h);
-      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-      ctx.lineTo(x, y + r);
-      ctx.quadraticCurveTo(x, y, x + r, y);
-      ctx.closePath();
+  class World2D {
+    constructor(parsed, options){ this.parsed=parsed; this.options=options; this.w=options.width; this.h=options.height; this.seed=options.seed||hashString(parsed.correctedPrompt); this.rng=makeRng(this.seed); this.palette=this.makePalette(); this.items={particles:[],stars:[],rain:[],cards:[],lines:[],buildings:[],people:[],cars:[],orbs:[]}; this.generate(); }
+    rand(a=0,b=1){ return a+this.rng()*(b-a); }
+    makePalette(){ const p=this.parsed.palette; if(p.length) return {bg0:p[0],bg1:p[1]||"#111827",bg2:"#020617",accent:p[0],accent2:p[1]||"#22d3ee",light:"#f8fafc",dark:"#020617"}; if(this.parsed.uiMode) return {bg0:"#020617",bg1:"#111827",bg2:"#030712",accent:"#22d3ee",accent2:"#a855f7",light:"#e0f2fe",dark:"#020617"}; if(this.parsed.irl) return {bg0:"#9cc7ff",bg1:"#dbeafe",bg2:"#334155",accent:"#2563eb",accent2:"#f59e0b",light:"#f8fafc",dark:"#020617"}; return {bg0:"#60a5fa",bg1:"#93c5fd",bg2:"#0f172a",accent:"#22d3ee",accent2:"#a855f7",light:"#f8fafc",dark:"#020617"}; }
+    generate(){
+      for(let i=0;i<900;i++) this.items.particles.push({x:this.rand(0,this.w),y:this.rand(0,this.h),vx:this.rand(-1,1),vy:this.rand(-.8,.8),r:this.rand(.5,3.2),a:this.rand(.05,.5),h:this.rand(0,360),ph:this.rand(0,7)});
+      for(let i=0;i<400;i++) this.items.stars.push({x:this.rand(0,this.w),y:this.rand(0,this.h*.75),r:this.rand(.4,2.2),a:this.rand(.2,1),ph:this.rand(0,7)});
+      for(let i=0;i<900;i++) this.items.rain.push({x:this.rand(0,this.w),y:this.rand(0,this.h),len:this.rand(8,30),speed:this.rand(380,880),drift:this.rand(-120,-20),a:this.rand(.12,.55)});
+      let x=-40; while(x<this.w+120){ const bw=this.rand(35,100), bh=this.rand(this.h*.18,this.h*.62); this.items.buildings.push({x,y:this.h*.78-bh,w:bw,h:bh,rows:Math.floor(bh/18),cols:Math.floor(bw/13),ph:this.rand(0,99)}); x+=bw+this.rand(4,14); }
+      for(let i=0;i<64;i++) this.items.people.push({x:this.rand(0,this.w),y:this.rand(this.h*.68,this.h*.93),speed:this.rand(8,58)*(this.rng()>.5?1:-1),scale:this.rand(.5,1.35),ph:this.rand(0,7),coat:["#111827","#1f2937","#7f1d1d","#172554","#064e3b"][i%5]});
+      for(let i=0;i<34;i++) this.items.cars.push({x:this.rand(-this.w,this.w),y:this.rand(this.h*.78,this.h*.93),speed:this.rand(45,190)*(this.rng()>.5?1:-1),size:this.rand(.7,1.55),color:["#ef4444","#3b82f6","#eab308","#f8fafc","#22c55e"][i%5]});
+      for(let i=0;i<28;i++) this.items.cards.push({x:this.rand(this.w*.08,this.w*.78),y:this.rand(this.h*.12,this.h*.72),w:this.rand(110,290),h:this.rand(56,160),ph:this.rand(0,7),hue:this.rand(180,310)});
+      for(let i=0;i<90;i++) this.items.lines.push({x:this.rand(this.w*.12,this.w*.86),y:this.rand(this.h*.16,this.h*.82),w:this.rand(35,210),ph:this.rand(0,7)});
+      for(let i=0;i<80;i++) this.items.orbs.push({x:this.rand(0,this.w),y:this.rand(0,this.h),r:this.rand(10,90),h:this.rand(0,360),ph:this.rand(0,7)});
     }
   }
+
+  class Canvas2DRenderer {
+    constructor(canvas, world, options){ this.canvas=canvas; this.ctx=canvas.getContext("2d",{alpha:!!options.transparent}); this.world=world; this.options=options; this.w=canvas.width; this.h=canvas.height; }
+    shot(t){ const a=this.world.parsed.shotPlan; return a.find(s=>t>=s.start&&t<s.end)||a[a.length-1]; }
+    render(t){ const ctx=this.ctx,p=this.world.parsed,s=this.shot(t); ctx.save(); ctx.clearRect(0,0,this.w,this.h); this.micro(t); const cam=this.camera(t,s); ctx.translate(cam.x,cam.y); ctx.scale(cam.z,cam.z); this.bg(t); if(p.uiMode)this.ui(t); else if(p.mc)this.mc2d(t); else if(p.scene==="city"||p.scene==="irl")this.city(t); else this.abstract(t); this.subject(t); this.weather(t); this.particles(t); this.overlay(t); ctx.restore(); }
+    micro(t){ const s={t,energy:this.world.parsed.motion.energy,ui:this.world.parsed.uiMode,mix:1,uiBoost:0}; const lim=Math.min(MICRO_IF_RENDERERS.length,this.options.maxRules||1200); for(let i=0;i<lim;i+=7) MICRO_IF_RENDERERS[i](this.ctx,s); }
+    camera(t,shot){ const p=this.world.parsed,local=(t-shot.start)/Math.max(.01,shot.duration); let x=0,y=0,z=1; if(shot.camera==="dolly")z=1+local*.08; if(shot.camera==="handheld"){x+=Math.sin(t*17)*5;y+=Math.cos(t*15)*5;} if(shot.camera==="orbit"){x=Math.sin(t*.8)*22;y=Math.cos(t*.8)*12;} x+=Math.sin(t*19)*(p.motion.shake+p.motion.energy*.2)*2; y+=Math.cos(t*16)*(p.motion.shake+p.motion.energy*.2)*2; return{x,y,z}; }
+    bg(t){ const c=this.world.palette,ctx=this.ctx,g=ctx.createLinearGradient(0,0,0,this.h); g.addColorStop(0,c.bg0);g.addColorStop(.55,c.bg1);g.addColorStop(1,c.bg2);ctx.fillStyle=g;ctx.fillRect(-80,-80,this.w+160,this.h+160); if(this.world.parsed.irl){ ctx.fillStyle=colorAlpha("#fde68a",.8); ctx.beginPath(); ctx.arc(this.w*.78,this.h*.18,44,0,Math.PI*2);ctx.fill(); } }
+    city(t){ this.buildings(t); this.road(t); this.cars(t); this.people(t); }
+    buildings(t){ const ctx=this.ctx,p=this.world.parsed,pal=this.world.palette; for(const b of this.world.items.buildings){ ctx.fillStyle=p.irl?"#1e293b":"#020617";ctx.fillRect(b.x,b.y,b.w,b.h); for(let iy=0;iy<b.rows;iy++) for(let ix=0;ix<b.cols;ix++) if(Math.sin(ix*7+iy*11+b.ph+t*1.5)>-.1){ctx.fillStyle=p.irl?"rgba(255,226,130,.75)":(ix%2?pal.accent:pal.accent2);ctx.fillRect(b.x+7+ix*13,b.y+8+iy*17,5,8);} } }
+    road(t){ const ctx=this.ctx;ctx.fillStyle="#1f2937";ctx.fillRect(0,this.h*.78,this.w,this.h*.22);ctx.strokeStyle="rgba(255,255,255,.35)";ctx.lineWidth=3;ctx.setLineDash([34,28]);ctx.lineDashOffset=-t*90;ctx.beginPath();ctx.moveTo(0,this.h*.885);ctx.lineTo(this.w,this.h*.885);ctx.stroke();ctx.setLineDash([]); }
+    cars(t){ for(const c of this.world.items.cars){ const x=((c.x+t*c.speed)%(this.w+260))-130; this.car(x,c.y,c.size,c.color,c.speed<0); } }
+    car(x,y,scale,color,flip){ const ctx=this.ctx,dir=flip?-1:1,w=72*scale,h=28*scale; ctx.save();ctx.translate(x,y);ctx.scale(dir,1);ctx.fillStyle=color;this.round(-w/2,-h,w,h,8);ctx.fill();ctx.fillStyle="rgba(180,220,255,.8)";this.round(-w*.22,-h*1.48,w*.42,h*.55,6);ctx.fill();ctx.fillStyle="#020617";ctx.beginPath();ctx.arc(-w*.28,0,8*scale,0,Math.PI*2);ctx.arc(w*.28,0,8*scale,0,Math.PI*2);ctx.fill();ctx.restore(); }
+    people(t){ for(const p of this.world.items.people){ const x=((p.x+t*p.speed)%(this.w+80))-40; this.person(x,p.y+Math.sin(t*6+p.ph)*2,p.scale,p.coat,t+p.ph); } }
+    person(x,y,scale,coat,ph){ const ctx=this.ctx,s=17*scale,w=Math.sin(ph*5)*7*scale; ctx.strokeStyle="rgba(0,0,0,.35)";ctx.lineWidth=6*scale;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(x,y-s*1.6);ctx.lineTo(x-w,y-s*.6);ctx.moveTo(x,y-s*1.6);ctx.lineTo(x+w,y-s*.6);ctx.stroke();ctx.fillStyle=coat;this.round(x-s*.34,y-s*2.35,s*.68,s*1.1,5);ctx.fill();ctx.fillStyle="#d6a77a";ctx.beginPath();ctx.arc(x,y-s*2.68,s*.34,0,Math.PI*2);ctx.fill(); }
+    ui(t){ const ctx=this.ctx,p=this.world.parsed,pal=this.world.palette,bp=p.uiBlueprint,pad=Math.min(this.w,this.h)*.06,x=pad,y=pad,w=this.w-pad*2,h=this.h-pad*2;ctx.save();ctx.shadowBlur=20;ctx.shadowColor=pal.accent;ctx.fillStyle="rgba(2,6,23,.80)";this.round(x,y,w,h,bp.rounded);ctx.fill();ctx.strokeStyle=colorAlpha(pal.accent,.65);ctx.stroke();const side=w*.18;ctx.fillStyle="rgba(15,23,42,.85)";this.round(x+16,y+16,side,h-32,18);ctx.fill();for(let i=0;i<Math.max(4,bp.buttons+3);i++){ctx.fillStyle=i===Math.floor((t*1.2)%7)?colorAlpha(pal.accent,.5):"rgba(148,163,184,.22)";this.round(x+34,y+48+i*42,side-36,18,9);ctx.fill();}const cx=x+side+34,cw=w-side-54;ctx.fillStyle="rgba(15,23,42,.64)";this.round(cx,y+18,cw,70,18);ctx.fill();ctx.fillStyle=pal.light;ctx.font=`${Math.max(18,Math.floor(this.w/45))}px system-ui`;ctx.fillText("Prompt-built UI",cx+24,y+62);for(const card of this.world.items.cards.slice(0,bp.cards+5)){const px=cx+((card.x-cx+t*8)%Math.max(100,cw-card.w));ctx.fillStyle=bp.glass?"rgba(255,255,255,.12)":`hsla(${card.hue},70%,35%,.28)`;this.round(px,card.y,card.w,card.h,18);ctx.fill();ctx.strokeStyle=colorAlpha(pal.accent,.3);ctx.stroke();this.chart(px+12,card.y+16,card.w-24,card.h-30,t+card.ph);}for(const ln of this.world.items.lines){ctx.fillStyle=colorAlpha(pal.light,.12+Math.abs(Math.sin(t*2+ln.ph))*.3);this.round(ln.x,ln.y,ln.w,5,3);ctx.fill();}ctx.restore(); }
+    chart(x,y,w,h,t){ const ctx=this.ctx;ctx.strokeStyle="rgba(34,211,238,.7)";ctx.lineWidth=2;ctx.beginPath();for(let i=0;i<18;i++){const px=x+i/17*w,py=y+h*.55+Math.sin(t+i*.7)*h*.25;if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);}ctx.stroke(); }
+    abstract(t){ const ctx=this.ctx; for(const o of this.world.items.orbs){const x=(o.x+Math.sin(t+o.ph)*60+this.w)%this.w,y=(o.y+Math.cos(t*.8+o.ph)*45+this.h)%this.h,g=ctx.createRadialGradient(x,y,0,x,y,o.r*3);g.addColorStop(0,`hsla(${o.h},100%,70%,.28)`);g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,o.r*3,0,Math.PI*2);ctx.fill();} }
+    mc2d(t){ const ctx=this.ctx; const size=24; ctx.fillStyle="#60a5fa"; ctx.fillRect(0,0,this.w,this.h); for(let y=Math.floor(this.h*.45/size)*size;y<this.h;y+=size){ for(let x=-size;x<this.w+size;x+=size){ const hill=Math.sin(x*.02+t*.1)*size*1.5; const yy=y+hill; ctx.fillStyle=y<this.h*.62?"#22c55e":(Math.random()>.18?"#7c4a22":"#78716c"); ctx.fillRect(x,yy,size,size); ctx.strokeStyle="rgba(0,0,0,.15)"; ctx.strokeRect(x,yy,size,size); } } for(let i=0;i<12;i++){ const x=(i*90+t*18)%this.w,y=this.h*.52+Math.sin(i)*40; ctx.fillStyle="#166534"; ctx.fillRect(x,y,26,46); ctx.fillStyle="#22c55e"; ctx.fillRect(x-4,y-24,34,28); ctx.fillStyle="#020617"; ctx.fillRect(x+5,y-13,5,5); ctx.fillRect(x+18,y-13,5,5); } }
+    subject(t){ const p=this.world.parsed;if(p.uiMode)return;const ctx=this.ctx,x=this.w*.5+Math.sin(t*1.4)*100,y=this.h*.5+Math.cos(t)*30,s=54;ctx.save();if(p.motion.glow){ctx.shadowBlur=30;ctx.shadowColor=this.world.palette.accent;}if(p.subject==="car")this.car(x,y,1.5,this.world.palette.accent,false);else if(p.subject==="person"||p.subject==="face")this.person(x,y+s,1.35,"#172554",t);else if(p.subject==="robot"){ctx.fillStyle="#64748b";this.round(x-s/2,y-s*.6,s,s*1.1,8);ctx.fill();ctx.fillStyle="#22d3ee";ctx.fillRect(x-s*.25,y-s*.25,s*.18,s*.18);ctx.fillRect(x+s*.08,y-s*.25,s*.18,s*.18);}ctx.restore(); }
+    weather(t){ if(this.world.parsed.looks.rain){const ctx=this.ctx;ctx.save();ctx.strokeStyle="rgba(180,220,255,.44)";for(const r of this.world.items.rain){const y=(r.y+t*r.speed)%(this.h+80),x=(r.x+t*r.drift+this.w)%this.w;ctx.globalAlpha=r.a;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-r.len*.45,y+r.len);ctx.stroke();}ctx.restore();} }
+    particles(t){ const ctx=this.ctx;for(const p of this.world.items.particles){const x=(p.x+p.vx*t*60+this.w)%this.w,y=(p.y+p.vy*t*60+this.h)%this.h;ctx.fillStyle=this.world.parsed.motion.glow?`hsla(${p.h},100%,70%,${p.a})`:`rgba(255,255,255,${p.a*.45})`;ctx.beginPath();ctx.arc(x,y,p.r,0,Math.PI*2);ctx.fill();} }
+    overlay(t){ const ctx=this.ctx,p=this.world.parsed;if(p.looks.glitch)for(let i=0;i<10;i++){ctx.fillStyle=i%2?"rgba(0,255,255,.08)":"rgba(255,0,255,.08)";ctx.fillRect(Math.random()*20-10,Math.random()*this.h,this.w,Math.random()*8+2);}const v=ctx.createRadialGradient(this.w*.5,this.h*.45,this.w*.1,this.w*.5,this.h*.5,this.w*.78);v.addColorStop(0,"rgba(0,0,0,0)");v.addColorStop(1,"rgba(0,0,0,.36)");ctx.fillStyle=v;ctx.fillRect(0,0,this.w,this.h);this.grain(); }
+    grain(){ const ctx=this.ctx,n=Math.floor(this.w*this.h/1000);ctx.save();ctx.globalAlpha=.045;for(let i=0;i<n;i++){const v=130+Math.random()*125;ctx.fillStyle=`rgb(${v},${v},${v})`;ctx.fillRect(Math.random()*this.w,Math.random()*this.h,1,1);}ctx.restore(); }
+    round(x,y,w,h,r){ const ctx=this.ctx;r=Math.min(r,Math.abs(w)/2,Math.abs(h)/2);ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath(); }
+  }
+
+  class ThreeGLSLRenderer {
+    constructor(canvas, parsed, options){
+      this.canvas=canvas; this.parsed=parsed; this.options=options; this.THREE=global.THREE; this.ready=false;
+      if(!this.THREE) return;
+      const T=this.THREE;
+      this.renderer=new T.WebGLRenderer({canvas,alpha:!!options.transparent,antialias:true,preserveDrawingBuffer:true});
+      this.renderer.setSize(options.width,options.height,false);
+      this.renderer.setPixelRatio(Math.min(2,global.devicePixelRatio||1));
+      this.scene=new T.Scene();
+      this.camera=new T.PerspectiveCamera(55,options.width/options.height,0.1,2000);
+      this.camera.position.set(0,3,8);
+      this.clockSeed=hashString(parsed.correctedPrompt);
+      this.uniforms={uTime:{value:0},uTop:{value:new T.Color(parsed.irl?"#93c5fd":"#020617")},uMid:{value:new T.Color(parsed.uiMode?"#111827":"#64748b")},uBottom:{value:new T.Color(parsed.uiMode?"#030712":"#1f2937")},uColorA:{value:new T.Color("#1f2937")},uColorB:{value:new T.Color("#64748b")},uAccent:{value:new T.Color(parsed.palette[0]||"#22d3ee")}};
+      this.buildScene(); this.ready=true;
+    }
+    buildScene(){ const T=this.THREE; this.scene.background=new T.Color(this.parsed.irl?"#dbeafe":"#020617"); const hemi=new T.HemisphereLight(0xffffff,0x334155,1.8); this.scene.add(hemi); const dir=new T.DirectionalLight(0xffffff,2.2); dir.position.set(5,8,6); this.scene.add(dir); this.addSky(); if(this.parsed.uiMode)this.addUI3D(); else if(this.parsed.mc)this.addMinecraftWorld(); else this.addIRLWorld(); }
+    mat(vs,fs,extra={}){ const T=this.THREE; return new T.ShaderMaterial({vertexShader:vs,fragmentShader:fs,uniforms:Object.assign({},this.uniforms,extra),transparent:true}); }
+    addSky(){ const T=this.THREE; const geo=new T.SphereGeometry(500,32,16); const mat=this.mat(GLSL.vertexBasic,GLSL.skyFragment); mat.side=T.BackSide; const mesh=new T.Mesh(geo,mat); this.scene.add(mesh); }
+    addIRLWorld(){ const T=this.THREE; const groundMat=this.mat(GLSL.vertexBasic,GLSL.irlGroundFragment); const ground=new T.Mesh(new T.PlaneGeometry(160,160,128,128),groundMat); ground.rotation.x=-Math.PI/2; ground.position.y=-1; this.scene.add(ground); const rng=makeRng(hashString(this.parsed.correctedPrompt+"3d")); for(let i=0;i<80;i++){ const h=0.4+rng()*8,w=.4+rng()*1.6,d=.4+rng()*1.6; const geo=new T.BoxGeometry(w,h,d); const mat=new T.MeshStandardMaterial({color:new T.Color().setHSL((.55+rng()*.15)%1,.25,.25+rng()*.2),roughness:.65,metalness:.05}); const m=new T.Mesh(geo,mat); m.position.set((rng()-.5)*55,h/2-1,(rng()-.5)*55); this.scene.add(m); } for(let i=0;i<120;i++){ const geo=new T.SphereGeometry(.03+rng()*.05,8,8); const mat=new T.MeshBasicMaterial({color:new T.Color().setHSL(rng(),1,.7)}); const p=new T.Mesh(geo,mat); p.userData={kind:"particle",speed:.5+rng()*2,phase:rng()*7}; p.position.set((rng()-.5)*40,rng()*12,(rng()-.5)*40); this.scene.add(p); } }
+    addMinecraftWorld(){ const T=this.THREE; const rng=makeRng(hashString(this.parsed.correctedPrompt+"mcworld")); const biome=this.parsed.correctedPrompt.includes("nether")?"nether":this.parsed.correctedPrompt.includes("snow")?"snow":this.parsed.correctedPrompt.includes("desert")?"desert":this.parsed.correctedPrompt.includes("cave")?"cave":"overworld"; const grass=biome==="nether"?0x7f1d1d:biome==="desert"?0xd6b15f:biome==="snow"?0xe5e7eb:0x2f8f3a; const dirt=biome==="nether"?0x3b0a0a:biome==="desert"?0xa16207:0x6b3f1d; const stone=biome==="cave"?0x44403c:0x57534e; const blockGeo=new T.BoxGeometry(1,1,1); for(let x=-28;x<=28;x++){ for(let z=-28;z<=28;z++){ const h=Math.floor(1.5+Math.sin(x*.35)*1.4+Math.cos(z*.31)*1.2+rng()*2.2); for(let y=0;y<h;y++){ const c=y===h-1?grass:(y>h-4?dirt:stone); const mat=new T.MeshStandardMaterial({color:c,roughness:.9,metalness:0}); const b=new T.Mesh(blockGeo,mat); b.position.set(x,y-1,z); b.userData={kind:"mcBlock",phase:rng()*7}; this.scene.add(b); } } } const trunkMat=new T.MeshStandardMaterial({color:0x5b3417,roughness:.9}); const leafMat=new T.MeshStandardMaterial({color:biome==="snow"?0xdbeafe:0x166534,roughness:.9}); for(let i=0;i<65;i++){ const x=Math.floor((rng()-.5)*48), z=Math.floor((rng()-.5)*48); if(biome==="desert"||biome==="nether") continue; for(let y=0;y<4+rng()*3;y++){ const t=new T.Mesh(blockGeo,trunkMat); t.position.set(x,y+1,z); this.scene.add(t); } for(let ax=-2;ax<=2;ax++) for(let ay=0;ay<=2;ay++) for(let az=-2;az<=2;az++){ if(Math.abs(ax)+Math.abs(az)+ay>5) continue; const l=new T.Mesh(blockGeo,leafMat); l.position.set(x+ax,5+ay,z+az); this.scene.add(l); } } const mobColors={creeper:0x22c55e,zombie:0x166534,skeleton:0xe5e7eb,enderman:0x111111,villager:0x8b5a2b}; const mobName=this.parsed.subject==="minecraftMob"?(this.parsed.words.find(w=>mobColors[w])||"creeper"):"creeper"; for(let i=0;i<10;i++){ const mat=new T.MeshStandardMaterial({color:mobColors[mobName]||0x22c55e,roughness:.75}); const body=new T.Mesh(new T.BoxGeometry(.8,1.4,.45),mat); body.position.set((rng()-.5)*38,2,(rng()-.5)*38); body.userData={kind:"mcMob",phase:rng()*7}; this.scene.add(body); const head=new T.Mesh(new T.BoxGeometry(.75,.75,.75),mat); head.position.set(body.position.x,3.05,body.position.z); head.userData={kind:"mcMob",phase:body.userData.phase}; this.scene.add(head); } }
+    addUI3D(){ const T=this.THREE; const base=this.mat(GLSL.vertexBasic,GLSL.glassUiFragment); for(let i=0;i<16;i++){ const w=1+rngValue(this.parsed.correctedPrompt,i)*2.2,h=.45+rngValue(this.parsed.correctedPrompt,i+20)*1.2; const mesh=new T.Mesh(new T.PlaneGeometry(w,h,8,8),base.clone()); mesh.position.set((rngValue(this.parsed.correctedPrompt,i+40)-.5)*6,(rngValue(this.parsed.correctedPrompt,i+80)-.5)*3.5,-i*.08); mesh.userData={kind:"ui",phase:i*.6}; this.scene.add(mesh); } }
+    render(t){ if(!this.ready) return; this.uniforms.uTime.value=t; const p=this.parsed; const cam=this.camera; const speed=p.motion.speed; if(p.camera==="handheld"){ cam.position.x=Math.sin(t*17)*.05; cam.position.y=3+Math.cos(t*13)*.05; } else { cam.position.x=Math.sin(t*.35*speed)*2.2; cam.position.y=2.8+Math.sin(t*.27)*.4; } cam.position.z=8+Math.cos(t*.3)*1.4; cam.lookAt(0,0,0); this.scene.traverse(o=>{ if(o.userData&&o.userData.kind==="particle"){ o.position.y += Math.sin(t+o.userData.phase)*0.002*o.userData.speed; } if(o.userData&&o.userData.kind==="ui"){ o.rotation.z=Math.sin(t*.8+o.userData.phase)*.04; } }); this.renderer.render(this.scene,this.camera); }
+    destroy(){ if(this.renderer){ this.renderer.dispose(); } }
+  }
+  function rngValue(seed, i){ return (hashString(seed+":"+i)%10000)/10000; }
 
   class RealLifeVideoEngine {
-    constructor(options = {}) {
-      this.options = Object.assign({}, DEFAULTS, options);
-
-      this.options.width = Math.max(160, Math.floor(Number(this.options.width) || DEFAULTS.width));
-      this.options.height = Math.max(90, Math.floor(Number(this.options.height) || DEFAULTS.height));
-      this.options.fps = clamp(Math.floor(Number(this.options.fps) || DEFAULTS.fps), 1, 60);
-      this.options.seconds = clamp(Number(this.options.seconds) || DEFAULTS.seconds, 0.5, 60);
-      this.options.bitrate = Math.max(100000, Math.floor(Number(this.options.bitrate || DEFAULTS.bitrate)));
-
-      this.canvas = this.options.canvas || document.createElement("canvas");
-      this.canvas.width = this.options.width;
-      this.canvas.height = this.options.height;
-
-      if (this.options.appendCanvas && !this.canvas.parentNode) {
-        document.body.appendChild(this.canvas);
-      }
+    constructor(options={}){
+      this.options=Object.assign({},DEFAULTS,options);
+      this.options.width=Math.max(160,Math.floor(Number(this.options.width)||DEFAULTS.width));
+      this.options.height=Math.max(90,Math.floor(Number(this.options.height)||DEFAULTS.height));
+      this.options.fps=clamp(Math.floor(Number(this.options.fps)||DEFAULTS.fps),1,60);
+      this.options.seconds=clamp(Number(this.options.seconds)||DEFAULTS.seconds,.5,120);
+      this.options.bitrate=Math.max(100000,Math.floor(Number(this.options.bitrate)||DEFAULTS.bitrate));
+      this.canvas=this.options.canvas||document.createElement("canvas");
+      this.canvas.width=this.options.width; this.canvas.height=this.options.height;
+      if(this.options.appendCanvas&&!this.canvas.parentNode) document.body.appendChild(this.canvas);
     }
-
-    async generate(prompt) {
-      const parsed = parsePrompt(prompt, this.options);
-      const world = new World(parsed, this.options);
-      const renderer = new Renderer(this.canvas, world, this.options);
-
-      const canRecord =
-        typeof MediaRecorder !== "undefined" &&
-        typeof this.canvas.captureStream === "function";
-
-      if (!canRecord) {
-        const frames = this.renderFramesOnly(renderer);
-        return {
-          ok: false,
-          reason: "MediaRecorder or canvas.captureStream is not supported in this browser.",
-          originalPrompt: parsed.originalPrompt,
-          correctedPrompt: parsed.correctedPrompt,
-          parsed,
-          width: this.options.width,
-          height: this.options.height,
-          fps: this.options.fps,
-          seconds: this.options.seconds,
-          frameCount: Math.floor(this.options.fps * this.options.seconds),
-          mimeType: null,
-          blob: null,
-          url: null,
-          frames,
-          canvas: this.canvas
-        };
-      }
-
-      return this.recordCanvas(renderer, parsed);
+    makeRenderer(parsed){
+      const useThree=!this.options.forceCanvas2D && (this.options.renderer==="three" || this.options.renderer==="auto") && typeof global.THREE!=="undefined";
+      if(useThree){ const r=new ThreeGLSLRenderer(this.canvas,parsed,this.options); if(r.ready) return r; }
+      const world=new World2D(parsed,this.options); return new Canvas2DRenderer(this.canvas,world,this.options);
     }
-
-    renderFramesOnly(renderer) {
-      const frames = [];
-      const totalFrames = Math.floor(this.options.fps * this.options.seconds);
-
-      for (let i = 0; i < totalFrames; i++) {
-        const t = i / this.options.fps;
-        renderer.render(t);
-        if (this.options.returnFrames) {
-          frames.push(this.canvas.toDataURL("image/webp", this.options.quality));
-        }
-      }
-
-      return frames;
-    }
-
-    recordCanvas(renderer, parsed) {
-      const stream = this.canvas.captureStream(this.options.fps);
-      const mimeType = chooseMimeType(this.options.mimeType);
-      const chunks = [];
-      const frames = [];
-
-      const recorderOptions = {
-        videoBitsPerSecond: this.options.bitrate
-      };
-
-      if (mimeType) recorderOptions.mimeType = mimeType;
-
-      let recorder;
-
-      try {
-        recorder = new MediaRecorder(stream, recorderOptions);
-      } catch (error) {
-        recorder = new MediaRecorder(stream);
-      }
-
-      return new Promise((resolve, reject) => {
-        const totalFrames = Math.floor(this.options.fps * this.options.seconds);
-        const frameDuration = 1000 / this.options.fps;
-        const start = performance.now();
-
-        let stopped = false;
-        let lastCapturedFrame = -1;
-
-        recorder.ondataavailable = (event) => {
-          if (event.data && event.data.size > 0) chunks.push(event.data);
-        };
-
-        recorder.onerror = (event) => {
-          reject(event.error || new Error("MediaRecorder failed."));
-        };
-
-        recorder.onstop = () => {
-          if (stopped) return;
-          stopped = true;
-
-          const finalMime = recorder.mimeType || mimeType || "video/webm";
-          const blob = new Blob(chunks, { type: finalMime });
-          const url = URL.createObjectURL(blob);
-
-          resolve({
-            ok: true,
-            originalPrompt: parsed.originalPrompt,
-            correctedPrompt: parsed.correctedPrompt,
-            parsed,
-            width: this.options.width,
-            height: this.options.height,
-            fps: this.options.fps,
-            seconds: this.options.seconds,
-            frameCount: totalFrames,
-            mimeType: finalMime,
-            blob,
-            url,
-            frames,
-            canvas: this.canvas
-          });
-        };
-
-        const draw = () => {
-          const now = performance.now();
-          const elapsed = now - start;
-          const currentFrame = Math.floor(elapsed / frameDuration);
-          const t = currentFrame / this.options.fps;
-
-          renderer.render(t);
-
-          if (
-            this.options.returnFrames &&
-            currentFrame !== lastCapturedFrame &&
-            currentFrame % Math.max(1, Math.floor(this.options.fps / 6)) === 0
-          ) {
-            frames.push(this.canvas.toDataURL("image/webp", this.options.quality));
-            lastCapturedFrame = currentFrame;
-          }
-
-          if (currentFrame >= totalFrames) {
-            try {
-              recorder.stop();
-            } catch (error) {
-              reject(error);
-            }
-
-            for (const track of stream.getTracks()) track.stop();
-            return;
-          }
-
-          requestAnimationFrame(draw);
-        };
-
-        recorder.start();
-        requestAnimationFrame(draw);
-      });
-    }
-
-    destroy() {
-      if (this.canvas && this.canvas.parentNode && this.options.appendCanvas) {
-        this.canvas.parentNode.removeChild(this.canvas);
-      }
-    }
+    async generate(prompt){ const parsed=parsePrompt(prompt,this.options); BrowserTTS.speak(parsed,this.options); const renderer=this.makeRenderer(parsed); const canRecord=typeof MediaRecorder!=="undefined"&&typeof this.canvas.captureStream==="function"; if(!canRecord){ const frames=this.renderFramesOnly(renderer); return {ok:false,reason:"MediaRecorder or canvas.captureStream is not supported in this browser.",originalPrompt:parsed.originalPrompt,correctedPrompt:parsed.correctedPrompt,parsed,width:this.options.width,height:this.options.height,fps:this.options.fps,seconds:this.options.seconds,frameCount:Math.floor(this.options.fps*this.options.seconds),mimeType:null,blob:null,url:null,frames,canvas:this.canvas,renderer:renderer instanceof ThreeGLSLRenderer?"three-glsl":"canvas2d"}; } return this.recordCanvas(renderer,parsed); }
+    renderFramesOnly(renderer){ const frames=[],total=Math.floor(this.options.fps*this.options.seconds); for(let i=0;i<total;i++){ renderer.render(i/this.options.fps); if(this.options.returnFrames) frames.push(this.canvas.toDataURL("image/webp",this.options.quality)); } return frames; }
+    recordCanvas(renderer,parsed){ const stream=this.canvas.captureStream(this.options.fps),mime=chooseMimeType(this.options.mimeType),chunks=[],frames=[]; if(this.options.__audioBus&&this.options.__audioBus.getStream){ const audioStream=this.options.__audioBus.getStream(); if(audioStream){ for(const track of audioStream.getAudioTracks()) stream.addTrack(track); } } const opts={videoBitsPerSecond:this.options.bitrate}; if(mime) opts.mimeType=mime; let rec; try{ rec=new MediaRecorder(stream,opts); }catch(e){ rec=new MediaRecorder(stream); } return new Promise((resolve,reject)=>{ const total=Math.floor(this.options.fps*this.options.seconds),fd=1000/this.options.fps,start=performance.now(); let stopped=false,last=-1; rec.ondataavailable=e=>{ if(e.data&&e.data.size>0) chunks.push(e.data); }; rec.onerror=e=>reject(e.error||new Error("MediaRecorder failed.")); rec.onstop=()=>{ if(stopped)return; stopped=true; const finalMime=rec.mimeType||mime||"video/webm",blob=new Blob(chunks,{type:finalMime}),url=URL.createObjectURL(blob); if(this.options.autoDownload){ const a=document.createElement("a"); a.href=url; a.download=this.options.downloadName; a.click(); } resolve({ok:true,originalPrompt:parsed.originalPrompt,correctedPrompt:parsed.correctedPrompt,parsed,width:this.options.width,height:this.options.height,fps:this.options.fps,seconds:this.options.seconds,frameCount:total,mimeType:finalMime,blob,url,frames,canvas:this.canvas,renderer:renderer instanceof ThreeGLSLRenderer?"three-glsl":"canvas2d"}); }; const draw=()=>{ const f=Math.floor((performance.now()-start)/fd); renderer.render(f/this.options.fps); if(this.options.returnFrames&&f!==last&&f%Math.max(1,Math.floor(this.options.fps/6))===0){ frames.push(this.canvas.toDataURL("image/webp",this.options.quality)); last=f; } if(f>=total){ try{rec.stop();}catch(e){reject(e);} for(const tr of stream.getTracks()) tr.stop(); return; } requestAnimationFrame(draw); }; rec.start(); requestAnimationFrame(draw); }); }
+    destroy(){ if(this.canvas&&this.canvas.parentNode&&this.options.appendCanvas)this.canvas.parentNode.removeChild(this.canvas); }
   }
 
   const RealLifeVideo = {
-    async generate(prompt, options = {}) {
-      const engine = new RealLifeVideoEngine(options);
-      return engine.generate(prompt);
-    },
-
-    create(options = {}) {
-      return new RealLifeVideoEngine(options);
-    },
-
-    correctPrompt(prompt, options = {}) {
-      return normalizePrompt(prompt, options);
-    },
-
-    parsePrompt(prompt, options = {}) {
-      return parsePrompt(prompt, options);
-    },
-
-    dictionaries: DICT,
+    async generate(prompt, options={}){ const e=new RealLifeVideoEngine(options); return e.generate(prompt); },
+    create(options={}){ return new RealLifeVideoEngine(options); },
+    correctPrompt(prompt, options={}){ return normalizePrompt(prompt, options); },
+    parsePrompt(prompt, options={}){ return parsePrompt(prompt, options); },
+    dictionaries: LEXICON,
     typos: TYPO_MAP,
+    glsl: GLSL,
+    hyperRealPriors: HYPER_REAL_PRIORS,
+    uiBlueprintPriors: UI_BLUEPRINT_PRIORS,
     version: VERSION
   };
 
-  global.RealLifeVideo = RealLifeVideo;
-  global.SpudzyVid = RealLifeVideo;
-  global.SpudzyVideo = RealLifeVideo;
-  global.spudzyVid = RealLifeVideo;
-  global.spudzyVideo = RealLifeVideo;
+  global.RealLifeVideo=RealLifeVideo;
+  global.SpudzyVid=RealLifeVideo;
+  global.SpudzyVideo=RealLifeVideo;
+  global.spudzyVid=RealLifeVideo;
+  global.spudzyVideo=RealLifeVideo;
+  global.SpudzyThreeGLSL=RealLifeVideo;
 
-  if (typeof module !== "undefined" && module.exports) {
-    module.exports = RealLifeVideo;
+
+
+
+  const GAMEPLAY_TYPE_KEYWORDS = {
+    irlSimulator: ["voxel irl simulator", "irl simulator", "alaricholt677", "water meter", "pee meter", "hell dimension", "boss spawner", "holographic human", "follower system", "lan hosting"],
+    minecraft: ["minecraft", "mc", "creeper", "zombie", "skeleton", "enderman", "nether", "overworld", "crafting table"],
+    terraria: ["terraria", "side scroller", "2d mining", "corruption", "crimson", "boss arena", "underground cave"],
+    fortnite: ["fortnite", "battle royale", "storm circle", "build fight", "loot chest", "drop bus", "third person shooter"],
+    roblox: ["roblox", "obby", "blocky avatar", "tycoon", "simulator game", "ugc", "studs"]
+  };
+
+  const GAMEPLAY_AUDIO_PROFILES = {
+    irlSimulator: { root: 123, steps: "voxelFootsteps", ambience: "dayNightWind", ui: "menuBlips", danger: "hellThunder", survival: "waterPeeMeters" },
+    minecraft: { root: 196, steps: "grassBlockSteps", ambience: "voxelWind", ui: "inventoryClicks", danger: "creeperPulse", survival: "xpPickup" },
+    terraria: { root: 220, steps: "dirtSteps2D", ambience: "caveDrips", ui: "pixelMenu", danger: "bossRoar8bit", survival: "coinPickup" },
+    fortnite: { root: 98, steps: "tacticalSteps", ambience: "stormWind", ui: "lootPings", danger: "distantShots", survival: "shieldRecharge" },
+    roblox: { root: 262, steps: "plasticSteps", ambience: "playfulRoomTone", ui: "cartoonClicks", danger: "obbyFail", survival: "coinDing" },
+    generic: { root: 164, steps: "softSteps", ambience: "wind", ui: "clicks", danger: "hit", survival: "pickup" }
+  };
+
+  function detectGameplayType(text, options={}) {
+    const forced = options.gameplayType;
+    if (forced && forced !== "auto") return forced;
+    const t = String(text || "").toLowerCase();
+    let best = "generic";
+    let bestScore = 0;
+    for (const key of Object.keys(GAMEPLAY_TYPE_KEYWORDS)) {
+      let score = 0;
+      for (const kw of GAMEPLAY_TYPE_KEYWORDS[key]) if (t.includes(kw)) score += kw.length;
+      if (score > bestScore) { bestScore = score; best = key; }
+    }
+    return best;
   }
-})(typeof window !== "undefined" ? window : globalThis);
+
+  function applyGameplayOptions(prompt, options={}) {
+    const type = detectGameplayType(prompt, options);
+    const o = Object.assign({}, options, { gameplayType: type, gameplayVideo: options.gameplayVideo !== false });
+    if (type === "irlSimulator" || type === "minecraft") { o.mc = true; o.minecraftMode = true; o.mode = o.mode && o.mode !== "auto" ? o.mode : "mc"; }
+    if (type === "terraria") { o.forceCanvas2D = true; o.mode = o.mode && o.mode !== "auto" ? o.mode : "mc"; }
+    if (type === "fortnite") { o.irl = true; o.hyperRealistic = true; o.mode = o.mode && o.mode !== "auto" ? o.mode : "irl"; }
+    if (type === "roblox") { o.mc = true; o.minecraftMode = true; o.mode = o.mode && o.mode !== "auto" ? o.mode : "mc"; }
+    return o;
+  }
+
+  class SpudzyAudioBus {
+    constructor(options={}){ this.options=options; this.ctx=null; this.master=null; this.music=null; this.sfx=null; this.destination=null; this.started=false; this.nodes=[]; this.events=[]; this.seed=hashString(String(options.seed||"audio")); this.rng=makeRng(this.seed); }
+    ensure(){ if(this.ctx) return true; const AC=global.AudioContext||global.webkitAudioContext; if(!AC) return false; this.ctx=new AC(); this.master=this.ctx.createGain(); this.music=this.ctx.createGain(); this.sfx=this.ctx.createGain(); this.master.gain.value=this.options.masterVolume==null?0.65:this.options.masterVolume; this.music.gain.value=this.options.musicVolume==null?0.18:this.options.musicVolume; this.sfx.gain.value=this.options.sfxVolume==null?0.45:this.options.sfxVolume; this.music.connect(this.master); this.sfx.connect(this.master); this.destination=this.ctx.createMediaStreamDestination(); this.master.connect(this.ctx.destination); this.master.connect(this.destination); return true; }
+    start(parsed){ if(!this.options.audio && !this.options.soundEffects) return; if(!this.ensure()) return; if(this.ctx.state==="suspended") this.ctx.resume(); this.started=true; this.scheduleBed(parsed); this.scheduleSfx(parsed); }
+    profile(parsed){ return GAMEPLAY_AUDIO_PROFILES[(parsed&&parsed.gameplayType)||detectGameplayType(parsed&&parsed.correctedPrompt||"", this.options)] || GAMEPLAY_AUDIO_PROFILES.generic; }
+    stop(){ if(!this.ctx) return; for(const n of this.nodes){ try{ if(n.stop)n.stop(); }catch(e){} try{ if(n.disconnect)n.disconnect(); }catch(e){} } this.nodes.length=0; }
+    osc(freq,type,dur,when,gain,dest){ if(!this.ctx) return null; const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.type=type||"sine"; o.frequency.setValueAtTime(freq,when); g.gain.setValueAtTime(0,when); g.gain.linearRampToValueAtTime(gain,when+0.015); g.gain.exponentialRampToValueAtTime(0.0001,when+dur); o.connect(g); g.connect(dest||this.sfx); o.start(when); o.stop(when+dur+0.05); this.nodes.push(o,g); return o; }
+    noise(dur,when,gain,filterFreq){ if(!this.ctx) return; const len=Math.max(1,Math.floor(this.ctx.sampleRate*dur)); const buf=this.ctx.createBuffer(1,len,this.ctx.sampleRate); const data=buf.getChannelData(0); for(let i=0;i<len;i++) data[i]=this.rng()*2-1; const src=this.ctx.createBufferSource(); src.buffer=buf; const filt=this.ctx.createBiquadFilter(); filt.type="lowpass"; filt.frequency.value=filterFreq||1200; const g=this.ctx.createGain(); g.gain.setValueAtTime(gain,when); g.gain.exponentialRampToValueAtTime(0.0001,when+dur); src.connect(filt); filt.connect(g); g.connect(this.sfx); src.start(when); src.stop(when+dur); this.nodes.push(src,filt,g); }
+    getStream(){ return this.destination ? this.destination.stream : null; }
+    scheduleBed(parsed){ const now=this.ctx.currentTime+0.05; const profile=this.profile(parsed); const root=profile.root||164; for(let i=0;i<24;i++){ const t=now+i*0.5; const chord=i%6===0?2:i%3===0?1.5:i%2===0?1.25:1; this.osc(root*chord,"sine",0.48,t,0.03,this.music); this.osc(root/2,"triangle",0.55,t,0.022,this.music); if((parsed.gameplayType||"")==="terraria"&&i%2===0)this.osc(root*3,"square",0.08,t,0.018,this.music); if((parsed.gameplayType||"")==="fortnite"&&i%4===0)this.osc(root/4,"sawtooth",0.25,t,0.02,this.music); } }
+    scheduleSfx(parsed){ const now=this.ctx.currentTime+0.05; const type=parsed.gameplayType||detectGameplayType(parsed.correctedPrompt,this.options); if(type==="irlSimulator"){ for(let i=0;i<22;i++){ const t=now+i*0.32; this.noise(0.07,t,0.05,650); if(i%5===0)this.osc(260,"sine",0.12,t,0.04,this.sfx); if(i%7===0)this.osc(55,"sawtooth",0.2,t,0.03,this.sfx); } } else if(type==="minecraft"){ for(let i=0;i<24;i++){ const t=now+i*0.30; this.noise(0.08,t,0.045,520+this.rng()*500); if(i%4===0)this.osc(95+this.rng()*35,"square",0.10,t,0.035,this.sfx); } } else if(type==="terraria"){ for(let i=0;i<28;i++){ const t=now+i*0.24; this.osc(330+(i%5)*55,"square",0.06,t,0.028,this.sfx); if(i%6===0)this.noise(0.18,t,0.03,1200); } } else if(type==="fortnite"){ for(let i=0;i<20;i++){ const t=now+i*0.38; this.noise(0.06,t,0.035,2200); if(i%5===0)this.osc(80,"sawtooth",0.16,t,0.04,this.sfx); if(i%7===0)this.osc(720,"triangle",0.08,t,0.025,this.sfx); } } else if(type==="roblox"){ for(let i=0;i<28;i++){ const t=now+i*0.25; this.osc(440+(i%4)*110,"sine",0.05,t,0.035,this.sfx); if(i%5===0)this.noise(0.06,t,0.02,1800); } } else { for(let i=0;i<16;i++){ const t=now+i*0.4; this.noise(0.08,t,0.025,900); } } if(parsed.looks&&parsed.looks.rain){ for(let i=0;i<22;i++) this.noise(0.22,now+i*0.25,0.03,2400); } if(parsed.looks&&parsed.looks.fire){ for(let i=0;i<12;i++) this.noise(0.18,now+i*0.45,0.04,700); } if(parsed.uiMode){ for(let i=0;i<20;i++) this.osc(420+i*23,"sine",0.06,now+i*0.22,0.04,this.sfx); } }
+  }
+
+
+  const SPUDZY_TYPE_AUDIO_EVENTS = [
+    { id:0, type:"irlSimulator", event:"step", freq:70, gain:0.015, dur:0.04 },
+    { id:1, type:"minecraft", event:"jump", freq:99, gain:0.017, dur:0.05 },
+    { id:2, type:"terraria", event:"hit", freq:128, gain:0.019, dur:0.06 },
+    { id:3, type:"fortnite", event:"menu", freq:157, gain:0.021, dur:0.07 },
+    { id:4, type:"roblox", event:"ambient", freq:186, gain:0.023, dur:0.08 },
+    { id:5, type:"irlSimulator", event:"danger", freq:215, gain:0.025, dur:0.09 },
+    { id:6, type:"minecraft", event:"pickup", freq:244, gain:0.027, dur:0.10 },
+    { id:7, type:"terraria", event:"craft", freq:273, gain:0.029, dur:0.11 },
+    { id:8, type:"fortnite", event:"weather", freq:302, gain:0.031, dur:0.12 },
+    { id:9, type:"roblox", event:"voice", freq:331, gain:0.033, dur:0.13 },
+    { id:10, type:"irlSimulator", event:"step", freq:360, gain:0.035, dur:0.14 },
+    { id:11, type:"minecraft", event:"jump", freq:389, gain:0.037, dur:0.15 },
+    { id:12, type:"terraria", event:"hit", freq:418, gain:0.039, dur:0.16 },
+    { id:13, type:"fortnite", event:"menu", freq:447, gain:0.041, dur:0.17 },
+    { id:14, type:"roblox", event:"ambient", freq:476, gain:0.043, dur:0.18 },
+    { id:15, type:"irlSimulator", event:"danger", freq:505, gain:0.045, dur:0.19 },
+    { id:16, type:"minecraft", event:"pickup", freq:534, gain:0.047, dur:0.20 },
+    { id:17, type:"terraria", event:"craft", freq:563, gain:0.049, dur:0.21 },
+    { id:18, type:"fortnite", event:"weather", freq:592, gain:0.051, dur:0.22 },
+    { id:19, type:"roblox", event:"voice", freq:621, gain:0.053, dur:0.23 },
+    { id:20, type:"irlSimulator", event:"step", freq:650, gain:0.055, dur:0.24 },
+    { id:21, type:"minecraft", event:"jump", freq:679, gain:0.057, dur:0.25 },
+    { id:22, type:"terraria", event:"hit", freq:708, gain:0.059, dur:0.26 },
+    { id:23, type:"fortnite", event:"menu", freq:737, gain:0.061, dur:0.27 },
+    { id:24, type:"roblox", event:"ambient", freq:766, gain:0.063, dur:0.28 },
+    { id:25, type:"irlSimulator", event:"danger", freq:795, gain:0.065, dur:0.29 },
+    { id:26, type:"minecraft", event:"pickup", freq:824, gain:0.067, dur:0.30 },
+    { id:27, type:"terraria", event:"craft", freq:853, gain:0.069, dur:0.31 },
+    { id:28, type:"fortnite", event:"weather", freq:882, gain:0.071, dur:0.32 },
+    { id:29, type:"roblox", event:"voice", freq:911, gain:0.073, dur:0.33 },
+    { id:30, type:"irlSimulator", event:"step", freq:940, gain:0.015, dur:0.34 },
+    { id:31, type:"minecraft", event:"jump", freq:969, gain:0.017, dur:0.35 },
+    { id:32, type:"terraria", event:"hit", freq:998, gain:0.019, dur:0.36 },
+    { id:33, type:"fortnite", event:"menu", freq:1027, gain:0.021, dur:0.37 },
+    { id:34, type:"roblox", event:"ambient", freq:1056, gain:0.023, dur:0.38 },
+    { id:35, type:"irlSimulator", event:"danger", freq:1085, gain:0.025, dur:0.04 },
+    { id:36, type:"minecraft", event:"pickup", freq:1114, gain:0.027, dur:0.05 },
+    { id:37, type:"terraria", event:"craft", freq:1143, gain:0.029, dur:0.06 },
+    { id:38, type:"fortnite", event:"weather", freq:1172, gain:0.031, dur:0.07 },
+    { id:39, type:"roblox", event:"voice", freq:1201, gain:0.033, dur:0.08 },
+    { id:40, type:"irlSimulator", event:"step", freq:1230, gain:0.035, dur:0.09 },
+    { id:41, type:"minecraft", event:"jump", freq:1259, gain:0.037, dur:0.10 },
+    { id:42, type:"terraria", event:"hit", freq:1288, gain:0.039, dur:0.11 },
+    { id:43, type:"fortnite", event:"menu", freq:1317, gain:0.041, dur:0.12 },
+    { id:44, type:"roblox", event:"ambient", freq:1346, gain:0.043, dur:0.13 },
+    { id:45, type:"irlSimulator", event:"danger", freq:1375, gain:0.045, dur:0.14 },
+    { id:46, type:"minecraft", event:"pickup", freq:1404, gain:0.047, dur:0.15 },
+    { id:47, type:"terraria", event:"craft", freq:1433, gain:0.049, dur:0.16 },
+    { id:48, type:"fortnite", event:"weather", freq:1462, gain:0.051, dur:0.17 },
+    { id:49, type:"roblox", event:"voice", freq:1491, gain:0.053, dur:0.18 },
+    { id:50, type:"irlSimulator", event:"step", freq:1520, gain:0.055, dur:0.19 },
+    { id:51, type:"minecraft", event:"jump", freq:1549, gain:0.057, dur:0.20 },
+    { id:52, type:"terraria", event:"hit", freq:1578, gain:0.059, dur:0.21 },
+    { id:53, type:"fortnite", event:"menu", freq:1607, gain:0.061, dur:0.22 },
+    { id:54, type:"roblox", event:"ambient", freq:1636, gain:0.063, dur:0.23 },
+    { id:55, type:"irlSimulator", event:"danger", freq:1665, gain:0.065, dur:0.24 },
+    { id:56, type:"minecraft", event:"pickup", freq:94, gain:0.067, dur:0.25 },
+    { id:57, type:"terraria", event:"craft", freq:123, gain:0.069, dur:0.26 },
+    { id:58, type:"fortnite", event:"weather", freq:152, gain:0.071, dur:0.27 },
+    { id:59, type:"roblox", event:"voice", freq:181, gain:0.073, dur:0.28 },
+    { id:60, type:"irlSimulator", event:"step", freq:210, gain:0.015, dur:0.29 },
+    { id:61, type:"minecraft", event:"jump", freq:239, gain:0.017, dur:0.30 },
+    { id:62, type:"terraria", event:"hit", freq:268, gain:0.019, dur:0.31 },
+    { id:63, type:"fortnite", event:"menu", freq:297, gain:0.021, dur:0.32 },
+    { id:64, type:"roblox", event:"ambient", freq:326, gain:0.023, dur:0.33 },
+    { id:65, type:"irlSimulator", event:"danger", freq:355, gain:0.025, dur:0.34 },
+    { id:66, type:"minecraft", event:"pickup", freq:384, gain:0.027, dur:0.35 },
+    { id:67, type:"terraria", event:"craft", freq:413, gain:0.029, dur:0.36 },
+    { id:68, type:"fortnite", event:"weather", freq:442, gain:0.031, dur:0.37 },
+    { id:69, type:"roblox", event:"voice", freq:471, gain:0.033, dur:0.38 },
+    { id:70, type:"irlSimulator", event:"step", freq:500, gain:0.035, dur:0.04 },
+    { id:71, type:"minecraft", event:"jump", freq:529, gain:0.037, dur:0.05 },
+    { id:72, type:"terraria", event:"hit", freq:558, gain:0.039, dur:0.06 },
+    { id:73, type:"fortnite", event:"menu", freq:587, gain:0.041, dur:0.07 },
+    { id:74, type:"roblox", event:"ambient", freq:616, gain:0.043, dur:0.08 },
+    { id:75, type:"irlSimulator", event:"danger", freq:645, gain:0.045, dur:0.09 },
+    { id:76, type:"minecraft", event:"pickup", freq:674, gain:0.047, dur:0.10 },
+    { id:77, type:"terraria", event:"craft", freq:703, gain:0.049, dur:0.11 },
+    { id:78, type:"fortnite", event:"weather", freq:732, gain:0.051, dur:0.12 },
+    { id:79, type:"roblox", event:"voice", freq:761, gain:0.053, dur:0.13 },
+    { id:80, type:"irlSimulator", event:"step", freq:790, gain:0.055, dur:0.14 },
+    { id:81, type:"minecraft", event:"jump", freq:819, gain:0.057, dur:0.15 },
+    { id:82, type:"terraria", event:"hit", freq:848, gain:0.059, dur:0.16 },
+    { id:83, type:"fortnite", event:"menu", freq:877, gain:0.061, dur:0.17 },
+    { id:84, type:"roblox", event:"ambient", freq:906, gain:0.063, dur:0.18 },
+    { id:85, type:"irlSimulator", event:"danger", freq:935, gain:0.065, dur:0.19 },
+    { id:86, type:"minecraft", event:"pickup", freq:964, gain:0.067, dur:0.20 },
+    { id:87, type:"terraria", event:"craft", freq:993, gain:0.069, dur:0.21 },
+    { id:88, type:"fortnite", event:"weather", freq:1022, gain:0.071, dur:0.22 },
+    { id:89, type:"roblox", event:"voice", freq:1051, gain:0.073, dur:0.23 },
+    { id:90, type:"irlSimulator", event:"step", freq:1080, gain:0.015, dur:0.24 },
+    { id:91, type:"minecraft", event:"jump", freq:1109, gain:0.017, dur:0.25 },
+    { id:92, type:"terraria", event:"hit", freq:1138, gain:0.019, dur:0.26 },
+    { id:93, type:"fortnite", event:"menu", freq:1167, gain:0.021, dur:0.27 },
+    { id:94, type:"roblox", event:"ambient", freq:1196, gain:0.023, dur:0.28 },
+    { id:95, type:"irlSimulator", event:"danger", freq:1225, gain:0.025, dur:0.29 },
+    { id:96, type:"minecraft", event:"pickup", freq:1254, gain:0.027, dur:0.30 },
+    { id:97, type:"terraria", event:"craft", freq:1283, gain:0.029, dur:0.31 },
+    { id:98, type:"fortnite", event:"weather", freq:1312, gain:0.031, dur:0.32 },
+    { id:99, type:"roblox", event:"voice", freq:1341, gain:0.033, dur:0.33 },
+    { id:100, type:"irlSimulator", event:"step", freq:1370, gain:0.035, dur:0.34 },
+    { id:101, type:"minecraft", event:"jump", freq:1399, gain:0.037, dur:0.35 },
+    { id:102, type:"terraria", event:"hit", freq:1428, gain:0.039, dur:0.36 },
+    { id:103, type:"fortnite", event:"menu", freq:1457, gain:0.041, dur:0.37 },
+    { id:104, type:"roblox", event:"ambient", freq:1486, gain:0.043, dur:0.38 },
+    { id:105, type:"irlSimulator", event:"danger", freq:1515, gain:0.045, dur:0.04 },
+    { id:106, type:"minecraft", event:"pickup", freq:1544, gain:0.047, dur:0.05 },
+    { id:107, type:"terraria", event:"craft", freq:1573, gain:0.049, dur:0.06 },
+    { id:108, type:"fortnite", event:"weather", freq:1602, gain:0.051, dur:0.07 },
+    { id:109, type:"roblox", event:"voice", freq:1631, gain:0.053, dur:0.08 },
+    { id:110, type:"irlSimulator", event:"step", freq:1660, gain:0.055, dur:0.09 },
+    { id:111, type:"minecraft", event:"jump", freq:89, gain:0.057, dur:0.10 },
+    { id:112, type:"terraria", event:"hit", freq:118, gain:0.059, dur:0.11 },
+    { id:113, type:"fortnite", event:"menu", freq:147, gain:0.061, dur:0.12 },
+    { id:114, type:"roblox", event:"ambient", freq:176, gain:0.063, dur:0.13 },
+    { id:115, type:"irlSimulator", event:"danger", freq:205, gain:0.065, dur:0.14 },
+    { id:116, type:"minecraft", event:"pickup", freq:234, gain:0.067, dur:0.15 },
+    { id:117, type:"terraria", event:"craft", freq:263, gain:0.069, dur:0.16 },
+    { id:118, type:"fortnite", event:"weather", freq:292, gain:0.071, dur:0.17 },
+    { id:119, type:"roblox", event:"voice", freq:321, gain:0.073, dur:0.18 },
+    { id:120, type:"irlSimulator", event:"step", freq:350, gain:0.015, dur:0.19 },
+    { id:121, type:"minecraft", event:"jump", freq:379, gain:0.017, dur:0.20 },
+    { id:122, type:"terraria", event:"hit", freq:408, gain:0.019, dur:0.21 },
+    { id:123, type:"fortnite", event:"menu", freq:437, gain:0.021, dur:0.22 },
+    { id:124, type:"roblox", event:"ambient", freq:466, gain:0.023, dur:0.23 },
+    { id:125, type:"irlSimulator", event:"danger", freq:495, gain:0.025, dur:0.24 },
+    { id:126, type:"minecraft", event:"pickup", freq:524, gain:0.027, dur:0.25 },
+    { id:127, type:"terraria", event:"craft", freq:553, gain:0.029, dur:0.26 },
+    { id:128, type:"fortnite", event:"weather", freq:582, gain:0.031, dur:0.27 },
+    { id:129, type:"roblox", event:"voice", freq:611, gain:0.033, dur:0.28 },
+    { id:130, type:"irlSimulator", event:"step", freq:640, gain:0.035, dur:0.29 },
+    { id:131, type:"minecraft", event:"jump", freq:669, gain:0.037, dur:0.30 },
+    { id:132, type:"terraria", event:"hit", freq:698, gain:0.039, dur:0.31 },
+    { id:133, type:"fortnite", event:"menu", freq:727, gain:0.041, dur:0.32 },
+    { id:134, type:"roblox", event:"ambient", freq:756, gain:0.043, dur:0.33 },
+    { id:135, type:"irlSimulator", event:"danger", freq:785, gain:0.045, dur:0.34 },
+    { id:136, type:"minecraft", event:"pickup", freq:814, gain:0.047, dur:0.35 },
+    { id:137, type:"terraria", event:"craft", freq:843, gain:0.049, dur:0.36 },
+    { id:138, type:"fortnite", event:"weather", freq:872, gain:0.051, dur:0.37 },
+    { id:139, type:"roblox", event:"voice", freq:901, gain:0.053, dur:0.38 },
+    { id:140, type:"irlSimulator", event:"step", freq:930, gain:0.055, dur:0.04 },
+    { id:141, type:"minecraft", event:"jump", freq:959, gain:0.057, dur:0.05 },
+    { id:142, type:"terraria", event:"hit", freq:988, gain:0.059, dur:0.06 },
+    { id:143, type:"fortnite", event:"menu", freq:1017, gain:0.061, dur:0.07 },
+    { id:144, type:"roblox", event:"ambient", freq:1046, gain:0.063, dur:0.08 },
+    { id:145, type:"irlSimulator", event:"danger", freq:1075, gain:0.065, dur:0.09 },
+    { id:146, type:"minecraft", event:"pickup", freq:1104, gain:0.067, dur:0.10 },
+    { id:147, type:"terraria", event:"craft", freq:1133, gain:0.069, dur:0.11 },
+    { id:148, type:"fortnite", event:"weather", freq:1162, gain:0.071, dur:0.12 },
+    { id:149, type:"roblox", event:"voice", freq:1191, gain:0.073, dur:0.13 },
+    { id:150, type:"irlSimulator", event:"step", freq:1220, gain:0.015, dur:0.14 },
+    { id:151, type:"minecraft", event:"jump", freq:1249, gain:0.017, dur:0.15 },
+    { id:152, type:"terraria", event:"hit", freq:1278, gain:0.019, dur:0.16 },
+    { id:153, type:"fortnite", event:"menu", freq:1307, gain:0.021, dur:0.17 },
+    { id:154, type:"roblox", event:"ambient", freq:1336, gain:0.023, dur:0.18 },
+    { id:155, type:"irlSimulator", event:"danger", freq:1365, gain:0.025, dur:0.19 },
+    { id:156, type:"minecraft", event:"pickup", freq:1394, gain:0.027, dur:0.20 },
+    { id:157, type:"terraria", event:"craft", freq:1423, gain:0.029, dur:0.21 },
+    { id:158, type:"fortnite", event:"weather", freq:1452, gain:0.031, dur:0.22 },
+    { id:159, type:"roblox", event:"voice", freq:1481, gain:0.033, dur:0.23 },
+    { id:160, type:"irlSimulator", event:"step", freq:1510, gain:0.035, dur:0.24 },
+    { id:161, type:"minecraft", event:"jump", freq:1539, gain:0.037, dur:0.25 },
+    { id:162, type:"terraria", event:"hit", freq:1568, gain:0.039, dur:0.26 },
+    { id:163, type:"fortnite", event:"menu", freq:1597, gain:0.041, dur:0.27 },
+    { id:164, type:"roblox", event:"ambient", freq:1626, gain:0.043, dur:0.28 },
+    { id:165, type:"irlSimulator", event:"danger", freq:1655, gain:0.045, dur:0.29 },
+    { id:166, type:"minecraft", event:"pickup", freq:84, gain:0.047, dur:0.30 },
+    { id:167, type:"terraria", event:"craft", freq:113, gain:0.049, dur:0.31 },
+    { id:168, type:"fortnite", event:"weather", freq:142, gain:0.051, dur:0.32 },
+    { id:169, type:"roblox", event:"voice", freq:171, gain:0.053, dur:0.33 },
+    { id:170, type:"irlSimulator", event:"step", freq:200, gain:0.055, dur:0.34 },
+    { id:171, type:"minecraft", event:"jump", freq:229, gain:0.057, dur:0.35 },
+    { id:172, type:"terraria", event:"hit", freq:258, gain:0.059, dur:0.36 },
+    { id:173, type:"fortnite", event:"menu", freq:287, gain:0.061, dur:0.37 },
+    { id:174, type:"roblox", event:"ambient", freq:316, gain:0.063, dur:0.38 },
+    { id:175, type:"irlSimulator", event:"danger", freq:345, gain:0.065, dur:0.04 },
+    { id:176, type:"minecraft", event:"pickup", freq:374, gain:0.067, dur:0.05 },
+    { id:177, type:"terraria", event:"craft", freq:403, gain:0.069, dur:0.06 },
+    { id:178, type:"fortnite", event:"weather", freq:432, gain:0.071, dur:0.07 },
+    { id:179, type:"roblox", event:"voice", freq:461, gain:0.073, dur:0.08 },
+    { id:180, type:"irlSimulator", event:"step", freq:490, gain:0.015, dur:0.09 },
+    { id:181, type:"minecraft", event:"jump", freq:519, gain:0.017, dur:0.10 },
+    { id:182, type:"terraria", event:"hit", freq:548, gain:0.019, dur:0.11 },
+    { id:183, type:"fortnite", event:"menu", freq:577, gain:0.021, dur:0.12 },
+    { id:184, type:"roblox", event:"ambient", freq:606, gain:0.023, dur:0.13 },
+    { id:185, type:"irlSimulator", event:"danger", freq:635, gain:0.025, dur:0.14 },
+    { id:186, type:"minecraft", event:"pickup", freq:664, gain:0.027, dur:0.15 },
+    { id:187, type:"terraria", event:"craft", freq:693, gain:0.029, dur:0.16 },
+    { id:188, type:"fortnite", event:"weather", freq:722, gain:0.031, dur:0.17 },
+    { id:189, type:"roblox", event:"voice", freq:751, gain:0.033, dur:0.18 },
+    { id:190, type:"irlSimulator", event:"step", freq:780, gain:0.035, dur:0.19 },
+    { id:191, type:"minecraft", event:"jump", freq:809, gain:0.037, dur:0.20 },
+    { id:192, type:"terraria", event:"hit", freq:838, gain:0.039, dur:0.21 },
+    { id:193, type:"fortnite", event:"menu", freq:867, gain:0.041, dur:0.22 },
+    { id:194, type:"roblox", event:"ambient", freq:896, gain:0.043, dur:0.23 },
+    { id:195, type:"irlSimulator", event:"danger", freq:925, gain:0.045, dur:0.24 },
+    { id:196, type:"minecraft", event:"pickup", freq:954, gain:0.047, dur:0.25 },
+    { id:197, type:"terraria", event:"craft", freq:983, gain:0.049, dur:0.26 },
+    { id:198, type:"fortnite", event:"weather", freq:1012, gain:0.051, dur:0.27 },
+    { id:199, type:"roblox", event:"voice", freq:1041, gain:0.053, dur:0.28 },
+    { id:200, type:"irlSimulator", event:"step", freq:1070, gain:0.055, dur:0.29 },
+    { id:201, type:"minecraft", event:"jump", freq:1099, gain:0.057, dur:0.30 },
+    { id:202, type:"terraria", event:"hit", freq:1128, gain:0.059, dur:0.31 },
+    { id:203, type:"fortnite", event:"menu", freq:1157, gain:0.061, dur:0.32 },
+    { id:204, type:"roblox", event:"ambient", freq:1186, gain:0.063, dur:0.33 },
+    { id:205, type:"irlSimulator", event:"danger", freq:1215, gain:0.065, dur:0.34 },
+    { id:206, type:"minecraft", event:"pickup", freq:1244, gain:0.067, dur:0.35 },
+    { id:207, type:"terraria", event:"craft", freq:1273, gain:0.069, dur:0.36 },
+    { id:208, type:"fortnite", event:"weather", freq:1302, gain:0.071, dur:0.37 },
+    { id:209, type:"roblox", event:"voice", freq:1331, gain:0.073, dur:0.38 },
+    { id:210, type:"irlSimulator", event:"step", freq:1360, gain:0.015, dur:0.04 },
+    { id:211, type:"minecraft", event:"jump", freq:1389, gain:0.017, dur:0.05 },
+    { id:212, type:"terraria", event:"hit", freq:1418, gain:0.019, dur:0.06 },
+    { id:213, type:"fortnite", event:"menu", freq:1447, gain:0.021, dur:0.07 },
+    { id:214, type:"roblox", event:"ambient", freq:1476, gain:0.023, dur:0.08 },
+    { id:215, type:"irlSimulator", event:"danger", freq:1505, gain:0.025, dur:0.09 },
+    { id:216, type:"minecraft", event:"pickup", freq:1534, gain:0.027, dur:0.10 },
+    { id:217, type:"terraria", event:"craft", freq:1563, gain:0.029, dur:0.11 },
+    { id:218, type:"fortnite", event:"weather", freq:1592, gain:0.031, dur:0.12 },
+    { id:219, type:"roblox", event:"voice", freq:1621, gain:0.033, dur:0.13 },
+    { id:220, type:"irlSimulator", event:"step", freq:1650, gain:0.035, dur:0.14 },
+    { id:221, type:"minecraft", event:"jump", freq:79, gain:0.037, dur:0.15 },
+    { id:222, type:"terraria", event:"hit", freq:108, gain:0.039, dur:0.16 },
+    { id:223, type:"fortnite", event:"menu", freq:137, gain:0.041, dur:0.17 },
+    { id:224, type:"roblox", event:"ambient", freq:166, gain:0.043, dur:0.18 },
+    { id:225, type:"irlSimulator", event:"danger", freq:195, gain:0.045, dur:0.19 },
+    { id:226, type:"minecraft", event:"pickup", freq:224, gain:0.047, dur:0.20 },
+    { id:227, type:"terraria", event:"craft", freq:253, gain:0.049, dur:0.21 },
+    { id:228, type:"fortnite", event:"weather", freq:282, gain:0.051, dur:0.22 },
+    { id:229, type:"roblox", event:"voice", freq:311, gain:0.053, dur:0.23 },
+    { id:230, type:"irlSimulator", event:"step", freq:340, gain:0.055, dur:0.24 },
+    { id:231, type:"minecraft", event:"jump", freq:369, gain:0.057, dur:0.25 },
+    { id:232, type:"terraria", event:"hit", freq:398, gain:0.059, dur:0.26 },
+    { id:233, type:"fortnite", event:"menu", freq:427, gain:0.061, dur:0.27 },
+    { id:234, type:"roblox", event:"ambient", freq:456, gain:0.063, dur:0.28 },
+    { id:235, type:"irlSimulator", event:"danger", freq:485, gain:0.065, dur:0.29 },
+    { id:236, type:"minecraft", event:"pickup", freq:514, gain:0.067, dur:0.30 },
+    { id:237, type:"terraria", event:"craft", freq:543, gain:0.069, dur:0.31 },
+    { id:238, type:"fortnite", event:"weather", freq:572, gain:0.071, dur:0.32 },
+    { id:239, type:"roblox", event:"voice", freq:601, gain:0.073, dur:0.33 },
+    { id:240, type:"irlSimulator", event:"step", freq:630, gain:0.015, dur:0.34 },
+    { id:241, type:"minecraft", event:"jump", freq:659, gain:0.017, dur:0.35 },
+    { id:242, type:"terraria", event:"hit", freq:688, gain:0.019, dur:0.36 },
+    { id:243, type:"fortnite", event:"menu", freq:717, gain:0.021, dur:0.37 },
+    { id:244, type:"roblox", event:"ambient", freq:746, gain:0.023, dur:0.38 },
+    { id:245, type:"irlSimulator", event:"danger", freq:775, gain:0.025, dur:0.04 },
+    { id:246, type:"minecraft", event:"pickup", freq:804, gain:0.027, dur:0.05 },
+    { id:247, type:"terraria", event:"craft", freq:833, gain:0.029, dur:0.06 },
+    { id:248, type:"fortnite", event:"weather", freq:862, gain:0.031, dur:0.07 },
+    { id:249, type:"roblox", event:"voice", freq:891, gain:0.033, dur:0.08 },
+    { id:250, type:"irlSimulator", event:"step", freq:920, gain:0.035, dur:0.09 },
+    { id:251, type:"minecraft", event:"jump", freq:949, gain:0.037, dur:0.10 },
+    { id:252, type:"terraria", event:"hit", freq:978, gain:0.039, dur:0.11 },
+    { id:253, type:"fortnite", event:"menu", freq:1007, gain:0.041, dur:0.12 },
+    { id:254, type:"roblox", event:"ambient", freq:1036, gain:0.043, dur:0.13 },
+    { id:255, type:"irlSimulator", event:"danger", freq:1065, gain:0.045, dur:0.14 },
+    { id:256, type:"minecraft", event:"pickup", freq:1094, gain:0.047, dur:0.15 },
+    { id:257, type:"terraria", event:"craft", freq:1123, gain:0.049, dur:0.16 },
+    { id:258, type:"fortnite", event:"weather", freq:1152, gain:0.051, dur:0.17 },
+    { id:259, type:"roblox", event:"voice", freq:1181, gain:0.053, dur:0.18 },
+    { id:260, type:"irlSimulator", event:"step", freq:1210, gain:0.055, dur:0.19 },
+    { id:261, type:"minecraft", event:"jump", freq:1239, gain:0.057, dur:0.20 },
+    { id:262, type:"terraria", event:"hit", freq:1268, gain:0.059, dur:0.21 },
+    { id:263, type:"fortnite", event:"menu", freq:1297, gain:0.061, dur:0.22 },
+    { id:264, type:"roblox", event:"ambient", freq:1326, gain:0.063, dur:0.23 },
+    { id:265, type:"irlSimulator", event:"danger", freq:1355, gain:0.065, dur:0.24 },
+    { id:266, type:"minecraft", event:"pickup", freq:1384, gain:0.067, dur:0.25 },
+    { id:267, type:"terraria", event:"craft", freq:1413, gain:0.069, dur:0.26 },
+    { id:268, type:"fortnite", event:"weather", freq:1442, gain:0.071, dur:0.27 },
+    { id:269, type:"roblox", event:"voice", freq:1471, gain:0.073, dur:0.28 },
+    { id:270, type:"irlSimulator", event:"step", freq:1500, gain:0.015, dur:0.29 },
+    { id:271, type:"minecraft", event:"jump", freq:1529, gain:0.017, dur:0.30 },
+    { id:272, type:"terraria", event:"hit", freq:1558, gain:0.019, dur:0.31 },
+    { id:273, type:"fortnite", event:"menu", freq:1587, gain:0.021, dur:0.32 },
+    { id:274, type:"roblox", event:"ambient", freq:1616, gain:0.023, dur:0.33 },
+    { id:275, type:"irlSimulator", event:"danger", freq:1645, gain:0.025, dur:0.34 },
+    { id:276, type:"minecraft", event:"pickup", freq:74, gain:0.027, dur:0.35 },
+    { id:277, type:"terraria", event:"craft", freq:103, gain:0.029, dur:0.36 },
+    { id:278, type:"fortnite", event:"weather", freq:132, gain:0.031, dur:0.37 },
+    { id:279, type:"roblox", event:"voice", freq:161, gain:0.033, dur:0.38 },
+    { id:280, type:"irlSimulator", event:"step", freq:190, gain:0.035, dur:0.04 },
+    { id:281, type:"minecraft", event:"jump", freq:219, gain:0.037, dur:0.05 },
+    { id:282, type:"terraria", event:"hit", freq:248, gain:0.039, dur:0.06 },
+    { id:283, type:"fortnite", event:"menu", freq:277, gain:0.041, dur:0.07 },
+    { id:284, type:"roblox", event:"ambient", freq:306, gain:0.043, dur:0.08 },
+    { id:285, type:"irlSimulator", event:"danger", freq:335, gain:0.045, dur:0.09 },
+    { id:286, type:"minecraft", event:"pickup", freq:364, gain:0.047, dur:0.10 },
+    { id:287, type:"terraria", event:"craft", freq:393, gain:0.049, dur:0.11 },
+    { id:288, type:"fortnite", event:"weather", freq:422, gain:0.051, dur:0.12 },
+    { id:289, type:"roblox", event:"voice", freq:451, gain:0.053, dur:0.13 },
+    { id:290, type:"irlSimulator", event:"step", freq:480, gain:0.055, dur:0.14 },
+    { id:291, type:"minecraft", event:"jump", freq:509, gain:0.057, dur:0.15 },
+    { id:292, type:"terraria", event:"hit", freq:538, gain:0.059, dur:0.16 },
+    { id:293, type:"fortnite", event:"menu", freq:567, gain:0.061, dur:0.17 },
+    { id:294, type:"roblox", event:"ambient", freq:596, gain:0.063, dur:0.18 },
+    { id:295, type:"irlSimulator", event:"danger", freq:625, gain:0.065, dur:0.19 },
+    { id:296, type:"minecraft", event:"pickup", freq:654, gain:0.067, dur:0.20 },
+    { id:297, type:"terraria", event:"craft", freq:683, gain:0.069, dur:0.21 },
+    { id:298, type:"fortnite", event:"weather", freq:712, gain:0.071, dur:0.22 },
+    { id:299, type:"roblox", event:"voice", freq:741, gain:0.073, dur:0.23 },
+    { id:300, type:"irlSimulator", event:"step", freq:770, gain:0.015, dur:0.24 },
+    { id:301, type:"minecraft", event:"jump", freq:799, gain:0.017, dur:0.25 },
+    { id:302, type:"terraria", event:"hit", freq:828, gain:0.019, dur:0.26 },
+    { id:303, type:"fortnite", event:"menu", freq:857, gain:0.021, dur:0.27 },
+    { id:304, type:"roblox", event:"ambient", freq:886, gain:0.023, dur:0.28 },
+    { id:305, type:"irlSimulator", event:"danger", freq:915, gain:0.025, dur:0.29 },
+    { id:306, type:"minecraft", event:"pickup", freq:944, gain:0.027, dur:0.30 },
+    { id:307, type:"terraria", event:"craft", freq:973, gain:0.029, dur:0.31 },
+    { id:308, type:"fortnite", event:"weather", freq:1002, gain:0.031, dur:0.32 },
+    { id:309, type:"roblox", event:"voice", freq:1031, gain:0.033, dur:0.33 },
+    { id:310, type:"irlSimulator", event:"step", freq:1060, gain:0.035, dur:0.34 },
+    { id:311, type:"minecraft", event:"jump", freq:1089, gain:0.037, dur:0.35 },
+    { id:312, type:"terraria", event:"hit", freq:1118, gain:0.039, dur:0.36 },
+    { id:313, type:"fortnite", event:"menu", freq:1147, gain:0.041, dur:0.37 },
+    { id:314, type:"roblox", event:"ambient", freq:1176, gain:0.043, dur:0.38 },
+    { id:315, type:"irlSimulator", event:"danger", freq:1205, gain:0.045, dur:0.04 },
+    { id:316, type:"minecraft", event:"pickup", freq:1234, gain:0.047, dur:0.05 },
+    { id:317, type:"terraria", event:"craft", freq:1263, gain:0.049, dur:0.06 },
+    { id:318, type:"fortnite", event:"weather", freq:1292, gain:0.051, dur:0.07 },
+    { id:319, type:"roblox", event:"voice", freq:1321, gain:0.053, dur:0.08 },
+    { id:320, type:"irlSimulator", event:"step", freq:1350, gain:0.055, dur:0.09 },
+    { id:321, type:"minecraft", event:"jump", freq:1379, gain:0.057, dur:0.10 },
+    { id:322, type:"terraria", event:"hit", freq:1408, gain:0.059, dur:0.11 },
+    { id:323, type:"fortnite", event:"menu", freq:1437, gain:0.061, dur:0.12 },
+    { id:324, type:"roblox", event:"ambient", freq:1466, gain:0.063, dur:0.13 },
+    { id:325, type:"irlSimulator", event:"danger", freq:1495, gain:0.065, dur:0.14 },
+    { id:326, type:"minecraft", event:"pickup", freq:1524, gain:0.067, dur:0.15 },
+    { id:327, type:"terraria", event:"craft", freq:1553, gain:0.069, dur:0.16 },
+    { id:328, type:"fortnite", event:"weather", freq:1582, gain:0.071, dur:0.17 },
+    { id:329, type:"roblox", event:"voice", freq:1611, gain:0.073, dur:0.18 },
+    { id:330, type:"irlSimulator", event:"step", freq:1640, gain:0.015, dur:0.19 },
+    { id:331, type:"minecraft", event:"jump", freq:1669, gain:0.017, dur:0.20 },
+    { id:332, type:"terraria", event:"hit", freq:98, gain:0.019, dur:0.21 },
+    { id:333, type:"fortnite", event:"menu", freq:127, gain:0.021, dur:0.22 },
+    { id:334, type:"roblox", event:"ambient", freq:156, gain:0.023, dur:0.23 },
+    { id:335, type:"irlSimulator", event:"danger", freq:185, gain:0.025, dur:0.24 },
+    { id:336, type:"minecraft", event:"pickup", freq:214, gain:0.027, dur:0.25 },
+    { id:337, type:"terraria", event:"craft", freq:243, gain:0.029, dur:0.26 },
+    { id:338, type:"fortnite", event:"weather", freq:272, gain:0.031, dur:0.27 },
+    { id:339, type:"roblox", event:"voice", freq:301, gain:0.033, dur:0.28 },
+    { id:340, type:"irlSimulator", event:"step", freq:330, gain:0.035, dur:0.29 },
+    { id:341, type:"minecraft", event:"jump", freq:359, gain:0.037, dur:0.30 },
+    { id:342, type:"terraria", event:"hit", freq:388, gain:0.039, dur:0.31 },
+    { id:343, type:"fortnite", event:"menu", freq:417, gain:0.041, dur:0.32 },
+    { id:344, type:"roblox", event:"ambient", freq:446, gain:0.043, dur:0.33 },
+    { id:345, type:"irlSimulator", event:"danger", freq:475, gain:0.045, dur:0.34 },
+    { id:346, type:"minecraft", event:"pickup", freq:504, gain:0.047, dur:0.35 },
+    { id:347, type:"terraria", event:"craft", freq:533, gain:0.049, dur:0.36 },
+    { id:348, type:"fortnite", event:"weather", freq:562, gain:0.051, dur:0.37 },
+    { id:349, type:"roblox", event:"voice", freq:591, gain:0.053, dur:0.38 },
+    { id:350, type:"irlSimulator", event:"step", freq:620, gain:0.055, dur:0.04 },
+    { id:351, type:"minecraft", event:"jump", freq:649, gain:0.057, dur:0.05 },
+    { id:352, type:"terraria", event:"hit", freq:678, gain:0.059, dur:0.06 },
+    { id:353, type:"fortnite", event:"menu", freq:707, gain:0.061, dur:0.07 },
+    { id:354, type:"roblox", event:"ambient", freq:736, gain:0.063, dur:0.08 },
+    { id:355, type:"irlSimulator", event:"danger", freq:765, gain:0.065, dur:0.09 },
+    { id:356, type:"minecraft", event:"pickup", freq:794, gain:0.067, dur:0.10 },
+    { id:357, type:"terraria", event:"craft", freq:823, gain:0.069, dur:0.11 },
+    { id:358, type:"fortnite", event:"weather", freq:852, gain:0.071, dur:0.12 },
+    { id:359, type:"roblox", event:"voice", freq:881, gain:0.073, dur:0.13 },
+    { id:360, type:"irlSimulator", event:"step", freq:910, gain:0.015, dur:0.14 },
+    { id:361, type:"minecraft", event:"jump", freq:939, gain:0.017, dur:0.15 },
+    { id:362, type:"terraria", event:"hit", freq:968, gain:0.019, dur:0.16 },
+    { id:363, type:"fortnite", event:"menu", freq:997, gain:0.021, dur:0.17 },
+    { id:364, type:"roblox", event:"ambient", freq:1026, gain:0.023, dur:0.18 },
+    { id:365, type:"irlSimulator", event:"danger", freq:1055, gain:0.025, dur:0.19 },
+    { id:366, type:"minecraft", event:"pickup", freq:1084, gain:0.027, dur:0.20 },
+    { id:367, type:"terraria", event:"craft", freq:1113, gain:0.029, dur:0.21 },
+    { id:368, type:"fortnite", event:"weather", freq:1142, gain:0.031, dur:0.22 },
+    { id:369, type:"roblox", event:"voice", freq:1171, gain:0.033, dur:0.23 },
+    { id:370, type:"irlSimulator", event:"step", freq:1200, gain:0.035, dur:0.24 },
+    { id:371, type:"minecraft", event:"jump", freq:1229, gain:0.037, dur:0.25 },
+    { id:372, type:"terraria", event:"hit", freq:1258, gain:0.039, dur:0.26 },
+    { id:373, type:"fortnite", event:"menu", freq:1287, gain:0.041, dur:0.27 },
+    { id:374, type:"roblox", event:"ambient", freq:1316, gain:0.043, dur:0.28 },
+    { id:375, type:"irlSimulator", event:"danger", freq:1345, gain:0.045, dur:0.29 },
+    { id:376, type:"minecraft", event:"pickup", freq:1374, gain:0.047, dur:0.30 },
+    { id:377, type:"terraria", event:"craft", freq:1403, gain:0.049, dur:0.31 },
+    { id:378, type:"fortnite", event:"weather", freq:1432, gain:0.051, dur:0.32 },
+    { id:379, type:"roblox", event:"voice", freq:1461, gain:0.053, dur:0.33 },
+    { id:380, type:"irlSimulator", event:"step", freq:1490, gain:0.055, dur:0.34 },
+    { id:381, type:"minecraft", event:"jump", freq:1519, gain:0.057, dur:0.35 },
+    { id:382, type:"terraria", event:"hit", freq:1548, gain:0.059, dur:0.36 },
+    { id:383, type:"fortnite", event:"menu", freq:1577, gain:0.061, dur:0.37 },
+    { id:384, type:"roblox", event:"ambient", freq:1606, gain:0.063, dur:0.38 },
+    { id:385, type:"irlSimulator", event:"danger", freq:1635, gain:0.065, dur:0.04 },
+    { id:386, type:"minecraft", event:"pickup", freq:1664, gain:0.067, dur:0.05 },
+    { id:387, type:"terraria", event:"craft", freq:93, gain:0.069, dur:0.06 },
+    { id:388, type:"fortnite", event:"weather", freq:122, gain:0.071, dur:0.07 },
+    { id:389, type:"roblox", event:"voice", freq:151, gain:0.073, dur:0.08 },
+    { id:390, type:"irlSimulator", event:"step", freq:180, gain:0.015, dur:0.09 },
+    { id:391, type:"minecraft", event:"jump", freq:209, gain:0.017, dur:0.10 },
+    { id:392, type:"terraria", event:"hit", freq:238, gain:0.019, dur:0.11 },
+    { id:393, type:"fortnite", event:"menu", freq:267, gain:0.021, dur:0.12 },
+    { id:394, type:"roblox", event:"ambient", freq:296, gain:0.023, dur:0.13 },
+    { id:395, type:"irlSimulator", event:"danger", freq:325, gain:0.025, dur:0.14 },
+    { id:396, type:"minecraft", event:"pickup", freq:354, gain:0.027, dur:0.15 },
+    { id:397, type:"terraria", event:"craft", freq:383, gain:0.029, dur:0.16 },
+    { id:398, type:"fortnite", event:"weather", freq:412, gain:0.031, dur:0.17 },
+    { id:399, type:"roblox", event:"voice", freq:441, gain:0.033, dur:0.18 },
+    { id:400, type:"irlSimulator", event:"step", freq:470, gain:0.035, dur:0.19 },
+    { id:401, type:"minecraft", event:"jump", freq:499, gain:0.037, dur:0.20 },
+    { id:402, type:"terraria", event:"hit", freq:528, gain:0.039, dur:0.21 },
+    { id:403, type:"fortnite", event:"menu", freq:557, gain:0.041, dur:0.22 },
+    { id:404, type:"roblox", event:"ambient", freq:586, gain:0.043, dur:0.23 },
+    { id:405, type:"irlSimulator", event:"danger", freq:615, gain:0.045, dur:0.24 },
+    { id:406, type:"minecraft", event:"pickup", freq:644, gain:0.047, dur:0.25 },
+    { id:407, type:"terraria", event:"craft", freq:673, gain:0.049, dur:0.26 },
+    { id:408, type:"fortnite", event:"weather", freq:702, gain:0.051, dur:0.27 },
+    { id:409, type:"roblox", event:"voice", freq:731, gain:0.053, dur:0.28 },
+    { id:410, type:"irlSimulator", event:"step", freq:760, gain:0.055, dur:0.29 },
+    { id:411, type:"minecraft", event:"jump", freq:789, gain:0.057, dur:0.30 },
+    { id:412, type:"terraria", event:"hit", freq:818, gain:0.059, dur:0.31 },
+    { id:413, type:"fortnite", event:"menu", freq:847, gain:0.061, dur:0.32 },
+    { id:414, type:"roblox", event:"ambient", freq:876, gain:0.063, dur:0.33 },
+    { id:415, type:"irlSimulator", event:"danger", freq:905, gain:0.065, dur:0.34 },
+    { id:416, type:"minecraft", event:"pickup", freq:934, gain:0.067, dur:0.35 },
+    { id:417, type:"terraria", event:"craft", freq:963, gain:0.069, dur:0.36 },
+    { id:418, type:"fortnite", event:"weather", freq:992, gain:0.071, dur:0.37 },
+    { id:419, type:"roblox", event:"voice", freq:1021, gain:0.073, dur:0.38 },
+    { id:420, type:"irlSimulator", event:"step", freq:1050, gain:0.015, dur:0.04 },
+    { id:421, type:"minecraft", event:"jump", freq:1079, gain:0.017, dur:0.05 },
+    { id:422, type:"terraria", event:"hit", freq:1108, gain:0.019, dur:0.06 },
+    { id:423, type:"fortnite", event:"menu", freq:1137, gain:0.021, dur:0.07 },
+    { id:424, type:"roblox", event:"ambient", freq:1166, gain:0.023, dur:0.08 },
+    { id:425, type:"irlSimulator", event:"danger", freq:1195, gain:0.025, dur:0.09 },
+    { id:426, type:"minecraft", event:"pickup", freq:1224, gain:0.027, dur:0.10 },
+    { id:427, type:"terraria", event:"craft", freq:1253, gain:0.029, dur:0.11 },
+    { id:428, type:"fortnite", event:"weather", freq:1282, gain:0.031, dur:0.12 },
+    { id:429, type:"roblox", event:"voice", freq:1311, gain:0.033, dur:0.13 },
+    { id:430, type:"irlSimulator", event:"step", freq:1340, gain:0.035, dur:0.14 },
+    { id:431, type:"minecraft", event:"jump", freq:1369, gain:0.037, dur:0.15 },
+    { id:432, type:"terraria", event:"hit", freq:1398, gain:0.039, dur:0.16 },
+    { id:433, type:"fortnite", event:"menu", freq:1427, gain:0.041, dur:0.17 },
+    { id:434, type:"roblox", event:"ambient", freq:1456, gain:0.043, dur:0.18 },
+    { id:435, type:"irlSimulator", event:"danger", freq:1485, gain:0.045, dur:0.19 },
+    { id:436, type:"minecraft", event:"pickup", freq:1514, gain:0.047, dur:0.20 },
+    { id:437, type:"terraria", event:"craft", freq:1543, gain:0.049, dur:0.21 },
+    { id:438, type:"fortnite", event:"weather", freq:1572, gain:0.051, dur:0.22 },
+    { id:439, type:"roblox", event:"voice", freq:1601, gain:0.053, dur:0.23 },
+    { id:440, type:"irlSimulator", event:"step", freq:1630, gain:0.055, dur:0.24 },
+    { id:441, type:"minecraft", event:"jump", freq:1659, gain:0.057, dur:0.25 },
+    { id:442, type:"terraria", event:"hit", freq:88, gain:0.059, dur:0.26 },
+    { id:443, type:"fortnite", event:"menu", freq:117, gain:0.061, dur:0.27 },
+    { id:444, type:"roblox", event:"ambient", freq:146, gain:0.063, dur:0.28 },
+    { id:445, type:"irlSimulator", event:"danger", freq:175, gain:0.065, dur:0.29 },
+    { id:446, type:"minecraft", event:"pickup", freq:204, gain:0.067, dur:0.30 },
+    { id:447, type:"terraria", event:"craft", freq:233, gain:0.069, dur:0.31 },
+    { id:448, type:"fortnite", event:"weather", freq:262, gain:0.071, dur:0.32 },
+    { id:449, type:"roblox", event:"voice", freq:291, gain:0.073, dur:0.33 },
+    { id:450, type:"irlSimulator", event:"step", freq:320, gain:0.015, dur:0.34 },
+    { id:451, type:"minecraft", event:"jump", freq:349, gain:0.017, dur:0.35 },
+    { id:452, type:"terraria", event:"hit", freq:378, gain:0.019, dur:0.36 },
+    { id:453, type:"fortnite", event:"menu", freq:407, gain:0.021, dur:0.37 },
+    { id:454, type:"roblox", event:"ambient", freq:436, gain:0.023, dur:0.38 },
+    { id:455, type:"irlSimulator", event:"danger", freq:465, gain:0.025, dur:0.04 },
+    { id:456, type:"minecraft", event:"pickup", freq:494, gain:0.027, dur:0.05 },
+    { id:457, type:"terraria", event:"craft", freq:523, gain:0.029, dur:0.06 },
+    { id:458, type:"fortnite", event:"weather", freq:552, gain:0.031, dur:0.07 },
+    { id:459, type:"roblox", event:"voice", freq:581, gain:0.033, dur:0.08 },
+    { id:460, type:"irlSimulator", event:"step", freq:610, gain:0.035, dur:0.09 },
+    { id:461, type:"minecraft", event:"jump", freq:639, gain:0.037, dur:0.10 },
+    { id:462, type:"terraria", event:"hit", freq:668, gain:0.039, dur:0.11 },
+    { id:463, type:"fortnite", event:"menu", freq:697, gain:0.041, dur:0.12 },
+    { id:464, type:"roblox", event:"ambient", freq:726, gain:0.043, dur:0.13 },
+    { id:465, type:"irlSimulator", event:"danger", freq:755, gain:0.045, dur:0.14 },
+    { id:466, type:"minecraft", event:"pickup", freq:784, gain:0.047, dur:0.15 },
+    { id:467, type:"terraria", event:"craft", freq:813, gain:0.049, dur:0.16 },
+    { id:468, type:"fortnite", event:"weather", freq:842, gain:0.051, dur:0.17 },
+    { id:469, type:"roblox", event:"voice", freq:871, gain:0.053, dur:0.18 },
+    { id:470, type:"irlSimulator", event:"step", freq:900, gain:0.055, dur:0.19 },
+    { id:471, type:"minecraft", event:"jump", freq:929, gain:0.057, dur:0.20 },
+    { id:472, type:"terraria", event:"hit", freq:958, gain:0.059, dur:0.21 },
+    { id:473, type:"fortnite", event:"menu", freq:987, gain:0.061, dur:0.22 },
+    { id:474, type:"roblox", event:"ambient", freq:1016, gain:0.063, dur:0.23 },
+    { id:475, type:"irlSimulator", event:"danger", freq:1045, gain:0.065, dur:0.24 },
+    { id:476, type:"minecraft", event:"pickup", freq:1074, gain:0.067, dur:0.25 },
+    { id:477, type:"terraria", event:"craft", freq:1103, gain:0.069, dur:0.26 },
+    { id:478, type:"fortnite", event:"weather", freq:1132, gain:0.071, dur:0.27 },
+    { id:479, type:"roblox", event:"voice", freq:1161, gain:0.073, dur:0.28 },
+    { id:480, type:"irlSimulator", event:"step", freq:1190, gain:0.015, dur:0.29 },
+    { id:481, type:"minecraft", event:"jump", freq:1219, gain:0.017, dur:0.30 },
+    { id:482, type:"terraria", event:"hit", freq:1248, gain:0.019, dur:0.31 },
+    { id:483, type:"fortnite", event:"menu", freq:1277, gain:0.021, dur:0.32 },
+    { id:484, type:"roblox", event:"ambient", freq:1306, gain:0.023, dur:0.33 },
+    { id:485, type:"irlSimulator", event:"danger", freq:1335, gain:0.025, dur:0.34 },
+    { id:486, type:"minecraft", event:"pickup", freq:1364, gain:0.027, dur:0.35 },
+    { id:487, type:"terraria", event:"craft", freq:1393, gain:0.029, dur:0.36 },
+    { id:488, type:"fortnite", event:"weather", freq:1422, gain:0.031, dur:0.37 },
+    { id:489, type:"roblox", event:"voice", freq:1451, gain:0.033, dur:0.38 },
+    { id:490, type:"irlSimulator", event:"step", freq:1480, gain:0.035, dur:0.04 },
+    { id:491, type:"minecraft", event:"jump", freq:1509, gain:0.037, dur:0.05 },
+    { id:492, type:"terraria", event:"hit", freq:1538, gain:0.039, dur:0.06 },
+    { id:493, type:"fortnite", event:"menu", freq:1567, gain:0.041, dur:0.07 },
+    { id:494, type:"roblox", event:"ambient", freq:1596, gain:0.043, dur:0.08 },
+    { id:495, type:"irlSimulator", event:"danger", freq:1625, gain:0.045, dur:0.09 },
+    { id:496, type:"minecraft", event:"pickup", freq:1654, gain:0.047, dur:0.10 },
+    { id:497, type:"terraria", event:"craft", freq:83, gain:0.049, dur:0.11 },
+    { id:498, type:"fortnite", event:"weather", freq:112, gain:0.051, dur:0.12 },
+    { id:499, type:"roblox", event:"voice", freq:141, gain:0.053, dur:0.13 },
+    { id:500, type:"irlSimulator", event:"step", freq:170, gain:0.055, dur:0.14 },
+    { id:501, type:"minecraft", event:"jump", freq:199, gain:0.057, dur:0.15 },
+    { id:502, type:"terraria", event:"hit", freq:228, gain:0.059, dur:0.16 },
+    { id:503, type:"fortnite", event:"menu", freq:257, gain:0.061, dur:0.17 },
+    { id:504, type:"roblox", event:"ambient", freq:286, gain:0.063, dur:0.18 },
+    { id:505, type:"irlSimulator", event:"danger", freq:315, gain:0.065, dur:0.19 },
+    { id:506, type:"minecraft", event:"pickup", freq:344, gain:0.067, dur:0.20 },
+    { id:507, type:"terraria", event:"craft", freq:373, gain:0.069, dur:0.21 },
+    { id:508, type:"fortnite", event:"weather", freq:402, gain:0.071, dur:0.22 },
+    { id:509, type:"roblox", event:"voice", freq:431, gain:0.073, dur:0.23 },
+    { id:510, type:"irlSimulator", event:"step", freq:460, gain:0.015, dur:0.24 },
+    { id:511, type:"minecraft", event:"jump", freq:489, gain:0.017, dur:0.25 },
+    { id:512, type:"terraria", event:"hit", freq:518, gain:0.019, dur:0.26 },
+    { id:513, type:"fortnite", event:"menu", freq:547, gain:0.021, dur:0.27 },
+    { id:514, type:"roblox", event:"ambient", freq:576, gain:0.023, dur:0.28 },
+    { id:515, type:"irlSimulator", event:"danger", freq:605, gain:0.025, dur:0.29 },
+    { id:516, type:"minecraft", event:"pickup", freq:634, gain:0.027, dur:0.30 },
+    { id:517, type:"terraria", event:"craft", freq:663, gain:0.029, dur:0.31 },
+    { id:518, type:"fortnite", event:"weather", freq:692, gain:0.031, dur:0.32 },
+    { id:519, type:"roblox", event:"voice", freq:721, gain:0.033, dur:0.33 },
+    { id:520, type:"irlSimulator", event:"step", freq:750, gain:0.035, dur:0.34 },
+    { id:521, type:"minecraft", event:"jump", freq:779, gain:0.037, dur:0.35 },
+    { id:522, type:"terraria", event:"hit", freq:808, gain:0.039, dur:0.36 },
+    { id:523, type:"fortnite", event:"menu", freq:837, gain:0.041, dur:0.37 },
+    { id:524, type:"roblox", event:"ambient", freq:866, gain:0.043, dur:0.38 },
+    { id:525, type:"irlSimulator", event:"danger", freq:895, gain:0.045, dur:0.04 },
+    { id:526, type:"minecraft", event:"pickup", freq:924, gain:0.047, dur:0.05 },
+    { id:527, type:"terraria", event:"craft", freq:953, gain:0.049, dur:0.06 },
+    { id:528, type:"fortnite", event:"weather", freq:982, gain:0.051, dur:0.07 },
+    { id:529, type:"roblox", event:"voice", freq:1011, gain:0.053, dur:0.08 },
+    { id:530, type:"irlSimulator", event:"step", freq:1040, gain:0.055, dur:0.09 },
+    { id:531, type:"minecraft", event:"jump", freq:1069, gain:0.057, dur:0.10 },
+    { id:532, type:"terraria", event:"hit", freq:1098, gain:0.059, dur:0.11 },
+    { id:533, type:"fortnite", event:"menu", freq:1127, gain:0.061, dur:0.12 },
+    { id:534, type:"roblox", event:"ambient", freq:1156, gain:0.063, dur:0.13 },
+    { id:535, type:"irlSimulator", event:"danger", freq:1185, gain:0.065, dur:0.14 },
+    { id:536, type:"minecraft", event:"pickup", freq:1214, gain:0.067, dur:0.15 },
+    { id:537, type:"terraria", event:"craft", freq:1243, gain:0.069, dur:0.16 },
+    { id:538, type:"fortnite", event:"weather", freq:1272, gain:0.071, dur:0.17 },
+    { id:539, type:"roblox", event:"voice", freq:1301, gain:0.073, dur:0.18 },
+    { id:540, type:"irlSimulator", event:"step", freq:1330, gain:0.015, dur:0.19 },
+    { id:541, type:"minecraft", event:"jump", freq:1359, gain:0.017, dur:0.20 },
+    { id:542, type:"terraria", event:"hit", freq:1388, gain:0.019, dur:0.21 },
+    { id:543, type:"fortnite", event:"menu", freq:1417, gain:0.021, dur:0.22 },
+    { id:544, type:"roblox", event:"ambient", freq:1446, gain:0.023, dur:0.23 },
+    { id:545, type:"irlSimulator", event:"danger", freq:1475, gain:0.025, dur:0.24 },
+    { id:546, type:"minecraft", event:"pickup", freq:1504, gain:0.027, dur:0.25 },
+    { id:547, type:"terraria", event:"craft", freq:1533, gain:0.029, dur:0.26 },
+    { id:548, type:"fortnite", event:"weather", freq:1562, gain:0.031, dur:0.27 },
+    { id:549, type:"roblox", event:"voice", freq:1591, gain:0.033, dur:0.28 },
+    { id:550, type:"irlSimulator", event:"step", freq:1620, gain:0.035, dur:0.29 },
+    { id:551, type:"minecraft", event:"jump", freq:1649, gain:0.037, dur:0.30 },
+    { id:552, type:"terraria", event:"hit", freq:78, gain:0.039, dur:0.31 },
+    { id:553, type:"fortnite", event:"menu", freq:107, gain:0.041, dur:0.32 },
+    { id:554, type:"roblox", event:"ambient", freq:136, gain:0.043, dur:0.33 },
+    { id:555, type:"irlSimulator", event:"danger", freq:165, gain:0.045, dur:0.34 },
+    { id:556, type:"minecraft", event:"pickup", freq:194, gain:0.047, dur:0.35 },
+    { id:557, type:"terraria", event:"craft", freq:223, gain:0.049, dur:0.36 },
+    { id:558, type:"fortnite", event:"weather", freq:252, gain:0.051, dur:0.37 },
+    { id:559, type:"roblox", event:"voice", freq:281, gain:0.053, dur:0.38 },
+    { id:560, type:"irlSimulator", event:"step", freq:310, gain:0.055, dur:0.04 },
+    { id:561, type:"minecraft", event:"jump", freq:339, gain:0.057, dur:0.05 },
+    { id:562, type:"terraria", event:"hit", freq:368, gain:0.059, dur:0.06 },
+    { id:563, type:"fortnite", event:"menu", freq:397, gain:0.061, dur:0.07 },
+    { id:564, type:"roblox", event:"ambient", freq:426, gain:0.063, dur:0.08 },
+    { id:565, type:"irlSimulator", event:"danger", freq:455, gain:0.065, dur:0.09 },
+    { id:566, type:"minecraft", event:"pickup", freq:484, gain:0.067, dur:0.10 },
+    { id:567, type:"terraria", event:"craft", freq:513, gain:0.069, dur:0.11 },
+    { id:568, type:"fortnite", event:"weather", freq:542, gain:0.071, dur:0.12 },
+    { id:569, type:"roblox", event:"voice", freq:571, gain:0.073, dur:0.13 },
+    { id:570, type:"irlSimulator", event:"step", freq:600, gain:0.015, dur:0.14 },
+    { id:571, type:"minecraft", event:"jump", freq:629, gain:0.017, dur:0.15 },
+    { id:572, type:"terraria", event:"hit", freq:658, gain:0.019, dur:0.16 },
+    { id:573, type:"fortnite", event:"menu", freq:687, gain:0.021, dur:0.17 },
+    { id:574, type:"roblox", event:"ambient", freq:716, gain:0.023, dur:0.18 },
+    { id:575, type:"irlSimulator", event:"danger", freq:745, gain:0.025, dur:0.19 },
+    { id:576, type:"minecraft", event:"pickup", freq:774, gain:0.027, dur:0.20 },
+    { id:577, type:"terraria", event:"craft", freq:803, gain:0.029, dur:0.21 },
+    { id:578, type:"fortnite", event:"weather", freq:832, gain:0.031, dur:0.22 },
+    { id:579, type:"roblox", event:"voice", freq:861, gain:0.033, dur:0.23 },
+    { id:580, type:"irlSimulator", event:"step", freq:890, gain:0.035, dur:0.24 },
+    { id:581, type:"minecraft", event:"jump", freq:919, gain:0.037, dur:0.25 },
+    { id:582, type:"terraria", event:"hit", freq:948, gain:0.039, dur:0.26 },
+    { id:583, type:"fortnite", event:"menu", freq:977, gain:0.041, dur:0.27 },
+    { id:584, type:"roblox", event:"ambient", freq:1006, gain:0.043, dur:0.28 },
+    { id:585, type:"irlSimulator", event:"danger", freq:1035, gain:0.045, dur:0.29 },
+    { id:586, type:"minecraft", event:"pickup", freq:1064, gain:0.047, dur:0.30 },
+    { id:587, type:"terraria", event:"craft", freq:1093, gain:0.049, dur:0.31 },
+    { id:588, type:"fortnite", event:"weather", freq:1122, gain:0.051, dur:0.32 },
+    { id:589, type:"roblox", event:"voice", freq:1151, gain:0.053, dur:0.33 },
+    { id:590, type:"irlSimulator", event:"step", freq:1180, gain:0.055, dur:0.34 },
+    { id:591, type:"minecraft", event:"jump", freq:1209, gain:0.057, dur:0.35 },
+    { id:592, type:"terraria", event:"hit", freq:1238, gain:0.059, dur:0.36 },
+    { id:593, type:"fortnite", event:"menu", freq:1267, gain:0.061, dur:0.37 },
+    { id:594, type:"roblox", event:"ambient", freq:1296, gain:0.063, dur:0.38 },
+    { id:595, type:"irlSimulator", event:"danger", freq:1325, gain:0.065, dur:0.04 },
+    { id:596, type:"minecraft", event:"pickup", freq:1354, gain:0.067, dur:0.05 },
+    { id:597, type:"terraria", event:"craft", freq:1383, gain:0.069, dur:0.06 },
+    { id:598, type:"fortnite", event:"weather", freq:1412, gain:0.071, dur:0.07 },
+    { id:599, type:"roblox", event:"voice", freq:1441, gain:0.073, dur:0.08 },
+    { id:600, type:"irlSimulator", event:"step", freq:1470, gain:0.015, dur:0.09 },
+    { id:601, type:"minecraft", event:"jump", freq:1499, gain:0.017, dur:0.10 },
+    { id:602, type:"terraria", event:"hit", freq:1528, gain:0.019, dur:0.11 },
+    { id:603, type:"fortnite", event:"menu", freq:1557, gain:0.021, dur:0.12 },
+    { id:604, type:"roblox", event:"ambient", freq:1586, gain:0.023, dur:0.13 },
+    { id:605, type:"irlSimulator", event:"danger", freq:1615, gain:0.025, dur:0.14 },
+    { id:606, type:"minecraft", event:"pickup", freq:1644, gain:0.027, dur:0.15 },
+    { id:607, type:"terraria", event:"craft", freq:73, gain:0.029, dur:0.16 },
+    { id:608, type:"fortnite", event:"weather", freq:102, gain:0.031, dur:0.17 },
+    { id:609, type:"roblox", event:"voice", freq:131, gain:0.033, dur:0.18 },
+    { id:610, type:"irlSimulator", event:"step", freq:160, gain:0.035, dur:0.19 },
+    { id:611, type:"minecraft", event:"jump", freq:189, gain:0.037, dur:0.20 },
+    { id:612, type:"terraria", event:"hit", freq:218, gain:0.039, dur:0.21 },
+    { id:613, type:"fortnite", event:"menu", freq:247, gain:0.041, dur:0.22 },
+    { id:614, type:"roblox", event:"ambient", freq:276, gain:0.043, dur:0.23 },
+    { id:615, type:"irlSimulator", event:"danger", freq:305, gain:0.045, dur:0.24 },
+    { id:616, type:"minecraft", event:"pickup", freq:334, gain:0.047, dur:0.25 },
+    { id:617, type:"terraria", event:"craft", freq:363, gain:0.049, dur:0.26 },
+    { id:618, type:"fortnite", event:"weather", freq:392, gain:0.051, dur:0.27 },
+    { id:619, type:"roblox", event:"voice", freq:421, gain:0.053, dur:0.28 },
+    { id:620, type:"irlSimulator", event:"step", freq:450, gain:0.055, dur:0.29 },
+    { id:621, type:"minecraft", event:"jump", freq:479, gain:0.057, dur:0.30 },
+    { id:622, type:"terraria", event:"hit", freq:508, gain:0.059, dur:0.31 },
+    { id:623, type:"fortnite", event:"menu", freq:537, gain:0.061, dur:0.32 },
+    { id:624, type:"roblox", event:"ambient", freq:566, gain:0.063, dur:0.33 },
+    { id:625, type:"irlSimulator", event:"danger", freq:595, gain:0.065, dur:0.34 },
+    { id:626, type:"minecraft", event:"pickup", freq:624, gain:0.067, dur:0.35 },
+    { id:627, type:"terraria", event:"craft", freq:653, gain:0.069, dur:0.36 },
+    { id:628, type:"fortnite", event:"weather", freq:682, gain:0.071, dur:0.37 },
+    { id:629, type:"roblox", event:"voice", freq:711, gain:0.073, dur:0.38 },
+    { id:630, type:"irlSimulator", event:"step", freq:740, gain:0.015, dur:0.04 },
+    { id:631, type:"minecraft", event:"jump", freq:769, gain:0.017, dur:0.05 },
+    { id:632, type:"terraria", event:"hit", freq:798, gain:0.019, dur:0.06 },
+    { id:633, type:"fortnite", event:"menu", freq:827, gain:0.021, dur:0.07 },
+    { id:634, type:"roblox", event:"ambient", freq:856, gain:0.023, dur:0.08 },
+    { id:635, type:"irlSimulator", event:"danger", freq:885, gain:0.025, dur:0.09 },
+    { id:636, type:"minecraft", event:"pickup", freq:914, gain:0.027, dur:0.10 },
+    { id:637, type:"terraria", event:"craft", freq:943, gain:0.029, dur:0.11 },
+    { id:638, type:"fortnite", event:"weather", freq:972, gain:0.031, dur:0.12 },
+    { id:639, type:"roblox", event:"voice", freq:1001, gain:0.033, dur:0.13 },
+    { id:640, type:"irlSimulator", event:"step", freq:1030, gain:0.035, dur:0.14 },
+    { id:641, type:"minecraft", event:"jump", freq:1059, gain:0.037, dur:0.15 },
+    { id:642, type:"terraria", event:"hit", freq:1088, gain:0.039, dur:0.16 },
+    { id:643, type:"fortnite", event:"menu", freq:1117, gain:0.041, dur:0.17 },
+    { id:644, type:"roblox", event:"ambient", freq:1146, gain:0.043, dur:0.18 },
+    { id:645, type:"irlSimulator", event:"danger", freq:1175, gain:0.045, dur:0.19 },
+    { id:646, type:"minecraft", event:"pickup", freq:1204, gain:0.047, dur:0.20 },
+    { id:647, type:"terraria", event:"craft", freq:1233, gain:0.049, dur:0.21 },
+    { id:648, type:"fortnite", event:"weather", freq:1262, gain:0.051, dur:0.22 },
+    { id:649, type:"roblox", event:"voice", freq:1291, gain:0.053, dur:0.23 },
+    { id:650, type:"irlSimulator", event:"step", freq:1320, gain:0.055, dur:0.24 },
+    { id:651, type:"minecraft", event:"jump", freq:1349, gain:0.057, dur:0.25 },
+    { id:652, type:"terraria", event:"hit", freq:1378, gain:0.059, dur:0.26 },
+    { id:653, type:"fortnite", event:"menu", freq:1407, gain:0.061, dur:0.27 },
+    { id:654, type:"roblox", event:"ambient", freq:1436, gain:0.063, dur:0.28 },
+    { id:655, type:"irlSimulator", event:"danger", freq:1465, gain:0.065, dur:0.29 },
+    { id:656, type:"minecraft", event:"pickup", freq:1494, gain:0.067, dur:0.30 },
+    { id:657, type:"terraria", event:"craft", freq:1523, gain:0.069, dur:0.31 },
+    { id:658, type:"fortnite", event:"weather", freq:1552, gain:0.071, dur:0.32 },
+    { id:659, type:"roblox", event:"voice", freq:1581, gain:0.073, dur:0.33 },
+    { id:660, type:"irlSimulator", event:"step", freq:1610, gain:0.015, dur:0.34 },
+    { id:661, type:"minecraft", event:"jump", freq:1639, gain:0.017, dur:0.35 },
+    { id:662, type:"terraria", event:"hit", freq:1668, gain:0.019, dur:0.36 },
+    { id:663, type:"fortnite", event:"menu", freq:97, gain:0.021, dur:0.37 },
+    { id:664, type:"roblox", event:"ambient", freq:126, gain:0.023, dur:0.38 },
+    { id:665, type:"irlSimulator", event:"danger", freq:155, gain:0.025, dur:0.04 },
+    { id:666, type:"minecraft", event:"pickup", freq:184, gain:0.027, dur:0.05 },
+    { id:667, type:"terraria", event:"craft", freq:213, gain:0.029, dur:0.06 },
+    { id:668, type:"fortnite", event:"weather", freq:242, gain:0.031, dur:0.07 },
+    { id:669, type:"roblox", event:"voice", freq:271, gain:0.033, dur:0.08 },
+    { id:670, type:"irlSimulator", event:"step", freq:300, gain:0.035, dur:0.09 },
+    { id:671, type:"minecraft", event:"jump", freq:329, gain:0.037, dur:0.10 },
+    { id:672, type:"terraria", event:"hit", freq:358, gain:0.039, dur:0.11 },
+    { id:673, type:"fortnite", event:"menu", freq:387, gain:0.041, dur:0.12 },
+    { id:674, type:"roblox", event:"ambient", freq:416, gain:0.043, dur:0.13 },
+    { id:675, type:"irlSimulator", event:"danger", freq:445, gain:0.045, dur:0.14 },
+    { id:676, type:"minecraft", event:"pickup", freq:474, gain:0.047, dur:0.15 },
+    { id:677, type:"terraria", event:"craft", freq:503, gain:0.049, dur:0.16 },
+    { id:678, type:"fortnite", event:"weather", freq:532, gain:0.051, dur:0.17 },
+    { id:679, type:"roblox", event:"voice", freq:561, gain:0.053, dur:0.18 },
+    { id:680, type:"irlSimulator", event:"step", freq:590, gain:0.055, dur:0.19 },
+    { id:681, type:"minecraft", event:"jump", freq:619, gain:0.057, dur:0.20 },
+    { id:682, type:"terraria", event:"hit", freq:648, gain:0.059, dur:0.21 },
+    { id:683, type:"fortnite", event:"menu", freq:677, gain:0.061, dur:0.22 },
+    { id:684, type:"roblox", event:"ambient", freq:706, gain:0.063, dur:0.23 },
+    { id:685, type:"irlSimulator", event:"danger", freq:735, gain:0.065, dur:0.24 },
+    { id:686, type:"minecraft", event:"pickup", freq:764, gain:0.067, dur:0.25 },
+    { id:687, type:"terraria", event:"craft", freq:793, gain:0.069, dur:0.26 },
+    { id:688, type:"fortnite", event:"weather", freq:822, gain:0.071, dur:0.27 },
+    { id:689, type:"roblox", event:"voice", freq:851, gain:0.073, dur:0.28 },
+    { id:690, type:"irlSimulator", event:"step", freq:880, gain:0.015, dur:0.29 },
+    { id:691, type:"minecraft", event:"jump", freq:909, gain:0.017, dur:0.30 },
+    { id:692, type:"terraria", event:"hit", freq:938, gain:0.019, dur:0.31 },
+    { id:693, type:"fortnite", event:"menu", freq:967, gain:0.021, dur:0.32 },
+    { id:694, type:"roblox", event:"ambient", freq:996, gain:0.023, dur:0.33 },
+    { id:695, type:"irlSimulator", event:"danger", freq:1025, gain:0.025, dur:0.34 },
+    { id:696, type:"minecraft", event:"pickup", freq:1054, gain:0.027, dur:0.35 },
+    { id:697, type:"terraria", event:"craft", freq:1083, gain:0.029, dur:0.36 },
+    { id:698, type:"fortnite", event:"weather", freq:1112, gain:0.031, dur:0.37 },
+    { id:699, type:"roblox", event:"voice", freq:1141, gain:0.033, dur:0.38 },
+  ];
+  const SPUDZY_AUDIO_RECIPES = [
+    { id:0, kind:"footstep", freq:60, dur:0.04, gain:0.010, filter:250 },
+    { id:1, kind:"rain", freq:77, dur:0.05, gain:0.013, filter:281 },
+    { id:2, kind:"wind", freq:94, dur:0.06, gain:0.015, filter:312 },
+    { id:3, kind:"click", freq:111, dur:0.07, gain:0.018, filter:343 },
+    { id:4, kind:"hum", freq:128, dur:0.08, gain:0.020, filter:374 },
+    { id:5, kind:"block", freq:145, dur:0.09, gain:0.022, filter:405 },
+    { id:6, kind:"mob", freq:162, dur:0.10, gain:0.025, filter:436 },
+    { id:7, kind:"whoosh", freq:179, dur:0.11, gain:0.028, filter:467 },
+    { id:8, kind:"fire", freq:196, dur:0.12, gain:0.030, filter:498 },
+    { id:9, kind:"water", freq:213, dur:0.13, gain:0.033, filter:529 },
+    { id:10, kind:"footstep", freq:230, dur:0.14, gain:0.035, filter:560 },
+    { id:11, kind:"rain", freq:247, dur:0.15, gain:0.037, filter:591 },
+    { id:12, kind:"wind", freq:264, dur:0.16, gain:0.040, filter:622 },
+    { id:13, kind:"click", freq:281, dur:0.17, gain:0.043, filter:653 },
+    { id:14, kind:"hum", freq:298, dur:0.18, gain:0.045, filter:684 },
+    { id:15, kind:"block", freq:315, dur:0.19, gain:0.048, filter:715 },
+    { id:16, kind:"mob", freq:332, dur:0.20, gain:0.050, filter:746 },
+    { id:17, kind:"whoosh", freq:349, dur:0.21, gain:0.053, filter:777 },
+    { id:18, kind:"fire", freq:366, dur:0.22, gain:0.055, filter:808 },
+    { id:19, kind:"water", freq:383, dur:0.23, gain:0.058, filter:839 },
+    { id:20, kind:"footstep", freq:400, dur:0.24, gain:0.010, filter:870 },
+    { id:21, kind:"rain", freq:417, dur:0.25, gain:0.013, filter:901 },
+    { id:22, kind:"wind", freq:434, dur:0.26, gain:0.015, filter:932 },
+    { id:23, kind:"click", freq:451, dur:0.27, gain:0.018, filter:963 },
+    { id:24, kind:"hum", freq:468, dur:0.28, gain:0.020, filter:994 },
+    { id:25, kind:"block", freq:485, dur:0.29, gain:0.022, filter:1025 },
+    { id:26, kind:"mob", freq:502, dur:0.30, gain:0.025, filter:1056 },
+    { id:27, kind:"whoosh", freq:519, dur:0.31, gain:0.028, filter:1087 },
+    { id:28, kind:"fire", freq:536, dur:0.32, gain:0.030, filter:1118 },
+    { id:29, kind:"water", freq:553, dur:0.33, gain:0.033, filter:1149 },
+    { id:30, kind:"footstep", freq:570, dur:0.04, gain:0.035, filter:1180 },
+    { id:31, kind:"rain", freq:587, dur:0.05, gain:0.037, filter:1211 },
+    { id:32, kind:"wind", freq:604, dur:0.06, gain:0.040, filter:1242 },
+    { id:33, kind:"click", freq:621, dur:0.07, gain:0.043, filter:1273 },
+    { id:34, kind:"hum", freq:638, dur:0.08, gain:0.045, filter:1304 },
+    { id:35, kind:"block", freq:655, dur:0.09, gain:0.048, filter:1335 },
+    { id:36, kind:"mob", freq:672, dur:0.10, gain:0.050, filter:1366 },
+    { id:37, kind:"whoosh", freq:689, dur:0.11, gain:0.053, filter:1397 },
+    { id:38, kind:"fire", freq:706, dur:0.12, gain:0.055, filter:1428 },
+    { id:39, kind:"water", freq:723, dur:0.13, gain:0.058, filter:1459 },
+    { id:40, kind:"footstep", freq:740, dur:0.14, gain:0.010, filter:1490 },
+    { id:41, kind:"rain", freq:757, dur:0.15, gain:0.013, filter:1521 },
+    { id:42, kind:"wind", freq:774, dur:0.16, gain:0.015, filter:1552 },
+    { id:43, kind:"click", freq:791, dur:0.17, gain:0.018, filter:1583 },
+    { id:44, kind:"hum", freq:808, dur:0.18, gain:0.020, filter:1614 },
+    { id:45, kind:"block", freq:825, dur:0.19, gain:0.022, filter:1645 },
+    { id:46, kind:"mob", freq:842, dur:0.20, gain:0.025, filter:1676 },
+    { id:47, kind:"whoosh", freq:859, dur:0.21, gain:0.028, filter:1707 },
+    { id:48, kind:"fire", freq:876, dur:0.22, gain:0.030, filter:1738 },
+    { id:49, kind:"water", freq:893, dur:0.23, gain:0.033, filter:1769 },
+    { id:50, kind:"footstep", freq:910, dur:0.24, gain:0.035, filter:1800 },
+    { id:51, kind:"rain", freq:927, dur:0.25, gain:0.037, filter:1831 },
+    { id:52, kind:"wind", freq:944, dur:0.26, gain:0.040, filter:1862 },
+    { id:53, kind:"click", freq:961, dur:0.27, gain:0.043, filter:1893 },
+    { id:54, kind:"hum", freq:978, dur:0.28, gain:0.045, filter:1924 },
+    { id:55, kind:"block", freq:995, dur:0.29, gain:0.048, filter:1955 },
+    { id:56, kind:"mob", freq:1012, dur:0.30, gain:0.050, filter:1986 },
+    { id:57, kind:"whoosh", freq:1029, dur:0.31, gain:0.053, filter:2017 },
+    { id:58, kind:"fire", freq:1046, dur:0.32, gain:0.055, filter:2048 },
+    { id:59, kind:"water", freq:1063, dur:0.33, gain:0.058, filter:2079 },
+    { id:60, kind:"footstep", freq:1080, dur:0.04, gain:0.010, filter:2110 },
+    { id:61, kind:"rain", freq:1097, dur:0.05, gain:0.013, filter:2141 },
+    { id:62, kind:"wind", freq:1114, dur:0.06, gain:0.015, filter:2172 },
+    { id:63, kind:"click", freq:1131, dur:0.07, gain:0.018, filter:2203 },
+    { id:64, kind:"hum", freq:1148, dur:0.08, gain:0.020, filter:2234 },
+    { id:65, kind:"block", freq:1165, dur:0.09, gain:0.022, filter:2265 },
+    { id:66, kind:"mob", freq:1182, dur:0.10, gain:0.025, filter:2296 },
+    { id:67, kind:"whoosh", freq:1199, dur:0.11, gain:0.028, filter:2327 },
+    { id:68, kind:"fire", freq:1216, dur:0.12, gain:0.030, filter:2358 },
+    { id:69, kind:"water", freq:1233, dur:0.13, gain:0.033, filter:2389 },
+    { id:70, kind:"footstep", freq:1250, dur:0.14, gain:0.035, filter:2420 },
+    { id:71, kind:"rain", freq:67, dur:0.15, gain:0.037, filter:2451 },
+    { id:72, kind:"wind", freq:84, dur:0.16, gain:0.040, filter:2482 },
+    { id:73, kind:"click", freq:101, dur:0.17, gain:0.043, filter:2513 },
+    { id:74, kind:"hum", freq:118, dur:0.18, gain:0.045, filter:2544 },
+    { id:75, kind:"block", freq:135, dur:0.19, gain:0.048, filter:2575 },
+    { id:76, kind:"mob", freq:152, dur:0.20, gain:0.050, filter:2606 },
+    { id:77, kind:"whoosh", freq:169, dur:0.21, gain:0.053, filter:2637 },
+    { id:78, kind:"fire", freq:186, dur:0.22, gain:0.055, filter:2668 },
+    { id:79, kind:"water", freq:203, dur:0.23, gain:0.058, filter:2699 },
+    { id:80, kind:"footstep", freq:220, dur:0.24, gain:0.010, filter:2730 },
+    { id:81, kind:"rain", freq:237, dur:0.25, gain:0.013, filter:2761 },
+    { id:82, kind:"wind", freq:254, dur:0.26, gain:0.015, filter:2792 },
+    { id:83, kind:"click", freq:271, dur:0.27, gain:0.018, filter:2823 },
+    { id:84, kind:"hum", freq:288, dur:0.28, gain:0.020, filter:2854 },
+    { id:85, kind:"block", freq:305, dur:0.29, gain:0.022, filter:2885 },
+    { id:86, kind:"mob", freq:322, dur:0.30, gain:0.025, filter:2916 },
+    { id:87, kind:"whoosh", freq:339, dur:0.31, gain:0.028, filter:2947 },
+    { id:88, kind:"fire", freq:356, dur:0.32, gain:0.030, filter:2978 },
+    { id:89, kind:"water", freq:373, dur:0.33, gain:0.033, filter:3009 },
+    { id:90, kind:"footstep", freq:390, dur:0.04, gain:0.035, filter:3040 },
+    { id:91, kind:"rain", freq:407, dur:0.05, gain:0.037, filter:3071 },
+    { id:92, kind:"wind", freq:424, dur:0.06, gain:0.040, filter:3102 },
+    { id:93, kind:"click", freq:441, dur:0.07, gain:0.043, filter:3133 },
+    { id:94, kind:"hum", freq:458, dur:0.08, gain:0.045, filter:3164 },
+    { id:95, kind:"block", freq:475, dur:0.09, gain:0.048, filter:3195 },
+    { id:96, kind:"mob", freq:492, dur:0.10, gain:0.050, filter:3226 },
+    { id:97, kind:"whoosh", freq:509, dur:0.11, gain:0.053, filter:3257 },
+    { id:98, kind:"fire", freq:526, dur:0.12, gain:0.055, filter:3288 },
+    { id:99, kind:"water", freq:543, dur:0.13, gain:0.058, filter:3319 },
+    { id:100, kind:"footstep", freq:560, dur:0.14, gain:0.010, filter:3350 },
+    { id:101, kind:"rain", freq:577, dur:0.15, gain:0.013, filter:3381 },
+    { id:102, kind:"wind", freq:594, dur:0.16, gain:0.015, filter:3412 },
+    { id:103, kind:"click", freq:611, dur:0.17, gain:0.018, filter:3443 },
+    { id:104, kind:"hum", freq:628, dur:0.18, gain:0.020, filter:3474 },
+    { id:105, kind:"block", freq:645, dur:0.19, gain:0.022, filter:3505 },
+    { id:106, kind:"mob", freq:662, dur:0.20, gain:0.025, filter:3536 },
+    { id:107, kind:"whoosh", freq:679, dur:0.21, gain:0.028, filter:3567 },
+    { id:108, kind:"fire", freq:696, dur:0.22, gain:0.030, filter:3598 },
+    { id:109, kind:"water", freq:713, dur:0.23, gain:0.033, filter:3629 },
+    { id:110, kind:"footstep", freq:730, dur:0.24, gain:0.035, filter:3660 },
+    { id:111, kind:"rain", freq:747, dur:0.25, gain:0.037, filter:3691 },
+    { id:112, kind:"wind", freq:764, dur:0.26, gain:0.040, filter:3722 },
+    { id:113, kind:"click", freq:781, dur:0.27, gain:0.043, filter:3753 },
+    { id:114, kind:"hum", freq:798, dur:0.28, gain:0.045, filter:3784 },
+    { id:115, kind:"block", freq:815, dur:0.29, gain:0.048, filter:3815 },
+    { id:116, kind:"mob", freq:832, dur:0.30, gain:0.050, filter:3846 },
+    { id:117, kind:"whoosh", freq:849, dur:0.31, gain:0.053, filter:3877 },
+    { id:118, kind:"fire", freq:866, dur:0.32, gain:0.055, filter:3908 },
+    { id:119, kind:"water", freq:883, dur:0.33, gain:0.058, filter:3939 },
+    { id:120, kind:"footstep", freq:900, dur:0.04, gain:0.010, filter:3970 },
+    { id:121, kind:"rain", freq:917, dur:0.05, gain:0.013, filter:4001 },
+    { id:122, kind:"wind", freq:934, dur:0.06, gain:0.015, filter:4032 },
+    { id:123, kind:"click", freq:951, dur:0.07, gain:0.018, filter:4063 },
+    { id:124, kind:"hum", freq:968, dur:0.08, gain:0.020, filter:4094 },
+    { id:125, kind:"block", freq:985, dur:0.09, gain:0.022, filter:4125 },
+    { id:126, kind:"mob", freq:1002, dur:0.10, gain:0.025, filter:4156 },
+    { id:127, kind:"whoosh", freq:1019, dur:0.11, gain:0.028, filter:4187 },
+    { id:128, kind:"fire", freq:1036, dur:0.12, gain:0.030, filter:4218 },
+    { id:129, kind:"water", freq:1053, dur:0.13, gain:0.033, filter:4249 },
+    { id:130, kind:"footstep", freq:1070, dur:0.14, gain:0.035, filter:4280 },
+    { id:131, kind:"rain", freq:1087, dur:0.15, gain:0.037, filter:4311 },
+    { id:132, kind:"wind", freq:1104, dur:0.16, gain:0.040, filter:4342 },
+    { id:133, kind:"click", freq:1121, dur:0.17, gain:0.043, filter:4373 },
+    { id:134, kind:"hum", freq:1138, dur:0.18, gain:0.045, filter:4404 },
+    { id:135, kind:"block", freq:1155, dur:0.19, gain:0.048, filter:4435 },
+    { id:136, kind:"mob", freq:1172, dur:0.20, gain:0.050, filter:266 },
+    { id:137, kind:"whoosh", freq:1189, dur:0.21, gain:0.053, filter:297 },
+    { id:138, kind:"fire", freq:1206, dur:0.22, gain:0.055, filter:328 },
+    { id:139, kind:"water", freq:1223, dur:0.23, gain:0.058, filter:359 },
+    { id:140, kind:"footstep", freq:1240, dur:0.24, gain:0.010, filter:390 },
+    { id:141, kind:"rain", freq:1257, dur:0.25, gain:0.013, filter:421 },
+    { id:142, kind:"wind", freq:74, dur:0.26, gain:0.015, filter:452 },
+    { id:143, kind:"click", freq:91, dur:0.27, gain:0.018, filter:483 },
+    { id:144, kind:"hum", freq:108, dur:0.28, gain:0.020, filter:514 },
+    { id:145, kind:"block", freq:125, dur:0.29, gain:0.022, filter:545 },
+    { id:146, kind:"mob", freq:142, dur:0.30, gain:0.025, filter:576 },
+    { id:147, kind:"whoosh", freq:159, dur:0.31, gain:0.028, filter:607 },
+    { id:148, kind:"fire", freq:176, dur:0.32, gain:0.030, filter:638 },
+    { id:149, kind:"water", freq:193, dur:0.33, gain:0.033, filter:669 },
+    { id:150, kind:"footstep", freq:210, dur:0.04, gain:0.035, filter:700 },
+    { id:151, kind:"rain", freq:227, dur:0.05, gain:0.037, filter:731 },
+    { id:152, kind:"wind", freq:244, dur:0.06, gain:0.040, filter:762 },
+    { id:153, kind:"click", freq:261, dur:0.07, gain:0.043, filter:793 },
+    { id:154, kind:"hum", freq:278, dur:0.08, gain:0.045, filter:824 },
+    { id:155, kind:"block", freq:295, dur:0.09, gain:0.048, filter:855 },
+    { id:156, kind:"mob", freq:312, dur:0.10, gain:0.050, filter:886 },
+    { id:157, kind:"whoosh", freq:329, dur:0.11, gain:0.053, filter:917 },
+    { id:158, kind:"fire", freq:346, dur:0.12, gain:0.055, filter:948 },
+    { id:159, kind:"water", freq:363, dur:0.13, gain:0.058, filter:979 },
+    { id:160, kind:"footstep", freq:380, dur:0.14, gain:0.010, filter:1010 },
+    { id:161, kind:"rain", freq:397, dur:0.15, gain:0.013, filter:1041 },
+    { id:162, kind:"wind", freq:414, dur:0.16, gain:0.015, filter:1072 },
+    { id:163, kind:"click", freq:431, dur:0.17, gain:0.018, filter:1103 },
+    { id:164, kind:"hum", freq:448, dur:0.18, gain:0.020, filter:1134 },
+    { id:165, kind:"block", freq:465, dur:0.19, gain:0.022, filter:1165 },
+    { id:166, kind:"mob", freq:482, dur:0.20, gain:0.025, filter:1196 },
+    { id:167, kind:"whoosh", freq:499, dur:0.21, gain:0.028, filter:1227 },
+    { id:168, kind:"fire", freq:516, dur:0.22, gain:0.030, filter:1258 },
+    { id:169, kind:"water", freq:533, dur:0.23, gain:0.033, filter:1289 },
+    { id:170, kind:"footstep", freq:550, dur:0.24, gain:0.035, filter:1320 },
+    { id:171, kind:"rain", freq:567, dur:0.25, gain:0.037, filter:1351 },
+    { id:172, kind:"wind", freq:584, dur:0.26, gain:0.040, filter:1382 },
+    { id:173, kind:"click", freq:601, dur:0.27, gain:0.043, filter:1413 },
+    { id:174, kind:"hum", freq:618, dur:0.28, gain:0.045, filter:1444 },
+    { id:175, kind:"block", freq:635, dur:0.29, gain:0.048, filter:1475 },
+    { id:176, kind:"mob", freq:652, dur:0.30, gain:0.050, filter:1506 },
+    { id:177, kind:"whoosh", freq:669, dur:0.31, gain:0.053, filter:1537 },
+    { id:178, kind:"fire", freq:686, dur:0.32, gain:0.055, filter:1568 },
+    { id:179, kind:"water", freq:703, dur:0.33, gain:0.058, filter:1599 },
+    { id:180, kind:"footstep", freq:720, dur:0.04, gain:0.010, filter:1630 },
+    { id:181, kind:"rain", freq:737, dur:0.05, gain:0.013, filter:1661 },
+    { id:182, kind:"wind", freq:754, dur:0.06, gain:0.015, filter:1692 },
+    { id:183, kind:"click", freq:771, dur:0.07, gain:0.018, filter:1723 },
+    { id:184, kind:"hum", freq:788, dur:0.08, gain:0.020, filter:1754 },
+    { id:185, kind:"block", freq:805, dur:0.09, gain:0.022, filter:1785 },
+    { id:186, kind:"mob", freq:822, dur:0.10, gain:0.025, filter:1816 },
+    { id:187, kind:"whoosh", freq:839, dur:0.11, gain:0.028, filter:1847 },
+    { id:188, kind:"fire", freq:856, dur:0.12, gain:0.030, filter:1878 },
+    { id:189, kind:"water", freq:873, dur:0.13, gain:0.033, filter:1909 },
+    { id:190, kind:"footstep", freq:890, dur:0.14, gain:0.035, filter:1940 },
+    { id:191, kind:"rain", freq:907, dur:0.15, gain:0.037, filter:1971 },
+    { id:192, kind:"wind", freq:924, dur:0.16, gain:0.040, filter:2002 },
+    { id:193, kind:"click", freq:941, dur:0.17, gain:0.043, filter:2033 },
+    { id:194, kind:"hum", freq:958, dur:0.18, gain:0.045, filter:2064 },
+    { id:195, kind:"block", freq:975, dur:0.19, gain:0.048, filter:2095 },
+    { id:196, kind:"mob", freq:992, dur:0.20, gain:0.050, filter:2126 },
+    { id:197, kind:"whoosh", freq:1009, dur:0.21, gain:0.053, filter:2157 },
+    { id:198, kind:"fire", freq:1026, dur:0.22, gain:0.055, filter:2188 },
+    { id:199, kind:"water", freq:1043, dur:0.23, gain:0.058, filter:2219 },
+    { id:200, kind:"footstep", freq:1060, dur:0.24, gain:0.010, filter:2250 },
+    { id:201, kind:"rain", freq:1077, dur:0.25, gain:0.013, filter:2281 },
+    { id:202, kind:"wind", freq:1094, dur:0.26, gain:0.015, filter:2312 },
+    { id:203, kind:"click", freq:1111, dur:0.27, gain:0.018, filter:2343 },
+    { id:204, kind:"hum", freq:1128, dur:0.28, gain:0.020, filter:2374 },
+    { id:205, kind:"block", freq:1145, dur:0.29, gain:0.022, filter:2405 },
+    { id:206, kind:"mob", freq:1162, dur:0.30, gain:0.025, filter:2436 },
+    { id:207, kind:"whoosh", freq:1179, dur:0.31, gain:0.028, filter:2467 },
+    { id:208, kind:"fire", freq:1196, dur:0.32, gain:0.030, filter:2498 },
+    { id:209, kind:"water", freq:1213, dur:0.33, gain:0.033, filter:2529 },
+    { id:210, kind:"footstep", freq:1230, dur:0.04, gain:0.035, filter:2560 },
+    { id:211, kind:"rain", freq:1247, dur:0.05, gain:0.037, filter:2591 },
+    { id:212, kind:"wind", freq:64, dur:0.06, gain:0.040, filter:2622 },
+    { id:213, kind:"click", freq:81, dur:0.07, gain:0.043, filter:2653 },
+    { id:214, kind:"hum", freq:98, dur:0.08, gain:0.045, filter:2684 },
+    { id:215, kind:"block", freq:115, dur:0.09, gain:0.048, filter:2715 },
+    { id:216, kind:"mob", freq:132, dur:0.10, gain:0.050, filter:2746 },
+    { id:217, kind:"whoosh", freq:149, dur:0.11, gain:0.053, filter:2777 },
+    { id:218, kind:"fire", freq:166, dur:0.12, gain:0.055, filter:2808 },
+    { id:219, kind:"water", freq:183, dur:0.13, gain:0.058, filter:2839 },
+    { id:220, kind:"footstep", freq:200, dur:0.14, gain:0.010, filter:2870 },
+    { id:221, kind:"rain", freq:217, dur:0.15, gain:0.013, filter:2901 },
+    { id:222, kind:"wind", freq:234, dur:0.16, gain:0.015, filter:2932 },
+    { id:223, kind:"click", freq:251, dur:0.17, gain:0.018, filter:2963 },
+    { id:224, kind:"hum", freq:268, dur:0.18, gain:0.020, filter:2994 },
+    { id:225, kind:"block", freq:285, dur:0.19, gain:0.022, filter:3025 },
+    { id:226, kind:"mob", freq:302, dur:0.20, gain:0.025, filter:3056 },
+    { id:227, kind:"whoosh", freq:319, dur:0.21, gain:0.028, filter:3087 },
+    { id:228, kind:"fire", freq:336, dur:0.22, gain:0.030, filter:3118 },
+    { id:229, kind:"water", freq:353, dur:0.23, gain:0.033, filter:3149 },
+    { id:230, kind:"footstep", freq:370, dur:0.24, gain:0.035, filter:3180 },
+    { id:231, kind:"rain", freq:387, dur:0.25, gain:0.037, filter:3211 },
+    { id:232, kind:"wind", freq:404, dur:0.26, gain:0.040, filter:3242 },
+    { id:233, kind:"click", freq:421, dur:0.27, gain:0.043, filter:3273 },
+    { id:234, kind:"hum", freq:438, dur:0.28, gain:0.045, filter:3304 },
+    { id:235, kind:"block", freq:455, dur:0.29, gain:0.048, filter:3335 },
+    { id:236, kind:"mob", freq:472, dur:0.30, gain:0.050, filter:3366 },
+    { id:237, kind:"whoosh", freq:489, dur:0.31, gain:0.053, filter:3397 },
+    { id:238, kind:"fire", freq:506, dur:0.32, gain:0.055, filter:3428 },
+    { id:239, kind:"water", freq:523, dur:0.33, gain:0.058, filter:3459 },
+    { id:240, kind:"footstep", freq:540, dur:0.04, gain:0.010, filter:3490 },
+    { id:241, kind:"rain", freq:557, dur:0.05, gain:0.013, filter:3521 },
+    { id:242, kind:"wind", freq:574, dur:0.06, gain:0.015, filter:3552 },
+    { id:243, kind:"click", freq:591, dur:0.07, gain:0.018, filter:3583 },
+    { id:244, kind:"hum", freq:608, dur:0.08, gain:0.020, filter:3614 },
+    { id:245, kind:"block", freq:625, dur:0.09, gain:0.022, filter:3645 },
+    { id:246, kind:"mob", freq:642, dur:0.10, gain:0.025, filter:3676 },
+    { id:247, kind:"whoosh", freq:659, dur:0.11, gain:0.028, filter:3707 },
+    { id:248, kind:"fire", freq:676, dur:0.12, gain:0.030, filter:3738 },
+    { id:249, kind:"water", freq:693, dur:0.13, gain:0.033, filter:3769 },
+    { id:250, kind:"footstep", freq:710, dur:0.14, gain:0.035, filter:3800 },
+    { id:251, kind:"rain", freq:727, dur:0.15, gain:0.037, filter:3831 },
+    { id:252, kind:"wind", freq:744, dur:0.16, gain:0.040, filter:3862 },
+    { id:253, kind:"click", freq:761, dur:0.17, gain:0.043, filter:3893 },
+    { id:254, kind:"hum", freq:778, dur:0.18, gain:0.045, filter:3924 },
+    { id:255, kind:"block", freq:795, dur:0.19, gain:0.048, filter:3955 },
+    { id:256, kind:"mob", freq:812, dur:0.20, gain:0.050, filter:3986 },
+    { id:257, kind:"whoosh", freq:829, dur:0.21, gain:0.053, filter:4017 },
+    { id:258, kind:"fire", freq:846, dur:0.22, gain:0.055, filter:4048 },
+    { id:259, kind:"water", freq:863, dur:0.23, gain:0.058, filter:4079 },
+    { id:260, kind:"footstep", freq:880, dur:0.24, gain:0.010, filter:4110 },
+    { id:261, kind:"rain", freq:897, dur:0.25, gain:0.013, filter:4141 },
+    { id:262, kind:"wind", freq:914, dur:0.26, gain:0.015, filter:4172 },
+    { id:263, kind:"click", freq:931, dur:0.27, gain:0.018, filter:4203 },
+    { id:264, kind:"hum", freq:948, dur:0.28, gain:0.020, filter:4234 },
+    { id:265, kind:"block", freq:965, dur:0.29, gain:0.022, filter:4265 },
+    { id:266, kind:"mob", freq:982, dur:0.30, gain:0.025, filter:4296 },
+    { id:267, kind:"whoosh", freq:999, dur:0.31, gain:0.028, filter:4327 },
+    { id:268, kind:"fire", freq:1016, dur:0.32, gain:0.030, filter:4358 },
+    { id:269, kind:"water", freq:1033, dur:0.33, gain:0.033, filter:4389 },
+    { id:270, kind:"footstep", freq:1050, dur:0.04, gain:0.035, filter:4420 },
+    { id:271, kind:"rain", freq:1067, dur:0.05, gain:0.037, filter:251 },
+    { id:272, kind:"wind", freq:1084, dur:0.06, gain:0.040, filter:282 },
+    { id:273, kind:"click", freq:1101, dur:0.07, gain:0.043, filter:313 },
+    { id:274, kind:"hum", freq:1118, dur:0.08, gain:0.045, filter:344 },
+    { id:275, kind:"block", freq:1135, dur:0.09, gain:0.048, filter:375 },
+    { id:276, kind:"mob", freq:1152, dur:0.10, gain:0.050, filter:406 },
+    { id:277, kind:"whoosh", freq:1169, dur:0.11, gain:0.053, filter:437 },
+    { id:278, kind:"fire", freq:1186, dur:0.12, gain:0.055, filter:468 },
+    { id:279, kind:"water", freq:1203, dur:0.13, gain:0.058, filter:499 },
+    { id:280, kind:"footstep", freq:1220, dur:0.14, gain:0.010, filter:530 },
+    { id:281, kind:"rain", freq:1237, dur:0.15, gain:0.013, filter:561 },
+    { id:282, kind:"wind", freq:1254, dur:0.16, gain:0.015, filter:592 },
+    { id:283, kind:"click", freq:71, dur:0.17, gain:0.018, filter:623 },
+    { id:284, kind:"hum", freq:88, dur:0.18, gain:0.020, filter:654 },
+    { id:285, kind:"block", freq:105, dur:0.19, gain:0.022, filter:685 },
+    { id:286, kind:"mob", freq:122, dur:0.20, gain:0.025, filter:716 },
+    { id:287, kind:"whoosh", freq:139, dur:0.21, gain:0.028, filter:747 },
+    { id:288, kind:"fire", freq:156, dur:0.22, gain:0.030, filter:778 },
+    { id:289, kind:"water", freq:173, dur:0.23, gain:0.033, filter:809 },
+    { id:290, kind:"footstep", freq:190, dur:0.24, gain:0.035, filter:840 },
+    { id:291, kind:"rain", freq:207, dur:0.25, gain:0.037, filter:871 },
+    { id:292, kind:"wind", freq:224, dur:0.26, gain:0.040, filter:902 },
+    { id:293, kind:"click", freq:241, dur:0.27, gain:0.043, filter:933 },
+    { id:294, kind:"hum", freq:258, dur:0.28, gain:0.045, filter:964 },
+    { id:295, kind:"block", freq:275, dur:0.29, gain:0.048, filter:995 },
+    { id:296, kind:"mob", freq:292, dur:0.30, gain:0.050, filter:1026 },
+    { id:297, kind:"whoosh", freq:309, dur:0.31, gain:0.053, filter:1057 },
+    { id:298, kind:"fire", freq:326, dur:0.32, gain:0.055, filter:1088 },
+    { id:299, kind:"water", freq:343, dur:0.33, gain:0.058, filter:1119 },
+    { id:300, kind:"footstep", freq:360, dur:0.04, gain:0.010, filter:1150 },
+    { id:301, kind:"rain", freq:377, dur:0.05, gain:0.013, filter:1181 },
+    { id:302, kind:"wind", freq:394, dur:0.06, gain:0.015, filter:1212 },
+    { id:303, kind:"click", freq:411, dur:0.07, gain:0.018, filter:1243 },
+    { id:304, kind:"hum", freq:428, dur:0.08, gain:0.020, filter:1274 },
+    { id:305, kind:"block", freq:445, dur:0.09, gain:0.022, filter:1305 },
+    { id:306, kind:"mob", freq:462, dur:0.10, gain:0.025, filter:1336 },
+    { id:307, kind:"whoosh", freq:479, dur:0.11, gain:0.028, filter:1367 },
+    { id:308, kind:"fire", freq:496, dur:0.12, gain:0.030, filter:1398 },
+    { id:309, kind:"water", freq:513, dur:0.13, gain:0.033, filter:1429 },
+    { id:310, kind:"footstep", freq:530, dur:0.14, gain:0.035, filter:1460 },
+    { id:311, kind:"rain", freq:547, dur:0.15, gain:0.037, filter:1491 },
+    { id:312, kind:"wind", freq:564, dur:0.16, gain:0.040, filter:1522 },
+    { id:313, kind:"click", freq:581, dur:0.17, gain:0.043, filter:1553 },
+    { id:314, kind:"hum", freq:598, dur:0.18, gain:0.045, filter:1584 },
+    { id:315, kind:"block", freq:615, dur:0.19, gain:0.048, filter:1615 },
+    { id:316, kind:"mob", freq:632, dur:0.20, gain:0.050, filter:1646 },
+    { id:317, kind:"whoosh", freq:649, dur:0.21, gain:0.053, filter:1677 },
+    { id:318, kind:"fire", freq:666, dur:0.22, gain:0.055, filter:1708 },
+    { id:319, kind:"water", freq:683, dur:0.23, gain:0.058, filter:1739 },
+    { id:320, kind:"footstep", freq:700, dur:0.24, gain:0.010, filter:1770 },
+    { id:321, kind:"rain", freq:717, dur:0.25, gain:0.013, filter:1801 },
+    { id:322, kind:"wind", freq:734, dur:0.26, gain:0.015, filter:1832 },
+    { id:323, kind:"click", freq:751, dur:0.27, gain:0.018, filter:1863 },
+    { id:324, kind:"hum", freq:768, dur:0.28, gain:0.020, filter:1894 },
+    { id:325, kind:"block", freq:785, dur:0.29, gain:0.022, filter:1925 },
+    { id:326, kind:"mob", freq:802, dur:0.30, gain:0.025, filter:1956 },
+    { id:327, kind:"whoosh", freq:819, dur:0.31, gain:0.028, filter:1987 },
+    { id:328, kind:"fire", freq:836, dur:0.32, gain:0.030, filter:2018 },
+    { id:329, kind:"water", freq:853, dur:0.33, gain:0.033, filter:2049 },
+    { id:330, kind:"footstep", freq:870, dur:0.04, gain:0.035, filter:2080 },
+    { id:331, kind:"rain", freq:887, dur:0.05, gain:0.037, filter:2111 },
+    { id:332, kind:"wind", freq:904, dur:0.06, gain:0.040, filter:2142 },
+    { id:333, kind:"click", freq:921, dur:0.07, gain:0.043, filter:2173 },
+    { id:334, kind:"hum", freq:938, dur:0.08, gain:0.045, filter:2204 },
+    { id:335, kind:"block", freq:955, dur:0.09, gain:0.048, filter:2235 },
+    { id:336, kind:"mob", freq:972, dur:0.10, gain:0.050, filter:2266 },
+    { id:337, kind:"whoosh", freq:989, dur:0.11, gain:0.053, filter:2297 },
+    { id:338, kind:"fire", freq:1006, dur:0.12, gain:0.055, filter:2328 },
+    { id:339, kind:"water", freq:1023, dur:0.13, gain:0.058, filter:2359 },
+    { id:340, kind:"footstep", freq:1040, dur:0.14, gain:0.010, filter:2390 },
+    { id:341, kind:"rain", freq:1057, dur:0.15, gain:0.013, filter:2421 },
+    { id:342, kind:"wind", freq:1074, dur:0.16, gain:0.015, filter:2452 },
+    { id:343, kind:"click", freq:1091, dur:0.17, gain:0.018, filter:2483 },
+    { id:344, kind:"hum", freq:1108, dur:0.18, gain:0.020, filter:2514 },
+    { id:345, kind:"block", freq:1125, dur:0.19, gain:0.022, filter:2545 },
+    { id:346, kind:"mob", freq:1142, dur:0.20, gain:0.025, filter:2576 },
+    { id:347, kind:"whoosh", freq:1159, dur:0.21, gain:0.028, filter:2607 },
+    { id:348, kind:"fire", freq:1176, dur:0.22, gain:0.030, filter:2638 },
+    { id:349, kind:"water", freq:1193, dur:0.23, gain:0.033, filter:2669 },
+    { id:350, kind:"footstep", freq:1210, dur:0.24, gain:0.035, filter:2700 },
+    { id:351, kind:"rain", freq:1227, dur:0.25, gain:0.037, filter:2731 },
+    { id:352, kind:"wind", freq:1244, dur:0.26, gain:0.040, filter:2762 },
+    { id:353, kind:"click", freq:61, dur:0.27, gain:0.043, filter:2793 },
+    { id:354, kind:"hum", freq:78, dur:0.28, gain:0.045, filter:2824 },
+    { id:355, kind:"block", freq:95, dur:0.29, gain:0.048, filter:2855 },
+    { id:356, kind:"mob", freq:112, dur:0.30, gain:0.050, filter:2886 },
+    { id:357, kind:"whoosh", freq:129, dur:0.31, gain:0.053, filter:2917 },
+    { id:358, kind:"fire", freq:146, dur:0.32, gain:0.055, filter:2948 },
+    { id:359, kind:"water", freq:163, dur:0.33, gain:0.058, filter:2979 },
+    { id:360, kind:"footstep", freq:180, dur:0.04, gain:0.010, filter:3010 },
+    { id:361, kind:"rain", freq:197, dur:0.05, gain:0.013, filter:3041 },
+    { id:362, kind:"wind", freq:214, dur:0.06, gain:0.015, filter:3072 },
+    { id:363, kind:"click", freq:231, dur:0.07, gain:0.018, filter:3103 },
+    { id:364, kind:"hum", freq:248, dur:0.08, gain:0.020, filter:3134 },
+    { id:365, kind:"block", freq:265, dur:0.09, gain:0.022, filter:3165 },
+    { id:366, kind:"mob", freq:282, dur:0.10, gain:0.025, filter:3196 },
+    { id:367, kind:"whoosh", freq:299, dur:0.11, gain:0.028, filter:3227 },
+    { id:368, kind:"fire", freq:316, dur:0.12, gain:0.030, filter:3258 },
+    { id:369, kind:"water", freq:333, dur:0.13, gain:0.033, filter:3289 },
+    { id:370, kind:"footstep", freq:350, dur:0.14, gain:0.035, filter:3320 },
+    { id:371, kind:"rain", freq:367, dur:0.15, gain:0.037, filter:3351 },
+    { id:372, kind:"wind", freq:384, dur:0.16, gain:0.040, filter:3382 },
+    { id:373, kind:"click", freq:401, dur:0.17, gain:0.043, filter:3413 },
+    { id:374, kind:"hum", freq:418, dur:0.18, gain:0.045, filter:3444 },
+    { id:375, kind:"block", freq:435, dur:0.19, gain:0.048, filter:3475 },
+    { id:376, kind:"mob", freq:452, dur:0.20, gain:0.050, filter:3506 },
+    { id:377, kind:"whoosh", freq:469, dur:0.21, gain:0.053, filter:3537 },
+    { id:378, kind:"fire", freq:486, dur:0.22, gain:0.055, filter:3568 },
+    { id:379, kind:"water", freq:503, dur:0.23, gain:0.058, filter:3599 },
+    { id:380, kind:"footstep", freq:520, dur:0.24, gain:0.010, filter:3630 },
+    { id:381, kind:"rain", freq:537, dur:0.25, gain:0.013, filter:3661 },
+    { id:382, kind:"wind", freq:554, dur:0.26, gain:0.015, filter:3692 },
+    { id:383, kind:"click", freq:571, dur:0.27, gain:0.018, filter:3723 },
+    { id:384, kind:"hum", freq:588, dur:0.28, gain:0.020, filter:3754 },
+    { id:385, kind:"block", freq:605, dur:0.29, gain:0.022, filter:3785 },
+    { id:386, kind:"mob", freq:622, dur:0.30, gain:0.025, filter:3816 },
+    { id:387, kind:"whoosh", freq:639, dur:0.31, gain:0.028, filter:3847 },
+    { id:388, kind:"fire", freq:656, dur:0.32, gain:0.030, filter:3878 },
+    { id:389, kind:"water", freq:673, dur:0.33, gain:0.033, filter:3909 },
+    { id:390, kind:"footstep", freq:690, dur:0.04, gain:0.035, filter:3940 },
+    { id:391, kind:"rain", freq:707, dur:0.05, gain:0.037, filter:3971 },
+    { id:392, kind:"wind", freq:724, dur:0.06, gain:0.040, filter:4002 },
+    { id:393, kind:"click", freq:741, dur:0.07, gain:0.043, filter:4033 },
+    { id:394, kind:"hum", freq:758, dur:0.08, gain:0.045, filter:4064 },
+    { id:395, kind:"block", freq:775, dur:0.09, gain:0.048, filter:4095 },
+    { id:396, kind:"mob", freq:792, dur:0.10, gain:0.050, filter:4126 },
+    { id:397, kind:"whoosh", freq:809, dur:0.11, gain:0.053, filter:4157 },
+    { id:398, kind:"fire", freq:826, dur:0.12, gain:0.055, filter:4188 },
+    { id:399, kind:"water", freq:843, dur:0.13, gain:0.058, filter:4219 },
+    { id:400, kind:"footstep", freq:860, dur:0.14, gain:0.010, filter:4250 },
+    { id:401, kind:"rain", freq:877, dur:0.15, gain:0.013, filter:4281 },
+    { id:402, kind:"wind", freq:894, dur:0.16, gain:0.015, filter:4312 },
+    { id:403, kind:"click", freq:911, dur:0.17, gain:0.018, filter:4343 },
+    { id:404, kind:"hum", freq:928, dur:0.18, gain:0.020, filter:4374 },
+    { id:405, kind:"block", freq:945, dur:0.19, gain:0.022, filter:4405 },
+    { id:406, kind:"mob", freq:962, dur:0.20, gain:0.025, filter:4436 },
+    { id:407, kind:"whoosh", freq:979, dur:0.21, gain:0.028, filter:267 },
+    { id:408, kind:"fire", freq:996, dur:0.22, gain:0.030, filter:298 },
+    { id:409, kind:"water", freq:1013, dur:0.23, gain:0.033, filter:329 },
+    { id:410, kind:"footstep", freq:1030, dur:0.24, gain:0.035, filter:360 },
+    { id:411, kind:"rain", freq:1047, dur:0.25, gain:0.037, filter:391 },
+    { id:412, kind:"wind", freq:1064, dur:0.26, gain:0.040, filter:422 },
+    { id:413, kind:"click", freq:1081, dur:0.27, gain:0.043, filter:453 },
+    { id:414, kind:"hum", freq:1098, dur:0.28, gain:0.045, filter:484 },
+    { id:415, kind:"block", freq:1115, dur:0.29, gain:0.048, filter:515 },
+    { id:416, kind:"mob", freq:1132, dur:0.30, gain:0.050, filter:546 },
+    { id:417, kind:"whoosh", freq:1149, dur:0.31, gain:0.053, filter:577 },
+    { id:418, kind:"fire", freq:1166, dur:0.32, gain:0.055, filter:608 },
+    { id:419, kind:"water", freq:1183, dur:0.33, gain:0.058, filter:639 },
+    { id:420, kind:"footstep", freq:1200, dur:0.04, gain:0.010, filter:670 },
+    { id:421, kind:"rain", freq:1217, dur:0.05, gain:0.013, filter:701 },
+    { id:422, kind:"wind", freq:1234, dur:0.06, gain:0.015, filter:732 },
+    { id:423, kind:"click", freq:1251, dur:0.07, gain:0.018, filter:763 },
+    { id:424, kind:"hum", freq:68, dur:0.08, gain:0.020, filter:794 },
+    { id:425, kind:"block", freq:85, dur:0.09, gain:0.022, filter:825 },
+    { id:426, kind:"mob", freq:102, dur:0.10, gain:0.025, filter:856 },
+    { id:427, kind:"whoosh", freq:119, dur:0.11, gain:0.028, filter:887 },
+    { id:428, kind:"fire", freq:136, dur:0.12, gain:0.030, filter:918 },
+    { id:429, kind:"water", freq:153, dur:0.13, gain:0.033, filter:949 },
+    { id:430, kind:"footstep", freq:170, dur:0.14, gain:0.035, filter:980 },
+    { id:431, kind:"rain", freq:187, dur:0.15, gain:0.037, filter:1011 },
+    { id:432, kind:"wind", freq:204, dur:0.16, gain:0.040, filter:1042 },
+    { id:433, kind:"click", freq:221, dur:0.17, gain:0.043, filter:1073 },
+    { id:434, kind:"hum", freq:238, dur:0.18, gain:0.045, filter:1104 },
+    { id:435, kind:"block", freq:255, dur:0.19, gain:0.048, filter:1135 },
+    { id:436, kind:"mob", freq:272, dur:0.20, gain:0.050, filter:1166 },
+    { id:437, kind:"whoosh", freq:289, dur:0.21, gain:0.053, filter:1197 },
+    { id:438, kind:"fire", freq:306, dur:0.22, gain:0.055, filter:1228 },
+    { id:439, kind:"water", freq:323, dur:0.23, gain:0.058, filter:1259 },
+    { id:440, kind:"footstep", freq:340, dur:0.24, gain:0.010, filter:1290 },
+    { id:441, kind:"rain", freq:357, dur:0.25, gain:0.013, filter:1321 },
+    { id:442, kind:"wind", freq:374, dur:0.26, gain:0.015, filter:1352 },
+    { id:443, kind:"click", freq:391, dur:0.27, gain:0.018, filter:1383 },
+    { id:444, kind:"hum", freq:408, dur:0.28, gain:0.020, filter:1414 },
+    { id:445, kind:"block", freq:425, dur:0.29, gain:0.022, filter:1445 },
+    { id:446, kind:"mob", freq:442, dur:0.30, gain:0.025, filter:1476 },
+    { id:447, kind:"whoosh", freq:459, dur:0.31, gain:0.028, filter:1507 },
+    { id:448, kind:"fire", freq:476, dur:0.32, gain:0.030, filter:1538 },
+    { id:449, kind:"water", freq:493, dur:0.33, gain:0.033, filter:1569 },
+    { id:450, kind:"footstep", freq:510, dur:0.04, gain:0.035, filter:1600 },
+    { id:451, kind:"rain", freq:527, dur:0.05, gain:0.037, filter:1631 },
+    { id:452, kind:"wind", freq:544, dur:0.06, gain:0.040, filter:1662 },
+    { id:453, kind:"click", freq:561, dur:0.07, gain:0.043, filter:1693 },
+    { id:454, kind:"hum", freq:578, dur:0.08, gain:0.045, filter:1724 },
+    { id:455, kind:"block", freq:595, dur:0.09, gain:0.048, filter:1755 },
+    { id:456, kind:"mob", freq:612, dur:0.10, gain:0.050, filter:1786 },
+    { id:457, kind:"whoosh", freq:629, dur:0.11, gain:0.053, filter:1817 },
+    { id:458, kind:"fire", freq:646, dur:0.12, gain:0.055, filter:1848 },
+    { id:459, kind:"water", freq:663, dur:0.13, gain:0.058, filter:1879 },
+    { id:460, kind:"footstep", freq:680, dur:0.14, gain:0.010, filter:1910 },
+    { id:461, kind:"rain", freq:697, dur:0.15, gain:0.013, filter:1941 },
+    { id:462, kind:"wind", freq:714, dur:0.16, gain:0.015, filter:1972 },
+    { id:463, kind:"click", freq:731, dur:0.17, gain:0.018, filter:2003 },
+    { id:464, kind:"hum", freq:748, dur:0.18, gain:0.020, filter:2034 },
+    { id:465, kind:"block", freq:765, dur:0.19, gain:0.022, filter:2065 },
+    { id:466, kind:"mob", freq:782, dur:0.20, gain:0.025, filter:2096 },
+    { id:467, kind:"whoosh", freq:799, dur:0.21, gain:0.028, filter:2127 },
+    { id:468, kind:"fire", freq:816, dur:0.22, gain:0.030, filter:2158 },
+    { id:469, kind:"water", freq:833, dur:0.23, gain:0.033, filter:2189 },
+    { id:470, kind:"footstep", freq:850, dur:0.24, gain:0.035, filter:2220 },
+    { id:471, kind:"rain", freq:867, dur:0.25, gain:0.037, filter:2251 },
+    { id:472, kind:"wind", freq:884, dur:0.26, gain:0.040, filter:2282 },
+    { id:473, kind:"click", freq:901, dur:0.27, gain:0.043, filter:2313 },
+    { id:474, kind:"hum", freq:918, dur:0.28, gain:0.045, filter:2344 },
+    { id:475, kind:"block", freq:935, dur:0.29, gain:0.048, filter:2375 },
+    { id:476, kind:"mob", freq:952, dur:0.30, gain:0.050, filter:2406 },
+    { id:477, kind:"whoosh", freq:969, dur:0.31, gain:0.053, filter:2437 },
+    { id:478, kind:"fire", freq:986, dur:0.32, gain:0.055, filter:2468 },
+    { id:479, kind:"water", freq:1003, dur:0.33, gain:0.058, filter:2499 },
+    { id:480, kind:"footstep", freq:1020, dur:0.04, gain:0.010, filter:2530 },
+    { id:481, kind:"rain", freq:1037, dur:0.05, gain:0.013, filter:2561 },
+    { id:482, kind:"wind", freq:1054, dur:0.06, gain:0.015, filter:2592 },
+    { id:483, kind:"click", freq:1071, dur:0.07, gain:0.018, filter:2623 },
+    { id:484, kind:"hum", freq:1088, dur:0.08, gain:0.020, filter:2654 },
+    { id:485, kind:"block", freq:1105, dur:0.09, gain:0.022, filter:2685 },
+    { id:486, kind:"mob", freq:1122, dur:0.10, gain:0.025, filter:2716 },
+    { id:487, kind:"whoosh", freq:1139, dur:0.11, gain:0.028, filter:2747 },
+    { id:488, kind:"fire", freq:1156, dur:0.12, gain:0.030, filter:2778 },
+    { id:489, kind:"water", freq:1173, dur:0.13, gain:0.033, filter:2809 },
+    { id:490, kind:"footstep", freq:1190, dur:0.14, gain:0.035, filter:2840 },
+    { id:491, kind:"rain", freq:1207, dur:0.15, gain:0.037, filter:2871 },
+    { id:492, kind:"wind", freq:1224, dur:0.16, gain:0.040, filter:2902 },
+    { id:493, kind:"click", freq:1241, dur:0.17, gain:0.043, filter:2933 },
+    { id:494, kind:"hum", freq:1258, dur:0.18, gain:0.045, filter:2964 },
+    { id:495, kind:"block", freq:75, dur:0.19, gain:0.048, filter:2995 },
+    { id:496, kind:"mob", freq:92, dur:0.20, gain:0.050, filter:3026 },
+    { id:497, kind:"whoosh", freq:109, dur:0.21, gain:0.053, filter:3057 },
+    { id:498, kind:"fire", freq:126, dur:0.22, gain:0.055, filter:3088 },
+    { id:499, kind:"water", freq:143, dur:0.23, gain:0.058, filter:3119 },
+    { id:500, kind:"footstep", freq:160, dur:0.24, gain:0.010, filter:3150 },
+    { id:501, kind:"rain", freq:177, dur:0.25, gain:0.013, filter:3181 },
+    { id:502, kind:"wind", freq:194, dur:0.26, gain:0.015, filter:3212 },
+    { id:503, kind:"click", freq:211, dur:0.27, gain:0.018, filter:3243 },
+    { id:504, kind:"hum", freq:228, dur:0.28, gain:0.020, filter:3274 },
+    { id:505, kind:"block", freq:245, dur:0.29, gain:0.022, filter:3305 },
+    { id:506, kind:"mob", freq:262, dur:0.30, gain:0.025, filter:3336 },
+    { id:507, kind:"whoosh", freq:279, dur:0.31, gain:0.028, filter:3367 },
+    { id:508, kind:"fire", freq:296, dur:0.32, gain:0.030, filter:3398 },
+    { id:509, kind:"water", freq:313, dur:0.33, gain:0.033, filter:3429 },
+    { id:510, kind:"footstep", freq:330, dur:0.04, gain:0.035, filter:3460 },
+    { id:511, kind:"rain", freq:347, dur:0.05, gain:0.037, filter:3491 },
+    { id:512, kind:"wind", freq:364, dur:0.06, gain:0.040, filter:3522 },
+    { id:513, kind:"click", freq:381, dur:0.07, gain:0.043, filter:3553 },
+    { id:514, kind:"hum", freq:398, dur:0.08, gain:0.045, filter:3584 },
+    { id:515, kind:"block", freq:415, dur:0.09, gain:0.048, filter:3615 },
+    { id:516, kind:"mob", freq:432, dur:0.10, gain:0.050, filter:3646 },
+    { id:517, kind:"whoosh", freq:449, dur:0.11, gain:0.053, filter:3677 },
+    { id:518, kind:"fire", freq:466, dur:0.12, gain:0.055, filter:3708 },
+    { id:519, kind:"water", freq:483, dur:0.13, gain:0.058, filter:3739 },
+    { id:520, kind:"footstep", freq:500, dur:0.14, gain:0.010, filter:3770 },
+    { id:521, kind:"rain", freq:517, dur:0.15, gain:0.013, filter:3801 },
+    { id:522, kind:"wind", freq:534, dur:0.16, gain:0.015, filter:3832 },
+    { id:523, kind:"click", freq:551, dur:0.17, gain:0.018, filter:3863 },
+    { id:524, kind:"hum", freq:568, dur:0.18, gain:0.020, filter:3894 },
+    { id:525, kind:"block", freq:585, dur:0.19, gain:0.022, filter:3925 },
+    { id:526, kind:"mob", freq:602, dur:0.20, gain:0.025, filter:3956 },
+    { id:527, kind:"whoosh", freq:619, dur:0.21, gain:0.028, filter:3987 },
+    { id:528, kind:"fire", freq:636, dur:0.22, gain:0.030, filter:4018 },
+    { id:529, kind:"water", freq:653, dur:0.23, gain:0.033, filter:4049 },
+    { id:530, kind:"footstep", freq:670, dur:0.24, gain:0.035, filter:4080 },
+    { id:531, kind:"rain", freq:687, dur:0.25, gain:0.037, filter:4111 },
+    { id:532, kind:"wind", freq:704, dur:0.26, gain:0.040, filter:4142 },
+    { id:533, kind:"click", freq:721, dur:0.27, gain:0.043, filter:4173 },
+    { id:534, kind:"hum", freq:738, dur:0.28, gain:0.045, filter:4204 },
+    { id:535, kind:"block", freq:755, dur:0.29, gain:0.048, filter:4235 },
+    { id:536, kind:"mob", freq:772, dur:0.30, gain:0.050, filter:4266 },
+    { id:537, kind:"whoosh", freq:789, dur:0.31, gain:0.053, filter:4297 },
+    { id:538, kind:"fire", freq:806, dur:0.32, gain:0.055, filter:4328 },
+    { id:539, kind:"water", freq:823, dur:0.33, gain:0.058, filter:4359 },
+    { id:540, kind:"footstep", freq:840, dur:0.04, gain:0.010, filter:4390 },
+    { id:541, kind:"rain", freq:857, dur:0.05, gain:0.013, filter:4421 },
+    { id:542, kind:"wind", freq:874, dur:0.06, gain:0.015, filter:252 },
+    { id:543, kind:"click", freq:891, dur:0.07, gain:0.018, filter:283 },
+    { id:544, kind:"hum", freq:908, dur:0.08, gain:0.020, filter:314 },
+    { id:545, kind:"block", freq:925, dur:0.09, gain:0.022, filter:345 },
+    { id:546, kind:"mob", freq:942, dur:0.10, gain:0.025, filter:376 },
+    { id:547, kind:"whoosh", freq:959, dur:0.11, gain:0.028, filter:407 },
+    { id:548, kind:"fire", freq:976, dur:0.12, gain:0.030, filter:438 },
+    { id:549, kind:"water", freq:993, dur:0.13, gain:0.033, filter:469 },
+    { id:550, kind:"footstep", freq:1010, dur:0.14, gain:0.035, filter:500 },
+    { id:551, kind:"rain", freq:1027, dur:0.15, gain:0.037, filter:531 },
+    { id:552, kind:"wind", freq:1044, dur:0.16, gain:0.040, filter:562 },
+    { id:553, kind:"click", freq:1061, dur:0.17, gain:0.043, filter:593 },
+    { id:554, kind:"hum", freq:1078, dur:0.18, gain:0.045, filter:624 },
+    { id:555, kind:"block", freq:1095, dur:0.19, gain:0.048, filter:655 },
+    { id:556, kind:"mob", freq:1112, dur:0.20, gain:0.050, filter:686 },
+    { id:557, kind:"whoosh", freq:1129, dur:0.21, gain:0.053, filter:717 },
+    { id:558, kind:"fire", freq:1146, dur:0.22, gain:0.055, filter:748 },
+    { id:559, kind:"water", freq:1163, dur:0.23, gain:0.058, filter:779 },
+    { id:560, kind:"footstep", freq:1180, dur:0.24, gain:0.010, filter:810 },
+    { id:561, kind:"rain", freq:1197, dur:0.25, gain:0.013, filter:841 },
+    { id:562, kind:"wind", freq:1214, dur:0.26, gain:0.015, filter:872 },
+    { id:563, kind:"click", freq:1231, dur:0.27, gain:0.018, filter:903 },
+    { id:564, kind:"hum", freq:1248, dur:0.28, gain:0.020, filter:934 },
+    { id:565, kind:"block", freq:65, dur:0.29, gain:0.022, filter:965 },
+    { id:566, kind:"mob", freq:82, dur:0.30, gain:0.025, filter:996 },
+    { id:567, kind:"whoosh", freq:99, dur:0.31, gain:0.028, filter:1027 },
+    { id:568, kind:"fire", freq:116, dur:0.32, gain:0.030, filter:1058 },
+    { id:569, kind:"water", freq:133, dur:0.33, gain:0.033, filter:1089 },
+    { id:570, kind:"footstep", freq:150, dur:0.04, gain:0.035, filter:1120 },
+    { id:571, kind:"rain", freq:167, dur:0.05, gain:0.037, filter:1151 },
+    { id:572, kind:"wind", freq:184, dur:0.06, gain:0.040, filter:1182 },
+    { id:573, kind:"click", freq:201, dur:0.07, gain:0.043, filter:1213 },
+    { id:574, kind:"hum", freq:218, dur:0.08, gain:0.045, filter:1244 },
+    { id:575, kind:"block", freq:235, dur:0.09, gain:0.048, filter:1275 },
+    { id:576, kind:"mob", freq:252, dur:0.10, gain:0.050, filter:1306 },
+    { id:577, kind:"whoosh", freq:269, dur:0.11, gain:0.053, filter:1337 },
+    { id:578, kind:"fire", freq:286, dur:0.12, gain:0.055, filter:1368 },
+    { id:579, kind:"water", freq:303, dur:0.13, gain:0.058, filter:1399 },
+    { id:580, kind:"footstep", freq:320, dur:0.14, gain:0.010, filter:1430 },
+    { id:581, kind:"rain", freq:337, dur:0.15, gain:0.013, filter:1461 },
+    { id:582, kind:"wind", freq:354, dur:0.16, gain:0.015, filter:1492 },
+    { id:583, kind:"click", freq:371, dur:0.17, gain:0.018, filter:1523 },
+    { id:584, kind:"hum", freq:388, dur:0.18, gain:0.020, filter:1554 },
+    { id:585, kind:"block", freq:405, dur:0.19, gain:0.022, filter:1585 },
+    { id:586, kind:"mob", freq:422, dur:0.20, gain:0.025, filter:1616 },
+    { id:587, kind:"whoosh", freq:439, dur:0.21, gain:0.028, filter:1647 },
+    { id:588, kind:"fire", freq:456, dur:0.22, gain:0.030, filter:1678 },
+    { id:589, kind:"water", freq:473, dur:0.23, gain:0.033, filter:1709 },
+    { id:590, kind:"footstep", freq:490, dur:0.24, gain:0.035, filter:1740 },
+    { id:591, kind:"rain", freq:507, dur:0.25, gain:0.037, filter:1771 },
+    { id:592, kind:"wind", freq:524, dur:0.26, gain:0.040, filter:1802 },
+    { id:593, kind:"click", freq:541, dur:0.27, gain:0.043, filter:1833 },
+    { id:594, kind:"hum", freq:558, dur:0.28, gain:0.045, filter:1864 },
+    { id:595, kind:"block", freq:575, dur:0.29, gain:0.048, filter:1895 },
+    { id:596, kind:"mob", freq:592, dur:0.30, gain:0.050, filter:1926 },
+    { id:597, kind:"whoosh", freq:609, dur:0.31, gain:0.053, filter:1957 },
+    { id:598, kind:"fire", freq:626, dur:0.32, gain:0.055, filter:1988 },
+    { id:599, kind:"water", freq:643, dur:0.33, gain:0.058, filter:2019 },
+    { id:600, kind:"footstep", freq:660, dur:0.04, gain:0.010, filter:2050 },
+    { id:601, kind:"rain", freq:677, dur:0.05, gain:0.013, filter:2081 },
+    { id:602, kind:"wind", freq:694, dur:0.06, gain:0.015, filter:2112 },
+    { id:603, kind:"click", freq:711, dur:0.07, gain:0.018, filter:2143 },
+    { id:604, kind:"hum", freq:728, dur:0.08, gain:0.020, filter:2174 },
+    { id:605, kind:"block", freq:745, dur:0.09, gain:0.022, filter:2205 },
+    { id:606, kind:"mob", freq:762, dur:0.10, gain:0.025, filter:2236 },
+    { id:607, kind:"whoosh", freq:779, dur:0.11, gain:0.028, filter:2267 },
+    { id:608, kind:"fire", freq:796, dur:0.12, gain:0.030, filter:2298 },
+    { id:609, kind:"water", freq:813, dur:0.13, gain:0.033, filter:2329 },
+    { id:610, kind:"footstep", freq:830, dur:0.14, gain:0.035, filter:2360 },
+    { id:611, kind:"rain", freq:847, dur:0.15, gain:0.037, filter:2391 },
+    { id:612, kind:"wind", freq:864, dur:0.16, gain:0.040, filter:2422 },
+    { id:613, kind:"click", freq:881, dur:0.17, gain:0.043, filter:2453 },
+    { id:614, kind:"hum", freq:898, dur:0.18, gain:0.045, filter:2484 },
+    { id:615, kind:"block", freq:915, dur:0.19, gain:0.048, filter:2515 },
+    { id:616, kind:"mob", freq:932, dur:0.20, gain:0.050, filter:2546 },
+    { id:617, kind:"whoosh", freq:949, dur:0.21, gain:0.053, filter:2577 },
+    { id:618, kind:"fire", freq:966, dur:0.22, gain:0.055, filter:2608 },
+    { id:619, kind:"water", freq:983, dur:0.23, gain:0.058, filter:2639 },
+    { id:620, kind:"footstep", freq:1000, dur:0.24, gain:0.010, filter:2670 },
+    { id:621, kind:"rain", freq:1017, dur:0.25, gain:0.013, filter:2701 },
+    { id:622, kind:"wind", freq:1034, dur:0.26, gain:0.015, filter:2732 },
+    { id:623, kind:"click", freq:1051, dur:0.27, gain:0.018, filter:2763 },
+    { id:624, kind:"hum", freq:1068, dur:0.28, gain:0.020, filter:2794 },
+    { id:625, kind:"block", freq:1085, dur:0.29, gain:0.022, filter:2825 },
+    { id:626, kind:"mob", freq:1102, dur:0.30, gain:0.025, filter:2856 },
+    { id:627, kind:"whoosh", freq:1119, dur:0.31, gain:0.028, filter:2887 },
+    { id:628, kind:"fire", freq:1136, dur:0.32, gain:0.030, filter:2918 },
+    { id:629, kind:"water", freq:1153, dur:0.33, gain:0.033, filter:2949 },
+    { id:630, kind:"footstep", freq:1170, dur:0.04, gain:0.035, filter:2980 },
+    { id:631, kind:"rain", freq:1187, dur:0.05, gain:0.037, filter:3011 },
+    { id:632, kind:"wind", freq:1204, dur:0.06, gain:0.040, filter:3042 },
+    { id:633, kind:"click", freq:1221, dur:0.07, gain:0.043, filter:3073 },
+    { id:634, kind:"hum", freq:1238, dur:0.08, gain:0.045, filter:3104 },
+    { id:635, kind:"block", freq:1255, dur:0.09, gain:0.048, filter:3135 },
+    { id:636, kind:"mob", freq:72, dur:0.10, gain:0.050, filter:3166 },
+    { id:637, kind:"whoosh", freq:89, dur:0.11, gain:0.053, filter:3197 },
+    { id:638, kind:"fire", freq:106, dur:0.12, gain:0.055, filter:3228 },
+    { id:639, kind:"water", freq:123, dur:0.13, gain:0.058, filter:3259 },
+    { id:640, kind:"footstep", freq:140, dur:0.14, gain:0.010, filter:3290 },
+    { id:641, kind:"rain", freq:157, dur:0.15, gain:0.013, filter:3321 },
+    { id:642, kind:"wind", freq:174, dur:0.16, gain:0.015, filter:3352 },
+    { id:643, kind:"click", freq:191, dur:0.17, gain:0.018, filter:3383 },
+    { id:644, kind:"hum", freq:208, dur:0.18, gain:0.020, filter:3414 },
+    { id:645, kind:"block", freq:225, dur:0.19, gain:0.022, filter:3445 },
+    { id:646, kind:"mob", freq:242, dur:0.20, gain:0.025, filter:3476 },
+    { id:647, kind:"whoosh", freq:259, dur:0.21, gain:0.028, filter:3507 },
+    { id:648, kind:"fire", freq:276, dur:0.22, gain:0.030, filter:3538 },
+    { id:649, kind:"water", freq:293, dur:0.23, gain:0.033, filter:3569 },
+    { id:650, kind:"footstep", freq:310, dur:0.24, gain:0.035, filter:3600 },
+    { id:651, kind:"rain", freq:327, dur:0.25, gain:0.037, filter:3631 },
+    { id:652, kind:"wind", freq:344, dur:0.26, gain:0.040, filter:3662 },
+    { id:653, kind:"click", freq:361, dur:0.27, gain:0.043, filter:3693 },
+    { id:654, kind:"hum", freq:378, dur:0.28, gain:0.045, filter:3724 },
+    { id:655, kind:"block", freq:395, dur:0.29, gain:0.048, filter:3755 },
+    { id:656, kind:"mob", freq:412, dur:0.30, gain:0.050, filter:3786 },
+    { id:657, kind:"whoosh", freq:429, dur:0.31, gain:0.053, filter:3817 },
+    { id:658, kind:"fire", freq:446, dur:0.32, gain:0.055, filter:3848 },
+    { id:659, kind:"water", freq:463, dur:0.33, gain:0.058, filter:3879 },
+    { id:660, kind:"footstep", freq:480, dur:0.04, gain:0.010, filter:3910 },
+    { id:661, kind:"rain", freq:497, dur:0.05, gain:0.013, filter:3941 },
+    { id:662, kind:"wind", freq:514, dur:0.06, gain:0.015, filter:3972 },
+    { id:663, kind:"click", freq:531, dur:0.07, gain:0.018, filter:4003 },
+    { id:664, kind:"hum", freq:548, dur:0.08, gain:0.020, filter:4034 },
+    { id:665, kind:"block", freq:565, dur:0.09, gain:0.022, filter:4065 },
+    { id:666, kind:"mob", freq:582, dur:0.10, gain:0.025, filter:4096 },
+    { id:667, kind:"whoosh", freq:599, dur:0.11, gain:0.028, filter:4127 },
+    { id:668, kind:"fire", freq:616, dur:0.12, gain:0.030, filter:4158 },
+    { id:669, kind:"water", freq:633, dur:0.13, gain:0.033, filter:4189 },
+    { id:670, kind:"footstep", freq:650, dur:0.14, gain:0.035, filter:4220 },
+    { id:671, kind:"rain", freq:667, dur:0.15, gain:0.037, filter:4251 },
+    { id:672, kind:"wind", freq:684, dur:0.16, gain:0.040, filter:4282 },
+    { id:673, kind:"click", freq:701, dur:0.17, gain:0.043, filter:4313 },
+    { id:674, kind:"hum", freq:718, dur:0.18, gain:0.045, filter:4344 },
+    { id:675, kind:"block", freq:735, dur:0.19, gain:0.048, filter:4375 },
+    { id:676, kind:"mob", freq:752, dur:0.20, gain:0.050, filter:4406 },
+    { id:677, kind:"whoosh", freq:769, dur:0.21, gain:0.053, filter:4437 },
+    { id:678, kind:"fire", freq:786, dur:0.22, gain:0.055, filter:268 },
+    { id:679, kind:"water", freq:803, dur:0.23, gain:0.058, filter:299 },
+    { id:680, kind:"footstep", freq:820, dur:0.24, gain:0.010, filter:330 },
+    { id:681, kind:"rain", freq:837, dur:0.25, gain:0.013, filter:361 },
+    { id:682, kind:"wind", freq:854, dur:0.26, gain:0.015, filter:392 },
+    { id:683, kind:"click", freq:871, dur:0.27, gain:0.018, filter:423 },
+    { id:684, kind:"hum", freq:888, dur:0.28, gain:0.020, filter:454 },
+    { id:685, kind:"block", freq:905, dur:0.29, gain:0.022, filter:485 },
+    { id:686, kind:"mob", freq:922, dur:0.30, gain:0.025, filter:516 },
+    { id:687, kind:"whoosh", freq:939, dur:0.31, gain:0.028, filter:547 },
+    { id:688, kind:"fire", freq:956, dur:0.32, gain:0.030, filter:578 },
+    { id:689, kind:"water", freq:973, dur:0.33, gain:0.033, filter:609 },
+    { id:690, kind:"footstep", freq:990, dur:0.04, gain:0.035, filter:640 },
+    { id:691, kind:"rain", freq:1007, dur:0.05, gain:0.037, filter:671 },
+    { id:692, kind:"wind", freq:1024, dur:0.06, gain:0.040, filter:702 },
+    { id:693, kind:"click", freq:1041, dur:0.07, gain:0.043, filter:733 },
+    { id:694, kind:"hum", freq:1058, dur:0.08, gain:0.045, filter:764 },
+    { id:695, kind:"block", freq:1075, dur:0.09, gain:0.048, filter:795 },
+    { id:696, kind:"mob", freq:1092, dur:0.10, gain:0.050, filter:826 },
+    { id:697, kind:"whoosh", freq:1109, dur:0.11, gain:0.053, filter:857 },
+    { id:698, kind:"fire", freq:1126, dur:0.12, gain:0.055, filter:888 },
+    { id:699, kind:"water", freq:1143, dur:0.13, gain:0.058, filter:919 },
+    { id:700, kind:"footstep", freq:1160, dur:0.14, gain:0.010, filter:950 },
+    { id:701, kind:"rain", freq:1177, dur:0.15, gain:0.013, filter:981 },
+    { id:702, kind:"wind", freq:1194, dur:0.16, gain:0.015, filter:1012 },
+    { id:703, kind:"click", freq:1211, dur:0.17, gain:0.018, filter:1043 },
+    { id:704, kind:"hum", freq:1228, dur:0.18, gain:0.020, filter:1074 },
+    { id:705, kind:"block", freq:1245, dur:0.19, gain:0.022, filter:1105 },
+    { id:706, kind:"mob", freq:62, dur:0.20, gain:0.025, filter:1136 },
+    { id:707, kind:"whoosh", freq:79, dur:0.21, gain:0.028, filter:1167 },
+    { id:708, kind:"fire", freq:96, dur:0.22, gain:0.030, filter:1198 },
+    { id:709, kind:"water", freq:113, dur:0.23, gain:0.033, filter:1229 },
+    { id:710, kind:"footstep", freq:130, dur:0.24, gain:0.035, filter:1260 },
+    { id:711, kind:"rain", freq:147, dur:0.25, gain:0.037, filter:1291 },
+    { id:712, kind:"wind", freq:164, dur:0.26, gain:0.040, filter:1322 },
+    { id:713, kind:"click", freq:181, dur:0.27, gain:0.043, filter:1353 },
+    { id:714, kind:"hum", freq:198, dur:0.28, gain:0.045, filter:1384 },
+    { id:715, kind:"block", freq:215, dur:0.29, gain:0.048, filter:1415 },
+    { id:716, kind:"mob", freq:232, dur:0.30, gain:0.050, filter:1446 },
+    { id:717, kind:"whoosh", freq:249, dur:0.31, gain:0.053, filter:1477 },
+    { id:718, kind:"fire", freq:266, dur:0.32, gain:0.055, filter:1508 },
+    { id:719, kind:"water", freq:283, dur:0.33, gain:0.058, filter:1539 },
+    { id:720, kind:"footstep", freq:300, dur:0.04, gain:0.010, filter:1570 },
+    { id:721, kind:"rain", freq:317, dur:0.05, gain:0.013, filter:1601 },
+    { id:722, kind:"wind", freq:334, dur:0.06, gain:0.015, filter:1632 },
+    { id:723, kind:"click", freq:351, dur:0.07, gain:0.018, filter:1663 },
+    { id:724, kind:"hum", freq:368, dur:0.08, gain:0.020, filter:1694 },
+    { id:725, kind:"block", freq:385, dur:0.09, gain:0.022, filter:1725 },
+    { id:726, kind:"mob", freq:402, dur:0.10, gain:0.025, filter:1756 },
+    { id:727, kind:"whoosh", freq:419, dur:0.11, gain:0.028, filter:1787 },
+    { id:728, kind:"fire", freq:436, dur:0.12, gain:0.030, filter:1818 },
+    { id:729, kind:"water", freq:453, dur:0.13, gain:0.033, filter:1849 },
+    { id:730, kind:"footstep", freq:470, dur:0.14, gain:0.035, filter:1880 },
+    { id:731, kind:"rain", freq:487, dur:0.15, gain:0.037, filter:1911 },
+    { id:732, kind:"wind", freq:504, dur:0.16, gain:0.040, filter:1942 },
+    { id:733, kind:"click", freq:521, dur:0.17, gain:0.043, filter:1973 },
+    { id:734, kind:"hum", freq:538, dur:0.18, gain:0.045, filter:2004 },
+    { id:735, kind:"block", freq:555, dur:0.19, gain:0.048, filter:2035 },
+    { id:736, kind:"mob", freq:572, dur:0.20, gain:0.050, filter:2066 },
+    { id:737, kind:"whoosh", freq:589, dur:0.21, gain:0.053, filter:2097 },
+    { id:738, kind:"fire", freq:606, dur:0.22, gain:0.055, filter:2128 },
+    { id:739, kind:"water", freq:623, dur:0.23, gain:0.058, filter:2159 },
+    { id:740, kind:"footstep", freq:640, dur:0.24, gain:0.010, filter:2190 },
+    { id:741, kind:"rain", freq:657, dur:0.25, gain:0.013, filter:2221 },
+    { id:742, kind:"wind", freq:674, dur:0.26, gain:0.015, filter:2252 },
+    { id:743, kind:"click", freq:691, dur:0.27, gain:0.018, filter:2283 },
+    { id:744, kind:"hum", freq:708, dur:0.28, gain:0.020, filter:2314 },
+    { id:745, kind:"block", freq:725, dur:0.29, gain:0.022, filter:2345 },
+    { id:746, kind:"mob", freq:742, dur:0.30, gain:0.025, filter:2376 },
+    { id:747, kind:"whoosh", freq:759, dur:0.31, gain:0.028, filter:2407 },
+    { id:748, kind:"fire", freq:776, dur:0.32, gain:0.030, filter:2438 },
+    { id:749, kind:"water", freq:793, dur:0.33, gain:0.033, filter:2469 },
+    { id:750, kind:"footstep", freq:810, dur:0.04, gain:0.035, filter:2500 },
+    { id:751, kind:"rain", freq:827, dur:0.05, gain:0.037, filter:2531 },
+    { id:752, kind:"wind", freq:844, dur:0.06, gain:0.040, filter:2562 },
+    { id:753, kind:"click", freq:861, dur:0.07, gain:0.043, filter:2593 },
+    { id:754, kind:"hum", freq:878, dur:0.08, gain:0.045, filter:2624 },
+    { id:755, kind:"block", freq:895, dur:0.09, gain:0.048, filter:2655 },
+    { id:756, kind:"mob", freq:912, dur:0.10, gain:0.050, filter:2686 },
+    { id:757, kind:"whoosh", freq:929, dur:0.11, gain:0.053, filter:2717 },
+    { id:758, kind:"fire", freq:946, dur:0.12, gain:0.055, filter:2748 },
+    { id:759, kind:"water", freq:963, dur:0.13, gain:0.058, filter:2779 },
+    { id:760, kind:"footstep", freq:980, dur:0.14, gain:0.010, filter:2810 },
+    { id:761, kind:"rain", freq:997, dur:0.15, gain:0.013, filter:2841 },
+    { id:762, kind:"wind", freq:1014, dur:0.16, gain:0.015, filter:2872 },
+    { id:763, kind:"click", freq:1031, dur:0.17, gain:0.018, filter:2903 },
+    { id:764, kind:"hum", freq:1048, dur:0.18, gain:0.020, filter:2934 },
+    { id:765, kind:"block", freq:1065, dur:0.19, gain:0.022, filter:2965 },
+    { id:766, kind:"mob", freq:1082, dur:0.20, gain:0.025, filter:2996 },
+    { id:767, kind:"whoosh", freq:1099, dur:0.21, gain:0.028, filter:3027 },
+    { id:768, kind:"fire", freq:1116, dur:0.22, gain:0.030, filter:3058 },
+    { id:769, kind:"water", freq:1133, dur:0.23, gain:0.033, filter:3089 },
+    { id:770, kind:"footstep", freq:1150, dur:0.24, gain:0.035, filter:3120 },
+    { id:771, kind:"rain", freq:1167, dur:0.25, gain:0.037, filter:3151 },
+    { id:772, kind:"wind", freq:1184, dur:0.26, gain:0.040, filter:3182 },
+    { id:773, kind:"click", freq:1201, dur:0.27, gain:0.043, filter:3213 },
+    { id:774, kind:"hum", freq:1218, dur:0.28, gain:0.045, filter:3244 },
+    { id:775, kind:"block", freq:1235, dur:0.29, gain:0.048, filter:3275 },
+    { id:776, kind:"mob", freq:1252, dur:0.30, gain:0.050, filter:3306 },
+    { id:777, kind:"whoosh", freq:69, dur:0.31, gain:0.053, filter:3337 },
+    { id:778, kind:"fire", freq:86, dur:0.32, gain:0.055, filter:3368 },
+    { id:779, kind:"water", freq:103, dur:0.33, gain:0.058, filter:3399 },
+    { id:780, kind:"footstep", freq:120, dur:0.04, gain:0.010, filter:3430 },
+    { id:781, kind:"rain", freq:137, dur:0.05, gain:0.013, filter:3461 },
+    { id:782, kind:"wind", freq:154, dur:0.06, gain:0.015, filter:3492 },
+    { id:783, kind:"click", freq:171, dur:0.07, gain:0.018, filter:3523 },
+    { id:784, kind:"hum", freq:188, dur:0.08, gain:0.020, filter:3554 },
+    { id:785, kind:"block", freq:205, dur:0.09, gain:0.022, filter:3585 },
+    { id:786, kind:"mob", freq:222, dur:0.10, gain:0.025, filter:3616 },
+    { id:787, kind:"whoosh", freq:239, dur:0.11, gain:0.028, filter:3647 },
+    { id:788, kind:"fire", freq:256, dur:0.12, gain:0.030, filter:3678 },
+    { id:789, kind:"water", freq:273, dur:0.13, gain:0.033, filter:3709 },
+    { id:790, kind:"footstep", freq:290, dur:0.14, gain:0.035, filter:3740 },
+    { id:791, kind:"rain", freq:307, dur:0.15, gain:0.037, filter:3771 },
+    { id:792, kind:"wind", freq:324, dur:0.16, gain:0.040, filter:3802 },
+    { id:793, kind:"click", freq:341, dur:0.17, gain:0.043, filter:3833 },
+    { id:794, kind:"hum", freq:358, dur:0.18, gain:0.045, filter:3864 },
+    { id:795, kind:"block", freq:375, dur:0.19, gain:0.048, filter:3895 },
+    { id:796, kind:"mob", freq:392, dur:0.20, gain:0.050, filter:3926 },
+    { id:797, kind:"whoosh", freq:409, dur:0.21, gain:0.053, filter:3957 },
+    { id:798, kind:"fire", freq:426, dur:0.22, gain:0.055, filter:3988 },
+    { id:799, kind:"water", freq:443, dur:0.23, gain:0.058, filter:4019 },
+    { id:800, kind:"footstep", freq:460, dur:0.24, gain:0.010, filter:4050 },
+    { id:801, kind:"rain", freq:477, dur:0.25, gain:0.013, filter:4081 },
+    { id:802, kind:"wind", freq:494, dur:0.26, gain:0.015, filter:4112 },
+    { id:803, kind:"click", freq:511, dur:0.27, gain:0.018, filter:4143 },
+    { id:804, kind:"hum", freq:528, dur:0.28, gain:0.020, filter:4174 },
+    { id:805, kind:"block", freq:545, dur:0.29, gain:0.022, filter:4205 },
+    { id:806, kind:"mob", freq:562, dur:0.30, gain:0.025, filter:4236 },
+    { id:807, kind:"whoosh", freq:579, dur:0.31, gain:0.028, filter:4267 },
+    { id:808, kind:"fire", freq:596, dur:0.32, gain:0.030, filter:4298 },
+    { id:809, kind:"water", freq:613, dur:0.33, gain:0.033, filter:4329 },
+    { id:810, kind:"footstep", freq:630, dur:0.04, gain:0.035, filter:4360 },
+    { id:811, kind:"rain", freq:647, dur:0.05, gain:0.037, filter:4391 },
+    { id:812, kind:"wind", freq:664, dur:0.06, gain:0.040, filter:4422 },
+    { id:813, kind:"click", freq:681, dur:0.07, gain:0.043, filter:253 },
+    { id:814, kind:"hum", freq:698, dur:0.08, gain:0.045, filter:284 },
+    { id:815, kind:"block", freq:715, dur:0.09, gain:0.048, filter:315 },
+    { id:816, kind:"mob", freq:732, dur:0.10, gain:0.050, filter:346 },
+    { id:817, kind:"whoosh", freq:749, dur:0.11, gain:0.053, filter:377 },
+    { id:818, kind:"fire", freq:766, dur:0.12, gain:0.055, filter:408 },
+    { id:819, kind:"water", freq:783, dur:0.13, gain:0.058, filter:439 },
+    { id:820, kind:"footstep", freq:800, dur:0.14, gain:0.010, filter:470 },
+    { id:821, kind:"rain", freq:817, dur:0.15, gain:0.013, filter:501 },
+    { id:822, kind:"wind", freq:834, dur:0.16, gain:0.015, filter:532 },
+    { id:823, kind:"click", freq:851, dur:0.17, gain:0.018, filter:563 },
+    { id:824, kind:"hum", freq:868, dur:0.18, gain:0.020, filter:594 },
+    { id:825, kind:"block", freq:885, dur:0.19, gain:0.022, filter:625 },
+    { id:826, kind:"mob", freq:902, dur:0.20, gain:0.025, filter:656 },
+    { id:827, kind:"whoosh", freq:919, dur:0.21, gain:0.028, filter:687 },
+    { id:828, kind:"fire", freq:936, dur:0.22, gain:0.030, filter:718 },
+    { id:829, kind:"water", freq:953, dur:0.23, gain:0.033, filter:749 },
+    { id:830, kind:"footstep", freq:970, dur:0.24, gain:0.035, filter:780 },
+    { id:831, kind:"rain", freq:987, dur:0.25, gain:0.037, filter:811 },
+    { id:832, kind:"wind", freq:1004, dur:0.26, gain:0.040, filter:842 },
+    { id:833, kind:"click", freq:1021, dur:0.27, gain:0.043, filter:873 },
+    { id:834, kind:"hum", freq:1038, dur:0.28, gain:0.045, filter:904 },
+    { id:835, kind:"block", freq:1055, dur:0.29, gain:0.048, filter:935 },
+    { id:836, kind:"mob", freq:1072, dur:0.30, gain:0.050, filter:966 },
+    { id:837, kind:"whoosh", freq:1089, dur:0.31, gain:0.053, filter:997 },
+    { id:838, kind:"fire", freq:1106, dur:0.32, gain:0.055, filter:1028 },
+    { id:839, kind:"water", freq:1123, dur:0.33, gain:0.058, filter:1059 },
+    { id:840, kind:"footstep", freq:1140, dur:0.04, gain:0.010, filter:1090 },
+    { id:841, kind:"rain", freq:1157, dur:0.05, gain:0.013, filter:1121 },
+    { id:842, kind:"wind", freq:1174, dur:0.06, gain:0.015, filter:1152 },
+    { id:843, kind:"click", freq:1191, dur:0.07, gain:0.018, filter:1183 },
+    { id:844, kind:"hum", freq:1208, dur:0.08, gain:0.020, filter:1214 },
+    { id:845, kind:"block", freq:1225, dur:0.09, gain:0.022, filter:1245 },
+    { id:846, kind:"mob", freq:1242, dur:0.10, gain:0.025, filter:1276 },
+    { id:847, kind:"whoosh", freq:1259, dur:0.11, gain:0.028, filter:1307 },
+    { id:848, kind:"fire", freq:76, dur:0.12, gain:0.030, filter:1338 },
+    { id:849, kind:"water", freq:93, dur:0.13, gain:0.033, filter:1369 },
+    { id:850, kind:"footstep", freq:110, dur:0.14, gain:0.035, filter:1400 },
+    { id:851, kind:"rain", freq:127, dur:0.15, gain:0.037, filter:1431 },
+    { id:852, kind:"wind", freq:144, dur:0.16, gain:0.040, filter:1462 },
+    { id:853, kind:"click", freq:161, dur:0.17, gain:0.043, filter:1493 },
+    { id:854, kind:"hum", freq:178, dur:0.18, gain:0.045, filter:1524 },
+    { id:855, kind:"block", freq:195, dur:0.19, gain:0.048, filter:1555 },
+    { id:856, kind:"mob", freq:212, dur:0.20, gain:0.050, filter:1586 },
+    { id:857, kind:"whoosh", freq:229, dur:0.21, gain:0.053, filter:1617 },
+    { id:858, kind:"fire", freq:246, dur:0.22, gain:0.055, filter:1648 },
+    { id:859, kind:"water", freq:263, dur:0.23, gain:0.058, filter:1679 },
+    { id:860, kind:"footstep", freq:280, dur:0.24, gain:0.010, filter:1710 },
+    { id:861, kind:"rain", freq:297, dur:0.25, gain:0.013, filter:1741 },
+    { id:862, kind:"wind", freq:314, dur:0.26, gain:0.015, filter:1772 },
+    { id:863, kind:"click", freq:331, dur:0.27, gain:0.018, filter:1803 },
+    { id:864, kind:"hum", freq:348, dur:0.28, gain:0.020, filter:1834 },
+    { id:865, kind:"block", freq:365, dur:0.29, gain:0.022, filter:1865 },
+    { id:866, kind:"mob", freq:382, dur:0.30, gain:0.025, filter:1896 },
+    { id:867, kind:"whoosh", freq:399, dur:0.31, gain:0.028, filter:1927 },
+    { id:868, kind:"fire", freq:416, dur:0.32, gain:0.030, filter:1958 },
+    { id:869, kind:"water", freq:433, dur:0.33, gain:0.033, filter:1989 },
+    { id:870, kind:"footstep", freq:450, dur:0.04, gain:0.035, filter:2020 },
+    { id:871, kind:"rain", freq:467, dur:0.05, gain:0.037, filter:2051 },
+    { id:872, kind:"wind", freq:484, dur:0.06, gain:0.040, filter:2082 },
+    { id:873, kind:"click", freq:501, dur:0.07, gain:0.043, filter:2113 },
+    { id:874, kind:"hum", freq:518, dur:0.08, gain:0.045, filter:2144 },
+    { id:875, kind:"block", freq:535, dur:0.09, gain:0.048, filter:2175 },
+    { id:876, kind:"mob", freq:552, dur:0.10, gain:0.050, filter:2206 },
+    { id:877, kind:"whoosh", freq:569, dur:0.11, gain:0.053, filter:2237 },
+    { id:878, kind:"fire", freq:586, dur:0.12, gain:0.055, filter:2268 },
+    { id:879, kind:"water", freq:603, dur:0.13, gain:0.058, filter:2299 },
+    { id:880, kind:"footstep", freq:620, dur:0.14, gain:0.010, filter:2330 },
+    { id:881, kind:"rain", freq:637, dur:0.15, gain:0.013, filter:2361 },
+    { id:882, kind:"wind", freq:654, dur:0.16, gain:0.015, filter:2392 },
+    { id:883, kind:"click", freq:671, dur:0.17, gain:0.018, filter:2423 },
+    { id:884, kind:"hum", freq:688, dur:0.18, gain:0.020, filter:2454 },
+    { id:885, kind:"block", freq:705, dur:0.19, gain:0.022, filter:2485 },
+    { id:886, kind:"mob", freq:722, dur:0.20, gain:0.025, filter:2516 },
+    { id:887, kind:"whoosh", freq:739, dur:0.21, gain:0.028, filter:2547 },
+    { id:888, kind:"fire", freq:756, dur:0.22, gain:0.030, filter:2578 },
+    { id:889, kind:"water", freq:773, dur:0.23, gain:0.033, filter:2609 },
+    { id:890, kind:"footstep", freq:790, dur:0.24, gain:0.035, filter:2640 },
+    { id:891, kind:"rain", freq:807, dur:0.25, gain:0.037, filter:2671 },
+    { id:892, kind:"wind", freq:824, dur:0.26, gain:0.040, filter:2702 },
+    { id:893, kind:"click", freq:841, dur:0.27, gain:0.043, filter:2733 },
+    { id:894, kind:"hum", freq:858, dur:0.28, gain:0.045, filter:2764 },
+    { id:895, kind:"block", freq:875, dur:0.29, gain:0.048, filter:2795 },
+    { id:896, kind:"mob", freq:892, dur:0.30, gain:0.050, filter:2826 },
+    { id:897, kind:"whoosh", freq:909, dur:0.31, gain:0.053, filter:2857 },
+    { id:898, kind:"fire", freq:926, dur:0.32, gain:0.055, filter:2888 },
+    { id:899, kind:"water", freq:943, dur:0.33, gain:0.058, filter:2919 },
+    { id:900, kind:"footstep", freq:960, dur:0.04, gain:0.010, filter:2950 },
+    { id:901, kind:"rain", freq:977, dur:0.05, gain:0.013, filter:2981 },
+    { id:902, kind:"wind", freq:994, dur:0.06, gain:0.015, filter:3012 },
+    { id:903, kind:"click", freq:1011, dur:0.07, gain:0.018, filter:3043 },
+    { id:904, kind:"hum", freq:1028, dur:0.08, gain:0.020, filter:3074 },
+    { id:905, kind:"block", freq:1045, dur:0.09, gain:0.022, filter:3105 },
+    { id:906, kind:"mob", freq:1062, dur:0.10, gain:0.025, filter:3136 },
+    { id:907, kind:"whoosh", freq:1079, dur:0.11, gain:0.028, filter:3167 },
+    { id:908, kind:"fire", freq:1096, dur:0.12, gain:0.030, filter:3198 },
+    { id:909, kind:"water", freq:1113, dur:0.13, gain:0.033, filter:3229 },
+    { id:910, kind:"footstep", freq:1130, dur:0.14, gain:0.035, filter:3260 },
+    { id:911, kind:"rain", freq:1147, dur:0.15, gain:0.037, filter:3291 },
+    { id:912, kind:"wind", freq:1164, dur:0.16, gain:0.040, filter:3322 },
+    { id:913, kind:"click", freq:1181, dur:0.17, gain:0.043, filter:3353 },
+    { id:914, kind:"hum", freq:1198, dur:0.18, gain:0.045, filter:3384 },
+    { id:915, kind:"block", freq:1215, dur:0.19, gain:0.048, filter:3415 },
+    { id:916, kind:"mob", freq:1232, dur:0.20, gain:0.050, filter:3446 },
+    { id:917, kind:"whoosh", freq:1249, dur:0.21, gain:0.053, filter:3477 },
+    { id:918, kind:"fire", freq:66, dur:0.22, gain:0.055, filter:3508 },
+    { id:919, kind:"water", freq:83, dur:0.23, gain:0.058, filter:3539 },
+    { id:920, kind:"footstep", freq:100, dur:0.24, gain:0.010, filter:3570 },
+    { id:921, kind:"rain", freq:117, dur:0.25, gain:0.013, filter:3601 },
+    { id:922, kind:"wind", freq:134, dur:0.26, gain:0.015, filter:3632 },
+    { id:923, kind:"click", freq:151, dur:0.27, gain:0.018, filter:3663 },
+    { id:924, kind:"hum", freq:168, dur:0.28, gain:0.020, filter:3694 },
+    { id:925, kind:"block", freq:185, dur:0.29, gain:0.022, filter:3725 },
+    { id:926, kind:"mob", freq:202, dur:0.30, gain:0.025, filter:3756 },
+    { id:927, kind:"whoosh", freq:219, dur:0.31, gain:0.028, filter:3787 },
+    { id:928, kind:"fire", freq:236, dur:0.32, gain:0.030, filter:3818 },
+    { id:929, kind:"water", freq:253, dur:0.33, gain:0.033, filter:3849 },
+    { id:930, kind:"footstep", freq:270, dur:0.04, gain:0.035, filter:3880 },
+    { id:931, kind:"rain", freq:287, dur:0.05, gain:0.037, filter:3911 },
+    { id:932, kind:"wind", freq:304, dur:0.06, gain:0.040, filter:3942 },
+    { id:933, kind:"click", freq:321, dur:0.07, gain:0.043, filter:3973 },
+    { id:934, kind:"hum", freq:338, dur:0.08, gain:0.045, filter:4004 },
+    { id:935, kind:"block", freq:355, dur:0.09, gain:0.048, filter:4035 },
+    { id:936, kind:"mob", freq:372, dur:0.10, gain:0.050, filter:4066 },
+    { id:937, kind:"whoosh", freq:389, dur:0.11, gain:0.053, filter:4097 },
+    { id:938, kind:"fire", freq:406, dur:0.12, gain:0.055, filter:4128 },
+    { id:939, kind:"water", freq:423, dur:0.13, gain:0.058, filter:4159 },
+    { id:940, kind:"footstep", freq:440, dur:0.14, gain:0.010, filter:4190 },
+    { id:941, kind:"rain", freq:457, dur:0.15, gain:0.013, filter:4221 },
+    { id:942, kind:"wind", freq:474, dur:0.16, gain:0.015, filter:4252 },
+    { id:943, kind:"click", freq:491, dur:0.17, gain:0.018, filter:4283 },
+    { id:944, kind:"hum", freq:508, dur:0.18, gain:0.020, filter:4314 },
+    { id:945, kind:"block", freq:525, dur:0.19, gain:0.022, filter:4345 },
+    { id:946, kind:"mob", freq:542, dur:0.20, gain:0.025, filter:4376 },
+    { id:947, kind:"whoosh", freq:559, dur:0.21, gain:0.028, filter:4407 },
+    { id:948, kind:"fire", freq:576, dur:0.22, gain:0.030, filter:4438 },
+    { id:949, kind:"water", freq:593, dur:0.23, gain:0.033, filter:269 },
+    { id:950, kind:"footstep", freq:610, dur:0.24, gain:0.035, filter:300 },
+    { id:951, kind:"rain", freq:627, dur:0.25, gain:0.037, filter:331 },
+    { id:952, kind:"wind", freq:644, dur:0.26, gain:0.040, filter:362 },
+    { id:953, kind:"click", freq:661, dur:0.27, gain:0.043, filter:393 },
+    { id:954, kind:"hum", freq:678, dur:0.28, gain:0.045, filter:424 },
+    { id:955, kind:"block", freq:695, dur:0.29, gain:0.048, filter:455 },
+    { id:956, kind:"mob", freq:712, dur:0.30, gain:0.050, filter:486 },
+    { id:957, kind:"whoosh", freq:729, dur:0.31, gain:0.053, filter:517 },
+    { id:958, kind:"fire", freq:746, dur:0.32, gain:0.055, filter:548 },
+    { id:959, kind:"water", freq:763, dur:0.33, gain:0.058, filter:579 },
+    { id:960, kind:"footstep", freq:780, dur:0.04, gain:0.010, filter:610 },
+    { id:961, kind:"rain", freq:797, dur:0.05, gain:0.013, filter:641 },
+    { id:962, kind:"wind", freq:814, dur:0.06, gain:0.015, filter:672 },
+    { id:963, kind:"click", freq:831, dur:0.07, gain:0.018, filter:703 },
+    { id:964, kind:"hum", freq:848, dur:0.08, gain:0.020, filter:734 },
+    { id:965, kind:"block", freq:865, dur:0.09, gain:0.022, filter:765 },
+    { id:966, kind:"mob", freq:882, dur:0.10, gain:0.025, filter:796 },
+    { id:967, kind:"whoosh", freq:899, dur:0.11, gain:0.028, filter:827 },
+    { id:968, kind:"fire", freq:916, dur:0.12, gain:0.030, filter:858 },
+    { id:969, kind:"water", freq:933, dur:0.13, gain:0.033, filter:889 },
+    { id:970, kind:"footstep", freq:950, dur:0.14, gain:0.035, filter:920 },
+    { id:971, kind:"rain", freq:967, dur:0.15, gain:0.037, filter:951 },
+    { id:972, kind:"wind", freq:984, dur:0.16, gain:0.040, filter:982 },
+    { id:973, kind:"click", freq:1001, dur:0.17, gain:0.043, filter:1013 },
+    { id:974, kind:"hum", freq:1018, dur:0.18, gain:0.045, filter:1044 },
+    { id:975, kind:"block", freq:1035, dur:0.19, gain:0.048, filter:1075 },
+    { id:976, kind:"mob", freq:1052, dur:0.20, gain:0.050, filter:1106 },
+    { id:977, kind:"whoosh", freq:1069, dur:0.21, gain:0.053, filter:1137 },
+    { id:978, kind:"fire", freq:1086, dur:0.22, gain:0.055, filter:1168 },
+    { id:979, kind:"water", freq:1103, dur:0.23, gain:0.058, filter:1199 },
+    { id:980, kind:"footstep", freq:1120, dur:0.24, gain:0.010, filter:1230 },
+    { id:981, kind:"rain", freq:1137, dur:0.25, gain:0.013, filter:1261 },
+    { id:982, kind:"wind", freq:1154, dur:0.26, gain:0.015, filter:1292 },
+    { id:983, kind:"click", freq:1171, dur:0.27, gain:0.018, filter:1323 },
+    { id:984, kind:"hum", freq:1188, dur:0.28, gain:0.020, filter:1354 },
+    { id:985, kind:"block", freq:1205, dur:0.29, gain:0.022, filter:1385 },
+    { id:986, kind:"mob", freq:1222, dur:0.30, gain:0.025, filter:1416 },
+    { id:987, kind:"whoosh", freq:1239, dur:0.31, gain:0.028, filter:1447 },
+    { id:988, kind:"fire", freq:1256, dur:0.32, gain:0.030, filter:1478 },
+    { id:989, kind:"water", freq:73, dur:0.33, gain:0.033, filter:1509 },
+    { id:990, kind:"footstep", freq:90, dur:0.04, gain:0.035, filter:1540 },
+    { id:991, kind:"rain", freq:107, dur:0.05, gain:0.037, filter:1571 },
+    { id:992, kind:"wind", freq:124, dur:0.06, gain:0.040, filter:1602 },
+    { id:993, kind:"click", freq:141, dur:0.07, gain:0.043, filter:1633 },
+    { id:994, kind:"hum", freq:158, dur:0.08, gain:0.045, filter:1664 },
+    { id:995, kind:"block", freq:175, dur:0.09, gain:0.048, filter:1695 },
+    { id:996, kind:"mob", freq:192, dur:0.10, gain:0.050, filter:1726 },
+    { id:997, kind:"whoosh", freq:209, dur:0.11, gain:0.053, filter:1757 },
+    { id:998, kind:"fire", freq:226, dur:0.12, gain:0.055, filter:1788 },
+    { id:999, kind:"water", freq:243, dur:0.13, gain:0.058, filter:1819 },
+    { id:1000, kind:"footstep", freq:260, dur:0.14, gain:0.010, filter:1850 },
+    { id:1001, kind:"rain", freq:277, dur:0.15, gain:0.013, filter:1881 },
+    { id:1002, kind:"wind", freq:294, dur:0.16, gain:0.015, filter:1912 },
+    { id:1003, kind:"click", freq:311, dur:0.17, gain:0.018, filter:1943 },
+    { id:1004, kind:"hum", freq:328, dur:0.18, gain:0.020, filter:1974 },
+    { id:1005, kind:"block", freq:345, dur:0.19, gain:0.022, filter:2005 },
+    { id:1006, kind:"mob", freq:362, dur:0.20, gain:0.025, filter:2036 },
+    { id:1007, kind:"whoosh", freq:379, dur:0.21, gain:0.028, filter:2067 },
+    { id:1008, kind:"fire", freq:396, dur:0.22, gain:0.030, filter:2098 },
+    { id:1009, kind:"water", freq:413, dur:0.23, gain:0.033, filter:2129 },
+    { id:1010, kind:"footstep", freq:430, dur:0.24, gain:0.035, filter:2160 },
+    { id:1011, kind:"rain", freq:447, dur:0.25, gain:0.037, filter:2191 },
+    { id:1012, kind:"wind", freq:464, dur:0.26, gain:0.040, filter:2222 },
+    { id:1013, kind:"click", freq:481, dur:0.27, gain:0.043, filter:2253 },
+    { id:1014, kind:"hum", freq:498, dur:0.28, gain:0.045, filter:2284 },
+    { id:1015, kind:"block", freq:515, dur:0.29, gain:0.048, filter:2315 },
+    { id:1016, kind:"mob", freq:532, dur:0.30, gain:0.050, filter:2346 },
+    { id:1017, kind:"whoosh", freq:549, dur:0.31, gain:0.053, filter:2377 },
+    { id:1018, kind:"fire", freq:566, dur:0.32, gain:0.055, filter:2408 },
+    { id:1019, kind:"water", freq:583, dur:0.33, gain:0.058, filter:2439 },
+    { id:1020, kind:"footstep", freq:600, dur:0.04, gain:0.010, filter:2470 },
+    { id:1021, kind:"rain", freq:617, dur:0.05, gain:0.013, filter:2501 },
+    { id:1022, kind:"wind", freq:634, dur:0.06, gain:0.015, filter:2532 },
+    { id:1023, kind:"click", freq:651, dur:0.07, gain:0.018, filter:2563 },
+    { id:1024, kind:"hum", freq:668, dur:0.08, gain:0.020, filter:2594 },
+    { id:1025, kind:"block", freq:685, dur:0.09, gain:0.022, filter:2625 },
+    { id:1026, kind:"mob", freq:702, dur:0.10, gain:0.025, filter:2656 },
+    { id:1027, kind:"whoosh", freq:719, dur:0.11, gain:0.028, filter:2687 },
+    { id:1028, kind:"fire", freq:736, dur:0.12, gain:0.030, filter:2718 },
+    { id:1029, kind:"water", freq:753, dur:0.13, gain:0.033, filter:2749 },
+    { id:1030, kind:"footstep", freq:770, dur:0.14, gain:0.035, filter:2780 },
+    { id:1031, kind:"rain", freq:787, dur:0.15, gain:0.037, filter:2811 },
+    { id:1032, kind:"wind", freq:804, dur:0.16, gain:0.040, filter:2842 },
+    { id:1033, kind:"click", freq:821, dur:0.17, gain:0.043, filter:2873 },
+    { id:1034, kind:"hum", freq:838, dur:0.18, gain:0.045, filter:2904 },
+    { id:1035, kind:"block", freq:855, dur:0.19, gain:0.048, filter:2935 },
+    { id:1036, kind:"mob", freq:872, dur:0.20, gain:0.050, filter:2966 },
+    { id:1037, kind:"whoosh", freq:889, dur:0.21, gain:0.053, filter:2997 },
+    { id:1038, kind:"fire", freq:906, dur:0.22, gain:0.055, filter:3028 },
+    { id:1039, kind:"water", freq:923, dur:0.23, gain:0.058, filter:3059 },
+    { id:1040, kind:"footstep", freq:940, dur:0.24, gain:0.010, filter:3090 },
+    { id:1041, kind:"rain", freq:957, dur:0.25, gain:0.013, filter:3121 },
+    { id:1042, kind:"wind", freq:974, dur:0.26, gain:0.015, filter:3152 },
+    { id:1043, kind:"click", freq:991, dur:0.27, gain:0.018, filter:3183 },
+    { id:1044, kind:"hum", freq:1008, dur:0.28, gain:0.020, filter:3214 },
+    { id:1045, kind:"block", freq:1025, dur:0.29, gain:0.022, filter:3245 },
+    { id:1046, kind:"mob", freq:1042, dur:0.30, gain:0.025, filter:3276 },
+    { id:1047, kind:"whoosh", freq:1059, dur:0.31, gain:0.028, filter:3307 },
+    { id:1048, kind:"fire", freq:1076, dur:0.32, gain:0.030, filter:3338 },
+    { id:1049, kind:"water", freq:1093, dur:0.33, gain:0.033, filter:3369 },
+    { id:1050, kind:"footstep", freq:1110, dur:0.04, gain:0.035, filter:3400 },
+    { id:1051, kind:"rain", freq:1127, dur:0.05, gain:0.037, filter:3431 },
+    { id:1052, kind:"wind", freq:1144, dur:0.06, gain:0.040, filter:3462 },
+    { id:1053, kind:"click", freq:1161, dur:0.07, gain:0.043, filter:3493 },
+    { id:1054, kind:"hum", freq:1178, dur:0.08, gain:0.045, filter:3524 },
+    { id:1055, kind:"block", freq:1195, dur:0.09, gain:0.048, filter:3555 },
+    { id:1056, kind:"mob", freq:1212, dur:0.10, gain:0.050, filter:3586 },
+    { id:1057, kind:"whoosh", freq:1229, dur:0.11, gain:0.053, filter:3617 },
+    { id:1058, kind:"fire", freq:1246, dur:0.12, gain:0.055, filter:3648 },
+    { id:1059, kind:"water", freq:63, dur:0.13, gain:0.058, filter:3679 },
+    { id:1060, kind:"footstep", freq:80, dur:0.14, gain:0.010, filter:3710 },
+    { id:1061, kind:"rain", freq:97, dur:0.15, gain:0.013, filter:3741 },
+    { id:1062, kind:"wind", freq:114, dur:0.16, gain:0.015, filter:3772 },
+    { id:1063, kind:"click", freq:131, dur:0.17, gain:0.018, filter:3803 },
+    { id:1064, kind:"hum", freq:148, dur:0.18, gain:0.020, filter:3834 },
+    { id:1065, kind:"block", freq:165, dur:0.19, gain:0.022, filter:3865 },
+    { id:1066, kind:"mob", freq:182, dur:0.20, gain:0.025, filter:3896 },
+    { id:1067, kind:"whoosh", freq:199, dur:0.21, gain:0.028, filter:3927 },
+    { id:1068, kind:"fire", freq:216, dur:0.22, gain:0.030, filter:3958 },
+    { id:1069, kind:"water", freq:233, dur:0.23, gain:0.033, filter:3989 },
+    { id:1070, kind:"footstep", freq:250, dur:0.24, gain:0.035, filter:4020 },
+    { id:1071, kind:"rain", freq:267, dur:0.25, gain:0.037, filter:4051 },
+    { id:1072, kind:"wind", freq:284, dur:0.26, gain:0.040, filter:4082 },
+    { id:1073, kind:"click", freq:301, dur:0.27, gain:0.043, filter:4113 },
+    { id:1074, kind:"hum", freq:318, dur:0.28, gain:0.045, filter:4144 },
+    { id:1075, kind:"block", freq:335, dur:0.29, gain:0.048, filter:4175 },
+    { id:1076, kind:"mob", freq:352, dur:0.30, gain:0.050, filter:4206 },
+    { id:1077, kind:"whoosh", freq:369, dur:0.31, gain:0.053, filter:4237 },
+    { id:1078, kind:"fire", freq:386, dur:0.32, gain:0.055, filter:4268 },
+    { id:1079, kind:"water", freq:403, dur:0.33, gain:0.058, filter:4299 },
+    { id:1080, kind:"footstep", freq:420, dur:0.04, gain:0.010, filter:4330 },
+    { id:1081, kind:"rain", freq:437, dur:0.05, gain:0.013, filter:4361 },
+    { id:1082, kind:"wind", freq:454, dur:0.06, gain:0.015, filter:4392 },
+    { id:1083, kind:"click", freq:471, dur:0.07, gain:0.018, filter:4423 },
+    { id:1084, kind:"hum", freq:488, dur:0.08, gain:0.020, filter:254 },
+    { id:1085, kind:"block", freq:505, dur:0.09, gain:0.022, filter:285 },
+    { id:1086, kind:"mob", freq:522, dur:0.10, gain:0.025, filter:316 },
+    { id:1087, kind:"whoosh", freq:539, dur:0.11, gain:0.028, filter:347 },
+    { id:1088, kind:"fire", freq:556, dur:0.12, gain:0.030, filter:378 },
+    { id:1089, kind:"water", freq:573, dur:0.13, gain:0.033, filter:409 },
+    { id:1090, kind:"footstep", freq:590, dur:0.14, gain:0.035, filter:440 },
+    { id:1091, kind:"rain", freq:607, dur:0.15, gain:0.037, filter:471 },
+    { id:1092, kind:"wind", freq:624, dur:0.16, gain:0.040, filter:502 },
+    { id:1093, kind:"click", freq:641, dur:0.17, gain:0.043, filter:533 },
+    { id:1094, kind:"hum", freq:658, dur:0.18, gain:0.045, filter:564 },
+    { id:1095, kind:"block", freq:675, dur:0.19, gain:0.048, filter:595 },
+    { id:1096, kind:"mob", freq:692, dur:0.20, gain:0.050, filter:626 },
+    { id:1097, kind:"whoosh", freq:709, dur:0.21, gain:0.053, filter:657 },
+    { id:1098, kind:"fire", freq:726, dur:0.22, gain:0.055, filter:688 },
+    { id:1099, kind:"water", freq:743, dur:0.23, gain:0.058, filter:719 },
+  ];
+  RealLifeVideo.audioRecipes = SPUDZY_AUDIO_RECIPES;
+  RealLifeVideo.typeAudioEvents = SPUDZY_TYPE_AUDIO_EVENTS;
+  const __baseParsePrompt = RealLifeVideo.parsePrompt;
+  RealLifeVideo.parsePrompt = function(prompt, options={}){ const parsed = __baseParsePrompt.call(RealLifeVideo, prompt, applyGameplayOptions(prompt, options)); parsed.gameplayType = detectGameplayType(parsed.correctedPrompt || prompt, options); parsed.gameplayProfile = GAMEPLAY_AUDIO_PROFILES[parsed.gameplayType] || GAMEPLAY_AUDIO_PROFILES.generic; return parsed; };
+  RealLifeVideo.detectGameplayType = detectGameplayType;
+  const __origGenerate = RealLifeVideo.generate;
+  RealLifeVideo.generate = async function(prompt, options={}){ const gameplayOptions = applyGameplayOptions(prompt, options); const parsedPreview = RealLifeVideo.parsePrompt(prompt, gameplayOptions); const audio = new SpudzyAudioBus(Object.assign({}, gameplayOptions, {seed: gameplayOptions.seed || hashString(String(prompt||"audio"))})); try{ audio.start(parsedPreview); }catch(e){} const optionsWithAudio = Object.assign({}, gameplayOptions, { __audioBus: audio }); const result = await __origGenerate.call(RealLifeVideo, prompt, optionsWithAudio); if(result.parsed){ result.parsed.gameplayType = parsedPreview.gameplayType; result.parsed.gameplayProfile = parsedPreview.gameplayProfile; } result.gameplayType = parsedPreview.gameplayType; result.audio = {handled: !!audio.ctx, recorded: !!(audio.getStream&&audio.getStream()), recipes: SPUDZY_AUDIO_RECIPES.length, profile: parsedPreview.gameplayProfile, tts: !!gameplayOptions.tts, soundEffects: gameplayOptions.soundEffects !== false}; setTimeout(()=>audio.stop(), Math.max(500, (gameplayOptions.seconds||DEFAULTS.seconds)*1000+500)); return result; };
+
+  if(typeof module!=="undefined"&&module.exports) module.exports=RealLifeVideo;
+})(typeof window!=="undefined"?window:globalThis);

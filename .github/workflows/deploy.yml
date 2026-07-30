@@ -84,7 +84,7 @@ jobs:
       # Dynamic: HTML validation
       # -----------------------------
       - name: Validate HTML
-        uses: Cyb3r-Jak3/html5validator-action@v1
+        uses: Cyb3r-Jak3/html5validator-action@v0
         continue-on-error: true
 
       # -----------------------------

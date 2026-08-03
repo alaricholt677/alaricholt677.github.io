@@ -256,6 +256,11 @@
       "name": "Experimental Mega Pack",
       "description": "A large experimental bundle combining blocks, weather ideas, entity templates, UI concepts, debug files, and sample worlds for testing the mod store.",
       "url": "https://alaricholt677.github.io/modUI/packs/experimental_mega_pack.zip"
+    },
+    {
+      "name": "copilot_superpack",
+      "description": "New IRL Simulator expansion pack.",
+      "url": "https://alaricholt677.github.io/modUI/packs/copilot_superpack-1.0.0.zip"
     }
-  ]
+]
 }

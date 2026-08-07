@@ -616,6 +616,22 @@ body.booting #lock-login {
     opacity: 1;
     color: #e81123;
 }
+
+/* EDGE RECODE V3 */
+.edge3{height:100%;min-height:0;display:flex;flex-direction:column;background:#fff;color:#202124;--ec:#0f6cbd}
+.edge3.private{background:#211a2d;color:#fff}.edge3-tabs{height:42px;flex:0 0 42px;display:flex;align-items:end;gap:3px;padding:6px 8px 0;background:#e8eef4;overflow-x:auto;overflow-y:hidden}
+.edge3.private .edge3-tabs{background:#211a2d}.edge3-tab{height:34px;min-width:115px;max-width:220px;flex:0 1 220px;display:flex;align-items:center;gap:7px;padding:0 8px 0 11px;border-radius:9px 9px 0 0;cursor:pointer;opacity:.8}.edge3-tab.active{background:#fff;opacity:1}.edge3.private .edge3-tab.active{background:#31283e}.edge3-tabtitle{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.edge3-close,.edge3-ico,.edge3-add{border:0;background:transparent;color:inherit;cursor:pointer;border-radius:7px;display:grid;place-items:center}.edge3-close{width:22px;height:22px}.edge3-ico{width:34px;height:34px;flex:0 0 34px;font-size:16px}.edge3-add{width:32px;height:32px;flex:0 0 32px;font-size:20px}.edge3-close:hover,.edge3-ico:hover,.edge3-add:hover{background:rgba(127,127,127,.18)}
+.edge3-nav{height:48px;flex:0 0 48px;display:flex;align-items:center;gap:3px;padding:6px 8px;background:#fff;border-bottom:1px solid #ddd}.edge3.private .edge3-nav{background:#31283e;border-color:#443a51}.edge3-address{height:36px;flex:1;min-width:90px;border:1px solid transparent;border-radius:18px;background:#eef2f5;color:inherit;padding:0 14px;font:14px Segoe UI,sans-serif}.edge3-address:focus{background:#fff;border-color:var(--ec);box-shadow:0 0 0 1px var(--ec)}.edge3.private .edge3-address{background:#211a2d}
+.edge3-favs{height:32px;flex:0 0 32px;display:flex;align-items:center;gap:3px;padding:3px 9px;background:#fff;border-bottom:1px solid #ddd;overflow-x:auto}.edge3.private .edge3-favs{background:#31283e;border-color:#443a51}.edge3-fav{border:0;background:transparent;color:inherit;border-radius:6px;padding:5px 9px;white-space:nowrap;cursor:pointer}.edge3-fav:hover{background:rgba(127,127,127,.15)}
+.edge3-work{flex:1;min-height:0;display:flex;position:relative;overflow:hidden;background:#fff}.edge3-main{flex:1;min-width:0;min-height:0;position:relative;overflow:hidden;background:#fff}.edge3-frame{position:absolute;inset:0;width:100%;height:100%;display:block;border:0;background:#fff}.edge3-page{position:absolute;inset:0;overflow:auto;background:#fff;color:#202124}.edge3-center{min-height:100%;display:grid;place-items:center;padding:30px;background:linear-gradient(145deg,#e9f6ff,#fff)}
+.edge3-spin{width:14px;height:14px;border:2px solid #aaa;border-top-color:var(--ec);border-radius:50%;animation:e3spin .7s linear infinite;flex:0 0 14px}@keyframes e3spin{to{transform:rotate(360deg)}}.edge3-favicon{width:16px;height:16px;object-fit:contain;border-radius:3px;flex:0 0 16px}.edge3-side{width:340px;flex:0 0 340px;display:flex;flex-direction:column;border-left:1px solid #ddd;background:#fff}.edge3-sidehead{height:44px;display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-bottom:1px solid #ddd}.edge3-side iframe{flex:1;min-height:0;border:0;background:#fff}
+.edge3-menu,.edge3-ctx{position:fixed;z-index:2147483646;min-width:245px;padding:6px;background:var(--win-bg);color:var(--win-text);border:1px solid var(--sys-border);border-radius:11px;box-shadow:0 16px 48px rgba(0,0,0,.4)}.edge3-menu{width:300px}.edge3-menu button,.edge3-ctx button{width:100%;border:0;background:transparent;color:inherit;text-align:left;padding:9px 11px;border-radius:7px;cursor:pointer}.edge3-menu button:hover,.edge3-ctx button:hover{background:var(--hover-bg)}.edge3-sep{height:1px;background:var(--sys-border);margin:5px}.edge3-manager{max-width:920px;margin:auto;padding:28px}.edge3-card{display:flex;align-items:center;gap:12px;padding:13px;margin:9px 0;border:1px solid #ddd;border-radius:12px}.edge3-grow{flex:1;min-width:0}.edge3-sub{font-size:12px;opacity:.65;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.edge3.vertical{flex-direction:row}.edge3.vertical .edge3-tabs{height:100%;width:230px;flex:0 0 230px;flex-direction:column;align-items:stretch;padding:8px;overflow:auto}.edge3.vertical .edge3-body{flex:1;min-width:0;display:flex;flex-direction:column}.edge3:not(.vertical) .edge3-body{display:contents}.edge3.vertical .edge3-tab{width:100%;max-width:none;min-width:0;min-height:38px;flex:0 0 38px;border-radius:8px}.edge3.vertical .edge3-add{width:100%}
+.edge3[data-theme=ocean] .edge3-tabs{background:linear-gradient(135deg,#075c98,#18a0ae);color:#fff}.edge3[data-theme=sunset] .edge3-tabs{background:linear-gradient(135deg,#7540b7,#e86b55);color:#fff}.edge3[data-theme=forest] .edge3-tabs{background:linear-gradient(135deg,#19523a,#3f8d61);color:#fff}.edge3[data-theme=dark] .edge3-tabs,.edge3[data-theme=dark] .edge3-nav,.edge3[data-theme=dark] .edge3-favs{background:#202124;color:#fff;border-color:#414246}
+@media(max-width:700px){.edge3-optional,.edge3-favs{display:none}.edge3-side{position:absolute;right:0;top:0;bottom:0;width:min(90%,340px);z-index:5}.edge3.vertical .edge3-tabs{width:62px;flex-basis:62px}.edge3.vertical .edge3-tabtitle,.edge3.vertical .edge3-close{display:none}}
+
+
+.edge3-filegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:18px}.edge3-fileitem{border:1px solid #ddd;border-radius:12px;padding:15px;background:#fff;cursor:pointer;text-align:left}.edge3-fileitem:hover{background:#eef5fb;border-color:#8ab8dc}.edge3-fileicon{font-size:32px;margin-bottom:8px}.edge3-package{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #ddd;border-radius:12px;margin-top:8px}.edge3-hidden{display:none!important}.edge3[data-theme=custom] .edge3-tabs{background:var(--edge-custom-tabs,#4b3fa8);color:var(--edge-custom-text,#fff)}
 </style>
 </head>
 <body>
@@ -3112,66 +3128,71 @@ function appExplorer(args = {}) {
 }
 
 // Browser (Handles all filetypes in VFS)
-function appBrowser(args) {
-    const w = spawnWin('browser', 'Edge', '🌐');
-    let u = args.url ? args.url : (args.p ? `vfs://${args.p}` : 'https://www.wikipedia.org/');
-
-    w.cnt.innerHTML = `
-        <div class="toolbar" style="gap:10px;">
-            <button class="btn" style="border-radius:50%;width:30px;height:30px;padding:0;" onclick="brNav('${w.pid}', document.getElementById('ba-${w.pid}').value)">↻</button>
-            <input type="text" id="ba-${w.pid}" value="${u}" style="flex:1;padding:6px 15px;border-radius:15px;border:1px solid var(--sys-border);background:var(--win-bg);color:var(--win-text);" onkeydown="if(event.key==='Enter') brNav('${w.pid}', this.value)">
-        </div>
-        <iframe id="bf-${w.pid}" style="flex:1;border:none;background:white;" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>
-    `;
-
-    window.brNav = (id, url) => {
-        const f = document.getElementById(`bf-${id}`);
-        const addr = document.getElementById(`ba-${id}`);
-        if (!f || !addr) return;
-
-        addr.value = url;
-
-        if (url.startsWith('vfs://')) {
-            const p = url.replace('vfs://','');
-            const c = readF(p);
-            const ext = fExt(p);
-
-            if (c !== null) {
-                if (['htm','html','svg'].includes(ext)) {
-                    if (typeof c === 'string' && c.startsWith('http')) {
-                        f.removeAttribute('srcdoc');
-                        f.src = c;
-                    } else {
-                        f.removeAttribute('src');
-                        f.srcdoc = c;
-                    }
-                } else if (['png','jpg'].includes(ext)) {
-                    f.removeAttribute('src');
-                    f.srcdoc = `<div style="display:flex;justify-content:center;padding:20px;">replace(/"/g,'&quot;')}" style="max-width:100%;"></div>`;
-                } else if (ext === 'mp4') {
-                    f.removeAttribute('src');
-                    f.srcdoc = `<div style="display:flex;justify-content:center;padding:20px;height:100%;">replace(/"/g,'&quot;')}" controls autoplay style="max-width:100%;max-height:100%;"></video></div>`;
-                } else if (ext === 'exe') {
-                    f.removeAttribute('src');
-                    f.srcdoc = `<div style="padding:20px;font-family:sans-serif;"><h2>Binary Executable</h2><p>Use EXE Host to run this file.</p></div>`;
-                } else {
-                    f.removeAttribute('src');
-                    f.srcdoc = `<pre style="padding:20px;font-family:monospace;white-space:pre-wrap;">${String(c).replace(/</g,'&lt;')}</pre>`;
-                }
-            } else {
-                f.removeAttribute('src');
-                f.srcdoc = "<h1 style='padding:20px;font-family:sans-serif;'>File not found</h1>";
-            }
-        } else {
-            let finalUrl = url;
-            if (!/^https?:\/\//i.test(finalUrl)) finalUrl = 'https://' + finalUrl;
-            addr.value = finalUrl;
-            f.removeAttribute('srcdoc');
-            f.src = finalUrl;
-        }
-    };
-
-    window.brNav(w.pid, u);
+function appBrowser(args = {}) {
+ const w=spawnWin('browser','Microsoft Edge','🌐',1080,720), KEY=`Edge3_${OS.curr||'guest'}`;
+ const old=(()=>{try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch{return{}}})();
+ const favIconSafe=u=>{try{return /^https?:/i.test(u||'')?`https://www.google.com/s2/favicons?domain=${encodeURIComponent(new URL(u).hostname)}&sz=64`:''}catch{return''}};
+ const restoredTabs=Array.isArray(old.tabs)?old.tabs.map(x=>({...x,loading:false,icon:x.icon||favIconSafe(x.url),stack:Array.isArray(x.stack)&&x.stack.length?x.stack:[x.url],at:Number.isInteger(x.at)?x.at:0})):[];
+ const S={tabs:restoredTabs,active:old.active||restoredTabs[0]?.id||null,favs:(old.favs||[{title:'Bing',url:'https://www.bing.com/'}]).map(x=>({...x,url:String(x.url||'').replace(/[\"']+$/g,'' )})),history:old.history||[],downloads:old.downloads||[],bar:old.bar!==false,vertical:!!old.vertical,home:old.home||'edge://newtab',newtab:old.newtab||'edge://newtab',theme:old.theme||'default',side:old.side||null,zoom:old.zoom||100,addons:old.addons||[],menu:false};
+ const esc=x=>String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+ const q=x=>String(x??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); const id=()=>`e${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;const T=()=>S.tabs.find(x=>x.id===S.active);
+ const save=()=>localStorage.setItem(KEY,JSON.stringify({version:3,user:OS.curr,tabs:S.tabs.map(x=>({...x,loading:false})),active:S.active,favs:S.favs,history:S.history.slice(0,500),downloads:S.downloads.slice(0,200),bar:S.bar,vertical:S.vertical,home:S.home,newtab:S.newtab,theme:S.theme,side:S.side,zoom:S.zoom,addons:S.addons,savedAt:Date.now()}));
+ function norm(v){let x=String(v||'').trim().replace(/^(?:'|\"|&quot;|&#39;)+|(?:'|\"|&quot;|&#39;)+$/g,'');if(!x)return S.newtab;if(/^file:\/\//i.test(x))return 'vfs://'+decodeURIComponent(x.replace(/^file:\/\/\/?/i,'').replace(/^WebOS\//i,''));if(/^(https?:|edge:|vfs:|data:)/i.test(x))return x;if(/^localhost([/:]|$)/i.test(x)||/^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(x))return'https://'+x;return'https://www.bing.com/search?q='+encodeURIComponent(x)}
+ function shownUrl(u){return String(u||'').startsWith('vfs://')?'file:///WebOS/'+String(u).slice(6).split('/').map(encodeURIComponent).join('/'):u}
+ function vfsPath(u){return decodeURIComponent(String(u||'').replace(/^vfs:\/\//,'').replace(/^file:\/\/\/WebOS\//,''))}
+ function hostTitle(u){try{if(u==='edge://newtab')return'New tab';if(u.startsWith('edge://'))return u.slice(7).replace(/^./,c=>c.toUpperCase());if(u.startsWith('vfs://'))return fName(u.slice(6));return new URL(u).hostname.replace(/^www\./,'')}catch{return'New tab'}}
+ function favIcon(u){try{if(!/^https?:/i.test(u))return'';return`https://www.google.com/s2/favicons?domain=${encodeURIComponent(new URL(u).hostname)}&sz=64`}catch{return''}}
+ function addTab(url=S.newtab,priv=false){let u=norm(url),x={id:id(),url:u,title:priv?'InPrivate':hostTitle(u),icon:favIcon(u),loading:true,private:priv,stack:[u],at:0};S.tabs.push(x);S.active=x.id;save();render();load()} 
+ function closeTab(i,e){e?.stopPropagation?.();let n=S.tabs.findIndex(x=>x.id===i);if(n<0)return;S.tabs.splice(n,1);if(!S.tabs.length)return addTab();if(S.active===i)S.active=S.tabs[Math.max(0,n-1)].id;save();render();load()}
+ function nav(v,push=true){let t=T();if(!t)return;let u=norm(v);t.url=u;t.title=hostTitle(u);t.icon=favIcon(u);t.loading=true;if(push){t.stack=t.stack.slice(0,t.at+1);t.stack.push(u);t.at=t.stack.length-1}if(!t.private&&!u.startsWith('edge://')){S.history.unshift({title:t.title,url:u,time:Date.now()});save()}render();load()}
+ function back(){let t=T();if(t&&t.at>0){t.at--;nav(t.stack[t.at],false)}}function forward(){let t=T();if(t&&t.at<t.stack.length-1){t.at++;nav(t.stack[t.at],false)}}
+ function refresh(){let t=T();if(!t)return;t.loading=true;t.title=hostTitle(t.url);t.icon='';render();load(true)}
+ function finish(title){
+  let t=T();if(!t)return;
+  t.loading=false;t.title=(title&&String(title).trim())||hostTitle(t.url);t.icon=favIcon(t.url);
+  const tabEl=document.querySelector(`#edge3-${w.pid} .edge3-tab.active`);
+  if(tabEl){
+   const titleEl=tabEl.querySelector('.edge3-tabtitle');if(titleEl)titleEl.textContent=t.title;
+   const oldVisual=tabEl.querySelector('.edge3-spin,.edge3-favicon');
+   if(oldVisual){const node=document.createElement(t.icon?'img':'span');if(t.icon){node.className='edge3-favicon';node.src=t.icon;}else node.textContent=t.private?'🕶️':'🌐';oldVisual.replaceWith(node);}
+  }
+  w.setTitle(S.vertical?`${t.title} - Microsoft Edge`:'Microsoft Edge');save();
+ }
+ function internal(which){let t=T();if(t)t.loading=false;if(which==='newtab')return`<div class="edge3-page edge3-center"><div style="width:min(680px,88%);text-align:center"><div style="font-size:58px">🌊</div><h1 style="font-size:36px;margin:10px">Microsoft Edge</h1><input class="edge3-address" style="width:100%;height:46px;background:#fff;box-shadow:0 7px 25px #0002" placeholder="Search the web" onkeydown="if(event.key==='Enter')edge3Go_${w.pid}(this.value)"></div></div>`;
+  let list=which==='favorites'?S.favs:S.history; if(which==='downloads')return`<div class="edge3-page"><div class="edge3-manager"><h1>Downloads</h1><p>Downloads started by supported pages appear in the host browser download list.</p></div></div>`;
+  if(which==='settings')return`<div class="edge3-page"><div class="edge3-manager"><h1>Edge settings</h1>${setting('Home button URL','home',S.home)}${setting('New tab URL','newtab',S.newtab)}<div class="edge3-card"><div class="edge3-grow"><b>Vertical tabs</b></div><button class="btn" onclick="edge3Vertical_${w.pid}()">${S.vertical?'On':'Off'}</button></div><div class="edge3-card"><div class="edge3-grow"><b>Favorites bar</b></div><button class="btn" onclick="edge3FavBar_${w.pid}()">${S.bar?'On':'Off'}</button></div><h2>Themes</h2><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${['default','dark','ocean','sunset','forest'].map(x=>`<button class="btn ${S.theme===x?'btn-primary':''}" onclick="edge3Theme_${w.pid}('${x}')">${x}</button>`).join('')}</div><h2 style="margin-top:26px">Themes and add-ons</h2><p>Install local JSON packages. Packages are stored only for this WebOS user.</p><input id="edge3-package-${w.pid}" class="edge3-hidden" type="file" accept=".json,application/json" onchange="edge3Import_${w.pid}(this)"><div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0"><button class="btn btn-primary" onclick="document.getElementById('edge3-package-${w.pid}').click()">Install package</button><button class="btn" onclick="edge3Starter_${w.pid}('theme')">Theme starter</button><button class="btn" onclick="edge3Starter_${w.pid}('addon')">Add-on starter</button></div>${S.addons.map(a=>`<div class="edge3-package"><div style="font-size:25px">${a.type==='theme'?'🎨':'🧩'}</div><div class="edge3-grow"><b>${esc(a.name||a.id)}</b><div class="edge3-sub">${esc(a.type)} ${esc(a.version||'')}</div></div><button class="btn" onclick="edge3RemovePackage_${w.pid}('${q(a.id)}')">Remove</button></div>`).join('')}</div></div>`;
+  return`<div class="edge3-page"><div class="edge3-manager"><h1>${which==='favorites'?'Favorites':'History'}</h1>${list.length?list.map((x,i)=>`<div class="edge3-card"><img class="edge3-favicon" src="${esc(favIcon(x.url))}"><div class="edge3-grow"><b>${esc(x.title)}</b><div class="edge3-sub">${esc(x.url)}</div></div><button class="btn" onclick="edge3Go_${w.pid}('${q(x.url)}')">Open</button>${which==='favorites'?`<button class="btn" onclick="edge3DelFav_${w.pid}(${i})">Remove</button>`:''}</div>`).join(''):'<p>No items yet.</p>'}</div></div>`}
+ function setting(label,key,value){return`<div class="edge3-card"><div class="edge3-grow"><b>${label}</b><input id="edge3-${key}-${w.pid}" class="edge3-address" value="${esc(value)}" style="width:100%;margin-top:8px"></div><button class="btn" onclick="edge3Set_${w.pid}('${key}')">Save</button></div>`}
+ function renderVFS(t,m){
+  const path=vfsPath(t.url),node=getNode(path),name=fName(path)||'WebOS';t.loading=false;
+  if(!node){m.innerHTML=`<div class="edge3-page"><div class="edge3-manager"><h1>File not found</h1><p>${esc(shownUrl(t.url))}</p></div></div>`;finish('File not found');return}
+  if(node.type!=='file'){
+   const keys=Object.keys(node).sort((a,b)=>a.localeCompare(b));
+   const parent=pPath(path);m.innerHTML=`<div class="edge3-page"><div class="edge3-manager"><h1>📁 ${esc(name)}</h1><div class="edge3-sub">${esc(shownUrl(t.url))}</div>${path?`<button class="btn" style="margin-top:14px" onclick="edge3Go_${w.pid}('vfs://${q(parent)}')">⬆ Parent folder</button>`:''}<div class="edge3-filegrid">${keys.map(k=>{const n=node[k],folder=n&&n.type!=='file',full=path?`${path}/${k}`:k;return`<button class="edge3-fileitem" onclick="edge3Go_${w.pid}('vfs://${q(full)}')"><div class="edge3-fileicon">${folder?'📁':getIcon(k,'file')}</div><b>${esc(k)}</b><div class="edge3-sub">${folder?'File folder':(fExt(k).toUpperCase()||'File')}</div></button>`}).join('')||'<p>This folder is empty.</p>'}</div></div></div>`;finish(name);return
+  }
+  const c=node.cnt,e=fExt(path);let body='';
+  if(['html','htm','svg'].includes(e))body=`<iframe id="edge3-frame-${w.pid}" class="edge3-frame" sandbox="allow-scripts allow-forms allow-popups allow-modals" srcdoc="${esc(c)}"></iframe>`;
+  else if(['png','jpg','jpeg','gif','webp'].includes(e))body=`<div class="edge3-page" style="display:grid;place-items:center;background:#222"><img src="${esc(c)}" style="max-width:100%;max-height:100%"></div>`;
+  else if(['mp4','webm','ogg'].includes(e))body=`<div class="edge3-page" style="display:grid;place-items:center;background:#111"><video src="${esc(c)}" controls style="max-width:100%;max-height:100%"></video></div>`;
+  else if(e==='pdf')body=`<iframe id="edge3-frame-${w.pid}" class="edge3-frame" src="${esc(c)}"></iframe>`;
+  else body=`<pre class="edge3-page" style="padding:22px;white-space:pre-wrap;user-select:text">${esc(c)}</pre>`;
+  m.innerHTML=body;finish(name)
+ }
+ function applyCustomTheme(pkg){if(!pkg||pkg.type!=='theme')return;const root=document.documentElement;if(pkg.colors?.tabs)root.style.setProperty('--edge-custom-tabs',pkg.colors.tabs);if(pkg.colors?.text)root.style.setProperty('--edge-custom-text',pkg.colors.text)}
+ function importEdgePackage(input){const file=input.files?.[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const pkg=JSON.parse(r.result);if(!['theme','addon'].includes(pkg.type))throw 0;pkg.id=pkg.id||`pkg-${Date.now()}`;S.addons=S.addons.filter(x=>x.id!==pkg.id);S.addons.push(pkg);if(pkg.type==='theme'){S.theme='custom';applyCustomTheme(pkg)}save();render();load()}catch{alert('Invalid Edge theme/add-on JSON package.')}};r.readAsText(file)}
+ function removeEdgePackage(id){S.addons=S.addons.filter(x=>x.id!==id);if(S.theme==='custom')S.theme='default';save();render();load()}
+ function exportEdgeStarter(type){const pkg=type==='theme'?{type:'theme',id:'my-theme',name:'My Theme',version:'1.0',colors:{tabs:'#4b3fa8',text:'#ffffff'}}:{type:'addon',id:'my-addon',name:'My Add-on',version:'1.0',description:'A WebOS Edge add-on',commands:[]};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(pkg,null,2)],{type:'application/json'}));a.download=`edge-${type}-starter.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+ function load(force=false){let t=T(),m=document.getElementById(`edge3-main-${w.pid}`);if(!t||!m)return;if(t.url.startsWith('edge://')){m.innerHTML=internal(t.url.slice(7));finish(t.title);return}if(t.url.startsWith('vfs://')){renderVFS(t,m);return}
+  m.innerHTML=`<iframe id="edge3-frame-${w.pid}" class="edge3-frame" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;let f=document.getElementById(`edge3-frame-${w.pid}`);f.addEventListener('load',()=>{let title='';try{title=f.contentDocument?.title||''}catch{}finish(title)});f.addEventListener('error',()=>finish(hostTitle(t.url)));f.src=t.url}
+ function tabs(){return S.tabs.map(x=>`<div class="edge3-tab ${x.id===S.active?'active':''}" oncontextmenu="edge3Ctx_${w.pid}(event,'${x.id}')" onclick="edge3Switch_${w.pid}('${x.id}')">${x.loading?'<span class="edge3-spin"></span>':x.icon?`<img class="edge3-favicon" src="${esc(x.icon)}">`:`<span>${x.private?'🕶️':'🌐'}</span>`}<span class="edge3-tabtitle">${esc(x.title)}</span><button class="edge3-close" onclick="edge3Close_${w.pid}('${x.id}',event)">✕</button></div>`).join('')}
+ function render(reload=false){let t=T();w.cnt.innerHTML=`<div id="edge3-${w.pid}" class="edge3 ${t?.private?'private':''} ${S.vertical?'vertical':''}" data-theme="${esc(S.theme)}"><div class="edge3-tabs">${tabs()}<button class="edge3-add" onclick="edge3New_${w.pid}()">+</button></div><div class="edge3-body"><div class="edge3-nav"><button class="edge3-ico" onclick="edge3Back_${w.pid}()">←</button><button class="edge3-ico" onclick="edge3Forward_${w.pid}()">→</button><button class="edge3-ico" onclick="edge3Refresh_${w.pid}()">↻</button><button class="edge3-ico edge3-optional" onclick="edge3Go_${w.pid}(edge3Home_${w.pid}())">⌂</button><input class="edge3-address" value="${esc(shownUrl(t?.url||''))}" onfocus="this.select()" onkeydown="if(event.key==='Enter')edge3Go_${w.pid}(this.value)"><button class="edge3-ico" onclick="edge3Star_${w.pid}()">☆</button><button class="edge3-ico" onclick="edge3Menu_${w.pid}(event)">•••</button></div>${S.bar?`<div class="edge3-favs">${S.favs.map(x=>`<button class="edge3-fav" onclick="edge3Go_${w.pid}('${q(x.url)}')">⭐ ${esc(x.title)}</button>`).join('')}</div>`:''}<div class="edge3-work" oncontextmenu="edge3Ctx_${w.pid}(event)"><main id="edge3-main-${w.pid}" class="edge3-main"></main>${S.side?`<aside class="edge3-side"><div class="edge3-sidehead"><b>Sidebar</b><button class="btn" onclick="edge3CloseSide_${w.pid}()">✕</button></div><iframe sandbox="allow-same-origin allow-scripts allow-forms allow-popups" src="${esc(S.side)}"></iframe></aside>`:''}</div></div></div>`;w.setTitle(S.vertical?`${t?.title||'New tab'} - Microsoft Edge`:'Microsoft Edge');if(reload)load()}
+ function menu(e){document.querySelectorAll('.edge3-menu,.edge3-ctx').forEach(x=>x.remove());let d=document.createElement('div');d.className='edge3-menu';d.style.left=Math.min(e.clientX-260,innerWidth-310)+'px';d.style.top=Math.min(e.clientY,innerHeight-430)+'px';d.innerHTML=`<button onclick="edge3Private_${w.pid}()">🕶️ New InPrivate tab</button><button onclick="edge3Go_${w.pid}('edge://favorites')">⭐ Favorites</button><button onclick="edge3Go_${w.pid}('edge://history')">🕘 History</button><button onclick="edge3Go_${w.pid}('edge://downloads')">⬇ Downloads</button><div class="edge3-sep"></div><button onclick="edge3Vertical_${w.pid}()">▥ Vertical tabs</button><button onclick="edge3Side_${w.pid}()">◧ Open in sidebar</button><div class="edge3-sep"></div><button onclick="edge3Go_${w.pid}('edge://settings')">⚙ Settings</button>`;document.body.appendChild(d);setTimeout(()=>document.addEventListener('click',()=>d.remove(),{once:true}),0)}
+ function ctx(e,tabId){e.preventDefault();e.stopPropagation();document.querySelectorAll('.edge3-menu,.edge3-ctx').forEach(x=>x.remove());if(tabId)S.active=tabId;let d=document.createElement('div');d.className='edge3-ctx';d.style.left=Math.min(e.clientX,innerWidth-255)+'px';d.style.top=Math.min(e.clientY,innerHeight-350)+'px';d.innerHTML=tabId?`<button onclick="edge3Refresh_${w.pid}()">Refresh tab</button><button onclick="edge3Duplicate_${w.pid}()">Duplicate tab</button><button onclick="edge3Side_${w.pid}()">Open in sidebar</button><div class="edge3-sep"></div><button onclick="edge3CloseOthers_${w.pid}()">Close other tabs</button><button onclick="edge3Close_${w.pid}('${tabId}',event)">Close tab</button>`:`<button onclick="edge3Back_${w.pid}()">Back</button><button onclick="edge3Forward_${w.pid}()">Forward</button><button onclick="edge3Refresh_${w.pid}()">Refresh</button><div class="edge3-sep"></div><button onclick="edge3Star_${w.pid}()">Add to favorites</button><button onclick="edge3Side_${w.pid}()">Open in sidebar</button>`;document.body.appendChild(d);setTimeout(()=>document.addEventListener('click',()=>d.remove(),{once:true}),0)}
+ window[`edge3New_${w.pid}`]=()=>addTab();window[`edge3Private_${w.pid}`]=()=>addTab(S.newtab,true);window[`edge3Close_${w.pid}`]=closeTab;window[`edge3Switch_${w.pid}`]=i=>{S.active=i;save();render();load()};window[`edge3Go_${w.pid}`]=nav;window[`edge3Back_${w.pid}`]=back;window[`edge3Forward_${w.pid}`]=forward;window[`edge3Refresh_${w.pid}`]=refresh;window[`edge3Home_${w.pid}`]=()=>S.home;window[`edge3Menu_${w.pid}`]=menu;window[`edge3Ctx_${w.pid}`]=ctx;
+ window[`edge3Import_${w.pid}`]=importEdgePackage;window[`edge3RemovePackage_${w.pid}`]=removeEdgePackage;window[`edge3Starter_${w.pid}`]=exportEdgeStarter;window[`edge3Star_${w.pid}`]=()=>{let t=T();if(t&&!S.favs.some(x=>x.url===t.url)){S.favs.push({title:t.title,url:t.url});save();render();load()}};window[`edge3DelFav_${w.pid}`]=i=>{S.favs.splice(i,1);save();render();load()};window[`edge3Vertical_${w.pid}`]=()=>{S.vertical=!S.vertical;save();render();load()};window[`edge3FavBar_${w.pid}`]=()=>{S.bar=!S.bar;save();render();load()};window[`edge3Theme_${w.pid}`]=x=>{S.theme=x;save();render();load()};window[`edge3Side_${w.pid}`]=()=>{S.side=T()?.url;save();render();load()};window[`edge3CloseSide_${w.pid}`]=()=>{S.side=null;save();render();load()};window[`edge3Duplicate_${w.pid}`]=()=>addTab(T()?.url,T()?.private);window[`edge3CloseOthers_${w.pid}`]=()=>{let t=T();S.tabs=[t];save();render();load()};window[`edge3Set_${w.pid}`]=k=>{S[k]=norm(document.getElementById(`edge3-${k}-${w.pid}`).value);save();render();load()};
+ if(S.theme==='custom')applyCustomTheme(S.addons.find(x=>x.type==='theme'));
+ if(args.url||args.u||args.p){addTab(args.url||args.u||`vfs://${args.p}`);}else if(S.tabs.length){if(!S.tabs.some(x=>x.id===S.active))S.active=S.tabs[0].id;render();load();}else addTab(S.newtab);
+ window.addEventListener('beforeunload',save);
 }
 
 // Microsoft Store (remote JSON powered, refixed with full open-app support)

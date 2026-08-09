@@ -261,6 +261,11 @@
       "name": "copilot_superpack",
       "description": "New IRL Simulator expansion pack.",
       "url": "https://alaricholt677.github.io/modUI/packs/copilot_superpack-1.0.0.zip"
+    },
+    {
+      "name": "More Blocks Expansion",
+      "description": "Adds a large starter set of decorative and survival blocks for testing new building styles. Includes colored blocks, metal blocks, stone variants, glowing blocks, and simple furniture test blocks.",
+      "url": "https://alaricholt677.github.io/modUI/packs/more_blocks_expansion-1.0.0.zip"
     }
 ]
 }

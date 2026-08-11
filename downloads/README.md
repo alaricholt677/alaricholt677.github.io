@@ -679,7 +679,14 @@ The wiki is more than documentation. It includes:
 - Saved and applied settings
 
 ---
+## Gameplay Trailer
 
+Click the thumbnail to watch the full Voxel IRL Simulator gameplay trailer:
+
+[![Thumbnail](assets/thumbnail.png)](https://alaricholt677.github.io/downloads/assets/trailer.mp4)
+
+[Watch the gameplay trailer directly](https://alaricholt677.github.io/downloads/assets/trailer.mp4)
+---
 # Current Notes
 
 - Boss Spawner is ID 15.

@@ -295,4 +295,113 @@ window.addEventListener('load', () => loadOnlineCatalog());
 setTimeout(() => loadOnlineCatalog(), 50);
 </script>
 
+
+<script>
+/* Unified private/public song actions and URL-only native sharing. */
+function songPageURL(song) {
+  const base = location.href.split('#')[0];
+  return base + '#/song/' + encodeURIComponent(song.id);
+}
+async function shareSongURL(song) {
+  if (!song) return note('Song not found');
+  const data = { url: songPageURL(song) };
+  try {
+    if (typeof navigator.share !== 'function') throw new Error('Native sharing unavailable');
+    if (typeof navigator.canShare === 'function' && !navigator.canShare(data)) throw new Error('URL sharing unavailable');
+    await navigator.share(data);
+  } catch (error) {
+    if (error?.name === 'AbortError') return;
+    try { await navigator.clipboard.writeText(data.url); note('Song URL copied'); }
+    catch { note('Could not share or copy the song URL'); }
+  }
+}
+shareOneClick = async function(id) {
+  return shareSongURL(S.songs.find(song => song.id === id) || onlineSongs.find(song => song.id === id));
+};
+
+function publicLikeKey(id) { return 'online:' + id; }
+function isSongLiked(song) { return S.liked.includes(song.online ? publicLikeKey(song.id) : song.id); }
+function toggleAnySongLike(id, isOnline = false) {
+  const key = isOnline ? publicLikeKey(id) : id;
+  S.liked = S.liked.includes(key) ? S.liked.filter(item => item !== key) : [key, ...S.liked];
+  save(); renderOnlineCatalogBlocks(); route();
+}
+function queueAnySong(id, isOnline = false) {
+  const key = isOnline ? publicLikeKey(id) : id;
+  if (!S.queue.includes(key)) S.queue.push(key);
+  save(); note('Queued');
+}
+async function playAnyQueued(key) {
+  if (String(key).startsWith('online:')) return playOnlineSong(String(key).slice(7));
+  return playSong(key);
+}
+
+function privateSongActions(song) {
+  return `<div class="row">
+    <button onclick="playSong('${esc(song.id)}')">Play</button>
+    <button class="ghost" onclick="shareOneClick('${esc(song.id)}')">Share URL</button>
+    <button class="ghost" onclick="toggleAnySongLike('${esc(song.id)}',false)">${isSongLiked(song) ? '♥ Liked' : '♡ Like'}</button>
+    <button class="ghost" onclick="queueAnySong('${esc(song.id)}',false)">Queue</button>
+    <button class="ghost" onclick="downloadSong('${esc(song.id)}')">Download</button>
+    <button class="ghost" onclick="waveOpen('${esc(song.id)}')">WAVE CODE</button>
+    <button class="ghost" onclick="addPL('${esc(song.id)}')">Playlist</button>
+  </div>`;
+}
+function onlineSongActions(song) {
+  return `<div class="row">
+    <button onclick="playOnlineSong('${esc(song.id)}')">Play</button>
+    <button class="ghost" onclick="shareOnlineSong('${esc(song.id)}')">Share URL</button>
+    <button class="ghost" onclick="toggleAnySongLike('${esc(song.id)}',true)">${isSongLiked(song) ? '♥ Liked' : '♡ Like'}</button>
+    <button class="ghost" onclick="queueAnySong('${esc(song.id)}',true)">Queue</button>
+    <button class="ghost" onclick="saveOnlineSong('${esc(song.id)}')">Add to Library</button>
+    <button class="ghost" onclick="onlineWaveCode('${esc(song.id)}')">WAVE CODE</button>
+  </div>`;
+}
+async function shareOnlineSong(id) { return shareSongURL(findOnlineSong(id)); }
+async function onlineWaveCode(id) {
+  const song = findOnlineSong(id);
+  if (!song) return;
+  active = song;
+  const canvas = SpudzyWaveV2.createCanvas(song);
+  modal('Online WAVE CODE', '<div id="onlineWaveCanvas"></div>', `<button class="ghost" onclick="closeM()">Close</button><button onclick="onlineWaveDownload('${esc(id)}')">Download PNG</button>`);
+  canvas.style.width = '100%';
+  document.getElementById('onlineWaveCanvas').appendChild(canvas);
+}
+async function onlineWaveDownload(id) {
+  const song = findOnlineSong(id), blob = await SpudzyWaveV2.createPNG(song);
+  blobDown(blob, file(song.title) + '-wave-v2.png');
+}
+
+onlineSongCard = function(song) {
+  return `<div class="panel">
+    <div class="title">${esc(song.title)}</div>
+    <div class="meta">${esc(song.artist)} · Public · ${esc(song.signature)}</div>
+    ${onlineSongActions(song)}
+  </div>`;
+};
+openOnlineSong = function(id) {
+  const song = findOnlineSong(id);
+  if (!song) return;
+  modal('Public song', `<h2>${esc(song.title)}</h2><p class="meta">${esc(song.artist)} · ${esc(song.signature)}</p><p style="white-space:pre-wrap">${esc(song.lyrics || 'No lyrics included.')}</p>${onlineSongActions(song)}`, '<button class="ghost" onclick="closeM()">Close</button>');
+};
+
+const songPageBeforePublicParity = songPage;
+songPage = function(id) {
+  const html = songPageBeforePublicParity(id);
+  const song = S.songs.find(item => item.id === id);
+  if (!song) return html;
+  return html.replace(/<div class="row">[\s\S]*?<\/div>/, privateSongActions(song));
+};
+
+const nextBeforePublicQueue = next;
+next = function() {
+  if (S.queue.length) {
+    const key = S.queue.shift(); save(); return playAnyQueued(key);
+  }
+  return nextBeforePublicQueue();
+};
+
+renderOnlineCatalogBlocks();
+</script>
+
 </body></html>

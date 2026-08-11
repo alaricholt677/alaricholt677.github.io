@@ -166,4 +166,133 @@ nav();apply();save();if(localStorage.getItem(SESSION))$('auth').classList.add('h
   window.waveText = encodeText;
   window.decodeWaveText = decodeText;
 })();
-</script></body></html>
+</script>
+<script>
+/* Online MusicSpudzy catalog: loads approved uploaded songs on Home and Discover. */
+const ONLINE_INDEX_URLS = [
+  'https://alaricholt677.github.io/MusicSpudzy/MusicIndex.json',
+  'https://raw.githubusercontent.com/alaricholt677/alaricholt677.github.io/main/MusicSpudzy/MusicIndex.json'
+];
+let onlineSongs = [];
+let onlineCatalogStatus = 'idle';
+
+async function fetchOnlineJSON(url) {
+  const response = await fetch(url, { cache: 'no-store', headers: { Accept: 'application/json' } });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
+async function loadOnlineCatalog(force = false) {
+  if (!navigator.onLine) {
+    onlineCatalogStatus = 'offline';
+    renderOnlineCatalogBlocks();
+    return [];
+  }
+  if (!force && onlineCatalogStatus === 'loading') return onlineSongs;
+  onlineCatalogStatus = 'loading';
+  renderOnlineCatalogBlocks();
+  let index = null;
+  let source = '';
+  let lastError = null;
+  for (const url of ONLINE_INDEX_URLS) {
+    try { index = await fetchOnlineJSON(url); source = url; break; }
+    catch (error) { lastError = error; }
+  }
+  if (!index) {
+    onlineCatalogStatus = 'error';
+    renderOnlineCatalogBlocks(lastError?.message || 'Catalog unavailable');
+    return [];
+  }
+  const entries = Array.isArray(index) ? index : Array.isArray(index.songs) ? index.songs : [];
+  const base = source.includes('raw.githubusercontent.com')
+    ? 'https://raw.githubusercontent.com/alaricholt677/alaricholt677.github.io/main/'
+    : 'https://alaricholt677.github.io/';
+  onlineSongs = await Promise.all(entries.map(async entry => {
+    const path = entry.path || entry.dataPath || entry.url || '';
+    let data = {};
+    if (path) {
+      const url = /^https?:/i.test(path) ? path : base + path.replace(/^\//, '');
+      try { data = await fetchOnlineJSON(url); } catch (_) {}
+    }
+    return {
+      ...entry,
+      ...data,
+      id: data.id || entry.id || 'online_' + Math.random().toString(36).slice(2),
+      title: data.title || entry.title || 'Untitled online song',
+      artist: data.artist || entry.artist || entry.submittedBy || 'MusicSpudzy creator',
+      signature: data.signature || entry.signature || 'spudzy',
+      online: true
+    };
+  }));
+  onlineCatalogStatus = 'ready';
+  renderOnlineCatalogBlocks();
+  return onlineSongs;
+}
+
+function onlineSongCard(song) {
+  return `<div class="song">
+    <div><div class="title">${esc(song.title)}</div><div class="meta">${esc(song.artist)} · Online · ${esc(song.signature)}</div></div>
+    <svg class="bars" viewBox="0 0 48 28"><rect x="2" y="12" width="9" height="14" fill="var(--a)"/><rect x="19" y="5" width="9" height="21" fill="#ff7390"/><rect x="36" y="9" width="9" height="17" fill="var(--a)"/></svg>
+    <button onclick="playOnlineSong('${esc(song.id)}')">▶</button>
+    <button class="ghost desktop" onclick="saveOnlineSong('${esc(song.id)}')">＋ Library</button>
+    <button class="ghost" onclick="openOnlineSong('${esc(song.id)}')">Open</button>
+  </div>`;
+}
+
+function onlineCatalogHTML() {
+  if (!navigator.onLine || onlineCatalogStatus === 'offline') return empty('Connect to Wi-Fi to load uploaded MusicSpudzy songs.');
+  if (onlineCatalogStatus === 'loading' || onlineCatalogStatus === 'idle') return '<div class="panel"><div class="meta">Loading uploaded songs…</div></div>';
+  if (onlineCatalogStatus === 'error') return '<div class="panel"><div class="meta">The online song catalog could not be loaded.</div><button onclick="loadOnlineCatalog(true)">Retry</button></div>';
+  return onlineSongs.length ? `<div class="songs">${onlineSongs.map(onlineSongCard).join('')}</div>` : empty('No uploaded songs are published yet.');
+}
+
+function renderOnlineCatalogBlocks() {
+  document.querySelectorAll('[data-online-catalog]').forEach(box => box.innerHTML = onlineCatalogHTML());
+}
+
+function findOnlineSong(id) { return onlineSongs.find(song => song.id === id); }
+async function playOnlineSong(id) {
+  const song = findOnlineSong(id);
+  if (!song) return note('Online song not found');
+  if (song.audioUrl || song.mp3 || song.audio) {
+    audio.src = song.audioUrl || song.mp3 || song.audio;
+    await audio.play();
+    current = song.id; playing = true; $('now').textContent = song.title; $('artist').textContent = song.artist; $('play').textContent = '⏸';
+  } else if (window.SpudzyMusicAI) {
+    await SpudzyMusicAI.play(song);
+    current = song.id; playing = true; $('now').textContent = song.title; $('artist').textContent = song.artist; $('play').textContent = '⏸';
+  } else note('This uploaded song has no playable audio data.');
+}
+function saveOnlineSong(id) {
+  const song = findOnlineSong(id);
+  if (!song) return;
+  const local = { ...song, online: false, importedFromOnline: true, updatedAt: Date.now() };
+  if (!S.songs.some(item => item.id === local.id)) S.songs.unshift(local);
+  save(); note('Online song added to your Library'); route();
+}
+function openOnlineSong(id) {
+  const song = findOnlineSong(id);
+  if (!song) return;
+  modal('Online song', `<h2>${esc(song.title)}</h2><p class="meta">${esc(song.artist)} · ${esc(song.signature)}</p><p style="white-space:pre-wrap">${esc(song.lyrics || 'No lyrics included.')}</p>`, `<button class="ghost" onclick="closeM()">Close</button><button onclick="playOnlineSong('${esc(song.id)}')">Play</button><button onclick="saveOnlineSong('${esc(song.id)}')">Add to Library</button>`);
+}
+
+const renderBeforeOnlineCatalog = render;
+render = function(routeName, id) {
+  renderBeforeOnlineCatalog(routeName, id);
+  if (routeName === 'home') {
+    const page = document.querySelector('#pages .page.active');
+    if (page) page.insertAdjacentHTML('beforeend', '<h2>Uploaded MusicSpudzy songs</h2><div data-online-catalog></div>');
+  }
+  if (routeName === 'discover') {
+    const page = document.querySelector('#pages .page.active');
+    if (page) page.insertAdjacentHTML('beforeend', '<h2>Online catalog</h2><div data-online-catalog></div>');
+  }
+  renderOnlineCatalogBlocks();
+};
+window.addEventListener('online', () => loadOnlineCatalog(true));
+window.addEventListener('offline', renderOnlineCatalogBlocks);
+window.addEventListener('load', () => loadOnlineCatalog());
+setTimeout(() => loadOnlineCatalog(), 50);
+</script>
+
+</body></html>

@@ -1,0 +1,20 @@
+{
+  "id": "song_msoy9ex6_v8h7jl",
+  "title": "Spudzy Red Wave",
+  "artist": "Spudzy Creator",
+  "prompt": "original red pop song, shiny synths, bouncy drums, playful chorus",
+  "signature": "spudzy",
+  "bars": 16,
+  "lyrics": "Spudzy rides the wave tonight\nRed lights flashing burning bright\nEvery beat begins to glow\nWelcome to the Spud Wave show",
+  "tts": true,
+  "voiceName": "",
+  "ttsRate": 1.08,
+  "ttsPitch": 1.25,
+  "ttsVolume": 0.95,
+  "updatedAt": 1786470420044,
+  "repository": {
+    "submittedBy": "alaricholt677",
+    "indexPath": "MusicSpudzy/MusicIndex.json",
+    "dataPath": "MusicSpudzy/Shared/spudzy-red-wave/Data.json"
+  }
+}

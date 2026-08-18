@@ -1,4 +1,4 @@
-# Automated GitHub Pages Deployment Workflow
+# Incremental History Tracking Deployment Workflow
 
 name: Deploy GitHub Pages
 on:
@@ -29,7 +29,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Crucial: Fetches all historical commits and tags to automate history rebuilding
+          fetch-depth: 0 # Crucial: Fetches every single historic commit back to December 2025
 
       # -----------------------------
       # Dynamic: Skip deploy if no relevant changes (FIXED)
@@ -107,34 +107,63 @@ jobs:
           echo "Docs-only commit detected — skipping deploy"
           exit 0
       # -----------------------------
-      # Automated Live Version Archiving
+      # Restore Accumulated Archive Directory via GitHub Actions Cache
       # -----------------------------
-      - name: Auto-Compile Version History From Git Tags
+      - name: Restore Archived Versions Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: archive
+          key: archive-history-${{ github.sha }}
+
+          restore-keys: |
+            archive-history-
+      # -----------------------------
+      # Zero-Work Automated Incremental Archiving
+      # -----------------------------
+      - name: Auto-Rebuild Missing History Natively
         run: |
-          echo "Beginning fully automated history reconstruction..."
+          echo "Checking for existing history structure..."
           mkdir -p archive
+          touch archive/processed_commits.txt
 
-
-          # Loop through every single tag found in your repository history
-          for tag in $(git tag); do
-            echo "Automating live archive generation for tag: $tag"
-            mkdir -p "archive/$tag"
+          # Walk through every single commit in chronological order (oldest to newest)
+          git log --reverse --format="%h|%cd" --date=short | while IFS='|' read -r hash date; do
             
-            # Extract files from that exact historical milestone directly into the subfolder
-            git archive "$tag" | tar -x -C "archive/$tag"
-            
-            # Maintain API parity: Ensure historical simulator builds also receive secret injection
-            if [ -n "${{ secrets.YOUTUBE_API_KEY }}" ]; then
-              find "archive/$tag" \( -name "spudzy.js" -o -name "index.html" \) -type f -exec sed -i "s|__YOUTUBE_API_KEY__|${{ secrets.YOUTUBE_API_KEY }}|g" {} \; 2>/dev/null || true
+            # Skip instantly if this exact commit hash was already processed and stored in the cache
+            if grep -q "$hash" archive/processed_commits.txt; then
+              continue
             fi
-          done
 
-          # Also snapshot current main state with today's timestamp as a checkpoint
-          CURRENT_DATE=$(date +'%Y-%m-%d')
-          mkdir -p "archive/$CURRENT_DATE"
-          rsync -av --exclude='archive' --exclude='.git' --exclude='.github' ./ "archive/$CURRENT_DATE/"
+
+            echo "New/Unprocessed commit milestone found: $date (commit: $hash)"
+            
+            # Reset folder state for that specific day
+            rm -rf "archive/$date"
+            mkdir -p "archive/$date"
+            
+            # Extract raw code state natively from git history object database
+            git archive "$hash" | tar -x -C "archive/$date"
+            
+            # Inject key parity into newly discovered historical builds
+            if [ -n "${{ secrets.YOUTUBE_API_KEY }}" ]; then
+              find "archive/$date" \( -name "spudzy.js" -o -name "index.html" \) -type f -exec sed -i "s|__YOUTUBE_API_KEY__|${{ secrets.YOUTUBE_API_KEY }}|g" {} \; 2>/dev/null || true
+            fi
+
+            # Record commit as tracked so it never processes again
+            echo "$hash" >> archive/processed_commits.txt
+          done
           
-          echo "Automation complete. All historical versions built natively into the deployment path."
+          echo "All missing historical versions synchronized."
+
+      # -----------------------------
+      # Save Updated Archive Storage Directory to Cache
+      # -----------------------------
+      - name: Save Updated Archive Cache
+        uses: actions/cache/save@v4
+        if: always() # Guarantees archive survival even if deployment validation trips later
+        with:
+          path: archive
+          key: archive-history-${{ github.sha }}
 
       # -----------------------------
       # Pages deployment
@@ -145,11 +174,11 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
+
           path: .
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
 
 

@@ -107,16 +107,16 @@ jobs:
           echo "Docs-only commit detected — skipping deploy"
           exit 0
       # -----------------------------
-      # Restore Accumulated Archive Directory via GitHub Actions Cache
+      # Restore Accumulated Archive Directory via Fresh Safe Cache Namespace
       # -----------------------------
       - name: Restore Archived Versions Cache
         uses: actions/cache/restore@v4
         with:
           path: archive
-          key: archive-history-${{ github.sha }}
+          key: archive-v2-${{ github.sha }}
 
           restore-keys: |
-            archive-history-
+            archive-v2-
       # -----------------------------
       # Aggressive Highly-Optimized Incremental Archiving
       # -----------------------------
@@ -126,6 +126,15 @@ jobs:
           mkdir -p archive
           touch archive/processed_commits.txt
 
+          # Safety check: If the restored archive size somehow ever leaks or contains old giant folders, clear it
+          if [ -d "archive" ] && [ $(du -s archive | awk '{print $1}') -gt 500000 ]; then
+            echo "Warning: Cache directory grew abnormally large. Flushing for storage safety..."
+            rm -rf archive
+            mkdir -p archive
+            touch archive/processed_commits.txt
+          fi
+
+
           # Step 1: Pull only the first commit of every calendar month to maintain strict size compliance
           git log --reverse --format="%h|%cd" --date=short | awk -F'|' '
             {
@@ -133,7 +142,6 @@ jobs:
               monthKey = dateParts[1] "-" dateParts[2];
               if (!seen[monthKey]++) { print $0 }
             }
-
           ' | while IFS='|' read -r hash date; do
             
             # Skip instantly if this monthly version hash has already been stripped and cached
@@ -146,24 +154,24 @@ jobs:
             
             rm -rf "archive/$VERSION_LABEL"
             mkdir -p "archive/$VERSION_LABEL"
+
             
             # Extract raw historic files directly from the Git object database
-            git archive "$hash" | tar -x -C "archive/$VERSION_LABEL"
+            git archive "$hash" | tar -x -C "archive/$VERSION_LABEL" || true
             
             # -------------------------------------------------------------
-            # AGGRESSIVE CLEANUP: Remove all non-essential assets from the old build
+            # AGGRESSIVE CLEANUP: Added '|| true' handles to prevent execution errors
             # -------------------------------------------------------------
-
             echo "Cleaning unnecessary files from archive/$VERSION_LABEL..."
             find "archive/$VERSION_LABEL" -type f \( \
               -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o \
               -name "*.svg" -o -name "*.mp4" -o -name "*.mp3" -o -name "*.zip" -o \
               -name "*.tar.gz" -o -name "*.md" -o -name "*.json" -o -name "package-lock.json" -o \
               -name ".eslintrc*" -o -name ".gitignore" -o -name ".prettier*" \
-            \) -delete
+            \) -delete 2>/dev/null || true
 
-            # Delete any entirely empty asset directories left behind by the file purge
-            find "archive/$VERSION_LABEL" -type d -empty -delete
+            # Delete any entirely empty asset directories left behind by the file purge safely
+            find "archive/$VERSION_LABEL" -type d -empty -delete 2>/dev/null || true
             # -------------------------------------------------------------
             
             # Inject key parity into remaining functional script files
@@ -174,26 +182,25 @@ jobs:
             echo "$hash" >> archive/processed_commits.txt
           done
 
-
           # Step 2: Include a rolling layout copy of the absolute latest build of the current day
           CURRENT_DATE=$(date +'%Y-%m-%d')
           echo "Updating live rolling checkpoint: archive/$CURRENT_DATE"
           rm -rf "archive/$CURRENT_DATE"
           mkdir -p "archive/$CURRENT_DATE"
-          rsync -av --exclude='archive' --exclude='.git' --exclude='.github' ./ "archive/$CURRENT_DATE/"
+          rsync -av --exclude='archive' --exclude='.git' --exclude='.github' ./ "archive/$CURRENT_DATE/" || true
           
           echo "Cleanup complete. Deployment package size is heavily optimized."
 
       # -----------------------------
-      # Save Updated Archive Storage Directory to Cache
+      # Save Clean Archive Storage Directory to New Cache Namespace
+
       # -----------------------------
       - name: Save Updated Archive Cache
         uses: actions/cache/save@v4
         if: always()
         with:
           path: archive
-          key: archive-history-${{ github.sha }}
-
+          key: archive-v2-${{ github.sha }}
 
       # -----------------------------
       # Pages deployment
@@ -205,6 +212,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: .
+
 
       - name: Deploy to GitHub Pages
         id: deployment

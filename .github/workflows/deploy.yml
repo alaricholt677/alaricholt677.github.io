@@ -1,4 +1,4 @@
-# Incremental History Tracking Deployment Workflow
+# Optimized GitHub Pages Deployment Workflow
 
 name: Deploy GitHub Pages
 on:
@@ -118,52 +118,82 @@ jobs:
           restore-keys: |
             archive-history-
       # -----------------------------
-      # Zero-Work Automated Incremental Archiving
+      # Aggressive Highly-Optimized Incremental Archiving
       # -----------------------------
-      - name: Auto-Rebuild Missing History Natively
+      - name: Auto-Archive & Remove Unnecessary Files
         run: |
-          echo "Checking for existing history structure..."
+          echo "Synchronizing optimized historical timeline..."
           mkdir -p archive
           touch archive/processed_commits.txt
 
-          # Walk through every single commit in chronological order (oldest to newest)
-          git log --reverse --format="%h|%cd" --date=short | while IFS='|' read -r hash date; do
+          # Step 1: Pull only the first commit of every calendar month to maintain strict size compliance
+          git log --reverse --format="%h|%cd" --date=short | awk -F'|' '
+            {
+              split($2, dateParts, "-");
+              monthKey = dateParts[1] "-" dateParts[2];
+              if (!seen[monthKey]++) { print $0 }
+            }
+
+          ' | while IFS='|' read -r hash date; do
             
-            # Skip instantly if this exact commit hash was already processed and stored in the cache
+            # Skip instantly if this monthly version hash has already been stripped and cached
             if grep -q "$hash" archive/processed_commits.txt; then
               continue
             fi
 
+            VERSION_LABEL="v$(echo "$date" | cut -d'-' -f1-2)"
+            echo "Processing slim structural snapshot: $VERSION_LABEL (commit: $hash)"
+            
+            rm -rf "archive/$VERSION_LABEL"
+            mkdir -p "archive/$VERSION_LABEL"
+            
+            # Extract raw historic files directly from the Git object database
+            git archive "$hash" | tar -x -C "archive/$VERSION_LABEL"
+            
+            # -------------------------------------------------------------
+            # AGGRESSIVE CLEANUP: Remove all non-essential assets from the old build
+            # -------------------------------------------------------------
 
-            echo "New/Unprocessed commit milestone found: $date (commit: $hash)"
+            echo "Cleaning unnecessary files from archive/$VERSION_LABEL..."
+            find "archive/$VERSION_LABEL" -type f \( \
+              -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o \
+              -name "*.svg" -o -name "*.mp4" -o -name "*.mp3" -o -name "*.zip" -o \
+              -name "*.tar.gz" -o -name "*.md" -o -name "*.json" -o -name "package-lock.json" -o \
+              -name ".eslintrc*" -o -name ".gitignore" -o -name ".prettier*" \
+            \) -delete
+
+            # Delete any entirely empty asset directories left behind by the file purge
+            find "archive/$VERSION_LABEL" -type d -empty -delete
+            # -------------------------------------------------------------
             
-            # Reset folder state for that specific day
-            rm -rf "archive/$date"
-            mkdir -p "archive/$date"
-            
-            # Extract raw code state natively from git history object database
-            git archive "$hash" | tar -x -C "archive/$date"
-            
-            # Inject key parity into newly discovered historical builds
+            # Inject key parity into remaining functional script files
             if [ -n "${{ secrets.YOUTUBE_API_KEY }}" ]; then
-              find "archive/$date" \( -name "spudzy.js" -o -name "index.html" \) -type f -exec sed -i "s|__YOUTUBE_API_KEY__|${{ secrets.YOUTUBE_API_KEY }}|g" {} \; 2>/dev/null || true
+              find "archive/$VERSION_LABEL" \( -name "spudzy.js" -o -name "index.html" \) -type f -exec sed -i "s|__YOUTUBE_API_KEY__|${{ secrets.YOUTUBE_API_KEY }}|g" {} \; 2>/dev/null || true
             fi
 
-            # Record commit as tracked so it never processes again
             echo "$hash" >> archive/processed_commits.txt
           done
+
+
+          # Step 2: Include a rolling layout copy of the absolute latest build of the current day
+          CURRENT_DATE=$(date +'%Y-%m-%d')
+          echo "Updating live rolling checkpoint: archive/$CURRENT_DATE"
+          rm -rf "archive/$CURRENT_DATE"
+          mkdir -p "archive/$CURRENT_DATE"
+          rsync -av --exclude='archive' --exclude='.git' --exclude='.github' ./ "archive/$CURRENT_DATE/"
           
-          echo "All missing historical versions synchronized."
+          echo "Cleanup complete. Deployment package size is heavily optimized."
 
       # -----------------------------
       # Save Updated Archive Storage Directory to Cache
       # -----------------------------
       - name: Save Updated Archive Cache
         uses: actions/cache/save@v4
-        if: always() # Guarantees archive survival even if deployment validation trips later
+        if: always()
         with:
           path: archive
           key: archive-history-${{ github.sha }}
+
 
       # -----------------------------
       # Pages deployment
@@ -174,7 +204,6 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-
           path: .
 
       - name: Deploy to GitHub Pages

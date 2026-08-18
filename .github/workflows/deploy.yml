@@ -1,22 +1,21 @@
-name: Deploy GitHub Pages
+# Automated GitHub Pages Deployment Workflow
 
+name: Deploy GitHub Pages
 on:
   push:
     branches:
       - main
   workflow_dispatch:
-
 permissions:
   contents: read
   pages: write
   id-token: write
-
 concurrency:
   group: pages
   cancel-in-progress: true
-
 jobs:
   deploy:
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -24,13 +23,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # -----------------------------
+      # Checkout with Full Git History
+      # -----------------------------
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Crucial: Fetches all historical commits and tags to automate history rebuilding
 
       # -----------------------------
       # Dynamic: Skip deploy if no relevant changes (FIXED)
       # -----------------------------
       - name: Detect relevant changes
+
         id: changes
         run: |
           # Safe diff: works even with shallow clones
@@ -44,12 +49,12 @@ jobs:
           else
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
-
       - name: Stop early if no changes
         if: steps.changes.outputs.skip == 'true'
         run: |
           echo "No relevant changes detected. Skipping deployment."
           exit 0
+
 
       # -----------------------------
       # Secret injection
@@ -70,6 +75,7 @@ jobs:
 
           echo "Placeholder replaced in Spudzy files"
           
+
       # -----------------------------
       # Dynamic: Broken link checker (PR merge preserved)
       # -----------------------------
@@ -87,8 +93,9 @@ jobs:
           if command -v npx >/dev/null 2>&1; then
             npx eslint .
           else
-            echo "ESLint not available — skipping JS lint"
+            echo "ESLint not available — skipping JS linter"
           fi
+
         continue-on-error: true
 
       # -----------------------------
@@ -99,6 +106,35 @@ jobs:
         run: |
           echo "Docs-only commit detected — skipping deploy"
           exit 0
+      # -----------------------------
+      # Automated Live Version Archiving
+      # -----------------------------
+      - name: Auto-Compile Version History From Git Tags
+        run: |
+          echo "Beginning fully automated history reconstruction..."
+          mkdir -p archive
+
+
+          # Loop through every single tag found in your repository history
+          for tag in $(git tag); do
+            echo "Automating live archive generation for tag: $tag"
+            mkdir -p "archive/$tag"
+            
+            # Extract files from that exact historical milestone directly into the subfolder
+            git archive "$tag" | tar -x -C "archive/$tag"
+            
+            # Maintain API parity: Ensure historical simulator builds also receive secret injection
+            if [ -n "${{ secrets.YOUTUBE_API_KEY }}" ]; then
+              find "archive/$tag" \( -name "spudzy.js" -o -name "index.html" \) -type f -exec sed -i "s|__YOUTUBE_API_KEY__|${{ secrets.YOUTUBE_API_KEY }}|g" {} \; 2>/dev/null || true
+            fi
+          done
+
+          # Also snapshot current main state with today's timestamp as a checkpoint
+          CURRENT_DATE=$(date +'%Y-%m-%d')
+          mkdir -p "archive/$CURRENT_DATE"
+          rsync -av --exclude='archive' --exclude='.git' --exclude='.github' ./ "archive/$CURRENT_DATE/"
+          
+          echo "Automation complete. All historical versions built natively into the deployment path."
 
       # -----------------------------
       # Pages deployment
@@ -114,3 +150,6 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+
+

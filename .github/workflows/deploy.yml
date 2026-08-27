@@ -211,4 +211,20 @@ jobs:
       - name: Save to Wayback Machine
         if: always()
         run: |
-          curl -X GET "https://web.archive.org/save/https://alaricholt677.github.io/"
+          echo "----------------------------------------"
+          echo "WAYBACK MACHINE AUTO-SNAPSHOT STARTING"
+          echo "Target URL: https://alaricholt677.github.io/"
+          echo "Sending request to Save Page Now API..."
+          echo "----------------------------------------"
+
+          RESPONSE=$(curl -s -D - -o /dev/null "https://web.archive.org/save/https://alaricholt677.github.io/")
+
+          echo "----------------------------------------"
+          echo "WAYBACK MACHINE RESPONSE HEADERS:"
+          echo "$RESPONSE"
+          echo "----------------------------------------"
+
+          echo "Snapshot request sent successfully."
+          echo "Check for new snapshots at:"
+          echo "https://web.archive.org/web/*/https://alaricholt677.github.io/"
+          echo "----------------------------------------"

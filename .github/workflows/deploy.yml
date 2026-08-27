@@ -192,7 +192,7 @@ jobs:
       # Archive.org Upload
       # -----------------------------
       - name: Upload to Archive.org
-        if: steps.changes.outputs.skip == 'false'
+        if: always()
         run: |
           pip install internetarchive
 

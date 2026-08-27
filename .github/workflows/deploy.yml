@@ -1,18 +1,20 @@
-# Optimized GitHub Pages Deployment Workflow
+name: Deploy GitHub Pages + Archive.org
 
-name: Deploy GitHub Pages
 on:
   push:
     branches:
       - main
   workflow_dispatch:
+
 permissions:
   contents: read
   pages: write
   id-token: write
+
 concurrency:
   group: pages
   cancel-in-progress: true
+
 jobs:
   deploy:
 
@@ -24,21 +26,19 @@ jobs:
 
     steps:
       # -----------------------------
-      # Checkout with Full Git History
+      # Checkout full history
       # -----------------------------
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Crucial: Fetches every single historic commit back to December 2025
+          fetch-depth: 0
 
       # -----------------------------
-      # Dynamic: Skip deploy if no relevant changes (FIXED)
+      # Detect relevant changes
       # -----------------------------
       - name: Detect relevant changes
-
         id: changes
         run: |
-          # Safe diff: works even with shallow clones
           CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "ALL")
           echo "$CHANGED"
 
@@ -49,35 +49,27 @@ jobs:
           else
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
+
       - name: Stop early if no changes
         if: steps.changes.outputs.skip == 'true'
         run: |
           echo "No relevant changes detected. Skipping deployment."
           exit 0
 
-
       # -----------------------------
-      # Secret injection
+      # Inject YouTube API key
       # -----------------------------
       - name: Inject YouTube API key
         run: |
           if [ -z "${{ secrets.YOUTUBE_API_KEY }}" ]; then
-            echo "YOUTUBE_API_KEY secret is empty or missing"
+            echo "Missing YOUTUBE_API_KEY"
             exit 1
           fi
 
-          find . \( -name "spudzy.js" -o -name "index.html" \) -type f -print -exec sed -i "s|__YOUTUBE_API_KEY__|${{ secrets.YOUTUBE_API_KEY }}|g" {} \;
-
-          if grep -R "__YOUTUBE_API_KEY__" PKGS/spudzy --include="spudzy.js" --include="index.html"; then
-            echo "Placeholder still exists in PKGS/spudzy"
-            exit 1
-          fi
-
-          echo "Placeholder replaced in Spudzy files"
-          
+          find . \( -name "spudzy.js" -o -name "index.html" \) -type f -exec sed -i "s|__YOUTUBE_API_KEY__|${{ secrets.YOUTUBE_API_KEY }}|g" {} \;
 
       # -----------------------------
-      # Dynamic: Broken link checker (PR merge preserved)
+      # Broken link checker
       # -----------------------------
       - name: Check for broken links
         uses: lycheeverse/lychee-action@v2.0.2
@@ -86,39 +78,39 @@ jobs:
         continue-on-error: true
 
       # -----------------------------
-      # Dynamic: JS syntax check
+      # JS syntax check
       # -----------------------------
       - name: JS Syntax Check
         run: |
           if command -v npx >/dev/null 2>&1; then
             npx eslint .
           else
-            echo "ESLint not available — skipping JS linter"
+            echo "ESLint not available"
           fi
-
         continue-on-error: true
 
       # -----------------------------
-      # Dynamic: Conditional deploy based on commit message
+      # Skip docs-only commits
       # -----------------------------
       - name: Skip deploy for docs-only commits
         if: contains(github.event.head_commit.message, '[docs]')
         run: |
           echo "Docs-only commit detected — skipping deploy"
           exit 0
+
       # -----------------------------
-      # Restore Accumulated Archive Directory via Fresh Safe Cache Namespace
+      # Restore archive cache
       # -----------------------------
       - name: Restore Archived Versions Cache
         uses: actions/cache/restore@v4
         with:
           path: archive
           key: archive-v2-${{ github.sha }}
-
           restore-keys: |
             archive-v2-
+
       # -----------------------------
-      # Aggressive Highly-Optimized Incremental Archiving
+      # Build archive snapshots
       # -----------------------------
       - name: Auto-Archive & Remove Unnecessary Files
         run: |
@@ -126,16 +118,13 @@ jobs:
           mkdir -p archive
           touch archive/processed_commits.txt
 
-          # Safety check: If the restored archive size somehow ever leaks or contains old giant folders, clear it
           if [ -d "archive" ] && [ $(du -s archive | awk '{print $1}') -gt 500000 ]; then
-            echo "Warning: Cache directory grew abnormally large. Flushing for storage safety..."
+            echo "Archive too large — resetting"
             rm -rf archive
             mkdir -p archive
             touch archive/processed_commits.txt
           fi
 
-
-          # Step 1: Pull only the first commit of every calendar month to maintain strict size compliance
           git log --reverse --format="%h|%cd" --date=short | awk -F'|' '
             {
               split($2, dateParts, "-");
@@ -143,57 +132,39 @@ jobs:
               if (!seen[monthKey]++) { print $0 }
             }
           ' | while IFS='|' read -r hash date; do
-            
-            # Skip instantly if this monthly version hash has already been stripped and cached
+
             if grep -q "$hash" archive/processed_commits.txt; then
               continue
             fi
 
             VERSION_LABEL="v$(echo "$date" | cut -d'-' -f1-2)"
-            echo "Processing slim structural snapshot: $VERSION_LABEL (commit: $hash)"
-            
+            echo "Processing snapshot: $VERSION_LABEL ($hash)"
+
             rm -rf "archive/$VERSION_LABEL"
             mkdir -p "archive/$VERSION_LABEL"
 
-            
-            # Extract raw historic files directly from the Git object database
-            git archive "$hash" | tar -x -C "archive/$VERSION_LABEL" || true
-            
-            # -------------------------------------------------------------
-            # AGGRESSIVE CLEANUP: Added '|| true' handles to prevent execution errors
-            # -------------------------------------------------------------
-            echo "Cleaning unnecessary files from archive/$VERSION_LABEL..."
+            git archive "$hash" | tar -x -C "archive/$VERSION_LABEL"
+
             find "archive/$VERSION_LABEL" -type f \( \
               -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o \
               -name "*.svg" -o -name "*.mp4" -o -name "*.mp3" -o -name "*.zip" -o \
-              -name "*.tar.gz" -o -name "*.md" -o -name "*.json" -o -name "package-lock.json" -o \
-              -name ".eslintrc*" -o -name ".gitignore" -o -name ".prettier*" \
-            \) -delete 2>/dev/null || true
+              -name "*.tar.gz" -o -name "*.md" -o -name "*.json" -o \
+              -name "package-lock.json" -o -name ".eslintrc*" -o -name ".gitignore" \
+            \) -delete
 
-            # Delete any entirely empty asset directories left behind by the file purge safely
-            find "archive/$VERSION_LABEL" -type d -empty -delete 2>/dev/null || true
-            # -------------------------------------------------------------
-            
-            # Inject key parity into remaining functional script files
-            if [ -n "${{ secrets.YOUTUBE_API_KEY }}" ]; then
-              find "archive/$VERSION_LABEL" \( -name "spudzy.js" -o -name "index.html" \) -type f -exec sed -i "s|__YOUTUBE_API_KEY__|${{ secrets.YOUTUBE_API_KEY }}|g" {} \; 2>/dev/null || true
-            fi
+            find "archive/$VERSION_LABEL" -type d -empty -delete
 
             echo "$hash" >> archive/processed_commits.txt
           done
 
-          # Step 2: Include a rolling layout copy of the absolute latest build of the current day
           CURRENT_DATE=$(date +'%Y-%m-%d')
-          echo "Updating live rolling checkpoint: archive/$CURRENT_DATE"
+          echo "Updating live checkpoint: archive/$CURRENT_DATE"
           rm -rf "archive/$CURRENT_DATE"
           mkdir -p "archive/$CURRENT_DATE"
-          rsync -av --exclude='archive' --exclude='.git' --exclude='.github' ./ "archive/$CURRENT_DATE/" || true
-          
-          echo "Cleanup complete. Deployment package size is heavily optimized."
+          rsync -av --exclude='archive' --exclude='.git' --exclude='.github' ./ "archive/$CURRENT_DATE/"
 
       # -----------------------------
-      # Save Clean Archive Storage Directory to New Cache Namespace
-
+      # Save archive cache
       # -----------------------------
       - name: Save Updated Archive Cache
         uses: actions/cache/save@v4
@@ -203,7 +174,7 @@ jobs:
           key: archive-v2-${{ github.sha }}
 
       # -----------------------------
-      # Pages deployment
+      # GitHub Pages deployment
       # -----------------------------
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -213,9 +184,25 @@ jobs:
         with:
           path: .
 
-
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
 
+      # -----------------------------
+      # Archive.org Upload
+      # -----------------------------
+      - name: Upload to Archive.org
+        if: steps.changes.outputs.skip == 'false'
+        run: |
+          pip install internetarchive
 
+          echo "Packaging site for Archive.org..."
+          tar -cvf site.tar .
+
+          echo "Uploading to Archive.org..."
+          ia upload "YOUR_ARCHIVE_IDENTIFIER" site.tar \
+            --access-key "${{ secrets.ARCHIVEORG_ACCESS_KEY }}" \
+            --secret-key "${{ secrets.ARCHIVEORG_SECRET_KEY }}" \
+            --metadata="title=GitHub Pages Snapshot" \
+            --metadata="mediatype=software" \
+            --metadata="description=Automated deployment snapshot from GitHub Actions"

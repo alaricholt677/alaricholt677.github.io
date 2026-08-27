@@ -189,10 +189,13 @@ jobs:
         uses: actions/deploy-pages@v4
 
       # -----------------------------
-      # Archive.org Upload
+      # Archive.org Upload (FIXED)
       # -----------------------------
       - name: Upload to Archive.org
         if: always()
+        env:
+          IA_ACCESS_KEY: ${{ secrets.ARCHIVEORG_ACCESS_KEY }}
+          IA_SECRET_KEY: ${{ secrets.ARCHIVEORG_SECRET_KEY }}
         run: |
           pip install internetarchive
 
@@ -200,9 +203,7 @@ jobs:
           tar -cvf site.tar .
 
           echo "Uploading to Archive.org..."
-          ia upload "YOUR_ARCHIVE_IDENTIFIER" site.tar \
-            --access-key "${{ secrets.ARCHIVEORG_ACCESS_KEY }}" \
-            --secret-key "${{ secrets.ARCHIVEORG_SECRET_KEY }}" \
+          ia upload "alaricholt677.github.io" site.tar \
             --metadata="title=GitHub Pages Snapshot" \
             --metadata="mediatype=software" \
             --metadata="description=Automated deployment snapshot from GitHub Actions"

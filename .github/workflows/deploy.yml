@@ -192,7 +192,7 @@ jobs:
       # Archive.org Upload (FIXED)
       # -----------------------------
       - name: Upload to Archive.org
-        if: always()
+        if: steps.changes.outputs.skip == 'false'
         env:
           IA_ACCESS_KEY: ${{ secrets.ARCHIVEORG_ACCESS_KEY }}
           IA_SECRET_KEY: ${{ secrets.ARCHIVEORG_SECRET_KEY }}
@@ -209,5 +209,6 @@ jobs:
             --metadata="description=Automated deployment snapshot from GitHub Actions"
 
       - name: Save to Wayback Machine
+        if: always()
         run: |
           curl -X GET "https://web.archive.org/save/https://alaricholt677.github.io/"

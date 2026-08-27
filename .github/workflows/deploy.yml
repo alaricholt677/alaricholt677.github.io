@@ -207,3 +207,7 @@ jobs:
             --metadata="title=GitHub Pages Snapshot" \
             --metadata="mediatype=software" \
             --metadata="description=Automated deployment snapshot from GitHub Actions"
+
+      - name: Save to Wayback Machine
+        run: |
+          curl -X GET "https://web.archive.org/save/https://alaricholt677.github.io/"

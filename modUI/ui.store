@@ -266,6 +266,11 @@
       "name": "More Blocks Expansion",
       "description": "Adds a large starter set of decorative and survival blocks for testing new building styles. Includes colored blocks, metal blocks, stone variants, glowing blocks, and simple furniture test blocks.",
       "url": "https://alaricholt677.github.io/modUI/packs/more_blocks_expansion-1.0.0.zip"
+    },
+    {
+      "name": "Crystal Realm Sample Mod",
+      "description": "Example mod for cave biomes and custom dimensions.",
+      "url": "https://alaricholt677.github.io/modUI/packs/crystal_realm_sample_mod-1.0.0.zip"
     }
 ]
 }

@@ -86,6 +86,8 @@
 
         :root{--desktop-pill-h:72px}.desktop-pill,.window-controls,.snap-preview{display:none}
         @media(min-width:768px){:root{--nav-h:0px}#global-nav{display:none!important}#dock{display:none!important}#app-viewport{inset:var(--status-h) 0 var(--desktop-pill-h);pointer-events:none!important}.app-window{pointer-events:auto;inset:auto;width:min(800px,78vw);height:min(650px,calc(100vh - 130px));left:50%;top:50%;transform:translate(-50%,-50%);padding:0;border:1px solid #ffffff25;border-radius:22px;box-shadow:0 28px 90px #000b;resize:both;min-width:340px;min-height:260px}.app-window.active{display:flex}.app-window.maximized{left:0!important;top:0!important;width:100%!important;height:100%!important;transform:none!important;border-radius:0;resize:none}.window-titlebar{cursor:grab;touch-action:none}.window-controls{display:flex;gap:6px}.window-control{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#ffffff14}.desktop-pill{display:flex;position:fixed;left:0;right:0;bottom:0;height:var(--desktop-pill-h);align-items:center;justify-content:center;z-index:999998;pointer-events:none}.desktop-pill-inner{pointer-events:auto;display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:20px;background:#15151cdd;border:1px solid #ffffff20;backdrop-filter:blur(24px);box-shadow:0 12px 35px #0008}.desktop-app,.desktop-page{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:#ffffff12;position:relative}.desktop-app.active,.desktop-page.active{outline:2px solid var(--sys-primary)}.desktop-app:after{content:'';position:absolute;bottom:3px;width:5px;height:5px;border-radius:50%;background:var(--sys-primary)}.snap-preview{position:fixed;display:none;z-index:49999;background:#8b5cf640;border:2px solid #a78bfa;border-radius:16px;pointer-events:none}}
+
+        @media(min-width:768px){.desktop-pinned{display:flex;gap:6px;padding-right:9px;margin-right:2px;border-right:1px solid rgba(255,255,255,.12)}.desktop-pinned-app{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:21px;background:rgba(255,255,255,.08);transition:transform .16s,background .16s}.desktop-pinned-app:hover{transform:translateY(-3px);background:rgba(255,255,255,.16)}.desktop-pinned-app:active{transform:scale(.92)}.desktop-pill-inner{max-width:calc(100vw - 24px);overflow-x:auto}.desktop-pill-inner::-webkit-scrollbar{display:none}}
     </style>
 </head>
 <body onload="initSystem()">
@@ -103,6 +105,1322 @@
             <button onclick="goToLockScreen()" class="px-12 py-4 bg-white text-black rounded-full font-black uppercase tracking-widest text-[10px] shadow-[0_0_20px_rgba(255,255,255,0.3)] active:scale-95 transition-transform">Start OS</button>
         </div>
     </div>
+
+    <!-- LAYER: LOCKSCREEN -->
+    <div id="l-lock" class="layer items-center justify-between py-24 os-wallpaper">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+        <div class="text-center pt-8 z-10 relative">
+            <h1 id="lock-clock" class="text-8xl font-black tracking-tighter drop-shadow-2xl">00:00</h1>
+            <p id="lock-date" class="text-xs tracking-[0.3em] font-bold mt-2 text-white/90 uppercase drop-shadow-md">Date</p>
+        </div>
+        <div id="user-selector" class="flex flex-wrap justify-center gap-8 px-8 z-10 relative"></div>
+        <div class="flex flex-col items-center gap-6 z-10 relative">
+            <button onclick="openModal('create_user')" class="glass-panel px-6 py-3 text-[10px] font-bold tracking-widest uppercase active:bg-white/10">Add Profile</button>
+            <div class="text-[10px] font-bold text-white/50 uppercase tracking-[0.3em] animate-pulse">Swipe Up to Unlock</div>
+        </div>
+    </div>
+
+    <!-- LAYER: PIN INPUT -->
+    <div id="l-pin" class="layer bg-black items-center justify-center">
+        <div class="absolute inset-0 bg-gradient-to-b from-purple-900/20 to-transparent"></div>
+        <div id="pin-avatar" class="w-24 h-24 rounded-3xl bg-zinc-800 mb-6 flex items-center justify-center text-4xl shadow-xl relative z-10 border border-white/10">👤</div>
+        <h2 id="pin-label" class="text-xs font-bold mb-8 tracking-[0.2em] uppercase text-white/80 relative z-10">Enter PIN</h2>
+        <div id="pin-dots" class="flex gap-5 mb-14 relative z-10">
+            <div class="w-3.5 h-3.5 rounded-full border-2 border-white/40 transition-all duration-200"></div>
+            <div class="w-3.5 h-3.5 rounded-full border-2 border-white/40 transition-all duration-200"></div>
+            <div class="w-3.5 h-3.5 rounded-full border-2 border-white/40 transition-all duration-200"></div>
+            <div class="w-3.5 h-3.5 rounded-full border-2 border-white/40 transition-all duration-200"></div>
+        </div>
+        <div id="pin-pad" class="grid grid-cols-3 gap-x-8 gap-y-6 relative z-10"></div>
+        <button onclick="goToLockScreen()" class="mt-14 text-[10px] font-bold text-white/40 uppercase tracking-widest relative z-10 active:text-white">Cancel</button>
+    </div>
+
+    <!-- LAYER: HOME -->
+    <div id="l-home" class="layer os-wallpaper pt-[var(--status-h)]">
+        <div class="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/70"></div>
+        <div id="home-grid" class="flex-1 p-6 pt-10 grid grid-cols-4 content-start gap-y-8 gap-x-2 overflow-y-auto no-scrollbar relative z-10 pb-[var(--nav-h)]"></div>
+        <div id="dock" class="mx-4 mb-4 h-24 glass-panel flex items-center justify-around px-2 relative z-10 shadow-2xl"></div>
+    </div>
+
+    <!-- LAYER: APP DRAWER -->
+    <div id="l-drawer" class="layer bg-black/90 backdrop-blur-3xl px-6 pt-[calc(var(--status-h)+20px)]">
+        <div class="mb-8 glass-panel p-2 flex items-center bg-white/10">
+            <span class="opacity-50 ml-4">🔍</span>
+            <input type="text" id="drawer-search" oninput="filterDrawer(this.value)" placeholder="Search apps & device..." class="bg-transparent border-none w-full p-3 text-sm font-semibold outline-none text-white placeholder-white/30">
+        </div>
+        <div id="drawer-grid" class="grid grid-cols-4 gap-y-10 overflow-y-auto pb-32 no-scrollbar"></div>
+    </div>
+
+    <!-- LAYER: RECENTS -->
+    <div id="l-recents" class="layer bg-black/80 backdrop-blur-2xl items-center justify-center pt-[var(--status-h)]">
+        <div id="recents-list" class="flex gap-6 px-10 overflow-x-auto w-full snap-x snap-mandatory no-scrollbar py-10 items-center h-[80%]"></div>
+        <button onclick="killAllApps()" class="absolute bottom-24 glass-panel px-8 py-4 font-black text-[10px] uppercase tracking-[0.2em] active:scale-95 transition-transform">Clear All</button>
+    </div>
+
+    <!-- APP VIEWPORT -->
+    <div id="app-viewport" class="pointer-events-none absolute inset-0 z-40"></div>
+
+    <!-- QUICK SETTINGS SHADE -->
+    <div id="shade">
+        <div class="flex justify-between items-start mb-8 pt-4">
+            <div>
+                <h1 id="shade-clock" class="text-7xl font-black tracking-tighter">00:00</h1>
+                <p id="shade-date" class="text-[11px] text-white/50 font-bold uppercase tracking-[0.2em] mt-2">Date</p>
+            </div>
+            <div class="glass-panel p-4 rounded-full cursor-pointer hover:bg-white/10 transition-colors" onclick="launchApp('settings'); document.getElementById('shade').classList.remove('active');">⚙️</div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-6">
+            <div id="qs-wifi" class="qs-pill active" onclick="toggleQuickSetting('wifi')"><span class="text-xl">📶</span><div class="flex-1"><p class="text-[10px] font-bold uppercase tracking-wider">Wi-Fi</p><p class="text-[8px] opacity-60" id="qs-wifi-sub">Connected</p></div></div>
+            <div id="qs-sound" class="qs-pill active" onclick="toggleQuickSetting('sound')"><span class="text-xl">🔔</span><div class="flex-1"><p class="text-[10px] font-bold uppercase tracking-wider">Sound</p><p class="text-[8px] opacity-60" id="qs-sound-sub">Ring</p></div></div>
+            <div id="qs-torch" class="qs-pill" onclick="toggleQuickSetting('torch')"><span class="text-xl">🔦</span><p class="text-[10px] font-bold uppercase tracking-wider">Torch</p></div>
+            <div id="qs-dnd" class="qs-pill" onclick="toggleQuickSetting('dnd')"><span class="text-xl">🌙</span><p class="text-[10px] font-bold uppercase tracking-wider">DND</p></div>
+        </div>
+        
+        <!-- Live VFS Quick Notification -->
+        <div class="glass-panel p-4 mt-4">
+            <div class="flex justify-between items-center text-xs font-bold mb-1">
+                <span style="color: var(--sys-primary);">💾 Storage Agent</span>
+                <span class="text-[9px] opacity-40">ACTIVE</span>
+            </div>
+            <p class="text-[11px] text-white/70">Settings synchronized with <code class="bg-black/50 px-1 py-0.5 rounded text-purple-300">/Documents/settings.json</code></p>
+        </div>
+    </div>
+
+    <!-- FLAT TOP STATUS BAR -->
+    <div class="status-bar">
+        <span id="stat-time">00:00</span>
+        <div class="flex items-center gap-3">
+            <span id="stat-wifi" class="text-[10px] font-bold tracking-wider">📶 Wi-Fi</span>
+            <span id="stat-sound" class="text-[10px]">🔔</span>
+            <span class="text-[12px]">🔋 100%</span>
+        </div>
+    </div>
+
+    <!-- FLAT BOTTOM NAVIGATION BAR -->
+    <div id="global-nav">
+        <div class="nav-btn" onclick="handleBack()"><div class="nav-back"></div></div>
+        <div class="nav-btn" onclick="handleHome()"><div class="nav-home"></div></div>
+        <div class="nav-btn" onclick="handleRecents()"><div class="nav-recents"></div></div>
+    </div>
+
+    <div id="separate-window-workspace"></div>
+    <div id="snap-preview" class="snap-preview"></div><div class="desktop-pill"><div class="desktop-pill-inner"><button class="desktop-page" onclick="handleHome()" title="Home">⌂</button><div id="desktop-pinned" class="desktop-pinned"></div><div id="desktop-running" class="flex gap-2"></div><div id="desktop-pages" class="flex gap-2 border-l border-white/10 pl-2"></div><button class="desktop-page" onclick="addDesktop()">＋</button></div></div>
+    <!-- MODAL -->
+    <div id="modal" class="fixed inset-0 z-[2000000] bg-black/80 backdrop-blur-md hidden items-center justify-center p-6">
+        <div id="modal-body" class="bg-[#15151a] border border-white/10 w-full max-w-sm rounded-[32px] p-8 shadow-2xl"></div>
+    </div>
+
+    <!-- GHOST DRAG -->
+    <div id="drag-ghost"></div>
+
+</div>
+
+<script>
+const STORAGE_KEY = "ANDROID16_ULTRADB_VFS_LIVE";
+
+const DEFAULT_SETTINGS = {
+    accentColor: '#8b5cf6',
+    wallpaperUrl: 'https://images.unsplash.com/photo-1620121692029-d088224ddc74?auto=format&fit=crop&q=80&w=2000',
+    iconShape: '20px',
+    clockFormat24: true,
+    brightness: 100,
+    wifiEnabled: true,
+    soundMode: 'ring',
+    torchOn: false,
+    dndOn: false,
+    windowWorkspace: 'integrated',
+    desktopCount: 2
+};
+
+const state = {
+    users: [],
+    curUser: null,
+    activeApps: [],
+    pinBuffer: "",
+    cameraStream: null,
+    callInterval: null,
+    touch: { y: 0, startY: 0 },
+    currentDesktop: 1,
+    appLib: [
+        { id: 'phone', name: 'Phone', icon: '📞', color: '#10b981' },
+        { id: 'msgs', name: 'Messages', icon: '💬', color: '#3b82f6' },
+        { id: 'chrome', name: 'Browser', icon: '🌐', color: '#1e1e24', text: '#fff' },
+        { id: 'files', name: 'Files', icon: '📁', color: '#f59e0b' },
+        { id: 'play', name: 'App Hub', icon: '🛍️', color: '#8b5cf6' },
+        { id: 'camera', name: 'Camera', icon: '📷', color: '#000' },
+        { id: 'gallery', name: 'Gallery', icon: '🖼️', color: '#ec4899' },
+        { id: 'notes', name: 'Notes', icon: '📝', color: '#f97316' },
+        { id: 'calc', name: 'Calculator', icon: '➗', color: '#3f3f46' },
+        { id: 'settings', name: 'Settings', icon: '⚙️', color: '#52525b' }
+    ]
+};
+
+const galleryImages = [
+    'https://images.unsplash.com/photo-1620121692029-d088224ddc74?w=800',
+    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800',
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800',
+    'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800',
+    'https://images.unsplash.com/photo-1528131804369-02c382f64a51?w=800',
+    'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800',
+    'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=800'
+];
+
+// --- INITIALIZATION ---
+
+function initSystem() {
+    try { const stored = localStorage.getItem(STORAGE_KEY); if (stored) state.users = JSON.parse(stored); } catch(e){}
+    
+    if (state.users && state.users.length > 0) {
+        state.users.forEach(u => { if (!u.gallery) u.gallery = [...galleryImages]; if(!u.settings.desktopCount)u.settings.desktopCount=2; });
+    }
+
+    if (!state.users || state.users.length === 0) {
+        state.users = [{
+            id: 'u_admin', name: 'Admin', pin: '0000', color: '#8b5cf6',
+            settings: { ...DEFAULT_SETTINGS },
+            fs: { 
+                '/': { type: 'dir', children: ['Documents', 'Pictures'] }, 
+                '/Documents': { type: 'dir', children: ['readme.txt'] },
+                '/Documents/readme.txt': { type: 'file', content: 'Welcome to Android 16 Ultra with live VFS settings.' },
+                '/Pictures': { type: 'dir', children: [] }
+            },
+            chrome: { activeTabId: 1, tabs: [{ id: 1, title: 'Google', url: 'https://www.google.com/search?igu=1' }] },
+            notes: [{ id: 1, title: 'Settings Info', content: 'Settings write to /Documents/settings.json in real time!' }],
+            contacts: [
+                { id: 'c1', name: 'System AI', num: '999', color: '#8b5cf6', initial: 'S', messages: [{sender: 'them', text: 'Welcome to Android 16 Ultra.', time: '10:00 AM'}] },
+                { id: 'c2', name: 'Agent Smith', num: '555-0199', color: '#ec4899', initial: 'A', messages: [{sender: 'them', text: 'The Matrix needs to be updated.', time: 'Yesterday'}] }
+            ], 
+            groups: [], installedApps: [], gallery: [...galleryImages]
+        }];
+        saveData();
+    }
+
+    const consoleEl = document.getElementById('boot-console');
+    const log = (msg) => { consoleEl.innerHTML += `<div class="mb-1"><span class="text-green-400">[OK]</span> ${msg}</div>`; consoleEl.scrollTop = consoleEl.scrollHeight; };
+    
+    let steps = ["Initializing Android 16 Ultra...", "Mounting Drag-and-Drop Foldering...", "Loading Hardware Control Hooks...", "Ready."];
+    let d = 0; steps.forEach((s) => { setTimeout(() => log(s), d); d += 250; });
+    setTimeout(() => document.getElementById('boot-ready-ui').classList.remove('hidden'), d + 100);
+
+    setInterval(updateClocks, 1000);
+}
+
+function updateClocks() {
+    const is24 = state.curUser?.settings?.clockFormat24 ?? true;
+    const now = new Date();
+    let timeStr = is24 ? now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    const dateStr = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+    document.getElementById('stat-time').textContent = timeStr;
+    document.getElementById('lock-clock').textContent = timeStr;
+    document.getElementById('shade-clock').textContent = timeStr;
+    document.getElementById('lock-date').textContent = dateStr;
+    document.getElementById('shade-date').textContent = dateStr;
+}
+
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.users)); }
+
+// --- VFS SETTINGS SAVE / LOAD ---
+
+function saveSettingsToVFS() {
+    if (!state.curUser) return;
+    if (!state.curUser.settings) state.curUser.settings = { ...DEFAULT_SETTINGS };
+    if (!state.curUser.fs['/Documents']) {
+        state.curUser.fs['/Documents'] = { type: 'dir', children: [] };
+        if (!state.curUser.fs['/'].children.includes('Documents')) state.curUser.fs['/'].children.push('Documents');
+    }
+    state.curUser.fs['/Documents/settings.json'] = { type: 'file', content: JSON.stringify(state.curUser.settings, null, 2) };
+    if (!state.curUser.fs['/Documents'].children.includes('settings.json')) state.curUser.fs['/Documents'].children.push('settings.json');
+    applyUserSettingsLive(); saveData();
+}
+
+function loadSettingsFromVFS() {
+    if (!state.curUser) return;
+    if (state.curUser.fs && state.curUser.fs['/Documents/settings.json']) {
+        try { state.curUser.settings = JSON.parse(state.curUser.fs['/Documents/settings.json'].content); } catch(e) {}
+    }
+    if (!state.curUser.settings) state.curUser.settings = { ...DEFAULT_SETTINGS };
+    applyUserSettingsLive();
+}
+
+function applyUserSettingsLive() {
+    const s = state.curUser?.settings || DEFAULT_SETTINGS;
+    document.body.classList.toggle('workspace-separate', s.windowWorkspace === 'separate');
+    document.documentElement.style.setProperty('--sys-primary', s.accentColor);
+    document.getElementById('boot-logo').style.color = s.accentColor;
+    document.documentElement.style.setProperty('--sys-wallpaper', `url('${s.wallpaperUrl}')`);
+    document.documentElement.style.setProperty('--icon-radius', s.iconShape);
+    
+    const bOverlay = document.getElementById('brightness-overlay');
+    if (bOverlay) bOverlay.style.opacity = (100 - s.brightness) / 100 * 0.85;
+
+    const statWifi = document.getElementById('stat-wifi'), qsWifi = document.getElementById('qs-wifi'), qsWifiSub = document.getElementById('qs-wifi-sub');
+    if (statWifi) statWifi.style.display = s.wifiEnabled ? 'inline' : 'none';
+    if (qsWifi) qsWifi.classList.toggle('active', s.wifiEnabled);
+    if (qsWifiSub) qsWifiSub.textContent = s.wifiEnabled ? 'Connected' : 'Off';
+
+    const statSound = document.getElementById('stat-sound'), qsSound = document.getElementById('qs-sound'), qsSoundSub = document.getElementById('qs-sound-sub');
+    if (statSound) statSound.textContent = s.soundMode === 'ring' ? '🔔' : (s.soundMode === 'vibrate' ? '📳' : '🔇');
+    if (qsSound) qsSound.classList.toggle('active', s.soundMode !== 'silent');
+    if (qsSoundSub) qsSoundSub.textContent = s.soundMode.toUpperCase();
+
+    const qsTorch = document.getElementById('qs-torch'); if (qsTorch) qsTorch.classList.toggle('active', s.torchOn);
+    const qsDnd = document.getElementById('qs-dnd'); if (qsDnd) qsDnd.classList.toggle('active', s.dndOn);
+    updateClocks();
+}
+
+function toggleQuickSetting(type) {
+    if (!state.curUser || !state.curUser.settings) return;
+    const s = state.curUser.settings;
+    if (type === 'wifi') s.wifiEnabled = !s.wifiEnabled;
+    else if (type === 'sound') s.soundMode = s.soundMode === 'ring' ? 'vibrate' : (s.soundMode === 'vibrate' ? 'silent' : 'ring');
+    else if (type === 'torch') s.torchOn = !s.torchOn;
+    else if (type === 'dnd') s.dndOn = !s.dndOn;
+    saveSettingsToVFS();
+}
+
+// --- AUTH & LOGIN ---
+
+function goToLockScreen() { state.curUser = null; safeShowLayer('lock'); renderUserGrid(); }
+function renderUserGrid() {
+    const grid = document.getElementById('user-selector'); grid.innerHTML = "";
+    state.users.forEach(u => {
+        const div = document.createElement('div'); div.className = "flex flex-col items-center gap-3 cursor-pointer active:scale-95 transition-transform";
+        div.innerHTML = `<div class="w-20 h-20 rounded-[24px] flex items-center justify-center text-3xl font-black shadow-lg" style="background:${u.color}">${u.name[0]}</div><span class="text-[11px] font-bold uppercase tracking-[0.2em] shadow-black drop-shadow-md">${u.name}</span>`;
+        div.onclick = () => startPinEntry(u); grid.appendChild(div);
+    });
+}
+function startPinEntry(u) {
+    state.curUser = u; state.pinBuffer = ""; loadSettingsFromVFS();
+    document.getElementById('pin-avatar').textContent = u.name[0]; document.getElementById('pin-avatar').style.background = u.color;
+    document.getElementById('pin-label').textContent = `WELCOME, ${u.name.toUpperCase()}`;
+    safeShowLayer('pin'); renderPinPad(); updatePinDots();
+}
+function renderPinPad() {
+    const pad = document.getElementById('pin-pad'); pad.innerHTML = "";
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, "C", 0, "⌫"].forEach(key => {
+        const btn = document.createElement('button');
+        btn.className = "w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-2xl font-light active:bg-white/20 active:scale-90 transition-all";
+        btn.textContent = key;
+        btn.onclick = () => {
+            if (key === "C") state.pinBuffer = ""; else if (key === "⌫") state.pinBuffer = state.pinBuffer.slice(0, -1); else if (state.pinBuffer.length < 4) state.pinBuffer += key;
+            updatePinDots(); if (state.pinBuffer.length === 4) setTimeout(attemptLogin, 100);
+        }; pad.appendChild(btn);
+    });
+}
+function updatePinDots() {
+    const dots = document.getElementById('pin-dots').children;
+    for (let i = 0; i < 4; i++) { dots[i].style.background = i < state.pinBuffer.length ? 'white' : 'transparent'; dots[i].style.borderColor = i < state.pinBuffer.length ? 'white' : 'rgba(255,255,255,0.4)'; }
+}
+function attemptLogin() {
+    if (state.pinBuffer === state.curUser.pin) { loadSettingsFromVFS(); safeShowLayer('home'); renderDesktop(); renderDesktopPill(); } 
+    else { state.pinBuffer = ""; updatePinDots(); const pd = document.getElementById('pin-dots'); pd.classList.add('animate-bounce'); setTimeout(() => pd.classList.remove('animate-bounce'), 500); }
+}
+
+function safeShowLayer(id){document.querySelectorAll('.layer').forEach(l=>l.classList.remove('active'));const integrated=state.curUser?.settings?.windowWorkspace!=='separate';const target=document.getElementById(isDesktopWindowing()&&id==='app'&&integrated?'l-home':`l-${id}`);if(target)target.classList.add('active');
+    const viewport = document.getElementById('app-viewport');
+    if (id === 'app' || state.activeApps.length > 0) viewport.classList.remove('pointer-events-none');
+    else viewport.classList.add('pointer-events-none');
+    const nav = document.getElementById('global-nav');
+    if (nav) nav.style.display = (['home', 'drawer', 'recents', 'app'].includes(id) && state.curUser) ? 'flex' : 'none';
+}
+
+// --- DESKTOP, GROUPS & DRAG AND DROP ---
+
+function getFullAppList() { return [...state.appLib, ...(state.curUser.installedApps || [])]; }
+
+function renderDesktop() {
+    const grid = document.getElementById('home-grid'); const dock = document.getElementById('dock');
+    grid.innerHTML = ""; dock.innerHTML = "";
+    
+    // Hide apps that are currently inside a group
+    const groupedAppIds = new Set();
+    (state.curUser.groups || []).forEach(g => g.apps.forEach(a => groupedAppIds.add(a.id)));
+
+    const visibleApps = getFullAppList().filter(a => !groupedAppIds.has(a.id));
+    const finalDesktopItems = [...visibleApps, ...(state.curUser.groups || [])];
+    
+    finalDesktopItems.forEach((app, i) => {
+        const icon = createIconElement(app);
+        if (i < 4) dock.appendChild(icon); else grid.appendChild(icon);
+    });
+}
+
+function renderDrawer(filter="") {
+    const grid = document.getElementById('drawer-grid'); grid.innerHTML = "";
+    // Drawer shows everything flat (apps, not groups)
+    const apps = getFullAppList().filter(a => a.name.toLowerCase().includes(filter.toLowerCase()));
+    apps.forEach(app => grid.appendChild(createIconElement(app)));
+}
+
+function filterDrawer(val) { renderDrawer(val); }
+
+function createIconElement(app) {
+    const wrap = document.createElement('div');
+    wrap.className = "icon-wrap";
+    wrap.dataset.id = app.id;
+    
+    let inner = `<div class="icon-box" style="background:${app.color}; color:${app.text || '#fff'}">${app.icon}</div>`;
+    if (app.isGroup) {
+        inner = `<div class="icon-box" style="background:${app.color}"><div class="group-grid">${app.apps.slice(0, 4).map(a => `<div class="group-mini">${a.icon}</div>`).join('')}</div></div>`;
+    }
+    wrap.innerHTML = `${inner}<span class="icon-label">${app.name}</span>`;
+    
+    // Click opens app, Long Press drags
+    wrap.onclick = () => launchApp(app.id);
+    wrap.onpointerdown = (e) => {
+        wrap.dataset.timer = setTimeout(() => { initIconDrag(e, app); }, 400); // 400ms long press
+    };
+    wrap.onpointerup = () => clearTimeout(wrap.dataset.timer);
+    wrap.onpointercancel = () => clearTimeout(wrap.dataset.timer);
+    wrap.onpointerleave = () => clearTimeout(wrap.dataset.timer);
+
+    return wrap;
+}
+
+function initIconDrag(e, app) {
+    // Prevent accidental clicks
+    document.querySelectorAll('.icon-wrap').forEach(w => w.onclick = null);
+    
+    const ghost = document.getElementById('drag-ghost');
+    ghost.style.display = 'flex';
+    ghost.style.background = app.color;
+    ghost.innerHTML = app.isGroup ? '📁' : app.icon;
+    
+    const move = (me) => {
+        ghost.style.left = (me.clientX - 31) + 'px';
+        ghost.style.top = (me.clientY - 31) + 'px';
+    };
+    move(e);
+
+    const end = (ue) => {
+        ghost.style.display = 'none';
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', end);
+        
+        // Restore clicks slightly after to prevent instant trigger
+        setTimeout(() => { document.querySelectorAll('.icon-wrap').forEach(w => w.onclick = () => launchApp(w.dataset.id)); }, 100);
+        
+        // Find target
+        const targetEl = document.elementFromPoint(ue.clientX, ue.clientY);
+        const targetWrap = targetEl?.closest('.icon-wrap');
+        
+        if (targetWrap && targetWrap.dataset.id !== app.id) {
+            handleAppGrouping(app.id, targetWrap.dataset.id);
+        } else if (targetEl?.closest('#home-grid') || targetEl?.closest('#dock')) {
+            // Dragged to empty desktop - remove from group if in one
+            removeFromGroup(app.id);
+        }
+    };
+
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end);
+}
+
+function handleAppGrouping(id1, id2) {
+    if (id1 === id2) return;
+    
+    let a1 = getFullAppList().find(a => a.id === id1);
+    let a1SourceGroup = null;
+
+    if (!a1) {
+        for (let g of (state.curUser.groups || [])) {
+            let found = g.apps.find(a => a.id === id1);
+            if (found) { a1 = found; a1SourceGroup = g; break; }
+        }
+    }
+
+    let a2 = getFullAppList().find(a => a.id === id2) || (state.curUser.groups || []).find(g => g.id === id2);
+
+    if (!a1 || !a2 || a1.isGroup) return;
+
+    // Remove a1 from source group if it was in one
+    if (a1SourceGroup) {
+        a1SourceGroup.apps = a1SourceGroup.apps.filter(x => x.id !== id1);
+        if (a1SourceGroup.apps.length === 0) {
+            state.curUser.groups = state.curUser.groups.filter(g => g.id !== a1SourceGroup.id);
+            closeApp(a1SourceGroup.id);
+        }
+    }
+
+    if (a2.isGroup) {
+        if(!a2.apps.find(x => x.id === a1.id)) a2.apps.push(a1);
+    } else {
+        const newGroup = { id: 'g_' + Date.now(), name: 'New Folder', color: 'rgba(255,255,255,0.1)', isGroup: true, apps: [a2, a1] };
+        if(!state.curUser.groups) state.curUser.groups = [];
+        state.curUser.groups.push(newGroup);
+    }
+    saveData(); renderDesktop();
+}
+
+function removeFromGroup(appId) {
+    let changed = false;
+    for (let g of (state.curUser.groups || [])) {
+        const initialLen = g.apps.length;
+        g.apps = g.apps.filter(a => a.id !== appId);
+        if (g.apps.length !== initialLen) changed = true;
+    }
+    
+    state.curUser.groups = state.curUser.groups.filter(g => g.apps.length > 0);
+    
+    if (changed) {
+        saveData(); renderDesktop();
+        // Rerender open folders
+        document.querySelectorAll('.app-window.active').forEach(w => {
+            const wid = w.id.replace('win_', '');
+            if (wid.startsWith('g_')) {
+                const g = state.curUser.groups.find(x => x.id === wid);
+                if (g) renderAppUI(wid, g); else closeApp(wid);
+            }
+        });
+    }
+}
+
+function renameGroup(groupId, newName) {
+    const g = state.curUser.groups.find(x => x.id === groupId);
+    if(g) { g.name = newName; saveData(); renderDesktop(); }
+}
+
+// --- WINDOW MANAGER ---
+
+function launchApp(id) {
+    const existing = state.activeApps.find(a => a.id === id);
+    if (existing) { focusApp(id); return; }
+    
+    // Find app anywhere
+    let info = getFullAppList().find(a => a.id === id) || (state.curUser.groups || []).find(g => g.id === id);
+    if(!info) {
+        // Maybe inside a group?
+        for(let g of (state.curUser.groups || [])) {
+            let found = g.apps.find(a => a.id === id);
+            if(found) { info = found; break; }
+        }
+    }
+    if(!info) return;
+
+    const win = document.createElement('div');
+    win.id = `win_${id}`; win.className = "app-window active";
+    
+    let header = `
+        <div class="window-titlebar h-14 flex items-center justify-between px-6 bg-[#0a0a0c] border-b border-white/5 shrink-0 z-50 shadow-md">
+            <div class="flex items-center gap-3"><span class="text-xl">${info.icon}</span><span class="text-[11px] font-bold uppercase tracking-widest text-white/60">${info.name}</span></div>
+            <div class="window-controls"><button onclick="event.stopPropagation();minimizeWindow('${id}')" class="window-control">−</button><button onclick="event.stopPropagation();toggleMaximize('${id}')" class="window-control">□</button><button onclick="event.stopPropagation();closeApp('${id}')" class="window-control">✕</button></div><button onclick="closeApp('${id}')" class="md:hidden w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">✕</button>
+        </div>`;
+
+    if (info.isGroup) {
+        header = `
+            <div class="window-titlebar h-14 flex items-center justify-between px-6 bg-[#0a0a0c] border-b border-white/5 shrink-0 z-50 shadow-md">
+                <input type="text" value="${info.name}" onchange="renameGroup('${info.id}', this.value)" class="bg-transparent text-[11px] font-bold uppercase tracking-widest text-white/90 outline-none w-full" placeholder="Folder Name" />
+                <div class="window-controls"><button onclick="event.stopPropagation();minimizeWindow('${id}')" class="window-control">−</button><button onclick="event.stopPropagation();toggleMaximize('${id}')" class="window-control">□</button><button onclick="event.stopPropagation();closeApp('${id}')" class="window-control">✕</button></div><button onclick="closeApp('${id}')" class="md:hidden w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">✕</button>
+            </div>`;
+    }
+
+    if (info.custom) {
+        win.innerHTML = `${header}<iframe id="body_${id}" srcdoc="${info.custom.replace(/"/g, '&quot;')}" class="flex-1 w-full border-none bg-white"></iframe>`;
+    } else {
+        win.innerHTML = `${header}<div id="body_${id}" class="flex-1 overflow-hidden relative bg-[#0f0f13]"></div>`;
+    }
+    
+    document.getElementById('app-viewport').appendChild(win);
+    state.activeApps.push({id,el:win,desktop:state.currentDesktop,minimized:false});enableWindowDragging(win);renderDesktopPill();
+    
+    if(!info.custom) renderAppUI(id, info);
+    safeShowLayer('app');
+}
+
+function focusApp(id){const desktop=isDesktopWindowing();if(!desktop)document.querySelectorAll('.app-window').forEach(w=>w.classList.remove('active'));else document.querySelectorAll('.app-window').forEach(w=>w.style.zIndex='50000');const win=document.getElementById(`win_${id}`);if(win){win.classList.add('active');win.style.zIndex='50010';const a=state.activeApps.find(x=>x.id===id);if(a){a.minimized=false;state.currentDesktop=a.desktop||1;}}document.getElementById('app-viewport').classList.remove('pointer-events-none');safeShowLayer('app');renderDesktopPill();}
+
+function closeApp(id) {
+    if (id === 'camera' && state.cameraStream) { state.cameraStream.getTracks().forEach(t => t.stop()); state.cameraStream = null; }
+    if (id === 'phone') { clearTimeout(state.callInterval); clearInterval(state.callInterval2); state.callInterval = null; state.callInterval2 = null; }
+    const win = document.getElementById(`win_${id}`);
+    if (win) { win.style.animation = "fadeScale 0.3s reverse"; setTimeout(() => win.remove(), 280); }
+    state.activeApps = state.activeApps.filter(a => a.id !== id);
+    if (state.activeApps.length === 0 && !document.getElementById('l-recents').classList.contains('active')) safeShowLayer('home');
+}
+
+function killAllApps() { [...state.activeApps].forEach(a => closeApp(a.id)); safeShowLayer('home'); }
+function handleHome() { document.querySelectorAll('.app-window').forEach(w => w.classList.remove('active')); safeShowLayer('home'); }
+function handleBack() { 
+    if (state.activeApps.length > 0) closeApp(state.activeApps[state.activeApps.length - 1].id);
+    else if (document.getElementById('l-drawer').classList.contains('active')) safeShowLayer('home');
+}
+
+function handleRecents() {
+    safeShowLayer('recents'); document.querySelectorAll('.app-window').forEach(w => w.classList.remove('active'));
+    const list = document.getElementById('recents-list'); list.innerHTML = "";
+    if (state.activeApps.length === 0) { list.innerHTML = `<div class="text-white/30 text-xs font-bold uppercase tracking-widest absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">No Recent Apps</div>`; return; }
+
+    state.activeApps.forEach(a => {
+        let info = getFullAppList().find(x => x.id === a.id) || (state.curUser.groups||[]).find(x => x.id === a.id);
+        if(!info) {
+             for(let g of (state.curUser.groups||[])){ let f = g.apps.find(c=>c.id===a.id); if(f){info=f; break;}}
+        }
+
+        const appBody = document.getElementById(`body_${a.id}`); let htmlSnap = '';
+        if (appBody) {
+            if(appBody.tagName === 'IFRAME') htmlSnap = appBody.srcdoc || `<div style="padding:20px;color:black;">Running...</div>`;
+            else {
+                const tmp = document.createElement('div'); tmp.innerHTML = appBody.innerHTML;
+                const orig = appBody.querySelectorAll('input,textarea'); const clones = tmp.querySelectorAll('input,textarea');
+                orig.forEach((inp, idx) => { if(clones[idx]) clones[idx].setAttribute('value', inp.value); });
+                htmlSnap = tmp.innerHTML;
+            }
+        }
+        const card = document.createElement('div'); card.className = "recent-card";
+        const iframe = document.createElement('iframe'); iframe.className = "recent-preview-frame";
+        iframe.style.transform = `scale(${240 / window.innerWidth})`; iframe.style.width = `${window.innerWidth}px`; iframe.style.height = `${window.innerHeight - 100}px`;
+        iframe.srcdoc = `<!DOCTYPE html><html><head><script src="https://cdn.tailwindcss.com"><\/script></head><body style="margin:0;background:#0f0f13;color:#fff;">${htmlSnap}</body></html>`;
+        card.innerHTML = `<div class="absolute top-0 w-full h-16 bg-gradient-to-b from-black/90 to-transparent z-10 flex items-center px-5 gap-3"><span class="text-xl">${info.icon}</span><span class="text-[10px] font-bold uppercase tracking-widest drop-shadow-md">${info.name}</span></div>`;
+        card.appendChild(iframe); card.onclick = () => focusApp(a.id); list.appendChild(card);
+    });
+}
+
+function isDesktopWindowing(){return matchMedia('(min-width:768px)').matches}
+function minimizeWindow(id){const a=state.activeApps.find(x=>x.id===id);if(a){a.minimized=true;a.el.classList.remove('active')}renderDesktopPill();if(!document.querySelector('.app-window.active'))handleHome()}
+function toggleMaximize(id){const w=document.getElementById(`win_${id}`);if(w)w.classList.toggle('maximized')}
+function addDesktop(){state.curUser.settings.desktopCount=Math.min(8,(state.curUser.settings.desktopCount||2)+1);state.currentDesktop=state.curUser.settings.desktopCount;saveSettingsToVFS();switchDesktop(state.currentDesktop)}
+function switchDesktop(n){state.currentDesktop=n;state.activeApps.forEach(a=>a.el.classList.toggle('active',(a.desktop||1)===n&&!a.minimized));safeShowLayer('app');renderDesktopPill()}
+function renderDesktopPill(){const pinned=document.getElementById('desktop-pinned'),apps=document.getElementById('desktop-running'),pages=document.getElementById('desktop-pages');if(!apps||!state.curUser)return;if(pinned){pinned.innerHTML='';getFullAppList().slice(0,4).forEach(i=>{const b=document.createElement('button');b.className='desktop-pinned-app';b.textContent=i.icon;b.title=i.name;b.onclick=()=>launchApp(i.id);pinned.appendChild(b)})}apps.innerHTML='';state.activeApps.filter(a=>(a.desktop||1)===state.currentDesktop).forEach(a=>{let i=getFullAppList().find(x=>x.id===a.id)||(state.curUser.groups||[]).find(x=>x.id===a.id);if(!i)return;const b=document.createElement('button');b.className='desktop-app'+(a.el.classList.contains('active')?' active':'');b.textContent=i.icon;b.onclick=()=>focusApp(a.id);apps.appendChild(b)});pages.innerHTML='';for(let i=1;i<=(state.curUser.settings.desktopCount||2);i++){const b=document.createElement('button');b.className='desktop-page'+(i===state.currentDesktop?' active':'');b.textContent=i;b.onclick=()=>switchDesktop(i);pages.appendChild(b)}}
+function snapWindow(w,z){w.classList.remove('maximized');w.style.transform='none';const W=innerWidth,H=innerHeight-104;let x=0,y=0,ww=W/2,hh=H;if(z==='right')x=W/2;if(z==='top'){w.classList.add('maximized');return}if(z.length===2){hh=H/2;if(z.includes('r'))x=W/2;if(z.includes('b'))y=H/2}w.style.left=x+'px';w.style.top=y+'px';w.style.width=ww+'px';w.style.height=hh+'px'}
+function enableWindowDragging(w){const h=w.querySelector('.window-titlebar');if(!h)return;h.addEventListener('dblclick',()=>toggleMaximize(w.id.replace('win_','')));h.addEventListener('pointerdown',e=>{if(!isDesktopWindowing()||w.classList.contains('maximized')||e.target.closest('button,input'))return;e.preventDefault();h.setPointerCapture(e.pointerId);const r=w.getBoundingClientRect(),ox=e.clientX-r.left,oy=e.clientY-r.top,g=document.getElementById('snap-preview');w.style.transform='none';w.style.left=r.left+'px';w.style.top=r.top+'px';let z='';const move=x=>{w.style.left=Math.max(0,Math.min(innerWidth-w.offsetWidth,x.clientX-ox))+'px';w.style.top=Math.max(0,Math.min(innerHeight-w.offsetHeight-72,x.clientY-oy))+'px';z=x.clientY<28?'top':x.clientX<30?(x.clientY<innerHeight/3?'tl':x.clientY>innerHeight*2/3?'bl':'left'):x.clientX>innerWidth-30?(x.clientY<innerHeight/3?'tr':x.clientY>innerHeight*2/3?'br':'right'):'';g.style.display=z?'block':'none';if(z){g.style.left=z.includes('r')||z==='right'?'50%':'0';g.style.top=z.includes('b')?'50%':'32px';g.style.width=z==='top'?'100%':'50%';g.style.height=z.length===2?'50%':'calc(100% - 104px)'}};const up=()=>{h.removeEventListener('pointermove',move);h.removeEventListener('pointerup',up);g.style.display='none';if(z)snapWindow(w,z)};h.addEventListener('pointermove',move);h.addEventListener('pointerup',up)})}
+
+// --- MASTER APP ROUTER ---
+
+function renderAppUI(id, app) {
+    const body = document.getElementById(`body_${id}`); if(!body) return;
+    
+    if (app.isGroup) {
+        body.innerHTML = `
+            <div class="h-full p-8 grid grid-cols-4 gap-6 content-start bg-[#0f0f13]">
+                ${app.apps.map(ga => `
+                    <div class="icon-wrap" data-id="${ga.id}" onclick="launchApp('${ga.id}')" onpointerdown="startFolderIconDrag(event, '${ga.id}', '${app.id}')">
+                        <div class="icon-box" style="background:${ga.color};">${ga.icon}</div>
+                        <span class="icon-label">${ga.name}</span>
+                    </div>
+                `).join('')}
+            </div>`;
+        return;
+    }
+
+    switch(id) {
+        case 'phone': renderPhone(body); break;
+        case 'msgs': renderMessages(body, 'list'); break;
+        case 'chrome': renderChrome(body); break;
+        case 'files': state.curUser.fsPath = '/'; renderFS(body); break;
+        case 'notes': renderNotes(body); break;
+        case 'camera': renderCamera(body); break;
+        case 'gallery': renderGallery(body); break;
+        case 'calc': renderCalc(body); break;
+        case 'settings': renderSettings(body, 'main'); break;
+        case 'play': renderPlayStore(body); break;
+        default: body.innerHTML = `<div class="p-8 text-center text-zinc-500 mt-20">App Loading...</div>`;
+    }
+}
+
+function startFolderIconDrag(e, appId, groupId) {
+    const app = getFullAppList().find(a => a.id === appId);
+    if(app) {
+        e.currentTarget.dataset.timer = setTimeout(() => { initIconDrag(e, app); }, 400);
+    }
+}
+
+// --- SETTINGS APP WITH LIVE VFS WRITING & EVENT FIXES ---
+
+function renderSettings(el, page) {
+    const s = state.curUser.settings || DEFAULT_SETTINGS;
+    let html = '';
+
+    if (page === 'main') {
+        html = `
+            <div class="h-full bg-[#0f0f13] overflow-y-auto pb-24">
+                <div class="p-8 space-y-8">
+                    <h1 class="text-3xl font-black text-white/90 mb-2">Settings</h1>
+                    <p class="text-[10px] uppercase tracking-widest font-bold" style="color: var(--sys-primary);">💾 Live Sync: /Documents/settings.json</p>
+                    
+                    <div class="bg-[#1a1a24] p-6 rounded-[32px] border border-white/5 flex items-center justify-between shadow-xl">
+                        <div class="flex items-center gap-5">
+                            <div class="w-16 h-16 rounded-[22px] flex items-center justify-center text-3xl font-black text-white shadow-lg" style="background:${state.curUser.color}">${state.curUser.name[0]}</div>
+                            <div><h4 class="font-bold text-lg">${state.curUser.name}</h4><p class="text-[9px] text-white/40 uppercase font-black tracking-widest mt-1">ID: ${state.curUser.id}</p></div>
+                        </div>
+                        <button onclick="event.stopPropagation(); renderSettings(document.getElementById('body_settings'), 'profile')" class="bg-white/10 px-4 py-2 rounded-xl text-xs font-bold uppercase">Edit</button>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <p class="text-[10px] font-black uppercase text-white/30 tracking-[0.2em] px-4 py-2">Personalization & Hardware</p>
+                        <div class="bg-[#1a1a24] p-5 rounded-[24px] flex justify-between items-center cursor-pointer hover:bg-white/5" onclick="renderSettings(document.getElementById('body_settings'), 'personalize')">
+                            <div class="flex items-center gap-4"><span class="text-xl">🎨</span><span class="font-semibold text-sm">Theme, Colors & Icons</span></div><span class="opacity-30">❯</span>
+                        </div>
+                        <div class="bg-[#1a1a24] p-5 rounded-[24px] flex justify-between items-center cursor-pointer hover:bg-white/5" onclick="renderSettings(document.getElementById('body_settings'), 'windowing')"><div class="flex items-center gap-4"><span class="text-xl">▣</span><span class="font-semibold text-sm">Windowing workspace</span></div><span class="opacity-30">❯</span></div>
+                        <div class="bg-[#1a1a24] p-5 rounded-[24px] flex justify-between items-center cursor-pointer hover:bg-white/5" onclick="renderSettings(document.getElementById('body_settings'), 'display')">
+                            <div class="flex items-center gap-4"><span class="text-xl">☀️</span><span class="font-semibold text-sm">Display & Brightness</span></div><span class="opacity-30">❯</span>
+                        </div>
+                        <div class="bg-[#1a1a24] p-5 rounded-[24px] flex justify-between items-center cursor-pointer hover:bg-white/5" onclick="renderSettings(document.getElementById('body_settings'), 'network')">
+                            <div class="flex items-center gap-4"><span class="text-xl">📶</span><span class="font-semibold text-sm">Network & Connections</span></div><span class="opacity-30">❯</span>
+                        </div>
+                        <div class="bg-[#1a1a24] p-5 rounded-[24px] flex justify-between items-center cursor-pointer hover:bg-white/5" onclick="renderSettings(document.getElementById('body_settings'), 'sound')">
+                            <div class="flex items-center gap-4"><span class="text-xl">🔔</span><span class="font-semibold text-sm">Sound & Clock Format</span></div><span class="opacity-30">❯</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <p class="text-[10px] font-black uppercase text-white/30 tracking-[0.2em] px-4 py-2">System & VFS Storage</p>
+                        <div class="bg-[#1a1a24] p-5 rounded-[24px] flex justify-between items-center cursor-pointer hover:bg-white/5" onclick="renderSettings(document.getElementById('body_settings'), 'vfs_view')">
+                            <div class="flex items-center gap-4"><span class="text-xl">📄</span><span class="font-semibold text-sm">View VFS JSON File</span></div><span class="opacity-30">❯</span>
+                        </div>
+                        <div class="bg-[#1a1a24] p-5 rounded-[24px] flex justify-between items-center cursor-pointer hover:bg-white/5" onclick="openModal('create_user')">
+                            <div class="flex items-center gap-4"><span class="text-xl">👥</span><span class="font-semibold text-sm">Add New Profile</span></div><span class="opacity-30">❯</span>
+                        </div>
+                        <div class="bg-[#1a1a24] p-5 rounded-[24px] flex justify-between items-center cursor-pointer hover:bg-white/5" onclick="location.reload()">
+                            <div class="flex items-center gap-4"><span class="text-xl">🔒</span><span class="font-semibold text-sm text-red-400">Lock / Restart OS</span></div><span class="opacity-30">❯</span>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+    } 
+    else if (page === 'personalize') {
+        const colors = [{ name: 'Purple', hex: '#8b5cf6' }, { name: 'Blue', hex: '#3b82f6' }, { name: 'Emerald', hex: '#10b981' }, { name: 'Rose', hex: '#f43f5e' }, { name: 'Amber', hex: '#f59e0b' }];
+        const shapes = [{ name: 'Squarcle', val: '20px' }, { name: 'Circle', val: '50%' }, { name: 'Capsule', val: '28px 8px 28px 8px' }];
+        const wallpapers = [{ url: 'https://images.unsplash.com/photo-1620121692029-d088224ddc74?auto=format&fit=crop&q=80&w=2000' }, { url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=2000' }, { url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=2000' }];
+
+        html = `
+            <div class="h-full bg-[#0f0f13] flex flex-col overflow-y-auto pb-20">
+                <div class="p-6 bg-[#1a1a24] flex items-center gap-4 shrink-0"><button onclick="event.stopPropagation(); renderSettings(document.getElementById('body_settings'), 'main')" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">⬅</button><h2 class="text-xl font-bold">Personalization</h2></div>
+                <div class="p-6 space-y-6">
+                    <div>
+                        <p class="text-[10px] font-black uppercase text-white/40 mb-3 tracking-widest">System Accent Color</p>
+                        <div class="flex gap-3">
+                            ${colors.map(c => `<div onclick="event.stopPropagation(); updateSetting('accentColor', '${c.hex}')" class="w-12 h-12 rounded-full cursor-pointer flex items-center justify-center text-xl shadow-lg border-2 ${s.accentColor === c.hex ? 'border-white scale-110' : 'border-transparent'}" style="background:${c.hex}">${s.accentColor === c.hex ? '✓' : ''}</div>`).join('')}
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black uppercase text-white/40 mb-3 tracking-widest">Icon Shape Geometry</p>
+                        <div class="flex gap-3">
+                            ${shapes.map(sh => `<button onclick="event.stopPropagation(); updateSetting('iconShape', '${sh.val}')" class="px-5 py-3 rounded-2xl text-xs font-bold uppercase ${s.iconShape === sh.val ? 'bg-purple-600 text-white' : 'bg-white/5 text-white/60'}">${sh.name}</button>`).join('')}
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black uppercase text-white/40 mb-3 tracking-widest">Wallpaper Background</p>
+                        <div class="grid grid-cols-3 gap-3 mb-4">
+                            ${wallpapers.map(wp => `<div onclick="event.stopPropagation(); updateSetting('wallpaperUrl', '${wp.url}')" class="aspect-square rounded-2xl bg-cover bg-center border-2 cursor-pointer ${s.wallpaperUrl === wp.url ? 'border-purple-500 scale-105' : 'border-transparent'}" style="background-image:url('${wp.url}')"></div>`).join('')}
+                        </div>
+                        <input id="custom-wp-in" placeholder="Or enter Custom Image URL..." value="${s.wallpaperUrl}" onclick="event.stopPropagation()" class="w-full p-4 bg-black rounded-2xl text-xs border border-white/10 outline-none text-white">
+                        <button onclick="event.stopPropagation(); updateSetting('wallpaperUrl', document.getElementById('custom-wp-in').value)" class="w-full mt-2 py-3 bg-white/10 rounded-2xl text-xs font-bold uppercase">Apply Custom URL</button>
+                    </div>
+                </div>
+            </div>`;
+    }
+    else if (page === 'windowing') {
+        html=`<div class="h-full bg-[#0f0f13] flex flex-col"><div class="p-6 bg-[#1a1a24] flex items-center gap-4"><button onclick="renderSettings(document.getElementById('body_settings'),'main')" class="w-10 h-10 rounded-full bg-white/5">⬅</button><h2 class="text-xl font-bold">Windowing workspace</h2></div><div class="p-6 space-y-4"><button onclick="setWindowWorkspace('integrated')" class="w-full p-5 rounded-2xl text-left ${s.windowWorkspace==='integrated'?'bg-purple-600':'bg-white/5'}"><b>Integrated with Home screen</b><br><span class="text-xs opacity-70">Windows appear over the interactive Home screen.</span></button><button onclick="setWindowWorkspace('separate')" class="w-full p-5 rounded-2xl text-left ${s.windowWorkspace==='separate'?'bg-purple-600':'bg-white/5'}"><b>Separate workspace</b><br><span class="text-xs opacity-70">Windows use a dedicated screen without Home icons.</span></button><div class="bg-white/5 p-5 rounded-2xl flex justify-between items-center"><span>Virtual desktops</span><b>${s.desktopCount||2}</b></div></div></div>`;
+    }
+    else if (page === 'display') {
+        html = `
+            <div class="h-full bg-[#0f0f13] flex flex-col">
+                <div class="p-6 bg-[#1a1a24] flex items-center gap-4 shrink-0"><button onclick="event.stopPropagation(); renderSettings(document.getElementById('body_settings'), 'main')" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">⬅</button><h2 class="text-xl font-bold">Display & Brightness</h2></div>
+                <div class="p-6 space-y-8">
+                    <div>
+                        <div class="flex justify-between text-xs font-bold mb-3"><span class="uppercase tracking-widest text-white/50">Brightness Level</span><span>${s.brightness}%</span></div>
+                        <input type="range" min="15" max="100" value="${s.brightness}" onchange="event.stopPropagation(); updateSetting('brightness', parseInt(this.value))" oninput="event.stopPropagation(); updateSetting('brightness', parseInt(this.value))" onclick="event.stopPropagation()" class="w-full accent-purple-500 h-2 bg-white/10 rounded-lg cursor-pointer">
+                    </div>
+                </div>
+            </div>`;
+    }
+    else if (page === 'sound') {
+        html = `
+            <div class="h-full bg-[#0f0f13] flex flex-col">
+                <div class="p-6 bg-[#1a1a24] flex items-center gap-4 shrink-0"><button onclick="event.stopPropagation(); renderSettings(document.getElementById('body_settings'), 'main')" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">⬅</button><h2 class="text-xl font-bold">Sound & Clock</h2></div>
+                <div class="p-6 space-y-4">
+                    <div class="bg-white/5 p-5 rounded-2xl flex justify-between items-center">
+                        <div><p class="font-bold text-sm">24-Hour Time Format</p><p class="text-[10px] text-white/40">13:00 vs 1:00 PM</p></div>
+                        <button onclick="event.stopPropagation(); updateSetting('clockFormat24', !${s.clockFormat24})" class="px-5 py-2 rounded-xl text-xs font-bold uppercase ${s.clockFormat24 ? 'bg-purple-600 text-white' : 'bg-white/10 text-white/50'}">${s.clockFormat24 ? '24H' : '12H'}</button>
+                    </div>
+                    <div class="bg-white/5 p-5 rounded-2xl flex justify-between items-center">
+                        <div><p class="font-bold text-sm">Sound Mode</p><p class="text-[10px] text-white/40">${s.soundMode.toUpperCase()}</p></div>
+                        <button onclick="event.stopPropagation(); toggleQuickSetting('sound'); renderSettings(document.getElementById('body_settings'), 'sound')" class="px-5 py-2 rounded-xl text-xs font-bold uppercase bg-white/10">Cycle Mode</button>
+                    </div>
+                </div>
+            </div>`;
+    }
+    else if (page === 'network') {
+        html = `
+            <div class="h-full bg-[#0f0f13] flex flex-col">
+                <div class="p-6 bg-[#1a1a24] flex items-center gap-4 shrink-0"><button onclick="event.stopPropagation(); renderSettings(document.getElementById('body_settings'), 'main')" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">⬅</button><h2 class="text-xl font-bold">Network & Wi-Fi</h2></div>
+                <div class="p-6 space-y-4">
+                    <div class="bg-white/5 p-5 rounded-2xl flex justify-between items-center">
+                        <span class="font-bold">Wi-Fi Wireless</span>
+                        <button onclick="event.stopPropagation(); toggleQuickSetting('wifi'); renderSettings(document.getElementById('body_settings'), 'network')" class="px-5 py-2 rounded-xl text-xs font-bold uppercase ${s.wifiEnabled ? 'bg-green-500 text-white' : 'bg-white/10 text-white/50'}">${s.wifiEnabled ? 'Enabled' : 'Disabled'}</button>
+                    </div>
+                </div>
+            </div>`;
+    }
+    else if (page === 'profile') {
+        html = `
+            <div class="h-full bg-[#0f0f13] flex flex-col">
+                <div class="p-6 bg-[#1a1a24] flex items-center gap-4 shrink-0"><button onclick="event.stopPropagation(); renderSettings(document.getElementById('body_settings'), 'main')" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">⬅</button><h2 class="text-xl font-bold">Edit Profile</h2></div>
+                <div class="p-6 space-y-4">
+                    <input id="edit-prof-name" value="${state.curUser.name}" onclick="event.stopPropagation()" class="w-full p-4 bg-black rounded-2xl text-sm border border-white/10 outline-none text-white" placeholder="Profile Name">
+                    <input id="edit-prof-pin" value="${state.curUser.pin}" maxlength="4" onclick="event.stopPropagation()" class="w-full p-4 bg-black rounded-2xl text-sm border border-white/10 outline-none text-white" placeholder="4-Digit PIN">
+                    <button onclick="event.stopPropagation(); saveProfileChanges()" class="w-full py-4 bg-purple-600 text-white font-bold rounded-2xl uppercase tracking-widest text-xs">Save Profile</button>
+                </div>
+            </div>`;
+    }
+    else if (page === 'vfs_view') {
+        const vfsContent = state.curUser.fs['/Documents/settings.json'] ? state.curUser.fs['/Documents/settings.json'].content : 'File not initialized yet';
+        html = `
+            <div class="h-full bg-[#0f0f13] flex flex-col">
+                <div class="p-6 bg-[#1a1a24] flex items-center gap-4 shrink-0"><button onclick="event.stopPropagation(); renderSettings(document.getElementById('body_settings'), 'main')" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">⬅</button><h2 class="text-xl font-bold">/Documents/settings.json</h2></div>
+                <div class="p-6 flex-1 flex flex-col">
+                    <textarea id="vfs-json-editor" onclick="event.stopPropagation()" class="flex-1 w-full p-4 bg-black font-mono text-xs text-purple-300 rounded-2xl border border-white/10 outline-none resize-none">${vfsContent}</textarea>
+                    <button onclick="event.stopPropagation(); saveManualVFSJSON()" class="w-full mt-4 py-4 bg-green-600 text-white font-bold rounded-2xl uppercase tracking-widest text-xs">Save VFS File Directly</button>
+                </div>
+            </div>`;
+    }
+
+    el.innerHTML = html;
+}
+
+function setWindowWorkspace(mode){state.curUser.settings.windowWorkspace=mode;saveSettingsToVFS();document.body.classList.toggle('workspace-separate',mode==='separate');renderSettings(document.getElementById('body_settings'),'windowing');}
+function updateSetting(key, val) {
+    if (!state.curUser.settings) state.curUser.settings = { ...DEFAULT_SETTINGS };
+    state.curUser.settings[key] = val;
+    saveSettingsToVFS();
+    renderSettings(document.getElementById('body_settings'), 'personalize');
+}
+
+function saveProfileChanges() {
+    const name = document.getElementById('edit-prof-name').value;
+    const pin = document.getElementById('edit-prof-pin').value;
+    if (name) state.curUser.name = name;
+    if (pin && pin.length === 4) state.curUser.pin = pin;
+    saveData(); renderSettings(document.getElementById('body_settings'), 'main');
+    openModal('alert', { msg: "Profile updated successfully!" });
+}
+
+function saveManualVFSJSON() {
+    try {
+        const raw = document.getElementById('vfs-json-editor').value;
+        state.curUser.settings = JSON.parse(raw);
+        saveSettingsToVFS();
+        openModal('alert', { msg: "Parsed & Restored VFS Settings!" });
+    } catch(e) { openModal('alert', { msg: "JSON Syntax Error in File" }); }
+}
+
+// --- OTHER APPS ---
+
+function renderPlayStore(el) {
+    el.innerHTML = `
+        <div class="h-full bg-gradient-to-br from-[#1a1a2e] to-black flex flex-col">
+            <div class="p-8 border-b border-white/10 shrink-0"><h1 class="text-3xl font-black text-purple-400">App Hub</h1><p class="text-[10px] uppercase tracking-widest text-white/50 mt-2">Deploy Secdocframr Apps</p></div>
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                
+                <!-- File Upload Feature -->
+                <div class="bg-white/5 p-4 rounded-[24px] border border-white/10 backdrop-blur-md flex items-center justify-between">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-white/60 pl-2">Import .HTML File</span>
+                    <label class="px-4 py-2 bg-purple-600 rounded-xl text-xs font-bold cursor-pointer hover:bg-purple-500 transition-colors">
+                        Upload
+                        <input type="file" accept=".html" onchange="handleHTMLImport(event)" class="hidden">
+                    </label>
+                </div>
+
+                <div class="bg-white/5 p-6 rounded-[24px] border border-white/10 backdrop-blur-md">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-purple-300 mb-4">App Identity</p>
+                    <input id="ap-name" placeholder="App Name (e.g. Weather)" class="w-full mb-4 p-4 bg-black/50 rounded-xl text-sm border border-white/10 outline-none text-white">
+                    <input id="ap-icon" placeholder="Emoji Icon (e.g. ☀️)" class="w-full p-4 bg-black/50 rounded-xl text-sm border border-white/10 outline-none text-white">
+                </div>
+                <div class="bg-white/5 p-6 rounded-[24px] border border-white/10 backdrop-blur-md">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-purple-300 mb-4">HTML Sandbox Code</p>
+                    <textarea id="ap-code" placeholder="<html><body style='color:black;'>My App Code</body></html>" class="w-full h-40 p-4 bg-black/50 rounded-xl font-mono text-xs border border-white/10 outline-none resize-none text-white"></textarea>
+                </div>
+                <button onclick="publishApp()" class="w-full py-5 bg-purple-600 text-white rounded-full font-black shadow-[0_0_30px_rgba(147,51,234,0.4)] active:scale-95 transition-transform tracking-widest uppercase text-[11px]">Install to Profile</button>
+            </div>
+        </div>`;
+}
+
+function handleHTMLImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        document.getElementById('ap-code').value = ev.target.result;
+        let title = file.name.replace('.html', '');
+        const match = ev.target.result.match(/<title>(.*?)<\/title>/i);
+        if (match && match[1]) title = match[1];
+        document.getElementById('ap-name').value = title;
+        document.getElementById('ap-icon').value = '📦';
+    };
+    reader.readAsText(file);
+}
+
+function publishApp() {
+    const n = document.getElementById('ap-name').value; const i = document.getElementById('ap-icon').value; const c = document.getElementById('ap-code').value;
+    if (!n || !i || !c) return openModal('alert', {msg:"Complete all fields"});
+    const id = 'custom_'+Date.now();
+    if(!state.curUser.installedApps) state.curUser.installedApps = [];
+    state.curUser.installedApps.push({ id, name: n, icon: i, color: '#111', custom: c });
+    saveData(); renderDesktop(); closeApp('play');
+}
+
+// --- PHONE ---
+function renderPhone(el) {
+    el.innerHTML = `
+        <div class="h-full bg-black flex flex-col pt-16">
+            <div class="flex-1 flex items-center justify-center text-5xl font-light text-white tracking-widest break-all px-8 text-center" id="dial-display"></div>
+            <div class="grid grid-cols-3 gap-x-8 gap-y-6 px-12 pb-16 relative z-10">
+                ${[1, 2, 3, 4, 5, 6, 7, 8, 9, '*', 0, '#'].map(n => `<button onclick="document.getElementById('dial-display').innerText += '${n}'" class="w-16 h-16 rounded-full bg-white/10 text-2xl font-light active:bg-white/30 transition-colors">${n}</button>`).join('')}
+                <div></div>
+                <button onclick="startCall()" class="w-16 h-16 rounded-full bg-green-500 text-2xl flex items-center justify-center active:scale-90 transition-transform shadow-[0_0_15px_rgba(34,197,94,0.5)]">📞</button>
+                <button onclick="let d = document.getElementById('dial-display'); d.innerText = d.innerText.slice(0,-1);" class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center active:bg-white/20 transition-colors">⌫</button>
+            </div>
+        </div>`;
+}
+
+function startCall() {
+    const d = document.getElementById('dial-display');
+    const num = d ? d.innerText : '';
+    if(!num) return;
+    const body = document.getElementById('body_phone');
+    body.innerHTML = `
+        <div class="h-full bg-[#0a0a0f] flex flex-col items-center justify-center relative">
+            <div class="w-32 h-32 rounded-full bg-white/10 flex items-center justify-center text-5xl mb-6 shadow-2xl relative">👤<div class="absolute inset-0 rounded-full animate-ping border-4 border-green-500/30"></div></div>
+            <h2 class="text-3xl font-light text-white mb-2 tracking-widest">${num}</h2>
+            <p id="call-status" class="text-sm text-green-400 font-bold uppercase tracking-widest animate-pulse">Calling...</p>
+            <div class="absolute bottom-20">
+                <button onclick="endCall()" class="w-20 h-20 rounded-full bg-red-500 text-3xl flex items-center justify-center active:scale-90 transition-transform shadow-[0_0_20px_rgba(239,68,68,0.5)] flex items-center justify-center rotate-[135deg]">📞</button>
+            </div>
+        </div>`;
+    state.callInterval = setTimeout(() => {
+        const el = document.getElementById('call-status');
+        if(el) { el.textContent = "00:00"; el.classList.remove('animate-pulse'); el.classList.replace('text-green-400', 'text-white/60'); }
+        let s = 0;
+        state.callInterval2 = setInterval(() => {
+            s++;
+            const mins = String(Math.floor(s/60)).padStart(2,'0');
+            const secs = String(s%60).padStart(2,'0');
+            if(el) el.textContent = `${mins}:${secs}`;
+        }, 1000);
+    }, 3000);
+}
+
+function endCall() {
+    clearTimeout(state.callInterval);
+    clearInterval(state.callInterval2);
+    renderPhone(document.getElementById('body_phone'));
+}
+
+// --- MESSAGES ---
+function renderMessages(el, view = 'list', contactId = null) {
+    if (view === 'list') {
+        const contacts = state.curUser.contacts || [];
+        el.innerHTML = `
+            <div class="h-full bg-[#050508] flex flex-col">
+                <div class="p-6 bg-[#1a1a24] border-b border-white/10 shrink-0 flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-blue-400">Messages</h2>
+                    <button onclick="openModal('new_contact')" class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-400 text-lg shadow-lg">+</button>
+                </div>
+                <div class="flex-1 p-4 space-y-3 overflow-y-auto">
+                    ${contacts.map(c => {
+                        const lastMsg = c.messages.length > 0 ? c.messages[c.messages.length - 1] : {text: '', time: ''};
+                        return `
+                        <div class="bg-white/5 p-4 rounded-3xl flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-colors border border-white/5" onclick="renderMessages(document.getElementById('body_msgs'), 'thread', '${c.id}')">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-inner text-white font-bold" style="background:${c.color}">${c.initial}</div>
+                            <div class="flex-1 overflow-hidden">
+                                <div class="flex justify-between items-center"><h4 class="font-bold text-sm text-white/90 truncate">${c.name}</h4><span class="text-[9px] text-white/40 uppercase tracking-widest">${lastMsg.time}</span></div>
+                                <p class="text-xs ${lastMsg.sender==='me'?'text-blue-300':'text-white/50'} truncate mt-1">${lastMsg.sender==='me'?'You: ':''}${lastMsg.text}</p>
+                            </div>
+                        </div>`;
+                    }).join('') || '<div class="text-center text-white/40 text-xs font-bold uppercase tracking-widest mt-10">No messages</div>'}
+                </div>
+            </div>`;
+    } else if (view === 'thread') {
+        const contact = state.curUser.contacts.find(c => c.id === contactId);
+        if(!contact) return;
+        el.innerHTML = `
+            <div class="h-full bg-[#050508] flex flex-col">
+                <div class="p-4 bg-[#1a1a24] border-b border-white/10 shrink-0 flex items-center gap-4">
+                    <button onclick="renderMessages(document.getElementById('body_msgs'), 'list')" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 text-xs shadow-md">⬅</button>
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs text-white font-bold" style="background:${contact.color}">${contact.initial}</div>
+                    <h2 class="text-sm font-bold text-white">${contact.name}</h2>
+                </div>
+                <div class="flex-1 p-4 overflow-y-auto flex flex-col gap-3" id="msg-thread-${contact.id}">
+                    ${contact.messages.map(m => `
+                        <div class="max-w-[80%] p-3 rounded-2xl text-sm ${m.sender === 'me' ? 'bg-blue-600 text-white self-end rounded-br-sm' : 'bg-white/10 text-white/90 self-start rounded-bl-sm'}">
+                            ${m.text}
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="p-4 bg-[#1a1a24] border-t border-white/5 flex gap-2 shrink-0">
+                    <input type="text" id="msg-input-${contact.id}" placeholder="Text message" class="flex-1 bg-black/50 border border-white/10 rounded-full px-4 py-2 text-sm text-white outline-none focus:border-blue-500 transition-colors" onkeydown="if(event.key==='Enter') sendMessage('${contact.id}')">
+                    <button onclick="sendMessage('${contact.id}')" class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center active:scale-95 transition-transform shadow-md">➤</button>
+                </div>
+            </div>`;
+        const thread = document.getElementById(`msg-thread-${contact.id}`);
+        if(thread) thread.scrollTop = thread.scrollHeight;
+    }
+}
+
+function sendMessage(contactId) {
+    const input = document.getElementById(`msg-input-${contactId}`);
+    if(!input) return;
+    const text = input.value.trim();
+    if(!text) return;
+    const contact = state.curUser.contacts.find(c => c.id === contactId);
+    if(contact) {
+        const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        contact.messages.push({sender: 'me', text, time});
+        saveData();
+        renderMessages(document.getElementById('body_msgs'), 'thread', contactId);
+        
+        // Setup a mock auto-reply
+        setTimeout(() => {
+            contact.messages.push({sender: 'them', text: 'Auto-reply from ' + contact.name, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})});
+            saveData();
+            if(document.getElementById(`msg-thread-${contactId}`)) renderMessages(document.getElementById('body_msgs'), 'thread', contactId);
+        }, 1200);
+    }
+}
+
+// --- BROWSER ---
+function renderChrome(el) {
+    const defaultUrl = state.curUser?.chrome?.tabs[0]?.url || 'https://www.wikipedia.org/';
+    el.innerHTML = `
+        <div class="h-full bg-black flex flex-col">
+            <div class="h-16 flex items-center px-4 gap-3 bg-[#1e1e24] border-b border-white/10 shrink-0 shadow-md">
+                <input id="browser-url" type="text" value="${defaultUrl}" class="flex-1 bg-black/50 text-white text-xs px-4 py-3 rounded-full outline-none border border-white/10 focus:border-blue-500 transition-colors shadow-inner" onkeydown="if(event.key==='Enter') document.getElementById('browser-frame').src = this.value">
+                <button onclick="document.getElementById('browser-frame').src = document.getElementById('browser-url').value" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center active:bg-white/20 transition-colors">▶</button>
+            </div>
+            <iframe id="browser-frame" src="${defaultUrl}" class="flex-1 w-full bg-white border-none shadow-inner"></iframe>
+        </div>`;
+}
+
+// --- FILES (VFS) ---
+function renderFS(el) {
+    const p = state.curUser.fsPath || '/';
+    let content = '';
+    const dir = state.curUser.fs[p];
+    if (dir && dir.children) {
+        content = dir.children.map(c => {
+            const fullPath = p === '/' ? '/' + c : p + '/' + c;
+            const node = state.curUser.fs[fullPath];
+            const isDir = node && node.type === 'dir';
+            return `
+                <div class="p-4 bg-[#1a1a24] rounded-2xl flex items-center justify-between cursor-pointer hover:bg-white/10 border border-white/5 transition-colors" onclick="${isDir ? `state.curUser.fsPath='${fullPath}';renderFS(document.getElementById('body_files'))` : `openModal('edit_fs_file', {path: '${fullPath}', name: '${c}', parentPath: '${p}'})`}">
+                    <div class="flex items-center gap-4">
+                        <span class="text-3xl">${isDir ? '📁' : '📄'}</span>
+                        <div>
+                            <p class="font-semibold text-sm text-white/90">${c}</p>
+                            <p class="text-[9px] text-white/40 uppercase tracking-widest mt-1">${isDir ? 'Folder' : 'File'}</p>
+                        </div>
+                    </div>
+                    <span class="text-white/20 text-xl font-light">❯</span>
+                </div>
+            `;
+        }).join('');
+    }
+    el.innerHTML = `
+        <div class="h-full bg-[#0f0f13] flex flex-col">
+            <div class="p-5 bg-gradient-to-b from-[#1a1a24] to-transparent flex items-center justify-between shrink-0 pb-6">
+                <div class="flex items-center gap-4">
+                    ${p !== '/' ? `<button onclick="state.curUser.fsPath='${p.substring(0, p.lastIndexOf('/')) || '/'}';renderFS(document.getElementById('body_files'))" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center shadow hover:bg-white/10 transition-colors">⬅</button>` : `<div class="w-10 h-10 flex items-center justify-center text-2xl">🗄️</div>`}
+                    <div><p class="text-[10px] text-white/50 font-bold uppercase tracking-[0.2em]">Storage</p><h2 class="text-lg font-bold truncate tracking-wide max-w-[150px]">${p}</h2></div>
+                </div>
+                <button onclick="openModal('create_fs_item', {path: '${p}'})" class="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center text-xl shadow-lg hover:bg-purple-500 transition-colors">+</button>
+            </div>
+            <div class="flex-1 p-5 space-y-3 overflow-y-auto no-scrollbar">${content || '<div class="text-center text-white/30 text-xs font-bold uppercase tracking-widest mt-10">Empty Folder</div>'}</div>
+        </div>`;
+}
+
+// --- NOTES ---
+function renderNotes(el) {
+    const notes = state.curUser.notes || [];
+    el.innerHTML = `
+        <div class="h-full bg-[#111116] flex flex-col">
+            <div class="p-6 bg-[#1a1a24] border-b border-orange-500/20 shrink-0 flex justify-between items-center">
+                <h2 class="text-2xl font-black text-orange-400 tracking-tighter">Notes</h2>
+                <button onclick="addNote()" class="w-10 h-10 rounded-full bg-orange-500 text-black text-xl font-bold flex items-center justify-center shadow-lg shadow-orange-500/20 hover:scale-105 transition-transform">+</button>
+            </div>
+            <div class="flex-1 p-5 grid grid-cols-2 gap-4 overflow-y-auto content-start">
+                ${notes.map(n => `
+                    <div class="bg-orange-200 text-black p-5 rounded-[24px] shadow-lg h-40 overflow-hidden relative cursor-pointer hover:scale-[1.02] transition-transform flex flex-col" onclick="viewNote(${n.id})">
+                        <h4 class="font-black text-sm mb-2 leading-tight truncate">${n.title}</h4>
+                        <p class="text-xs opacity-80 leading-relaxed overflow-hidden flex-1">${n.content}</p>
+                    </div>
+                `).join('') || '<div class="col-span-2 text-center text-white/40 text-xs font-bold uppercase tracking-widest mt-10">No notes yet.</div>'}
+            </div>
+        </div>`;
+}
+
+function addNote() { openModal('note_edit', { id: null, title: '', content: '' }); }
+function viewNote(id) { const note = state.curUser.notes.find(n => n.id === id); if(note) openModal('note_edit', note); }
+
+function saveNote(id) {
+    const title = document.getElementById('note-title').value || 'Untitled';
+    const content = document.getElementById('note-content').value;
+    if(!state.curUser.notes) state.curUser.notes = [];
+    
+    if(id) {
+        const note = state.curUser.notes.find(n => n.id === id);
+        if(note) { note.title = title; note.content = content; }
+    } else {
+        state.curUser.notes.push({ id: Date.now(), title, content });
+    }
+    saveData(); renderNotes(document.getElementById('body_notes')); closeModal();
+}
+
+function deleteNote(id) {
+    state.curUser.notes = state.curUser.notes.filter(n => n.id !== id);
+    saveData(); renderNotes(document.getElementById('body_notes')); closeModal();
+}
+
+// --- CAMERA ---
+function renderCamera(el) {
+    const thumbUrl = (state.curUser.gallery && state.curUser.gallery.length > 0) ? state.curUser.gallery[0] : 'https://images.unsplash.com/photo-1620121692029-d088224ddc74?w=100';
+    el.innerHTML = `
+        <div class="h-full bg-black flex flex-col relative overflow-hidden">
+            <video id="cam-video" class="flex-1 object-cover bg-zinc-900 w-full h-full" autoplay playsinline></video>
+            <div class="absolute top-4 left-0 w-full flex justify-between px-6 z-10">
+                <button class="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur">⚙️</button>
+                <button class="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur">⚡</button>
+            </div>
+            <div class="h-40 bg-gradient-to-t from-black via-black/80 to-transparent flex items-center justify-center gap-12 shrink-0 absolute bottom-0 w-full z-10 pb-6">
+                <button class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center backdrop-blur hover:bg-white/20 transition-colors">🔄</button>
+                <button onclick="capturePhoto()" class="w-20 h-20 rounded-full border-[6px] border-white/50 flex items-center justify-center bg-white hover:bg-white/80 active:scale-90 transition-all shadow-[0_0_30px_rgba(255,255,255,0.3)]"></button>
+                <div id="cam-thumb" onclick="launchApp('gallery')" class="w-12 h-12 rounded-full bg-cover bg-center border-2 border-white/20 cursor-pointer" style="background-image:url('${thumbUrl}')"></div>
+            </div>
+        </div>`;
+    
+    // Attempt to access webcam
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+            .then(stream => { 
+                const v = document.getElementById('cam-video'); 
+                if(v) { v.srcObject = stream; state.cameraStream = stream; } 
+            })
+            .catch(e => { 
+                const v = document.getElementById('cam-video'); 
+                if(v) { v.outerHTML = '<div class="flex-1 flex items-center justify-center bg-zinc-900 text-white/50 text-xs font-bold uppercase tracking-widest text-center px-8 w-full h-full">Camera Access Denied or Unavailable</div>'; }
+            });
+    }
+}
+
+function capturePhoto() {
+    const v = document.getElementById('cam-video');
+    if (!v || !v.videoWidth) return openModal('alert', {msg: "Camera not ready"});
+    const canvas = document.createElement('canvas');
+    canvas.width = v.videoWidth; canvas.height = v.videoHeight;
+    canvas.getContext('2d').drawImage(v, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    if(!state.curUser.gallery) state.curUser.gallery = [];
+    state.curUser.gallery.unshift(dataUrl);
+    saveData();
+    
+    // Flash effect
+    const flash = document.createElement('div');
+    flash.className = "absolute inset-0 bg-white z-50 transition-opacity duration-200 pointer-events-none";
+    v.parentElement.appendChild(flash);
+    setTimeout(() => flash.style.opacity = '0', 50);
+    setTimeout(() => flash.remove(), 250);
+    
+    const thumb = document.getElementById('cam-thumb');
+    if(thumb) thumb.style.backgroundImage = `url('${dataUrl}')`;
+}
+
+// --- GALLERY ---
+function renderGallery(el, view = 'grid', imgIdx = 0) {
+    const pics = state.curUser.gallery || [];
+    if (view === 'grid') {
+        el.innerHTML = `
+            <div class="h-full bg-black flex flex-col relative">
+                <div class="p-6 flex items-center justify-between shrink-0 bg-gradient-to-b from-black/90 to-transparent absolute top-0 w-full z-10 pointer-events-none">
+                    <h2 class="text-2xl font-black text-white shadow-black drop-shadow-xl tracking-tighter">Photos</h2>
+                    <button class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center backdrop-blur pointer-events-auto">🔍</button>
+                </div>
+                <div class="flex-1 grid grid-cols-3 gap-[2px] overflow-y-auto no-scrollbar pt-24 bg-black content-start">
+                    ${pics.map((src, i) => `
+                        <div class="aspect-square bg-zinc-800 bg-cover bg-center cursor-pointer hover:opacity-80 transition-opacity" style="background-image:url('${src}')" onclick="renderGallery(document.getElementById('body_gallery'), 'viewer', ${i})"></div>
+                    `).join('') || '<div class="col-span-3 text-center text-white/40 text-xs font-bold uppercase tracking-widest mt-10">No photos</div>'}
+                </div>
+            </div>`;
+    } else if (view === 'viewer') {
+        el.innerHTML = `
+            <div class="h-full bg-black flex flex-col relative">
+                <div class="p-4 flex items-center justify-between shrink-0 bg-gradient-to-b from-black/90 to-transparent absolute top-0 w-full z-10 transition-opacity" id="gallery-toolbar">
+                    <button onclick="renderGallery(document.getElementById('body_gallery'), 'grid')" class="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur hover:bg-black/70">⬅</button>
+                </div>
+                <div class="flex-1 flex items-center justify-center overflow-hidden bg-black cursor-pointer" onclick="document.getElementById('gallery-toolbar').classList.toggle('opacity-0'); document.getElementById('gallery-toolbar-bot').classList.toggle('opacity-0');">
+                    <img src="${pics[imgIdx]}" class="max-w-full max-h-full object-contain">
+                </div>
+                <div class="absolute bottom-0 w-full p-6 flex justify-between bg-gradient-to-t from-black/90 to-transparent transition-opacity" id="gallery-toolbar-bot">
+                    ${imgIdx > 0 ? `<button onclick="renderGallery(document.getElementById('body_gallery'), 'viewer', ${imgIdx - 1})" class="px-5 py-3 bg-white/10 text-white rounded-full backdrop-blur text-xs font-bold uppercase tracking-widest hover:bg-white/20 transition-colors">Prev</button>` : '<div></div>'}
+                    ${imgIdx < pics.length - 1 ? `<button onclick="renderGallery(document.getElementById('body_gallery'), 'viewer', ${imgIdx + 1})" class="px-5 py-3 bg-white/10 text-white rounded-full backdrop-blur text-xs font-bold uppercase tracking-widest hover:bg-white/20 transition-colors">Next</button>` : '<div></div>'}
+                </div>
+            </div>`;
+    }
+}
+
+// --- CALC ---
+function renderCalc(el) {
+    el.innerHTML = `
+        <div class="h-full flex flex-col bg-[#050508] p-6">
+            <div class="flex-1 flex flex-col justify-end items-end text-white text-7xl font-light pb-8 px-4 overflow-hidden break-all"><span id="calc-res">0</span></div>
+            <div class="grid grid-cols-4 gap-4">
+                ${['C','/','*','-','7','8','9','+','4','5','6','=','1','2','3','0','.','DEL'].map(k => {
+                    let bg = 'bg-[#1a1a24]'; if (['/','*','-','+','='].includes(k)) bg = 'bg-purple-600'; if (['C','DEL'].includes(k)) bg = 'bg-red-500/80';
+                    return `<button onclick="runCalc('${k}')" class="h-20 rounded-full text-2xl font-semibold text-white ${bg} active:scale-90 transition-transform shadow-md">${k}</button>`;
+                }).join('')}
+            </div>
+        </div>`;
+}
+function runCalc(k) {
+    const res = document.getElementById('calc-res'); if (!res) return;
+    if (k === 'C') res.innerText = "0"; else if (k === 'DEL') res.innerText = res.innerText.length > 1 ? res.innerText.slice(0, -1) : "0";
+    else if (k === '=') { try { const s = res.innerText.replace(/[^-()\d/*+.]/g, ''); res.innerText = Function(`'use strict'; return (${s})`)(); } catch { res.innerText = "Error"; } }
+    else res.innerText = res.innerText === "0" ? k : res.innerText + k;
+}
+
+// --- MODALS ---
+function openModal(type, data={}) {
+    const m = document.getElementById('modal'), b = document.getElementById('modal-body');
+    m.classList.remove('hidden'); m.classList.add('flex'); m.style.animation = "fadeScale 0.3s var(--m3-spring)";
+    if (type === 'create_user') {
+        b.innerHTML = `
+            <h2 class="text-2xl font-black mb-6 text-center text-white/90">New Profile</h2>
+            <input id="nu-name" placeholder="Profile Name" class="w-full p-4 bg-black rounded-2xl mb-4 text-white text-sm border border-white/10 outline-none text-center focus:border-purple-500 transition-colors">
+            <input id="nu-pin" placeholder="4-Digit PIN" maxlength="4" type="password" class="w-full p-4 bg-black rounded-2xl mb-8 text-white text-sm border border-white/10 outline-none text-center tracking-widest font-mono focus:border-purple-500 transition-colors">
+            <div class="flex gap-4">
+                <button onclick="closeModal()" class="flex-1 font-bold text-[10px] uppercase tracking-widest text-white/40 hover:text-white transition-colors">Cancel</button>
+                <button onclick="createNewUser()" class="flex-1 py-4 bg-white text-black rounded-2xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-transform">Create</button>
+            </div>`;
+    } else if (type === 'create_fs_item') {
+        b.innerHTML = `
+            <h2 class="text-xl font-bold text-white/90 mb-6 truncate">New Item in ${data.path}</h2>
+            <div class="flex gap-2 mb-4">
+                <button id="btn-type-file" onclick="setFSType('file')" class="flex-1 py-3 bg-purple-600 rounded-xl text-xs font-bold transition-colors">File</button>
+                <button id="btn-type-dir" onclick="setFSType('dir')" class="flex-1 py-3 bg-white/10 rounded-xl text-xs font-bold transition-colors">Folder</button>
+            </div>
+            <input id="fs-item-name" placeholder="Name (e.g., info.txt)" class="w-full p-4 bg-black rounded-xl mb-4 text-white text-sm border border-white/10 outline-none">
+            <textarea id="fs-item-content" placeholder="File contents..." class="w-full h-32 p-4 bg-black rounded-xl mb-6 text-white text-sm border border-white/10 outline-none resize-none"></textarea>
+            <input type="hidden" id="fs-item-type" value="file">
+            <div class="flex gap-4">
+                <button onclick="closeModal()" class="flex-1 font-bold text-[10px] uppercase tracking-widest text-white/40 hover:text-white transition-colors">Cancel</button>
+                <button onclick="createFSNode('${data.path}')" class="flex-1 py-4 bg-purple-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-transform">Create</button>
+            </div>`;
+    } else if (type === 'edit_fs_file') {
+        b.innerHTML = `
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-white/90 truncate mr-4">Edit ${data.name}</h2>
+                <button onclick="deleteFSNode('${data.path}', '${data.parentPath}')" class="text-red-400 text-xs font-bold uppercase tracking-widest hover:text-red-300 bg-red-400/10 px-3 py-1.5 rounded-lg shrink-0">Delete</button>
+            </div>
+            <textarea id="fs-edit-content" class="w-full h-48 p-4 bg-[#111116] rounded-xl mb-6 text-white text-xs font-mono border-none outline-none resize-none focus:bg-[#1a1a24] transition-colors">${state.curUser.fs[data.path].content}</textarea>
+            <div class="flex gap-4">
+                <button onclick="closeModal()" class="flex-1 font-bold text-[10px] uppercase tracking-widest text-white/40 hover:text-white transition-colors">Cancel</button>
+                <button onclick="saveFSFile('${data.path}')" class="flex-1 py-4 bg-purple-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-transform">Save</button>
+            </div>`;
+    } else if (type === 'new_contact') {
+        b.innerHTML = `
+            <h2 class="text-2xl font-black mb-6 text-center text-white/90">New Message</h2>
+            <input id="nc-name" placeholder="Contact Name" class="w-full p-4 bg-black rounded-2xl mb-4 text-white text-sm border border-white/10 outline-none focus:border-blue-500 transition-colors">
+            <input id="nc-phone" placeholder="Phone Number" class="w-full p-4 bg-black rounded-2xl mb-8 text-white text-sm border border-white/10 outline-none focus:border-blue-500 transition-colors">
+            <div class="flex gap-4">
+                <button onclick="closeModal()" class="flex-1 font-bold text-[10px] uppercase tracking-widest text-white/40 hover:text-white transition-colors">Cancel</button>
+                <button onclick="createNewContact()" class="flex-1 py-4 bg-blue-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-transform">Start Chat</button>
+            </div>`;
+    } else if (type === 'note_edit') {
+        b.innerHTML = `
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-white/90">${data.id ? 'Edit Note' : 'New Note'}</h2>
+                ${data.id ? `<button onclick="deleteNote(${data.id})" class="text-red-400 text-xs font-bold uppercase tracking-widest hover:text-red-300 transition-colors bg-red-400/10 px-3 py-1.5 rounded-lg">Delete</button>` : ''}
+            </div>
+            <input id="note-title" placeholder="Note Title" value="${data.title || ''}" class="w-full p-4 bg-[#111116] rounded-t-2xl mb-[1px] text-white text-sm border-none outline-none focus:bg-[#1a1a24] transition-colors font-bold">
+            <textarea id="note-content" placeholder="Start typing..." class="w-full h-48 p-4 bg-[#111116] rounded-b-2xl mb-6 text-white text-sm border-none outline-none resize-none focus:bg-[#1a1a24] transition-colors">${data.content || ''}</textarea>
+            <div class="flex gap-4">
+                <button onclick="closeModal()" class="flex-1 font-bold text-[10px] uppercase tracking-widest text-white/40 hover:text-white transition-colors">Cancel</button>
+                <button onclick="saveNote(${data.id || 'null'})" class="flex-1 py-4 bg-orange-500 text-black rounded-2xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-transform">Save Note</button>
+            </div>`;
+    } else if (type === 'alert') {
+        b.innerHTML = `<div class="text-center py-4"><h2 class="text-lg font-bold mb-8 text-white/90">${data.msg}</h2><button onclick="closeModal()" class="w-full py-4 bg-white/10 text-white rounded-2xl font-bold uppercase tracking-widest text-[11px] hover:bg-white/20 transition-colors">Acknowledge</button></div>`;
+    }
+}
+function closeModal() { const m = document.getElementById('modal'); m.style.animation = "fadeScale 0.2s reverse"; setTimeout(() => { m.classList.replace('flex', 'hidden'); m.style.animation=""; }, 190); }
+function createNewUser() {
+    const n = document.getElementById('nu-name').value; const p = document.getElementById('nu-pin').value;
+    if (!n || p.length < 4) return openModal('alert', {msg: "Invalid Name or PIN"});
+    const colors = ['#3b82f6', '#10b981', '#ec4899', '#f59e0b', '#8b5cf6', '#ef4444'];
+    state.users.push({
+        id: 'u_' + Date.now(), name: n, pin: p, color: colors[Math.floor(Math.random()*colors.length)], settings: { ...DEFAULT_SETTINGS },
+        fs: {'/':{type:'dir',children:['Docs']},'/Docs':{type:'dir',children:[]}}, chrome: { activeTabId: 0, tabs: [{id:0, title:'Google', url:'https://www.google.com/search?igu=1'}] },
+        notes: [], contacts: [], groups: [], installedApps: [], gallery: [...galleryImages]
+    });
+    saveData(); renderUserGrid(); closeModal();
+}
+
+// File System Helpers
+function setFSType(t) {
+    document.getElementById('fs-item-type').value = t;
+    document.getElementById('btn-type-file').className = `flex-1 py-3 rounded-xl text-xs font-bold transition-colors ${t==='file'?'bg-purple-600':'bg-white/10'}`;
+    document.getElementById('btn-type-dir').className = `flex-1 py-3 rounded-xl text-xs font-bold transition-colors ${t==='dir'?'bg-purple-600':'bg-white/10'}`;
+    document.getElementById('fs-item-content').style.display = t==='file' ? 'block' : 'none';
+    document.getElementById('fs-item-name').placeholder = t==='file' ? "Name (e.g., info.txt)" : "Folder Name";
+}
+
+function createFSNode(parentPath) {
+    let name = document.getElementById('fs-item-name').value.trim();
+    const type = document.getElementById('fs-item-type').value;
+    const content = document.getElementById('fs-item-content').value;
+    if(!name || name.includes('/')) return openModal('alert', {msg: "Invalid name"});
+    
+    const fullPath = parentPath === '/' ? '/' + name : parentPath + '/' + name;
+    if(state.curUser.fs[fullPath]) return openModal('alert', {msg: "Item already exists"});
+    
+    state.curUser.fs[parentPath].children.push(name);
+    state.curUser.fs[fullPath] = type === 'dir' ? { type: 'dir', children: [] } : { type: 'file', content };
+    
+    saveData();
+    closeModal();
+    renderFS(document.getElementById('body_files'));
+}
+
+function saveFSFile(path) {
+    state.curUser.fs[path].content = document.getElementById('fs-edit-content').value;
+    saveData();
+    closeModal();
+}
+
+function deleteFSNode(path, parentPath) {
+    delete state.curUser.fs[path];
+    Object.keys(state.curUser.fs).forEach(k => { if(k.startsWith(path+'/')) delete state.curUser.fs[k]; });
+    state.curUser.fs[parentPath].children = state.curUser.fs[parentPath].children.filter(c => c !== path.split('/').pop());
+    saveData();
+    closeModal();
+    renderFS(document.getElementById('body_files'));
+}
+
+// Contact Helpers
+function createNewContact() {
+    const n = document.getElementById('nc-name').value;
+    const p = document.getElementById('nc-phone').value;
+    if (!n) return openModal('alert', {msg: "Enter a name"});
+    const id = 'c_' + Date.now();
+    const colors = ['#3b82f6', '#10b981', '#ec4899', '#f59e0b', '#8b5cf6'];
+    const color = colors[Math.floor(Math.random()*colors.length)];
+    state.curUser.contacts.push({
+        id, name: n, num: p, color, initial: n[0].toUpperCase(), messages: []
+    });
+    saveData();
+    closeModal();
+    renderMessages(document.getElementById('body_msgs'), 'thread', id);
+}
+
+// --- GESTURES ---
+window.addEventListener('touchstart', e => { state.touch.y = e.touches[0].clientY; state.touch.startY = e.touches[0].clientY; });
+window.addEventListener('touchend', e => {
+    const dy = e.changedTouches[0].clientY - state.touch.startY;
+    if (dy < -65 && state.touch.startY > window.innerHeight - 150 && state.curUser && !document.getElementById('shade').classList.contains('active')) { safeShowLayer('drawer'); renderDrawer(); }
+    if (dy < -65 && document.getElementById('shade').classList.contains('active')) document.getElementById('shade').classList.remove('active');
+    else if (dy > 65 && state.touch.startY < 50) document.getElementById('shade').classList.add('active');
+});
+
+</script>
+</body>
+</html>    </div>
 
     <!-- LAYER: LOCKSCREEN -->
     <div id="l-lock" class="layer items-center justify-between py-24 os-wallpaper">

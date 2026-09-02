@@ -72,6 +72,12 @@
         /* Brightness Filter Overlay & Ghost */
         #brightness-overlay { position: fixed; inset: 0; background: black; pointer-events: none; z-index: 9999999; opacity: 0; transition: opacity 0.2s; }
         #drag-ghost { position: fixed; pointer-events: none; z-index: 2000000; width: 62px; height: 62px; border-radius: var(--icon-radius); opacity: 0.9; display: none; box-shadow: 0 15px 35px rgba(0,0,0,0.6); transition: border-radius 0.3s; flex-direction: column; align-items: center; justify-content: center; font-size: 30px; }
+
+        /* Responsive tablet workspaces, snapping, and phone-style fullscreen */
+        :root{--desktop-taskbar-h:74px}.window-controls,#desktop-taskbar,#desktop-switcher{display:none}
+        @media(min-width:768px){:root{--nav-h:0px}body.desktop-separate #l-home:not(.workspace-visible){display:none!important}#global-nav{display:none!important}#home-grid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr));padding:54px 42px 132px}#dock{margin-bottom:86px;max-width:720px;width:calc(100% - 48px);align-self:center}#app-viewport{inset:var(--status-h) 0 var(--desktop-taskbar-h);overflow:hidden;pointer-events:none!important}.app-window{pointer-events:auto;inset:auto;width:min(800px,78vw);height:min(650px,calc(100vh - 135px));left:50%;top:50%;transform:translate(-50%,-50%);padding:0;border:1px solid rgba(255,255,255,.16);border-radius:22px;box-shadow:0 28px 90px #000b;resize:both;min-width:340px;min-height:260px}.app-window.maximized,.app-window.phone-fullscreen{left:0!important;top:0!important;width:100%!important;height:100%!important;transform:none!important;border-radius:0;resize:none}.app-window.phone-fullscreen{padding-top:var(--status-h);padding-bottom:64px}.app-window.phone-fullscreen:after{content:'‹     ◯     ▢';position:absolute;bottom:0;left:0;right:0;height:64px;background:#08080b;display:flex;align-items:center;justify-content:center;word-spacing:80px;font-size:22px;z-index:80;border-top:1px solid #ffffff14}.window-controls{display:flex;gap:7px}.window-control{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#ffffff14}.window-control:hover{background:#ffffff26}.window-control.close:hover{background:#ef4444}.window-drag-handle{cursor:grab;touch-action:none}#desktop-taskbar{position:fixed;display:flex;bottom:0;left:0;right:0;height:var(--desktop-taskbar-h);z-index:999998;align-items:center;justify-content:center;pointer-events:none}#desktop-taskbar-inner{pointer-events:auto;height:58px;padding:7px 11px;display:flex;align-items:center;gap:8px;background:#121218d9;border:1px solid #ffffff1f;border-radius:21px;backdrop-filter:blur(30px)}.task-app,.desk-btn{width:43px;height:43px;border-radius:13px;display:grid;place-items:center;background:#ffffff14;border:1px solid transparent;position:relative}.task-app.running:after{content:'';position:absolute;bottom:3px;width:5px;height:5px;border-radius:50%;background:var(--sys-primary)}.task-app.focused,.desk-btn.active{border-color:#ffffff55;background:#ffffff26}#desktop-switcher{display:flex;gap:5px;margin-left:6px;padding-left:10px;border-left:1px solid #ffffff22}.snap-preview{position:fixed;background:#8b5cf638;border:2px solid #a78bfa;border-radius:18px;z-index:49999;pointer-events:none}}
+#window-workspace-bg{display:none;position:fixed;inset:var(--status-h) 0 var(--desktop-taskbar-h);z-index:9;background:linear-gradient(135deg,#151722,#07080c)}body.desktop-separate #window-workspace-bg{display:block}.phone-exit-fullscreen{display:none}.phone-fullscreen .window-controls{display:none!important}.phone-fullscreen .phone-exit-fullscreen{display:grid!important;width:34px;height:34px;border-radius:50%;place-items:center;background:#ffffff16}@media(min-width:768px){body.desktop-separate #l-home{display:none!important}#l-recents #recents-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));align-content:center;overflow:auto;height:100%;gap:20px;padding:70px 34px 130px}.recent-card{min-width:0;width:100%;height:min(44vh,420px)}}
+        #toast-stack{position:fixed;right:18px;top:48px;z-index:3000000;display:flex;flex-direction:column;gap:10px;pointer-events:none}.notify-toast{width:min(360px,calc(100vw - 36px));padding:14px 16px;border-radius:18px;background:rgba(24,24,30,.94);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(22px);box-shadow:0 16px 45px rgba(0,0,0,.5);animation:toastIn .28s var(--m3-spring)}@keyframes toastIn{from{opacity:0;transform:translateY(-16px) scale(.96)}to{opacity:1;transform:none}}.gallery-hidden{display:none!important}
     </style>
 </head>
 <body onload="initSystem()">
@@ -79,6 +85,7 @@
 <!-- Screen Brightness Dimmer Overlay -->
 <div id="brightness-overlay"></div>
 
+<div id="toast-stack"></div>
 <div id="os-container" class="w-full h-full relative overflow-hidden bg-black text-white">
 
     <!-- LAYER: BOOTING -->
@@ -160,6 +167,7 @@
             <div id="qs-dnd" class="qs-pill" onclick="toggleQuickSetting('dnd')"><span class="text-xl">🌙</span><p class="text-[10px] font-bold uppercase tracking-wider">DND</p></div>
         </div>
         
+        <div class="glass-panel p-4 mt-4"><div class="flex justify-between items-center mb-3"><b class="text-xs">Notifications</b><button onclick="clearNotifications()" class="text-[9px] uppercase opacity-50">Clear</button></div><div id="notification-list" class="space-y-2"><p class="text-[10px] opacity-40">No notifications</p></div></div>
         <!-- Live VFS Quick Notification -->
         <div class="glass-panel p-4 mt-4">
             <div class="flex justify-between items-center text-xs font-bold mb-1">
@@ -187,6 +195,7 @@
         <div class="nav-btn" onclick="handleRecents()"><div class="nav-recents"></div></div>
     </div>
 
+    <div id="window-workspace-bg"></div><div id="snap-preview" class="snap-preview hidden"></div><div id="desktop-taskbar"><div id="desktop-taskbar-inner"><button class="task-app" onclick="showDesktopHome()" title="Home">⌂</button><div id="desktop-running-apps" class="flex gap-2"></div><div id="desktop-switcher"></div><button class="desk-btn" onclick="addDesktop()" title="New desktop">＋</button></div></div>
     <!-- MODAL -->
     <div id="modal" class="fixed inset-0 z-[2000000] bg-black/80 backdrop-blur-md hidden items-center justify-center p-6">
         <div id="modal-body" class="bg-[#15151a] border border-white/10 w-full max-w-sm rounded-[32px] p-8 shadow-2xl"></div>
@@ -209,7 +218,9 @@ const DEFAULT_SETTINGS = {
     wifiEnabled: true,
     soundMode: 'ring',
     torchOn: false,
-    dndOn: false
+    dndOn: false,
+    windowWorkspace: 'integrated',
+    desktopCount: 2
 };
 
 const state = {
@@ -220,6 +231,7 @@ const state = {
     cameraStream: null,
     callInterval: null,
     touch: { y: 0, startY: 0 },
+    currentDesktop: 1,
     appLib: [
         { id: 'phone', name: 'Phone', icon: '📞', color: '#10b981' },
         { id: 'msgs', name: 'Messages', icon: '💬', color: '#3b82f6' },
@@ -250,7 +262,7 @@ function initSystem() {
     try { const stored = localStorage.getItem(STORAGE_KEY); if (stored) state.users = JSON.parse(stored); } catch(e){}
     
     if (state.users && state.users.length > 0) {
-        state.users.forEach(u => { if (!u.gallery) u.gallery = [...galleryImages]; });
+        state.users.forEach(u => { if (!u.gallery) u.gallery = [...galleryImages]; if(!u.settings.windowWorkspace) u.settings.windowWorkspace='integrated'; if(!u.settings.desktopCount) u.settings.desktopCount=2; if(!u.notifications)u.notifications=[]; syncGalleryToPictures(u); });
     }
 
     if (!state.users || state.users.length === 0) {
@@ -394,9 +406,12 @@ function attemptLogin() {
     else { state.pinBuffer = ""; updatePinDots(); const pd = document.getElementById('pin-dots'); pd.classList.add('animate-bounce'); setTimeout(() => pd.classList.remove('animate-bounce'), 500); }
 }
 
-function safeShowLayer(id) {
-    document.querySelectorAll('.layer').forEach(l => l.classList.remove('active'));
-    const target = document.getElementById(`l-${id}`); if (target) target.classList.add('active');
+function safeShowLayer(id) {  
+    document.querySelectorAll('.layer').forEach(l => l.classList.remove('active'));  
+    const desktopApp = matchMedia('(min-width: 768px)').matches && id === 'app';
+    const integrated = state.curUser?.settings?.windowWorkspace !== 'separate';
+    const target = document.getElementById(desktopApp && integrated ? 'l-home' : `l-${id}`);
+    if (target) target.classList.add('active');  
     const viewport = document.getElementById('app-viewport');
     if (id === 'app' || state.activeApps.length > 0) viewport.classList.remove('pointer-events-none');
     else viewport.classList.add('pointer-events-none');
@@ -555,10 +570,9 @@ function removeFromGroup(appId) {
     }
 }
 
-function renameGroup(groupId, newName) {
-    const g = state.curUser.groups.find(x => x.id === groupId);
-    if(g) { g.name = newName; saveData(); renderDesktop(); }
-}
+function renameGroup(groupId,newName){const g=state.curUser.groups.find(x=>x.id===groupId),clean=(newName||'').trim();if(g&&clean){g.name=clean;saveData();renderDesktop();}}
+function setGroupColor(groupId,color){const g=state.curUser.groups.find(x=>x.id===groupId);if(!g)return;g.color=color;saveData();renderDesktop();renderAppUI(groupId,g);}
+function removeAppFromFolder(groupId,appId){const g=state.curUser.groups.find(x=>x.id===groupId);if(!g)return;g.apps=g.apps.filter(a=>a.id!==appId);if(!g.apps.length){state.curUser.groups=state.curUser.groups.filter(x=>x.id!==groupId);closeApp(groupId);}else renderAppUI(groupId,g);saveData();renderDesktop();}
 
 // --- WINDOW MANAGER ---
 
@@ -581,37 +595,38 @@ function launchApp(id) {
     win.id = `win_${id}`; win.className = "app-window active";
     
     let header = `
-        <div class="h-14 flex items-center justify-between px-6 bg-[#0a0a0c] border-b border-white/5 shrink-0 z-50 shadow-md">
+        <div class="window-drag-handle h-14 flex items-center justify-between px-6 bg-[#0a0a0c] border-b border-white/5 shrink-0 z-50 shadow-md" data-window-id="${id}">
             <div class="flex items-center gap-3"><span class="text-xl">${info.icon}</span><span class="text-[11px] font-bold uppercase tracking-widest text-white/60">${info.name}</span></div>
-            <button onclick="closeApp('${id}')" class="w-8 h-8 rounded-full bg-white/5 hover:bg-red-500/80 hover:text-white flex items-center justify-center text-xs transition-colors">✕</button>
+            <button onclick="event.stopPropagation();togglePhoneFullscreen('${id}')" class="phone-exit-fullscreen" title="Unfullscreen">⤢</button><div class="window-controls"><button onclick="event.stopPropagation();minimizeApp('${id}')" class="window-control">−</button><button onclick="event.stopPropagation();toggleMaximize('${id}')" class="window-control">□</button><button onclick="event.stopPropagation();togglePhoneFullscreen('${id}')" class="window-control" title="Phone fullscreen">▯</button><button onclick="event.stopPropagation();closeApp('${id}')" class="window-control close">✕</button></div><button onclick="closeApp('${id}')" class="md:hidden w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">✕</button>
         </div>`;
 
     if (info.isGroup) {
         header = `
-            <div class="h-14 flex items-center justify-between px-6 bg-[#0a0a0c] border-b border-white/5 shrink-0 z-50 shadow-md">
+            <div class="window-drag-handle h-14 flex items-center justify-between px-6 bg-[#0a0a0c] border-b border-white/5 shrink-0 z-50 shadow-md" data-window-id="${id}">
                 <input type="text" value="${info.name}" onchange="renameGroup('${info.id}', this.value)" class="bg-transparent text-[11px] font-bold uppercase tracking-widest text-white/90 outline-none w-full" placeholder="Folder Name" />
-                <button onclick="closeApp('${id}')" class="w-8 h-8 rounded-full bg-white/5 hover:bg-red-500/80 hover:text-white flex items-center justify-center text-xs transition-colors shrink-0 ml-4">✕</button>
+                <button onclick="event.stopPropagation();togglePhoneFullscreen('${id}')" class="phone-exit-fullscreen" title="Unfullscreen">⤢</button><div class="window-controls"><button onclick="event.stopPropagation();minimizeApp('${id}')" class="window-control">−</button><button onclick="event.stopPropagation();toggleMaximize('${id}')" class="window-control">□</button><button onclick="event.stopPropagation();togglePhoneFullscreen('${id}')" class="window-control" title="Phone fullscreen">▯</button><button onclick="event.stopPropagation();closeApp('${id}')" class="window-control close">✕</button></div><button onclick="closeApp('${id}')" class="md:hidden w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">✕</button>
             </div>`;
     }
 
     if (info.custom) {
-        win.innerHTML = `${header}<iframe id="body_${id}" srcdoc="${info.custom.replace(/"/g, '&quot;')}" class="flex-1 w-full border-none bg-white"></iframe>`;
+        const bridged=`<script>window.notify=(icon,title,body)=>parent.notify(icon,title,body);<\/script>${info.custom}`; win.innerHTML = `${header}<iframe id="body_${id}" srcdoc="${bridged.replace(/"/g, '&quot;')}" class="flex-1 w-full border-none bg-white"></iframe>`;
     } else {
         win.innerHTML = `${header}<div id="body_${id}" class="flex-1 overflow-hidden relative bg-[#0f0f13]"></div>`;
     }
     
     document.getElementById('app-viewport').appendChild(win);
-    state.activeApps.push({ id, el: win });
+    state.activeApps.push({id,el:win,minimized:false,desktop:state.currentDesktop}); enableWindowDragging(win); updateDesktopUI();
     
     if(!info.custom) renderAppUI(id, info);
     safeShowLayer('app');
 }
 
 function focusApp(id) {
-    document.querySelectorAll('.app-window').forEach(w => w.classList.remove('active'));
-    const win = document.getElementById(`win_${id}`);
-    if(win) win.classList.add('active');
-    safeShowLayer('app');
+    const desktop=matchMedia('(min-width: 768px)').matches;
+    if(!desktop)document.querySelectorAll('.app-window').forEach(w=>w.classList.remove('active'));
+    else document.querySelectorAll('.app-window').forEach(w=>w.style.zIndex='50000');
+    const win=document.getElementById(`win_${id}`);if(win){win.classList.add('active');win.style.zIndex='50010';const a=state.activeApps.find(x=>x.id===id);if(a){a.minimized=false;state.currentDesktop=a.desktop||1;}}
+    safeShowLayer('app');updateDesktopUI();
 }
 
 function closeApp(id) {
@@ -619,7 +634,7 @@ function closeApp(id) {
     if (id === 'phone') { clearTimeout(state.callInterval); clearInterval(state.callInterval2); state.callInterval = null; state.callInterval2 = null; }
     const win = document.getElementById(`win_${id}`);
     if (win) { win.style.animation = "fadeScale 0.3s reverse"; setTimeout(() => win.remove(), 280); }
-    state.activeApps = state.activeApps.filter(a => a.id !== id);
+    state.activeApps = state.activeApps.filter(a => a.id !== id); updateDesktopUI();
     if (state.activeApps.length === 0 && !document.getElementById('l-recents').classList.contains('active')) safeShowLayer('home');
 }
 
@@ -656,9 +671,23 @@ function handleRecents() {
         iframe.style.transform = `scale(${240 / window.innerWidth})`; iframe.style.width = `${window.innerWidth}px`; iframe.style.height = `${window.innerHeight - 100}px`;
         iframe.srcdoc = `<!DOCTYPE html><html><head><script src="https://cdn.tailwindcss.com"><\/script></head><body style="margin:0;background:#0f0f13;color:#fff;">${htmlSnap}</body></html>`;
         card.innerHTML = `<div class="absolute top-0 w-full h-16 bg-gradient-to-b from-black/90 to-transparent z-10 flex items-center px-5 gap-3"><span class="text-xl">${info.icon}</span><span class="text-[10px] font-bold uppercase tracking-widest drop-shadow-md">${info.name}</span></div>`;
-        card.appendChild(iframe); card.onclick = () => focusApp(a.id); list.appendChild(card);
+        card.appendChild(iframe);card.onclick=()=>{focusApp(a.id);if(isDesktopMode())state.activeApps.filter(x=>(x.desktop||1)===state.currentDesktop&&!x.minimized).forEach(x=>x.el.classList.add('active'));};list.appendChild(card);
     });
 }
+
+
+function isDesktopMode(){return matchMedia('(min-width:768px)').matches}
+function updateWindowWorkspace(mode){state.curUser.settings.windowWorkspace=mode;saveSettingsToVFS();renderSettings(document.getElementById('body_settings'),'windowing');showDesktopHome()}
+function showDesktopHome(){document.querySelectorAll('.app-window').forEach(w=>w.classList.remove('active'));safeShowLayer('home');updateDesktopUI()}
+function minimizeApp(id){const w=document.getElementById(`win_${id}`);if(w)w.classList.remove('active');const a=state.activeApps.find(x=>x.id===id);if(a)a.minimized=true;updateDesktopUI();safeShowLayer('home')}
+function toggleMaximize(id){const w=document.getElementById(`win_${id}`);if(w){w.classList.remove('phone-fullscreen');w.classList.toggle('maximized')}}
+function togglePhoneFullscreen(id){const w=document.getElementById(`win_${id}`);if(w){w.classList.remove('maximized');w.classList.toggle('phone-fullscreen')}}
+function addDesktop(){state.curUser.settings.desktopCount=Math.min(8,(state.curUser.settings.desktopCount||2)+1);state.currentDesktop=state.curUser.settings.desktopCount;saveSettingsToVFS();switchDesktop(state.currentDesktop)}
+function switchDesktop(n){state.currentDesktop=n;state.activeApps.forEach(a=>a.el.classList.toggle('active',(a.desktop||1)===n&&!a.minimized));safeShowLayer('app');updateDesktopUI()}
+function renderDesktopSwitcher(){const x=document.getElementById('desktop-switcher');if(!x||!state.curUser)return;x.innerHTML='';for(let i=1;i<=(state.curUser.settings.desktopCount||2);i++){const b=document.createElement('button');b.className='desk-btn'+(i===state.currentDesktop?' active':'');b.textContent=i;b.title='Desktop '+i;b.onclick=()=>switchDesktop(i);x.appendChild(b)}}
+function updateDesktopUI(){renderDesktopSwitcher();const l=document.getElementById('desktop-running-apps');if(!l)return;l.innerHTML='';state.activeApps.filter(a=>(a.desktop||1)===state.currentDesktop).forEach(a=>{let i=getFullAppList().find(x=>x.id===a.id)||(state.curUser?.groups||[]).find(x=>x.id===a.id);if(!i)return;const b=document.createElement('button');b.className='task-app running'+(a.el.classList.contains('active')?' focused':'');b.textContent=i.icon;b.onclick=()=>a.el.classList.contains('active')?minimizeApp(a.id):focusApp(a.id);l.appendChild(b)})}
+function snapWindow(w,zone){w.classList.remove('maximized','phone-fullscreen');w.style.transform='none';const W=innerWidth,H=innerHeight-106;let x=0,y=0,ww=W,hh=H;if(zone==='left')ww=W/2;if(zone==='right'){x=W/2;ww=W/2}if(zone==='tl'){ww=W/2;hh=H/2}if(zone==='tr'){x=W/2;ww=W/2;hh=H/2}if(zone==='bl'){y=H/2;ww=W/2;hh=H/2}if(zone==='br'){x=W/2;y=H/2;ww=W/2;hh=H/2}w.style.left=x+'px';w.style.top=y+'px';w.style.width=ww+'px';w.style.height=hh+'px'}
+function enableWindowDragging(w){const b=w.querySelector('.window-drag-handle');if(!b)return;b.addEventListener('dblclick',()=>toggleMaximize(w.id.replace('win_','')));b.addEventListener('pointerdown',e=>{if(!isDesktopMode()||w.classList.contains('maximized')||w.classList.contains('phone-fullscreen')||e.target.closest('button,input'))return;e.preventDefault();focusApp(w.id.replace('win_',''));const r=w.getBoundingClientRect(),ox=e.clientX-r.left,oy=e.clientY-r.top,pr=document.getElementById('snap-preview');w.style.transform='none';w.style.left=r.left+'px';w.style.top=r.top+'px';let zone='';const m=x=>{w.style.left=Math.max(0,Math.min(innerWidth-w.offsetWidth,x.clientX-ox))+'px';w.style.top=Math.max(0,Math.min(innerHeight-w.offsetHeight-74,x.clientY-oy))+'px';zone=x.clientX<28?(x.clientY<innerHeight/3?'tl':x.clientY>innerHeight*2/3?'bl':'left'):x.clientX>innerWidth-28?(x.clientY<innerHeight/3?'tr':x.clientY>innerHeight*2/3?'br':'right'):x.clientY<25?'max':'';pr.classList.toggle('hidden',!zone);if(zone){pr.style.cssText='';pr.className='snap-preview';let z=zone==='max'?'left:0;top:32px;width:100%;height:calc(100% - 106px)':zone.includes('l')||zone==='left'?'left:0;top:32px;width:50%;height:calc(100% - 106px)':'left:50%;top:32px;width:50%;height:calc(100% - 106px)';pr.style.cssText=z}};const u=()=>{removeEventListener('pointermove',m);removeEventListener('pointerup',u);pr.classList.add('hidden');if(zone==='max')toggleMaximize(w.id.replace('win_',''));else if(zone)snapWindow(w,zone)};addEventListener('pointermove',m);addEventListener('pointerup',u)})}
 
 // --- MASTER APP ROUTER ---
 
@@ -666,15 +695,8 @@ function renderAppUI(id, app) {
     const body = document.getElementById(`body_${id}`); if(!body) return;
     
     if (app.isGroup) {
-        body.innerHTML = `
-            <div class="h-full p-8 grid grid-cols-4 gap-6 content-start bg-[#0f0f13]">
-                ${app.apps.map(ga => `
-                    <div class="icon-wrap" data-id="${ga.id}" onclick="launchApp('${ga.id}')" onpointerdown="startFolderIconDrag(event, '${ga.id}', '${app.id}')">
-                        <div class="icon-box" style="background:${ga.color};">${ga.icon}</div>
-                        <span class="icon-label">${ga.name}</span>
-                    </div>
-                `).join('')}
-            </div>`;
+        const folderColors=['rgba(255,255,255,0.12)','#6d28d9','#2563eb','#059669','#db2777','#d97706','#3f3f46'];
+        body.innerHTML = `<div class="h-full bg-[#0f0f13] flex flex-col"><div class="p-4 border-b border-white/10 bg-[#15151b] flex flex-wrap items-center gap-3"><input value="${app.name}" onkeydown="if(event.key==='Enter')this.blur()" onchange="renameGroup('${app.id}',this.value)" class="flex-1 min-w-[150px] bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold" aria-label="Folder name"><div class="flex gap-2">${folderColors.map(c=>`<button onclick="setGroupColor('${app.id}','${c}')" class="w-8 h-8 rounded-full border-2 ${app.color===c?'border-white':'border-transparent'}" style="background:${c}" title="Set folder color"></button>`).join('')}</div></div><div class="flex-1 p-8 grid grid-cols-4 gap-6 content-start overflow-y-auto">${app.apps.map(ga=>`<div class="flex flex-col items-center"><div class="icon-wrap" data-id="${ga.id}" onclick="launchApp('${ga.id}')" onpointerdown="startFolderIconDrag(event,'${ga.id}','${app.id}')"><div class="icon-box" style="background:${ga.color};">${ga.icon}</div><span class="icon-label">${ga.name}</span></div><button onclick="event.stopPropagation();removeAppFromFolder('${app.id}','${ga.id}')" class="mt-1 px-3 py-1 rounded-full bg-red-500/15 text-red-300 text-[9px] font-bold uppercase hover:bg-red-500 hover:text-white">Remove</button></div>`).join('')||'<div class="col-span-4 text-center text-white/40">Folder is empty</div>'}</div></div>`;
         return;
     }
 
@@ -726,6 +748,7 @@ function renderSettings(el, page) {
                         <div class="bg-[#1a1a24] p-5 rounded-[24px] flex justify-between items-center cursor-pointer hover:bg-white/5" onclick="renderSettings(document.getElementById('body_settings'), 'personalize')">
                             <div class="flex items-center gap-4"><span class="text-xl">🎨</span><span class="font-semibold text-sm">Theme, Colors & Icons</span></div><span class="opacity-30">❯</span>
                         </div>
+                        <div class="bg-[#1a1a24] p-5 rounded-[24px] flex justify-between items-center cursor-pointer hover:bg-white/5" onclick="renderSettings(document.getElementById('body_settings'), 'windowing')"><div class="flex items-center gap-4"><span class="text-xl">▣</span><span class="font-semibold text-sm">Windowing & Desktops</span></div><span class="opacity-30">❯</span></div>
                         <div class="bg-[#1a1a24] p-5 rounded-[24px] flex justify-between items-center cursor-pointer hover:bg-white/5" onclick="renderSettings(document.getElementById('body_settings'), 'display')">
                             <div class="flex items-center gap-4"><span class="text-xl">☀️</span><span class="font-semibold text-sm">Display & Brightness</span></div><span class="opacity-30">❯</span>
                         </div>
@@ -783,6 +806,9 @@ function renderSettings(el, page) {
                     </div>
                 </div>
             </div>`;
+    }
+    else if (page === 'windowing') {
+        html = `<div class="h-full bg-[#0f0f13] flex flex-col"><div class="p-6 bg-[#1a1a24] flex items-center gap-4"><button onclick="renderSettings(document.getElementById('body_settings'),'main')" class="w-10 h-10 rounded-full bg-white/5">⬅</button><h2 class="text-xl font-bold">Windowing & Desktops</h2></div><div class="p-6 space-y-4"><p class="text-xs text-white/50">Integrated keeps Home visible and interactive behind windows. Separate opens a clean workstation with no Home screen.</p><button onclick="updateWindowWorkspace('integrated')" class="w-full p-5 rounded-2xl text-left ${s.windowWorkspace==='integrated'?'bg-purple-600':'bg-white/5'}"><b>Integrated Home screen</b><br><span class="text-xs opacity-70">Icons and widgets stay available behind windows.</span></button><button onclick="updateWindowWorkspace('separate')" class="w-full p-5 rounded-2xl text-left ${s.windowWorkspace==='separate'?'bg-purple-600':'bg-white/5'}"><b>Separate window workspace</b><br><span class="text-xs opacity-70">A clean workstation with no Home screen behind the windows.</span></button><div class="bg-white/5 p-5 rounded-2xl flex justify-between"><span>Virtual desktops</span><b>${s.desktopCount}</b></div></div></div>`;
     }
     else if (page === 'display') {
         html = `
@@ -1194,6 +1220,15 @@ function capturePhoto() {
     if(thumb) thumb.style.backgroundImage = `url('${dataUrl}')`;
 }
 
+
+function ensurePicturesFolder(u){if(!u.fs['/Pictures'])u.fs['/Pictures']={type:'dir',children:[]};if(!u.fs['/'].children.includes('Pictures'))u.fs['/'].children.push('Pictures')}
+function syncGalleryToPictures(u){ensurePicturesFolder(u);(u.gallery||[]).forEach((src,i)=>{const name=`Gallery_${String(i+1).padStart(3,'0')}.jpg`,path='/Pictures/'+name;if(!u.fs[path]){u.fs[path]={type:'file',content:src,mime:'image/jpeg',gallerySource:src};u.fs['/Pictures'].children.push(name)}})}
+function addPictureFile(src,name){ensurePicturesFolder(state.curUser);let clean=name,n=1;while(state.curUser.fs['/Pictures/'+clean])clean=name.replace(/(\.[^.]+)$/i,`_${n++}$1`);state.curUser.fs['/Pictures/'+clean]={type:'file',content:src,mime:'image/jpeg',gallerySource:src};state.curUser.fs['/Pictures'].children.unshift(clean)}
+function getGalleryName(src,i){const files=state.curUser?.fs?.['/Pictures']?.children||[];for(const name of files){const f=state.curUser.fs['/Pictures/'+name];if(f&&(f.gallerySource===src||f.content===src))return name.toLowerCase()}return `photo ${i+1}`}
+function refreshGalleryFromPictures(){ensurePicturesFolder(state.curUser);for(const name of state.curUser.fs['/Pictures'].children){const f=state.curUser.fs['/Pictures/'+name];if(f&&f.type==='file'&&(f.mime||'').startsWith('image/')&&f.content&&!state.curUser.gallery.includes(f.content))state.curUser.gallery.push(f.content)}}
+function toggleGallerySearch(){const w=document.getElementById('gallery-search-wrap');if(!w)return;w.classList.toggle('hidden');if(!w.classList.contains('hidden'))document.getElementById('gallery-search').focus();else filterGallery('')}
+function filterGallery(q){q=q.trim().toLowerCase();document.querySelectorAll('.gallery-photo').forEach(x=>x.classList.toggle('gallery-hidden',q&&!x.dataset.name.includes(q)))}
+
 // --- GALLERY ---
 function renderGallery(el, view = 'grid', imgIdx = 0) {
     const pics = state.curUser.gallery || [];
@@ -1202,11 +1237,11 @@ function renderGallery(el, view = 'grid', imgIdx = 0) {
             <div class="h-full bg-black flex flex-col relative">
                 <div class="p-6 flex items-center justify-between shrink-0 bg-gradient-to-b from-black/90 to-transparent absolute top-0 w-full z-10 pointer-events-none">
                     <h2 class="text-2xl font-black text-white shadow-black drop-shadow-xl tracking-tighter">Photos</h2>
-                    <button class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center backdrop-blur pointer-events-auto">🔍</button>
-                </div>
-                <div class="flex-1 grid grid-cols-3 gap-[2px] overflow-y-auto no-scrollbar pt-24 bg-black content-start">
+                    <button onclick="toggleGallerySearch()" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center backdrop-blur pointer-events-auto">🔍</button>
+                </div><div id="gallery-search-wrap" class="hidden absolute top-20 left-4 right-4 z-20"><input id="gallery-search" oninput="filterGallery(this.value)" placeholder="Search photos by name..." class="w-full bg-black/80 border border-white/20 rounded-full px-5 py-3 text-sm backdrop-blur-xl"></div>
+                <div id="gallery-grid" class="flex-1 grid grid-cols-3 gap-[2px] overflow-y-auto no-scrollbar pt-24 bg-black content-start">
                     ${pics.map((src, i) => `
-                        <div class="aspect-square bg-zinc-800 bg-cover bg-center cursor-pointer hover:opacity-80 transition-opacity" style="background-image:url('${src}')" onclick="renderGallery(document.getElementById('body_gallery'), 'viewer', ${i})"></div>
+                        <div class="gallery-photo aspect-square bg-zinc-800 bg-cover bg-center cursor-pointer hover:opacity-80 transition-opacity" data-name="${getGalleryName(src,i)}" style="background-image:url('${src}')" onclick="renderGallery(document.getElementById('body_gallery'), 'viewer', ${i})"></div>
                     `).join('') || '<div class="col-span-3 text-center text-white/40 text-xs font-bold uppercase tracking-widest mt-10">No photos</div>'}
                 </div>
             </div>`;
@@ -1380,13 +1415,33 @@ function createNewContact() {
     renderMessages(document.getElementById('body_msgs'), 'thread', id);
 }
 
+
+function notify(icon,title,body){if(!state.curUser)return;const n={id:Date.now(),icon:String(icon||'🔔'),title:String(title||'Notification'),body:String(body||''),time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})};state.curUser.notifications=state.curUser.notifications||[];state.curUser.notifications.unshift(n);state.curUser.notifications=state.curUser.notifications.slice(0,50);saveData();renderNotifications();const t=document.createElement('div');t.className='notify-toast';t.innerHTML=`<div class="flex gap-3"><span class="text-2xl">${escapeHTML(n.icon)}</span><div><b class="text-sm">${escapeHTML(n.title)}</b><p class="text-xs opacity-70 mt-1">${escapeHTML(n.body)}</p></div></div>`;document.getElementById('toast-stack').appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(-10px)';setTimeout(()=>t.remove(),250)},4200)}
+window.notify=notify;
+function escapeHTML(v){const d=document.createElement('div');d.textContent=v;return d.innerHTML}
+function renderNotifications(){const el=document.getElementById('notification-list');if(!el||!state.curUser)return;const ns=state.curUser.notifications||[];el.innerHTML=ns.length?ns.map(n=>`<div class="bg-white/5 rounded-xl p-3 flex gap-3"><span>${escapeHTML(n.icon)}</span><div class="min-w-0"><div class="flex gap-2"><b class="text-[11px] truncate">${escapeHTML(n.title)}</b><small class="opacity-40">${n.time}</small></div><p class="text-[10px] opacity-60">${escapeHTML(n.body)}</p></div></div>`).join(''):'<p class="text-[10px] opacity-40">No notifications</p>'}
+function clearNotifications(){if(!state.curUser)return;state.curUser.notifications=[];saveData();renderNotifications()}
+
 // --- GESTURES ---
+
+let homeWheelTotal=0,homeWheelTimer=null;
+window.addEventListener('wheel',e=>{
+ const drawer=document.getElementById('l-drawer').classList.contains('active'),shade=document.getElementById('shade');
+ homeWheelTotal+=e.deltaY;clearTimeout(homeWheelTimer);homeWheelTimer=setTimeout(()=>homeWheelTotal=0,250);
+ if(drawer&&homeWheelTotal< -90){safeShowLayer('home');homeWheelTotal=0;return;}
+ if(shade.classList.contains('active')&&homeWheelTotal>90){shade.classList.remove('active');homeWheelTotal=0;return;}
+ if(!document.getElementById('l-home').classList.contains('active'))return;
+ if(homeWheelTotal>90){safeShowLayer('drawer');renderDrawer();homeWheelTotal=0;}
+ else if(homeWheelTotal< -90){shade.classList.add('active');renderNotifications();homeWheelTotal=0;}
+},{passive:true});
+
 window.addEventListener('touchstart', e => { state.touch.y = e.touches[0].clientY; state.touch.startY = e.touches[0].clientY; });
-window.addEventListener('touchend', e => {
-    const dy = e.changedTouches[0].clientY - state.touch.startY;
-    if (dy < -65 && state.touch.startY > window.innerHeight - 150 && state.curUser && !document.getElementById('shade').classList.contains('active')) { safeShowLayer('drawer'); renderDrawer(); }
-    if (dy < -65 && document.getElementById('shade').classList.contains('active')) document.getElementById('shade').classList.remove('active');
-    else if (dy > 65 && state.touch.startY < 50) document.getElementById('shade').classList.add('active');
+window.addEventListener('touchend',e=>{
+ const dy=e.changedTouches[0].clientY-state.touch.startY,drawer=document.getElementById('l-drawer').classList.contains('active'),shade=document.getElementById('shade');
+ if(drawer&&dy>65){safeShowLayer('home');return;}
+ if(shade.classList.contains('active')&&dy< -65){shade.classList.remove('active');return;}
+ if(dy< -65&&state.touch.startY>innerHeight-150&&state.curUser&&!shade.classList.contains('active')){safeShowLayer('drawer');renderDrawer();return;}
+ if(dy>65&&state.touch.startY<50){shade.classList.add('active');renderNotifications();}
 });
 
 </script>

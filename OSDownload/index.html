@@ -1,155 +1,37 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Windows 12 Concept Shell - Win12_26H1_V1_Stable.iso</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Choose and download community-made WinPE concept shells by alaricholt677.">
+<title>Concept OS Downloads</title>
 <style>
-    body {
-        margin: 0;
-        padding: 0;
-        font-family: Segoe UI, Arial, sans-serif;
-        background: #0f1a2b;
-        color: #e6e6e6;
-    }
-    .header {
-        background: #1c2f4d;
-        padding: 20px;
-        text-align: center;
-        font-size: 28px;
-        font-weight: bold;
-    }
-    .container {
-        max-width: 900px;
-        margin: 40px auto;
-        background: #16263d;
-        padding: 30px;
-        border-radius: 8px;
-        border: 1px solid #2a3f5f;
-    }
-    h2 {
-        margin-top: 30px;
-        border-bottom: 1px solid #2a3f5f;
-        padding-bottom: 8px;
-    }
-    .download-box {
-        background: #1c2f4d;
-        padding: 20px;
-        border-radius: 6px;
-        margin-top: 20px;
-        text-align: center;
-        border: 1px solid #2a3f5f;
-    }
-    .download-btn {
-        display: inline-block;
-        padding: 14px 28px;
-        background: #2f5fa8;
-        color: #ffffff;
-        text-decoration: none;
-        font-size: 18px;
-        border-radius: 4px;
-        margin-top: 10px;
-    }
-    .download-btn:hover {
-        background: #3a72c7;
-    }
-    .warning {
-        background: #4a1f1f;
-        padding: 20px;
-        border-radius: 6px;
-        border: 1px solid #7a2f2f;
-        margin-top: 20px;
-    }
-    .footer {
-        text-align: center;
-        margin-top: 40px;
-        padding: 20px;
-        color: #9aa7b8;
-        font-size: 14px;
-    }
+:root{color-scheme:dark;--bg:#060914;--panel:rgba(18,25,48,.72);--line:rgba(255,255,255,.12);--text:#f7f8ff;--muted:#aeb7d3;--blue:#6ea8ff;--purple:#b892ff;--green:#67e8b5;--shadow:0 28px 90px rgba(0,0,0,.5)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;font:15px/1.65 "Segoe UI",Inter,Arial,sans-serif;color:var(--text);background:radial-gradient(circle at 15% 10%,#17275b 0,transparent 32%),radial-gradient(circle at 85% 20%,#40216a 0,transparent 30%),linear-gradient(145deg,#050710,#0b1022 55%,#090d18);background-attachment:fixed}button,a{font:inherit}.shell{width:min(1180px,calc(100% - 32px));margin:auto}.topbar{position:sticky;top:12px;z-index:20;margin-top:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:18px;border:1px solid var(--line);border-radius:18px;background:rgba(8,12,27,.8);backdrop-filter:blur(20px);box-shadow:0 12px 45px rgba(0,0,0,.25)}.brand{display:flex;align-items:center;gap:10px;font-weight:750}.logo{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,var(--blue),var(--purple));box-shadow:0 0 26px rgba(110,168,255,.5)}nav{display:flex;gap:5px;flex-wrap:wrap}.nav-btn{border:0;color:var(--muted);background:transparent;padding:9px 13px;border-radius:11px;cursor:pointer}.nav-btn:hover,.nav-btn.active{color:white;background:rgba(255,255,255,.09)}main{padding:76px 0 52px}.page{display:none;animation:enter .35s ease}.page.active{display:block}@keyframes enter{from{opacity:0;transform:translateY(9px)}}.hero{text-align:center;padding:48px 16px 58px}.eyebrow{display:inline-flex;padding:7px 11px;border:1px solid var(--line);border-radius:999px;color:#cbd5ff;background:rgba(255,255,255,.05)}h1{font-size:clamp(42px,8vw,82px);line-height:1.02;letter-spacing:-.055em;margin:22px auto 18px;max-width:850px}.gradient{background:linear-gradient(90deg,#fff,var(--blue),#d4b8ff);-webkit-background-clip:text;color:transparent}.lead{max-width:720px;margin:auto;color:var(--muted);font-size:18px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}.card,.glass{border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(22px);box-shadow:var(--shadow)}.card{position:relative;overflow:hidden;padding:28px;border-radius:26px;min-height:360px;display:flex;flex-direction:column}.card:before{content:"";position:absolute;inset:-100px -80px auto auto;width:240px;height:240px;border-radius:50%;background:var(--glow);filter:blur(20px);opacity:.28}.tag{width:max-content;padding:6px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}h2{font-size:32px;line-height:1.15;margin:24px 0 10px;letter-spacing:-.035em}.card p{color:var(--muted);max-width:540px}.facts{display:flex;gap:9px;flex-wrap:wrap;margin:10px 0 28px}.fact{padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.06);color:#dce2f7}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:auto}.btn{display:inline-flex;justify-content:center;align-items:center;gap:8px;padding:12px 17px;border-radius:12px;border:1px solid var(--line);text-decoration:none;color:white;background:rgba(255,255,255,.06);cursor:pointer}.btn.primary{border:0;background:linear-gradient(135deg,var(--blue),#806cff);font-weight:700}.btn:hover{transform:translateY(-1px);filter:brightness(1.1)}.detail{padding:34px;border-radius:28px}.detail-head{display:grid;grid-template-columns:1fr auto;gap:28px;align-items:center}.detail h1{font-size:clamp(38px,6vw,68px);margin:12px 0;text-align:left}.notice{margin:26px 0;padding:18px;border-radius:15px;border:1px solid rgba(255,196,112,.3);background:rgba(255,153,51,.08);color:#ffd9a1}.columns{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:22px}.mini{padding:22px;border-radius:18px;background:rgba(255,255,255,.045);border:1px solid var(--line)}.mini h3{margin-top:0}.hashes{margin-top:22px;padding:20px;border-radius:18px;background:#080c19;border:1px solid var(--line)}.hash-row{display:grid;grid-template-columns:72px 1fr;gap:10px;padding:8px 0}.hash-row code{word-break:break-all;color:#b9d4ff}.status{color:var(--muted)}footer{text-align:center;color:var(--muted);padding:36px 0 50px}@media(max-width:760px){.grid,.columns,.detail-head{grid-template-columns:1fr}.topbar{align-items:flex-start}.detail{padding:22px}.card{min-height:330px}.hash-row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-
-<div class="header">
-    Windows 12 Concept Shell
+<div class="shell">
+<header class="topbar"><div class="brand"><span class="logo"></span><span>Concept OS Hub</span></div><nav><button class="nav-btn active" data-page="home">Home</button><button class="nav-btn" data-page="win12">Windows 12 Concept</button><button class="nav-btn" data-page="trusten">Trusten OS</button></nav></header>
+<main>
+<section id="home" class="page active">
+<div class="hero"><span class="eyebrow">Community applications by alaricholt677</span><h1>Select your <span class="gradient">concept OS</span></h1><p class="lead">Explore two experimental WinPE desktop shells, review their details and file hashes, then download the build you want from Internet Archive.</p></div>
+<div class="grid">
+<article class="card" style="--glow:#4f8cff"><span class="tag">WinPE concept shell</span><h2>Windows 12 Concept Shell</h2><p>A custom Win32 GUI experiment with a desktop, taskbar, Start menu, apps, file tools, themes and window management.</p><div class="facts"><span class="fact">Stable V1</span><span class="fact">26H1 concept</span><span class="fact">ISO</span></div><div class="actions"><button class="btn primary" data-open="win12">View download</button><a class="btn" href="https://archive.org/download/win-12-26-h-1-v-1-stable/Win12_26H1_V1_Stable.iso">Direct ISO</a></div></article>
+<article class="card" style="--glow:#a675ff"><span class="tag">Community application</span><h2>Trusten OS</h2><p>A native C++ WinPE shell with the Trusten layout, integrated apps, custom windows, notifications and developer tooling.</p><div class="facts"><span class="fact">Author: alaricholt677</span><span class="fact">Native C++</span><span class="fact">ISO</span></div><div class="actions"><button class="btn primary" data-open="trusten">View download</button><a class="btn" href="https://archive.org/download/Trusten-OS/CustomCppWinPE.iso">Archive page</a></div></article>
 </div>
-
-<div class="container">
-
-    <h2>Download ISO</h2>
-    <p>This is the official build of the Windows 12 Concept Shell running on WinPE.</p>
-
-    <div class="download-box">
-        <div>Latest Stable Build:</div>
-        <div style="margin-top: 6px; font-size: 20px; font-weight: bold;">
-            Win12_26H1_V1_Stable.iso
-        </div>
-
-        <!-- Replace the href with your actual ISO download link -->
-        <a class="download-btn" href="https://archive.org/download/win-12-26-h-1-v-1-stable/Win12_26H1_V1_Stable.iso">Download ISO</a>
-    </div>
-
-    <h2>About This Project</h2>
-    <p>
-        Windows 12 Concept Shell is a custom Win32 GUI shell written in C++ and compiled for WinPE.
-        It is not a real Microsoft Windows operating system. It is a conceptual environment designed
-        to demonstrate UI ideas, custom window management, a taskbar, a start menu, apps, and a
-        simulated desktop experience.
-    </p>
-
-    <p>
-        The shell includes:
-    </p>
-    <ul>
-        <li>Full Win32 GUI shell (no console)</li>
-        <li>Login system with user profiles stored in RAM</li>
-        <li>Desktop with draggable windows and taskbar</li>
-        <li>Browser with download support</li>
-        <li>WINstore with base64 app installer</li>
-        <li>Full file explorer</li>
-        <li>Terminal with BIOS.OPEN command</li>
-        <li>Notepad with tabs and JSON persistence</li>
-        <li>Theme system</li>
-        <li>Power menu triggered by Alt+F4</li>
-    </ul>
-
-    <h2>Important Warnings</h2>
-
-    <div class="warning">
-        <p><strong>This ISO is not a real Windows installation.</strong></p>
-
-        <p>
-            It runs entirely inside WinPE. WinPE is a minimal Windows environment intended for
-            deployment and recovery. Because of this, several limitations apply:
-        </p>
-
-        <ul>
-            <li>No permanent installation to disk</li>
-            <li>No real user accounts (RAM only)</li>
-            <li>No Windows Update</li>
-            <li>No full driver stack</li>
-            <li>No full networking stack (VMware NAT recommended)</li>
-            <li>No real UEFI firmware interaction beyond reboot commands</li>
-        </ul>
-
-        <p>
-            Do not use this ISO as a replacement for Windows. It is a concept shell for testing,
-            experimentation, and UI design only.
-        </p>
-    </div>
-
-    <h2>System Requirements</h2>
-    <ul>
-        <li>VMware Workstation or VirtualBox</li>
-        <li>1 GB RAM minimum</li>
-        <li>WinPE-compatible boot environment</li>
-    </ul>
-
+</section>
+<section id="win12" class="page"><article class="detail glass"><div class="detail-head"><div><span class="eyebrow">Windows 12 Concept Shell</span><h1>Win12 26H1 V1 Stable</h1><p class="lead" style="margin:0">A conceptual Win32 shell running in WinPE. It is not a Microsoft product or a full Windows installation.</p></div><a class="btn primary" href="https://archive.org/download/win-12-26-h-1-v-1-stable/Win12_26H1_V1_Stable.iso">Download ISO</a></div><div class="notice"><strong>Experimental software:</strong> use it in a virtual machine or test environment. WinPE is intended for deployment and recovery scenarios, so this shell has limitations compared with a full operating system.</div><div class="columns"><div class="mini"><h3>Included experience</h3><ul><li>Full Win32 graphical shell</li><li>Desktop, draggable windows and taskbar</li><li>Browser and download workflow</li><li>File explorer, terminal and Notepad</li><li>Theme system and power menu</li></ul></div><div class="mini"><h3>Recommended environment</h3><ul><li>VMware Workstation or VirtualBox</li><li>At least 1 GB of RAM</li><li>Networking configured by the virtual machine</li><li>Do not use as a replacement for Windows</li></ul></div></div><div class="hashes" data-meta="win-12-26-h-1-v-1-stable" data-file="Win12_26H1_V1_Stable.iso"><strong>File integrity</strong><div class="status">Loading hashes from Internet Archive metadata...</div></div></article></section>
+<section id="trusten" class="page"><article class="detail glass"><div class="detail-head"><div><span class="eyebrow">Community application</span><h1>Trusten OS</h1><p class="lead" style="margin:0">The Internet Archive download is published under <strong>Trusten-OS</strong>. Project author: <strong>alaricholt677</strong>.</p></div><a class="btn primary" href="https://archive.org/download/Trusten-OS/CustomCppWinPE.iso">Open archive page</a></div><div class="notice"><strong>Download:</strong> this page uses the confirmed CustomCppWinPE.iso download URL and reads the Trusten-OS item metadata for the displayed hashes.</div><div class="columns"><div class="mini"><h3>Trusten experience</h3><ul><li>Native C++ Trusten desktop shell</li><li>Custom window and notification system</li><li>Integrated Files, Paint, media and development apps</li><li>WinPE-based experimental environment</li></ul></div><div class="mini"><h3>Download</h3><p id="trusten-file">Finding the ISO in the archive item...</p><a id="trusten-download" class="btn primary" href="https://archive.org/download/Trusten-OS/CustomCppWinPE.iso">View files</a></div></div><div class="hashes" data-meta="Trusten-OS" data-file="CustomCppWinPE.iso"><strong>File integrity</strong><div class="status">Loading hashes from Internet Archive metadata...</div></div></article></section>
+</main><footer>Concept OS Hub · Community projects by alaricholt677 · Not affiliated with Microsoft</footer>
 </div>
-
-<div class="footer">
-    Windows 12 Concept Shell Project — WinPE C++ GUI Shell Experiment
-</div>
-
+<script>
+const pages=[...document.querySelectorAll('.page')],nav=[...document.querySelectorAll('.nav-btn')];
+function show(id){pages.forEach(p=>p.classList.toggle('active',p.id===id));nav.forEach(b=>b.classList.toggle('active',b.dataset.page===id));scrollTo({top:0,behavior:'smooth'});history.replaceState(null,'','#'+id)}
+nav.forEach(b=>b.onclick=()=>show(b.dataset.page));document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>show(b.dataset.open));
+async function metadata(box){const id=box.dataset.meta;try{const r=await fetch('https://archive.org/metadata/'+encodeURIComponent(id));if(!r.ok)throw Error('HTTP '+r.status);const j=await r.json();let file=box.dataset.file?j.files.find(f=>f.name===box.dataset.file):j.files.find(f=>/\.iso$/i.test(f.name)&&f.source==='original')||j.files.find(f=>/\.iso$/i.test(f.name));if(!file)throw Error('No ISO file is listed in this item');const url='https://archive.org/download/'+encodeURIComponent(id)+'/'+file.name.split('/').map(encodeURIComponent).join('/');box.querySelector('.status').outerHTML=`<div class="hash-row"><span>Filename</span><code>${escapeHtml(file.name)}</code></div><div class="hash-row"><span>SHA-1</span><code>${escapeHtml(file.sha1||'Not listed')}</code></div><div class="hash-row"><span>MD5</span><code>${escapeHtml(file.md5||'Not listed')}</code></div><div class="hash-row"><span>Size</span><code>${formatBytes(Number(file.size||0))}</code></div>`;if(id==='Trusten-OS'){document.querySelector('#trusten-file').textContent=file.name;const a=document.querySelector('#trusten-download');a.href=url;a.textContent='Download '+file.name}}catch(e){box.querySelector('.status').textContent='Hash lookup unavailable: '+e.message+'. Use the archive page to verify the file.'}}
+function escapeHtml(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}function formatBytes(n){if(!n)return'Not listed';const u=['B','KB','MB','GB'];let i=0;while(n>=1024&&i<u.length-1){n/=1024;i++}return n.toFixed(i?2:0)+' '+u[i]}
+document.querySelectorAll('.hashes').forEach(metadata);const initial=location.hash.slice(1);if(pages.some(p=>p.id===initial))show(initial);
+</script>
 </body>
 </html>

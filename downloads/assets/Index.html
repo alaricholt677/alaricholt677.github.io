@@ -1,0 +1,824 @@
+
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100 select-none">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IRL Simulator — Official Voxel Game Trailer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        pixel: ['"Press Start 2P"', 'monospace'],
+                        game: ['"Press Start 2P"', 'monospace']
+                    },
+                    colors: {
+                        voxel: {
+                            500: '#10b981',
+                            600: '#059669',
+                            400: '#34d399',
+                            glow: '#00ffcc'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        .pixel-font {
+            font-family: 'Press Start 2P', monospace;
+        }
+
+        /* Blocky 3D Retro Voxel Button Styling */
+        .btn-voxel {
+            font-family: 'Press Start 2P', monospace;
+            box-shadow: inset -3px -3px 0px 0px rgba(0, 0, 0, 0.6), inset 3px 3px 0px 0px rgba(255, 255, 255, 0.4), 4px 4px 0px 0px #020617;
+            border: 2px solid #000000;
+            transition: all 0.05s ease;
+            text-shadow: 1px 1px 0px #000;
+        }
+
+        .btn-voxel:active {
+            transform: translate(3px, 3px);
+            box-shadow: inset 3px 3px 0px 0px rgba(0, 0, 0, 0.6), inset -3px -3px 0px 0px rgba(255, 255, 255, 0.2), 1px 1px 0px 0px #020617;
+        }
+
+        .btn-voxel-emerald {
+            background-color: #10b981;
+            color: #020617;
+            border-color: #047857;
+            text-shadow: none;
+            box-shadow: inset -3px -3px 0px 0px #047857, inset 3px 3px 0px 0px #6ee7b7, 4px 4px 0px 0px #000000;
+        }
+
+        .btn-voxel-emerald:hover {
+            background-color: #34d399;
+        }
+
+        .btn-voxel-emerald:active {
+            transform: translate(3px, 3px);
+            box-shadow: inset 3px 3px 0px 0px #047857, 1px 1px 0px 0px #000000;
+        }
+
+        .btn-voxel-dark {
+            background-color: #1e293b;
+            color: #34d399;
+            border-color: #020617;
+            box-shadow: inset -3px -3px 0px 0px #0f172a, inset 3px 3px 0px 0px #475569, 4px 4px 0px 0px #000000;
+        }
+
+        .btn-voxel-dark:hover {
+            background-color: #334155;
+            color: #6ee7b7;
+        }
+
+        .btn-voxel-dark:active {
+            transform: translate(3px, 3px);
+            box-shadow: inset 3px 3px 0px 0px #0f172a, 1px 1px 0px 0px #000000;
+        }
+
+        .voxel-container-block {
+            border: 4px solid #0f172a;
+            box-shadow: inset -4px -4px 0px 0px #020617, inset 4px 4px 0px 0px rgba(255,255,255,0.05), 0 0 15px rgba(16, 185, 129, 0.2);
+        }
+
+        .glass-bar {
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 3px solid #10b981;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-runnable-track {
+            height: 8px;
+            border-radius: 0px;
+            background: #0f172a;
+            border: 2px solid #334155;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 16px;
+            width: 14px;
+            background-color: #10b981;
+            border-radius: 0px;
+            margin-top: -6px;
+            box-shadow: inset -2px -2px 0px 0px #047857, inset 2px 2px 0px 0px #6ee7b7, 2px 2px 0px 0px #000;
+            border: 1px solid #000;
+        }
+
+        .hide-cursor {
+            cursor: none !important;
+        }
+
+        .scanline-effect {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.35) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(255, 0, 0, 0.04),
+                rgba(0, 255, 0, 0.02),
+                rgba(0, 0, 255, 0.04)
+            );
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="h-screen h-[100dvh] flex flex-col font-pixel select-none bg-slate-950 text-slate-100 overflow-hidden">
+
+    <!-- Top Game Store Header Context -->
+    <header class="h-12 sm:h-16 px-2 sm:px-4 md:px-6 flex items-center justify-between shrink-0 glass-bar z-30 gap-2">
+        <div class="flex items-center gap-2 sm:gap-4 min-w-0">
+            <button id="btnBack" class="btn-voxel btn-voxel-dark flex items-center gap-1.5 px-2 py-1.5 sm:px-3 sm:py-2 text-[8px] sm:text-[10px] shrink-0">
+                <i class="fa-solid fa-gamepad text-xs"></i>
+                <span class="hidden md:inline">STORE PAGE</span>
+            </button>
+            <div class="h-5 w-[2px] bg-emerald-500/40 hidden sm:block shrink-0"></div>
+            <div class="min-w-0 truncate">
+                <h1 id="trailerTitle" class="text-[9px] sm:text-xs font-bold text-white font-pixel tracking-wider flex items-center gap-1.5 truncate">
+                    <span class="text-emerald-400 shrink-0">IRL SIMULATOR</span>
+                    <span class="text-slate-600 hidden xs:inline">•</span>
+                    <span class="text-slate-300 truncate hidden xs:inline">Official 3D Voxel Reveal Trailer</span>
+                </h1>
+                <p id="subTitleText" class="text-[7px] sm:text-[8px] text-slate-400 truncate font-pixel mt-0.5 hidden sm:block">trailer.mp4 • Canvas 3D Engine Frame Buffer</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            <!-- Direct link to IRL Simulator Wiki & Downloads -->
+            <a href="https://alaricholt677.github.io/downloads/" target="_blank" rel="noopener noreferrer" class="btn-voxel btn-voxel-emerald px-2 py-1.5 sm:px-3 sm:py-2 text-[8px] sm:text-[10px] flex items-center gap-1.5 text-slate-950 no-underline">
+                <i class="fa-solid fa-download text-[10px] sm:text-xs"></i>
+                <span class="hidden md:inline">WIKI & DOWNLOADS</span>
+                <span class="md:hidden">WIKI</span>
+            </a>
+
+            <span class="hidden xs:inline-block px-1.5 py-0.5 sm:px-2 sm:py-1 text-[7px] sm:text-[8px] font-pixel uppercase bg-emerald-400 text-slate-950 border-2 border-emerald-600 shadow-[2px_2px_0px_#000] shrink-0">3D VOXEL</span>
+        </div>
+    </header>
+
+    <!-- Main Custom Canvas Trailer Container -->
+    <main id="playerContainer" class="relative flex-1 bg-black flex items-center justify-center overflow-hidden group min-h-0 w-full">
+        
+        <!-- Canvas Element (No HTML Video Tag displayed in DOM) -->
+        <canvas id="videoCanvas" class="w-full h-full object-contain cursor-pointer relative z-10"></canvas>
+
+        <!-- Optional Scanline Retro Overlay -->
+        <div id="scanlineOverlay" class="absolute inset-0 scanline-effect z-10 pointer-events-none opacity-40"></div>
+
+        <!-- Dynamic Ambient Voxel Glow Canvas -->
+        <canvas id="ambientGlowCanvas" class="absolute inset-0 w-full h-full pointer-events-none z-0 blur-3xl opacity-50 scale-110 transform-gpu"></canvas>
+
+        <!-- Initial Watch Trailer Click Overlay -->
+        <div id="playOverlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-xs flex flex-col items-center justify-center z-20 cursor-pointer transition-opacity duration-300 p-4 overflow-y-auto">
+            <!-- Blocky 3D Play Button -->
+            <button class="btn-voxel btn-voxel-emerald w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 flex items-center justify-center mb-3 sm:mb-5 shrink-0">
+                <i class="fa-solid fa-play text-2xl sm:text-3xl md:text-4xl ml-1"></i>
+            </button>
+            
+            <h2 class="text-xs sm:text-base md:text-xl font-bold font-pixel tracking-widest text-emerald-400 text-shadow mb-1 sm:mb-2 text-center">IRL SIMULATOR</h2>
+            <p class="text-[8px] sm:text-[10px] md:text-[11px] text-slate-300 font-pixel tracking-wide text-center px-2">
+                CLICK TO WATCH 3D VOXEL TRAILER (<span class="text-emerald-400">trailer.mp4</span>)
+            </p>
+            
+            <div class="mt-4 sm:mt-6 flex flex-wrap justify-center gap-1.5 sm:gap-3 text-[7px] sm:text-[8px] font-pixel text-slate-300">
+                <span class="bg-slate-900 border-2 border-slate-700 px-2 py-1 sm:px-3 sm:py-1.5 shadow-[2px_2px_0px_#000]">CH 1: MAIN MENU</span>
+                <span class="bg-slate-900 border-2 border-slate-700 px-2 py-1 sm:px-3 sm:py-1.5 shadow-[2px_2px_0px_#000]">CH 2: OVERWORLD</span>
+                <span class="bg-slate-900 border-2 border-slate-700 px-2 py-1 sm:px-3 sm:py-1.5 shadow-[2px_2px_0px_#000]">CH 3: HELL</span>
+            </div>
+
+            <!-- Download Page CTA -->
+            <a href="https://alaricholt677.github.io/downloads/" target="_blank" rel="noopener noreferrer" class="mt-4 sm:mt-5 text-[8px] sm:text-[9px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 border-b-2 border-emerald-500/50 pb-0.5">
+                <i class="fa-solid fa-globe text-[9px] sm:text-[10px]"></i>
+                <span class="truncate">alaricholt677.github.io/downloads/</span>
+            </a>
+        </div>
+
+        <!-- Notification / Info Banner -->
+        <div id="toastMessage" class="absolute top-2 sm:top-4 left-1/2 -translate-x-1/2 z-30 bg-slate-900 border-2 border-emerald-400 text-emerald-300 text-[8px] sm:text-[9px] px-3 py-1.5 sm:px-4 sm:py-2 font-pixel opacity-0 transition-opacity duration-300 pointer-events-none shadow-[4px_4px_0px_#000] max-w-[90vw] text-center truncate">
+            Loading trailer...
+        </div>
+
+        <!-- End Screen Recommendations Overlay (Triggers when video ends) -->
+        <div id="endScreenOverlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-start z-30 opacity-0 pointer-events-none transition-opacity duration-300 p-3 sm:p-6 overflow-y-auto">
+            <div class="max-w-4xl w-full my-auto flex flex-col gap-4 sm:gap-6">
+                <!-- End Screen Header -->
+                <div class="flex items-center justify-between border-b-2 border-emerald-500/40 pb-3">
+                    <div>
+                        <span class="text-[7px] sm:text-[8px] text-emerald-400 uppercase tracking-widest font-pixel block">TRAILER COMPLETE</span>
+                        <h2 class="text-xs sm:text-base font-bold text-white font-pixel">RECOMMENDED MUSIC & PAGES</h2>
+                    </div>
+                    <button id="btnReplayEnd" class="btn-voxel btn-voxel-emerald px-3 py-2 text-[8px] sm:text-[9px] flex items-center gap-1.5 shrink-0">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>REPLAY TRAILER</span>
+                    </button>
+                </div>
+
+                <!-- Featured Music Showcase (Thumbnails captured from 1st frame) -->
+                <div>
+                    <h3 class="text-[8px] sm:text-[9px] text-slate-300 font-pixel mb-2.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-music text-emerald-400"></i> FEATURED MUSIC TRACKS
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        
+                        <!-- Track 1: Magenta Stone -->
+                        <div class="bg-slate-900/90 border-2 border-slate-700 hover:border-emerald-400 p-2.5 sm:p-3 transition-colors group flex flex-col gap-2 shadow-[4px_4px_0px_#000]">
+                            <div class="relative w-full aspect-video bg-black border border-slate-800 overflow-hidden flex items-center justify-center">
+                                <canvas id="thumbCanvasMagenta" class="w-full h-full object-cover"></canvas>
+                                <div class="absolute inset-0 bg-slate-950/40 group-hover:bg-slate-950/10 transition-colors flex items-center justify-center">
+                                    <button onclick="playMusicTrack('https://alaricholt677.github.io/downloads/magenta_stone.mp4', 'Magenta Stone')" class="btn-voxel btn-voxel-emerald w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center opacity-90 group-hover:scale-105 transition-transform">
+                                        <i class="fa-solid fa-play text-xs sm:text-sm ml-0.5"></i>
+                                    </button>
+                                </div>
+                                <span class="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 text-[7px] text-emerald-400 font-pixel border border-slate-700">MUSIC VIDEO</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-2 min-w-0">
+                                <div class="truncate">
+                                    <h4 class="text-[9px] sm:text-xs font-bold text-white font-pixel truncate">magenta stone</h4>
+                                    <p class="text-[7px] sm:text-[8px] text-slate-400 truncate mt-0.5">alaricholt677.github.io/downloads/magenta_stone.mp4</p>
+                                </div>
+                                <a href="https://alaricholt677.github.io/downloads/magenta_stone.mp4" target="_blank" rel="noopener noreferrer" title="Open direct file link" class="btn-voxel btn-voxel-dark px-2 py-1.5 text-[7px] shrink-0 no-underline text-emerald-400">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Track 2: Hydrate or Diedrate -->
+                        <div class="bg-slate-900/90 border-2 border-slate-700 hover:border-emerald-400 p-2.5 sm:p-3 transition-colors group flex flex-col gap-2 shadow-[4px_4px_0px_#000]">
+                            <div class="relative w-full aspect-video bg-black border border-slate-800 overflow-hidden flex items-center justify-center">
+                                <canvas id="thumbCanvasHydrate" class="w-full h-full object-cover"></canvas>
+                                <div class="absolute inset-0 bg-slate-950/40 group-hover:bg-slate-950/10 transition-colors flex items-center justify-center">
+                                    <button onclick="playMusicTrack('https://alaricholt677.github.io/downloads/hydrate_or_diedrate.mp4', 'Hydrate or Diedrate')" class="btn-voxel btn-voxel-emerald w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center opacity-90 group-hover:scale-105 transition-transform">
+                                        <i class="fa-solid fa-play text-xs sm:text-sm ml-0.5"></i>
+                                    </button>
+                                </div>
+                                <span class="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 text-[7px] text-emerald-400 font-pixel border border-slate-700">MUSIC VIDEO</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-2 min-w-0">
+                                <div class="truncate">
+                                    <h4 class="text-[9px] sm:text-xs font-bold text-white font-pixel truncate">hydrate or diedrate</h4>
+                                    <p class="text-[7px] sm:text-[8px] text-slate-400 truncate mt-0.5">alaricholt677.github.io/downloads/hydrate_or_diedrate.mp4</p>
+                                </div>
+                                <a href="https://alaricholt677.github.io/downloads/hydrate_or_diedrate.mp4" target="_blank" rel="noopener noreferrer" title="Open direct file link" class="btn-voxel btn-voxel-dark px-2 py-1.5 text-[7px] shrink-0 no-underline text-emerald-400">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Page Recommendations Grid -->
+                <div>
+                    <h3 class="text-[8px] sm:text-[9px] text-slate-300 font-pixel mb-2.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-compass text-emerald-400"></i> PAGE RECOMMENDATIONS
+                    </h3>
+                    <div class="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3 text-[7px] sm:text-[8px]">
+                        
+                        <!-- Recommendation 1: Wiki -->
+                        <a href="https://alaricholt677.github.io/downloads" target="_blank" rel="noopener noreferrer" class="bg-slate-900 border-2 border-slate-700 hover:border-emerald-400 p-2 sm:p-2.5 flex flex-col items-center text-center gap-1.5 transition-colors no-underline group shadow-[3px_3px_0px_#000]">
+                            <div class="w-8 h-8 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-emerald-400 group-hover:text-white group-hover:bg-emerald-600 transition-colors">
+                                <i class="fa-solid fa-book text-xs"></i>
+                            </div>
+                            <span class="font-bold text-white group-hover:text-emerald-300 truncate w-full">WIKI</span>
+                            <span class="text-[6px] text-slate-400 truncate w-full">alaricholt677.github.io/downloads</span>
+                        </a>
+
+                        <!-- Recommendation 2: Windows 12 Simulator -->
+                        <a href="https://alaricholt677.github.io" target="_blank" rel="noopener noreferrer" class="bg-slate-900 border-2 border-slate-700 hover:border-emerald-400 p-2 sm:p-2.5 flex flex-col items-center text-center gap-1.5 transition-colors no-underline group shadow-[3px_3px_0px_#000]">
+                            <div class="w-8 h-8 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-emerald-400 group-hover:text-white group-hover:bg-emerald-600 transition-colors">
+                                <i class="fa-solid fa-desktop text-xs"></i>
+                            </div>
+                            <span class="font-bold text-white group-hover:text-emerald-300 truncate w-full">WIN 12 SIM</span>
+                            <span class="text-[6px] text-slate-400 truncate w-full">alaricholt677.github.io</span>
+                        </a>
+
+                        <!-- Recommendation 3: Wayback Machine -->
+                        <a href="https://web.archive.org/web/20260000000000*/Alaricholt677.github.io" target="_blank" rel="noopener noreferrer" class="bg-slate-900 border-2 border-slate-700 hover:border-emerald-400 p-2 sm:p-2.5 flex flex-col items-center text-center gap-1.5 transition-colors no-underline group shadow-[3px_3px_0px_#000]">
+                            <div class="w-8 h-8 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-emerald-400 group-hover:text-white group-hover:bg-emerald-600 transition-colors">
+                                <i class="fa-solid fa-clock-rotate-left text-xs"></i>
+                            </div>
+                            <span class="font-bold text-white group-hover:text-emerald-300 truncate w-full">WAYBACK</span>
+                            <span class="text-[6px] text-slate-400 truncate w-full">web.archive.org</span>
+                        </a>
+
+                        <!-- Recommendation 4: OS Showcase -->
+                        <a href="https://alaricholt677.github.io/OSdownload" target="_blank" rel="noopener noreferrer" class="bg-slate-900 border-2 border-slate-700 hover:border-emerald-400 p-2 sm:p-2.5 flex flex-col items-center text-center gap-1.5 transition-colors no-underline group shadow-[3px_3px_0px_#000]">
+                            <div class="w-8 h-8 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-emerald-400 group-hover:text-white group-hover:bg-emerald-600 transition-colors">
+                                <i class="fa-solid fa-hard-drive text-xs"></i>
+                            </div>
+                            <span class="font-bold text-white group-hover:text-emerald-300 truncate w-full">OS SHOWCASE</span>
+                            <span class="text-[6px] text-slate-400 truncate w-full">/OSdownload</span>
+                        </a>
+
+                        <!-- Recommendation 5: Packages -->
+                        <a href="https://alaricholt677.github.io/PKGS/" target="_blank" rel="noopener noreferrer" class="bg-slate-900 border-2 border-slate-700 hover:border-emerald-400 p-2 sm:p-2.5 flex flex-col items-center text-center gap-1.5 transition-colors no-underline group shadow-[3px_3px_0px_#000] col-span-2 xs:col-span-1">
+                            <div class="w-8 h-8 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-emerald-400 group-hover:text-white group-hover:bg-emerald-600 transition-colors">
+                                <i class="fa-solid fa-box-open text-xs"></i>
+                            </div>
+                            <span class="font-bold text-white group-hover:text-emerald-300 truncate w-full">PACKAGES</span>
+                            <span class="text-[6px] text-slate-400 truncate w-full">/PKGS/</span>
+                        </a>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Floating Controls Bar -->
+        <div id="controlsBar" class="absolute bottom-2 left-2 right-2 sm:bottom-4 sm:left-4 sm:right-4 max-w-5xl mx-auto glass-bar voxel-container-block p-2 sm:p-3 md:p-4 z-20 transition-all duration-300 opacity-100 flex flex-col gap-2 sm:gap-3">
+            
+            <!-- Chapter Markers Info Overlay -->
+            <div class="flex items-center justify-between px-1 text-[7px] sm:text-[8px] md:text-[9px] text-emerald-400 truncate">
+                <span id="chapterLabel" class="truncate"><i class="fa-solid fa-cube mr-1"></i> CHAPTER 1: VOXEL GEN</span>
+                <span class="hidden md:inline text-slate-400 shrink-0 ml-2">[SPACE] PLAY/PAUSE • [F] FULLSCREEN</span>
+            </div>
+
+            <!-- Blocky Timeline Scrubber -->
+            <div class="relative w-full flex items-center group/timeline cursor-pointer py-0.5" id="timelineContainer">
+                <div class="w-full h-3 sm:h-4 bg-slate-900 border-2 border-slate-700 relative overflow-hidden shadow-[inset_2px_2px_0px_#000]">
+                    <div id="bufferedBar" class="absolute top-0 bottom-0 left-0 bg-slate-700/60 w-0"></div>
+                    <div id="progressBar" class="absolute top-0 bottom-0 left-0 bg-emerald-500 w-0 border-r-2 border-emerald-300"></div>
+                </div>
+            </div>
+
+            <!-- Lower Controls Button Row -->
+            <div class="flex flex-row items-center justify-between gap-1.5 sm:gap-3 text-[8px] sm:text-[9px]">
+                <div class="flex items-center gap-1.5 sm:gap-3">
+                    <!-- Play/Pause Blocky 3D Button -->
+                    <button id="btnPlayPause" class="btn-voxel btn-voxel-emerald w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center shrink-0">
+                        <i id="iconPlay" class="fa-solid fa-play ml-0.5 text-xs sm:text-sm"></i>
+                    </button>
+
+                    <!-- Volume Controls -->
+                    <div class="flex items-center gap-1 sm:gap-2">
+                        <button id="btnMute" class="btn-voxel btn-voxel-dark w-7 h-7 sm:w-9 sm:h-9 flex items-center justify-center shrink-0">
+                            <i id="iconVolume" class="fa-solid fa-volume-high text-[10px] sm:text-xs"></i>
+                        </button>
+                        <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="1" class="w-12 xs:w-16 sm:w-20">
+                    </div>
+
+                    <!-- Time Counter -->
+                    <div class="text-[7px] sm:text-[8px] md:text-[9px] bg-slate-900 border-2 border-slate-800 px-1.5 py-1 sm:px-2.5 sm:py-2 text-emerald-300 shadow-[inset_2px_2px_0px_#000] shrink-0">
+                        <span id="currentTime">00:00</span> <span class="text-slate-600">/</span> <span id="totalTime" class="text-slate-400">00:00</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-1 sm:gap-2">
+                    <!-- Toggle CRT Retro Filter -->
+                    <button id="btnScanlines" title="Toggle Scanline Effect" class="btn-voxel btn-voxel-dark px-1.5 py-1 sm:px-2.5 sm:py-2 text-[7px] sm:text-[8px] flex items-center gap-1">
+                        <i class="fa-solid fa-tv text-[9px] sm:text-[10px]"></i>
+                        <span class="hidden sm:inline">CRT</span>
+                    </button>
+
+                    <!-- Speed Selector -->
+                    <button id="btnSpeed" class="btn-voxel btn-voxel-dark px-1.5 py-1 sm:px-2.5 sm:py-2 text-[7px] sm:text-[8px]">1.0X</button>
+
+                    <!-- Fullscreen Toggle -->
+                    <button id="btnFullscreen" class="btn-voxel btn-voxel-dark w-7 h-7 sm:w-9 sm:h-9 flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-expand text-[10px] sm:text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Off-screen JS Video Buffer (No visible HTML video tag in DOM)
+            const videoBuffer = document.createElement('video');
+            videoBuffer.crossOrigin = "anonymous";
+            videoBuffer.playsInline = true;
+
+            // Direct URL to your IRL Simulator trailer asset
+            const remoteTrailerUrl = "https://alaricholt677.github.io/downloads/assets/trailer.mp4";
+            videoBuffer.src = remoteTrailerUrl;
+
+            // Fallback video source if local trailer.mp4 is loaded manually
+            const fallbackVideoUrl = "trailer.mp4";
+
+            // Canvas Display Elements
+            const canvas = document.getElementById('videoCanvas');
+            const ctx = canvas.getContext('2d');
+            const ambientCanvas = document.getElementById('ambientGlowCanvas');
+            const ambientCtx = ambientCanvas.getContext('2d');
+
+            // UI Elements
+            const playerContainer = document.getElementById('playerContainer');
+            const playOverlay = document.getElementById('playOverlay');
+            const controlsBar = document.getElementById('controlsBar');
+            const btnPlayPause = document.getElementById('btnPlayPause');
+            const iconPlay = document.getElementById('iconPlay');
+            const timelineContainer = document.getElementById('timelineContainer');
+            const progressBar = document.getElementById('progressBar');
+            const bufferedBar = document.getElementById('bufferedBar');
+            const currentTimeEl = document.getElementById('currentTime');
+            const totalTimeEl = document.getElementById('totalTime');
+            const volumeSlider = document.getElementById('volumeSlider');
+            const btnMute = document.getElementById('btnMute');
+            const iconVolume = document.getElementById('iconVolume');
+            const btnSpeed = document.getElementById('btnSpeed');
+            const btnFullscreen = document.getElementById('btnFullscreen');
+            const btnBack = document.getElementById('btnBack');
+            const btnScanlines = document.getElementById('btnScanlines');
+            const scanlineOverlay = document.getElementById('scanlineOverlay');
+            const chapterLabel = document.getElementById('chapterLabel');
+            const toastMessage = document.getElementById('toastMessage');
+            const endScreenOverlay = document.getElementById('endScreenOverlay');
+            const btnReplayEnd = document.getElementById('btnReplayEnd');
+
+            let isUsingProceduralVoxelFallback = false;
+            let voxelSimTime = 0;
+            let controlsTimeout = null;
+
+            // Generate thumbnails for Music items by loading offscreen video frames onto canvases
+            function loadMusicThumbnail(url, canvasId) {
+                const thumbCanvas = document.getElementById(canvasId);
+                if (!thumbCanvas) return;
+                const thumbCtx = thumbCanvas.getContext('2d');
+                thumbCanvas.width = 320;
+                thumbCanvas.height = 180;
+
+                const v = document.createElement('video');
+                v.crossOrigin = 'anonymous';
+                v.muted = true;
+                v.playsInline = true;
+                v.src = url;
+
+                const renderFallbackThumb = (label) => {
+                    thumbCtx.fillStyle = '#0f172a';
+                    thumbCtx.fillRect(0, 0, 320, 180);
+                    thumbCtx.fillStyle = '#10b981';
+                    thumbCtx.font = "10px 'Press Start 2P', monospace";
+                    thumbCtx.textAlign = 'center';
+                    thumbCtx.fillText(label, 160, 95);
+                };
+
+                v.addEventListener('loadeddata', () => {
+                    v.currentTime = 0.1;
+                });
+
+                v.addEventListener('seeked', () => {
+                    try {
+                        thumbCtx.drawImage(v, 0, 0, 320, 180);
+                    } catch (e) {
+                        renderFallbackThumb(canvasId.includes('Magenta') ? 'MAGENTA STONE' : 'HYDRATE OR DIEDRATE');
+                    }
+                });
+
+                v.addEventListener('error', () => {
+                    renderFallbackThumb(canvasId.includes('Magenta') ? 'MAGENTA STONE' : 'HYDRATE OR DIEDRATE');
+                });
+            }
+
+            // Preload music video thumbnails
+            loadMusicThumbnail('https://alaricholt677.github.io/downloads/magenta_stone.mp4', 'thumbCanvasMagenta');
+            loadMusicThumbnail('https://alaricholt677.github.io/downloads/hydrate_or_diedrate.mp4', 'thumbCanvasHydrate');
+
+            // Global function to play music tracks in the canvas player
+            window.playMusicTrack = function(url, title) {
+                endScreenOverlay.classList.add('opacity-0', 'pointer-events-none');
+                videoBuffer.src = url;
+                videoBuffer.currentTime = 0;
+                
+                const titleEl = document.getElementById('trailerTitle');
+                if (titleEl) {
+                    titleEl.innerHTML = `
+                        <span class="text-emerald-400 shrink-0">MUSIC PLAYER</span>
+                        <span class="text-slate-600 hidden xs:inline">•</span>
+                        <span class="text-slate-300 truncate hidden xs:inline">${title}</span>
+                    `;
+                }
+                
+                showToast(`Playing ${title}...`);
+                togglePlay();
+            };
+
+            function showToast(text, duration = 3000) {
+                toastMessage.textContent = text;
+                toastMessage.classList.remove('opacity-0');
+                setTimeout(() => {
+                    toastMessage.classList.add('opacity-0');
+                }, duration);
+            }
+            // Handle video error (e.g. if CORS or missing file occurs, try relative path)
+            videoBuffer.addEventListener('error', () => {
+                if (videoBuffer.src === remoteTrailerUrl) {
+                    console.log("Remote trailer asset unreachable, falling back to local relative path...");
+                    videoBuffer.src = fallbackVideoUrl;
+                } else {
+                    showToast("Visit alaricholt677.github.io/downloads/ for game updates");
+                }
+            });
+
+            function resizeCanvas() {
+                canvas.width = playerContainer.clientWidth;
+                canvas.height = playerContainer.clientHeight;
+                ambientCanvas.width = Math.max(1, Math.floor(playerContainer.clientWidth / 6));
+                ambientCanvas.height = Math.max(1, Math.floor(playerContainer.clientHeight / 6));
+            }
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            // Procedural 3D Voxel Engine Fallback Generator (When video buffering or as stylized trailer backdrop)
+            function renderProceduralVoxelWorld(cWidth, cHeight) {
+                voxelSimTime += 0.02;
+                ctx.fillStyle = "#020617";
+                ctx.fillRect(0, 0, cWidth, cHeight);
+
+                const cols = 20;
+                const rows = 12;
+                const blockWidth = cWidth / cols;
+                const blockHeight = cHeight / rows;
+
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        const wave = Math.sin(voxelSimTime + c * 0.3 + r * 0.2) * 0.5 + 0.5;
+                        const heightOffset = Math.sin(voxelSimTime * 1.5 + c * 0.4) * 12;
+
+                        const green = Math.floor(100 + wave * 155);
+                        const blue = Math.floor(150 + Math.cos(voxelSimTime + r) * 105);
+                        
+                        ctx.fillStyle = `rgb(10, ${green}, ${Math.floor(blue * 0.6)})`;
+                        ctx.fillRect(
+                            c * blockWidth + 2, 
+                            r * blockHeight + heightOffset + 2, 
+                            blockWidth - 4, 
+                            blockHeight - 4
+                        );
+                    }
+                }
+
+                // Render IRL Simulator Voxel Title Banner overlay on canvas using Press Start 2P Font
+                ctx.font = "14px 'Press Start 2P', monospace";
+                ctx.fillStyle = "#00ffcc";
+                ctx.textAlign = "center";
+                ctx.shadowColor = "#00ffcc";
+                ctx.shadowBlur = 10;
+                ctx.fillText("IRL SIMULATOR — 3D VOXEL ENGINE", cWidth / 2, cHeight / 2 - 20);
+                
+                ctx.font = "8px 'Press Start 2P', monospace";
+                ctx.fillStyle = "#ffffff";
+                ctx.shadowBlur = 0;
+                ctx.fillText("BUFFERING CANVAS FRAME BUFFER STREAM...", cWidth / 2, cHeight / 2 + 20);
+            }
+
+            // Main Canvas Rendering Loop
+            function renderFrame() {
+                const cWidth = canvas.width;
+                const cHeight = canvas.height;
+
+                if (videoBuffer.readyState >= 2 && !videoBuffer.paused) {
+                    isUsingProceduralVoxelFallback = false;
+
+                    const vWidth = videoBuffer.videoWidth || 1280;
+                    const vHeight = videoBuffer.videoHeight || 720;
+
+                    // Fit video inside canvas with aspect ratio maintained
+                    const scale = Math.min(cWidth / vWidth, cHeight / vHeight);
+                    const drawWidth = vWidth * scale;
+                    const drawHeight = vHeight * scale;
+                    const drawX = (cWidth - drawWidth) / 2;
+                    const drawY = (cHeight - drawHeight) / 2;
+
+                    ctx.fillStyle = "#020617";
+                    ctx.fillRect(0, 0, cWidth, cHeight);
+                    
+                    // Draw video frame to HTML5 canvas
+                    ctx.drawImage(videoBuffer, drawX, drawY, drawWidth, drawHeight);
+
+                    // Render Real-time Ambient Backlight Glow
+                    try {
+                        ambientCtx.drawImage(videoBuffer, 0, 0, ambientCanvas.width, ambientCanvas.height);
+                    } catch(e) {}
+                } else if (videoBuffer.paused && videoBuffer.currentTime === 0) {
+                    renderProceduralVoxelWorld(cWidth, cHeight);
+                }
+
+                requestAnimationFrame(renderFrame);
+            }
+            requestAnimationFrame(renderFrame);
+
+            // Playback controls
+            function togglePlay() {
+                if (videoBuffer.paused) {
+                    videoBuffer.play().then(() => {
+                        playOverlay.classList.add('opacity-0', 'pointer-events-none');
+                        iconPlay.className = 'fa-solid fa-pause';
+                    }).catch(err => {
+                        console.log("Play error:", err);
+                        showToast("Press play or interact to watch trailer");
+                    });
+                } else {
+                    videoBuffer.pause();
+                    playOverlay.classList.remove('opacity-0', 'pointer-events-none');
+                    iconPlay.className = 'fa-solid fa-play ml-0.5';
+                }
+            }
+
+            playOverlay.addEventListener('click', togglePlay);
+            canvas.addEventListener('click', togglePlay);
+            btnPlayPause.addEventListener('click', togglePlay);
+
+            function formatTime(sec) {
+                if (isNaN(sec)) return "00:00";
+                const m = Math.floor(sec / 60);
+                const s = Math.floor(sec % 60);
+                return `${m < 10 ? '0':''}${m}:${s < 10 ? '0':''}${s}`;
+            }
+
+            // Update Timeline & Chapters
+            videoBuffer.addEventListener('timeupdate', () => {
+                const pct = (videoBuffer.currentTime / videoBuffer.duration) * 100 || 0;
+                progressBar.style.width = `${pct}%`;
+                currentTimeEl.textContent = formatTime(videoBuffer.currentTime);
+                totalTimeEl.textContent = formatTime(videoBuffer.duration);
+
+                if (videoBuffer.buffered.length > 0) {
+                    const bufEnd = videoBuffer.buffered.end(videoBuffer.buffered.length - 1);
+                    bufferedBar.style.width = `${(bufEnd / videoBuffer.duration) * 100}%`;
+                }
+
+                // If playback is active and close to end, hide end screen; trigger end screen on ended
+                if (videoBuffer.currentTime < videoBuffer.duration - 0.5) {
+                    endScreenOverlay.classList.add('opacity-0', 'pointer-events-none');
+                }
+
+                // Chapter markers for IRL Simulator Trailer
+                const curTime = videoBuffer.currentTime;
+                if (curTime < 2) {
+                    chapterLabel.innerHTML = `<i class="fa-solid fa-desktop text-xs mr-1 text-emerald-400"></i> CH 1: MAIN MENU SHOWCASE (0:00-0:02)`;
+                } else if (curTime < 8) {
+                    chapterLabel.innerHTML = `<i class="fa-solid fa-tree text-xs mr-1 text-emerald-400"></i> CH 2: OVERWORLD SHOWCASE (0:02-0:08)`;
+                } else {
+                    chapterLabel.innerHTML = `<i class="fa-solid fa-fire text-xs mr-1 text-red-500 animate-pulse"></i> CH 3: HELL SHOWCASE (0:08-0:10)`;
+                }
+            });
+
+            // Trigger End Screen overlay when video finishes
+            videoBuffer.addEventListener('ended', () => {
+                endScreenOverlay.classList.remove('opacity-0', 'pointer-events-none');
+                iconPlay.className = 'fa-solid fa-rotate-left ml-0.5';
+                showToast("Trailer Complete! Select a music track or page below.");
+            });
+
+            // Replay Trailer logic
+            function replayTrailer() {
+                endScreenOverlay.classList.add('opacity-0', 'pointer-events-none');
+                
+                // Reset source back to trailer if playing another video
+                if (videoBuffer.src !== remoteTrailerUrl) {
+                    videoBuffer.src = remoteTrailerUrl;
+                    const titleEl = document.getElementById('trailerTitle');
+                    if (titleEl) {
+                        titleEl.innerHTML = `
+                            <span class="text-emerald-400 shrink-0">IRL SIMULATOR</span>
+                            <span class="text-slate-600 hidden xs:inline">•</span>
+                            <span class="text-slate-300 truncate hidden xs:inline">Official 3D Voxel Reveal Trailer</span>
+                        `;
+                    }
+                }
+                
+                videoBuffer.currentTime = 0;
+                videoBuffer.play().then(() => {
+                    playOverlay.classList.add('opacity-0', 'pointer-events-none');
+                    iconPlay.className = 'fa-solid fa-pause';
+                });
+            }
+
+            btnReplayEnd.addEventListener('click', replayTrailer);
+
+            // Enhanced Interactive Timeline Drag & Scrubbing
+            let isScrubbing = false;
+
+            function scrub(e) {
+                const rect = timelineContainer.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+                if (videoBuffer.duration) {
+                    videoBuffer.currentTime = pos * videoBuffer.duration;
+                }
+            }
+
+            timelineContainer.addEventListener('mousedown', (e) => {
+                isScrubbing = true;
+                scrub(e);
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (isScrubbing) scrub(e);
+            });
+
+            window.addEventListener('mouseup', () => {
+                isScrubbing = false;
+            });
+
+            timelineContainer.addEventListener('touchstart', (e) => {
+                isScrubbing = true;
+                scrub(e);
+            }, { passive: true });
+
+            window.addEventListener('touchmove', (e) => {
+                if (isScrubbing) scrub(e);
+            }, { passive: true });
+
+            window.addEventListener('touchend', () => {
+                isScrubbing = false;
+            });
+
+            // Volume Controls
+            volumeSlider.addEventListener('input', () => {
+                videoBuffer.volume = volumeSlider.value;
+                videoBuffer.muted = (volumeSlider.value == 0);
+                iconVolume.className = videoBuffer.muted ? 'fa-solid fa-volume-xmark text-slate-400' : 'fa-solid fa-volume-high';
+            });
+
+            btnMute.addEventListener('click', () => {
+                videoBuffer.muted = !videoBuffer.muted;
+                iconVolume.className = videoBuffer.muted ? 'fa-solid fa-volume-xmark text-slate-400' : 'fa-solid fa-volume-high';
+            });
+
+            // Playback Speeds
+            const speeds = [0.75, 1.0, 1.25, 1.5, 2.0];
+            let speedIdx = 1;
+            btnSpeed.addEventListener('click', () => {
+                speedIdx = (speedIdx + 1) % speeds.length;
+                videoBuffer.playbackRate = speeds[speedIdx];
+                btnSpeed.textContent = `${speeds[speedIdx].toFixed(2).replace('.00','')}x`;
+            });
+
+            // Fullscreen Toggle
+            btnFullscreen.addEventListener('click', () => {
+                if (!document.fullscreenElement) {
+                    playerContainer.requestFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            });
+
+            // Toggle CRT Scanlines
+            btnScanlines.addEventListener('click', () => {
+                scanlineOverlay.classList.toggle('hidden');
+                btnScanlines.classList.toggle('bg-emerald-600/30');
+                showToast("Toggled CRT Voxel Scanline Effect");
+            });
+
+            // Back button navigation -> redirect to Wiki/Downloads page
+            btnBack.addEventListener('click', () => {
+                window.open("https://alaricholt677.github.io/downloads/", "_blank");
+            });
+
+            // Keyboard Shortcuts
+            window.addEventListener('keydown', (e) => {
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    togglePlay();
+                } else if (e.code === 'KeyF') {
+                    btnFullscreen.click();
+                } else if (e.code === 'KeyM') {
+                    btnMute.click();
+                } else if (e.code === 'ArrowRight') {
+                    videoBuffer.currentTime = Math.min(videoBuffer.duration, videoBuffer.currentTime + 5);
+                } else if (e.code === 'ArrowLeft') {
+                    videoBuffer.currentTime = Math.max(0, videoBuffer.currentTime - 5);
+                }
+            });
+
+            // Auto-hiding control bar on mouse inactivity
+            playerContainer.addEventListener('mousemove', () => {
+                controlsBar.classList.remove('opacity-0');
+                playerContainer.classList.remove('hide-cursor');
+                clearTimeout(controlsTimeout);
+                if (!videoBuffer.paused) {
+                    controlsTimeout = setTimeout(() => {
+                        controlsBar.classList.add('opacity-0');
+                        playerContainer.classList.add('hide-cursor');
+                    }, 2500);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

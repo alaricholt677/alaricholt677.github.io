@@ -374,7 +374,7 @@ Your support helps the project grow.
 
 ## 📌 Extra Pages & Quick Links
 
-| Page | Visit | Spanish |
+| Page | Visit | Spanish/española |
 |------|--------|---------|
 | ![Win12 Icon](https://alaricholt677.github.io/win12-icon.svg) **Thank‑You Page** | [Click to visit](https://alaricholt677.github.io/thanks/thanks.html) | *Santuario de Agradecimiento* |
 | ![Search Icon](https://alaricholt677.github.io/search.svg) **MOD Hub** | [Click to visit](https://alaricholt677.github.io/MOD) | *Centro de Mods y Juegos* |
@@ -394,3 +394,5 @@ Your support helps the project grow.
 | ![GitIcon](https://alaricholt677.github.io/github_mascot_README.svg) **DOWNLOAD THE KINGERSOLUTION** | [Click to visit](https://alaricholt677.github.io/KingerSolution2.0/) | *DESCARGA EL KINGERSOLUTION* |
 | ![Win12 Icon](https://alaricholt677.github.io/win12-icon.svg) **WinUI3 Kit (PKG)** | [Click to visit](https://alaricholt677.github.io/PKGS/winui3/) | *Kit WinUI3 (Paquete)* |
 | ![win12 Icon](https://alaricholt677.github.io/win12-icon.svg) **WINWeather** | [Click To Visit](https://alaricholt677.github.io/win12WeatherApp) | *WINWeather* |
+| ![search Icon](https://alaricholt677.github.io/search.svg) **PACKAGES** | [Click To Visit](https://alaricholt677.github.io/PKGS) | *paquetes* |
+| ![search Icon](https://alaricholt677.github.io/search.svg) **RepoArchive** | [Click To Visit](https://alaricholt677.github.io/RepoArchive) | *ArchivoRepo* |

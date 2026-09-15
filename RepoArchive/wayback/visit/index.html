@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub Pages Time Machine</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090711;
+      --panel: rgba(23, 18, 39, 0.86);
+      --panel-2: rgba(31, 24, 52, 0.92);
+      --line: rgba(187, 152, 255, 0.22);
+      --line-strong: rgba(187, 152, 255, 0.5);
+      --text: #f5f2ff;
+      --muted: #aaa2bc;
+      --purple: #a879ff;
+      --purple-2: #6e54d9;
+      --cyan: #5de3df;
+      --danger: #ff7aa8;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.36);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    /* Author display rules can override the browser's default [hidden] rule. */
+    [hidden] { display: none !important; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 18% -10%, rgba(123, 81, 201, 0.34), transparent 34%),
+        radial-gradient(circle at 92% 0%, rgba(64, 187, 192, 0.16), transparent 28%),
+        linear-gradient(155deg, #08060e 0%, #0d0918 48%, #08070f 100%);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+
+    .app { min-height: 100vh; display: flex; flex-direction: column; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 14px 22px;
+      background: rgba(9, 7, 17, 0.86);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand { display: flex; align-items: center; min-width: max-content; gap: 11px; }
+    .brand-mark {
+      width: 37px; height: 37px; display: grid; place-items: center;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--purple), #5741bc);
+      box-shadow: 0 0 24px rgba(168, 121, 255, 0.28);
+      font-weight: 900;
+    }
+    .brand h1 { margin: 0; font-size: 1rem; letter-spacing: 0.01em; }
+    .brand small { display: block; margin-top: 2px; color: var(--muted); font-size: 0.72rem; }
+
+    .repo-form { flex: 1; display: grid; grid-template-columns: minmax(120px, .8fr) minmax(150px, 1fr) minmax(180px, 1.2fr) auto; gap: 9px; }
+
+    input, .url-input {
+      width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 10px;
+      color: var(--text); background: rgba(255, 255, 255, 0.045);
+      padding: 10px 12px; outline: none;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+    }
+    input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(168,121,255,.13); background: rgba(255,255,255,.065); }
+
+    .btn {
+      border: 1px solid var(--line-strong); border-radius: 10px; padding: 9px 13px;
+      color: var(--text); background: linear-gradient(180deg, rgba(168,121,255,.22), rgba(168,121,255,.10));
+      box-shadow: 0 8px 20px rgba(0,0,0,.18); transition: transform .18s, border-color .18s, background .18s;
+    }
+    .btn:hover { transform: translateY(-1px); border-color: var(--purple); background: rgba(168,121,255,.25); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .btn.primary { background: linear-gradient(135deg, #9c68ff, #6047d0); border-color: transparent; font-weight: 750; }
+    .btn.ghost { background: rgba(255,255,255,.035); border-color: var(--line); }
+
+    .timeline-shell {
+      padding: 15px 22px 12px;
+      background: linear-gradient(180deg, rgba(26,20,44,.88), rgba(14,10,25,.80));
+      border-bottom: 1px solid var(--line);
+    }
+
+    .timeline-meta { display: flex; justify-content: space-between; gap: 14px; align-items: center; margin-bottom: 8px; color: var(--muted); font-size: .78rem; }
+    #selectedCommitLabel { color: #d8c7ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .timeline-scroll { overflow-x: auto; padding: 4px 0 9px; }
+    .timeline { position: relative; min-width: 760px; height: 88px; user-select: none; }
+    .timeline-axis { position: absolute; left: 10px; right: 10px; top: 49px; height: 4px; border-radius: 10px; background: linear-gradient(90deg, rgba(168,121,255,.25), rgba(93,227,223,.26)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
+    .tick { position: absolute; top: 37px; width: 1px; height: 28px; background: rgba(255,255,255,.15); }
+    .tick.month { top: 46px; height: 12px; background: rgba(255,255,255,.10); }
+    .year-label { position: absolute; top: 4px; transform: translateX(-50%); font-size: .72rem; color: #c8bcda; white-space: nowrap; }
+    .commit-dot {
+      position: absolute; top: 43px; width: 13px; height: 13px; padding: 0; transform: translate(-50%, -50%);
+      border: 2px solid #e7ddff; border-radius: 50%; background: var(--purple); box-shadow: 0 0 0 4px rgba(168,121,255,.12), 0 0 16px rgba(168,121,255,.55);
+      z-index: 3;
+    }
+    .commit-dot:hover, .commit-dot.active { width: 17px; height: 17px; background: var(--cyan); border-color: white; z-index: 5; }
+    .commit-dot::after {
+      content: attr(data-tip); pointer-events: none; position: absolute; left: 50%; bottom: 21px; transform: translateX(-50%);
+      width: max-content; max-width: 300px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px;
+      background: #171126; color: var(--text); font-size: 11px; line-height: 1.35; white-space: pre-line;
+      opacity: 0; visibility: hidden; transition: opacity .15s; box-shadow: var(--shadow);
+    }
+    .commit-dot:hover::after { opacity: 1; visibility: visible; }
+
+    .workspace { flex: 1; display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 14px; padding: 14px 22px 22px; min-height: 0; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .sidebar { display: flex; flex-direction: column; min-height: 650px; max-height: calc(100vh - 220px); }
+    .panel-title { padding: 14px 15px 10px; font-size: .76rem; font-weight: 800; color: #d9ccf1; letter-spacing: .09em; text-transform: uppercase; }
+    .controls { padding: 0 14px 14px; border-bottom: 1px solid var(--line); }
+    .controls label { display: block; margin: 4px 0 7px; color: var(--muted); font-size: .74rem; }
+    .controls .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 9px; }
+    .controls .button-grid .wide { grid-column: 1 / -1; }
+    .status { min-height: 34px; padding: 9px 14px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: .75rem; line-height: 1.35; }
+    .status.error { color: #ffb0cc; background: rgba(255, 76, 136, .07); }
+    .status.success { color: #9af0dc; }
+    .commit-search { position: relative; padding: 10px 14px 12px; border-bottom: 1px solid var(--line); z-index: 12; }
+    .commit-search-row { display: grid; grid-template-columns: 1fr auto; gap: 7px; }
+    .search-results {
+      display: none;
+      position: absolute;
+      top: calc(100% - 7px);
+      left: 14px;
+      right: 14px;
+      z-index: 50;
+      max-height: 310px;
+      overflow: auto;
+      border: 1px solid var(--line-strong);
+      border-radius: 12px;
+      background: rgba(13, 9, 24, .98);
+      box-shadow: 0 18px 45px rgba(0,0,0,.55);
+      backdrop-filter: blur(16px);
+    }
+    .search-results.visible { display: block; }
+    .search-results-title { padding: 7px 9px; color: var(--muted); font-size: .67rem; letter-spacing: .07em; text-transform: uppercase; border-bottom: 1px solid var(--line); }
+    .search-result { width: 100%; display: block; padding: 9px; border: 0; border-bottom: 1px solid rgba(187,152,255,.10); color: var(--text); background: transparent; text-align: left; }
+    .search-result:last-child { border-bottom: 0; }
+    .search-result:hover, .search-result:focus { background: rgba(168,121,255,.13); outline: none; }
+    .search-result strong { display: block; color: var(--cyan); font-size: .66rem; margin-bottom: 3px; }
+    .search-result span { display: block; font-size: .73rem; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .search-empty { padding: 11px; color: var(--muted); font-size: .73rem; }
+    .commit-list { min-height: 0; flex: 1; overflow: auto; }
+    .commit-entry { width: 100%; display: block; text-align: left; padding: 11px 14px; color: inherit; border: 0; border-bottom: 1px solid rgba(187,152,255,.10); background: transparent; }
+    .commit-entry:hover, .commit-entry.active { background: rgba(168,121,255,.11); box-shadow: inset 3px 0 var(--purple); }
+    .commit-entry time { display: block; color: var(--cyan); font-size: .67rem; margin-bottom: 4px; }
+    .commit-entry span { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; color: #e8e1f2; font-size: .78rem; line-height: 1.35; }
+
+    .main-panel { display: grid; grid-template-rows: auto minmax(420px, 1fr) minmax(160px, 30%); min-height: 650px; max-height: calc(100vh - 220px); }
+    .browser-bar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 9px; padding: 11px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+    .traffic { display: flex; align-items: center; gap: 6px; padding: 0 3px; }
+    .traffic i { width: 10px; height: 10px; border-radius: 50%; display: block; }
+    .traffic i:nth-child(1) { background: #ff729f; } .traffic i:nth-child(2) { background: #ffc45c; } .traffic i:nth-child(3) { background: #62dfb0; }
+    #viewer { width: 100%; height: 100%; border: 0; background: white; }
+    #codeView { display: none; width: 100%; height: 100%; margin: 0; padding: 18px; overflow: auto; background: #0b0912; color: #e7ddff; font: 13px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre; tab-size: 2; }
+    .view-toggle { display: flex; gap: 6px; }
+    .view-toggle .active { background: rgba(168,121,255,.34); border-color: var(--purple); }
+    .viewer-wrap { min-height: 0; position: relative; background: white; }
+    .empty-view { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; padding: 30px; color: #8d83a2; background: radial-gradient(circle at 50% 35%, #f3efff, #ddd6ed); }
+    .empty-view strong { display: block; color: #5e477c; font-size: 1.1rem; margin-bottom: 7px; }
+    .tree-section { display: flex; flex-direction: column; min-height: 0; border-top: 1px solid var(--line); }
+    .tree-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 13px; background: rgba(255,255,255,.025); }
+    .tree-head .panel-title { padding: 0; }
+    .tree-count { color: var(--muted); font-size: .72rem; }
+    .tree-list { overflow: auto; padding: 4px 8px 10px; }
+    .file-entry { width: 100%; display: flex; align-items: center; gap: 8px; border: 0; border-radius: 8px; padding: 7px 9px; color: #dcd4e9; background: transparent; text-align: left; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .75rem; }
+    .file-entry:hover, .file-entry.active { background: rgba(168,121,255,.13); color: white; }
+    .file-icon { color: var(--purple); }
+
+    .spinner { display: inline-block; width: 11px; height: 11px; margin-right: 7px; border: 2px solid rgba(255,255,255,.2); border-top-color: var(--purple); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -1px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 850px) {
+      .topbar { align-items: stretch; flex-direction: column; }
+      .repo-form { grid-template-columns: 1fr 1fr auto; }
+      .workspace { grid-template-columns: 1fr; }
+      .sidebar, .main-panel { max-height: none; }
+      .sidebar { min-height: 460px; }
+      .main-panel { height: 800px; }
+    }
+    @media (max-width: 560px) {
+      .topbar, .timeline-shell, .workspace { padding-left: 12px; padding-right: 12px; }
+      .repo-form { grid-template-columns: 1fr; }
+      .browser-bar { grid-template-columns: 1fr auto; }
+      .traffic { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">⏱</div>
+        <div><h1>GitHub Pages Time Machine</h1><small>Browse a repository across commit history</small></div>
+      </div>
+      <form class="repo-form" id="repoForm">
+        <input id="ownerInput" aria-label="GitHub username" autocomplete="off" value="alaricholt677" placeholder="GitHub username" />
+        <input id="repoInput" aria-label="Repository name" autocomplete="off" value="alaricholt677.github.io" placeholder="Repository" />
+        <input id="tokenInput" type="password" aria-label="GitHub personal access token" autocomplete="off" spellcheck="false" placeholder="GitHub PAT (optional, session only)" />
+        <button class="btn primary" id="loadRepoBtn" type="submit">Load Repo</button>
+      </form>
+    </header>
+
+    <section class="timeline-shell" aria-label="Commit timeline">
+      <div class="timeline-meta">
+        <span id="timelineRange">Load a repository to build its timeline</span>
+        <span id="selectedCommitLabel">No snapshot selected</span>
+      </div>
+      <div class="timeline-scroll"><div class="timeline" id="timeline"><div class="timeline-axis"></div></div></div>
+    </section>
+
+    <main class="workspace">
+      <aside class="panel sidebar">
+        <div class="panel-title">Travel to a snapshot</div>
+        <div class="controls">
+          <label for="dateTimeInput">Local date and time</label>
+          <input id="dateTimeInput" type="datetime-local" />
+          <div class="button-grid">
+            <button class="btn ghost wide" id="loadTimestampBtn" type="button" disabled>Load by timestamp</button>
+            <button class="btn ghost" id="latestBtn" type="button" disabled>Latest commit</button>
+            <button class="btn" id="simulateBtn" type="button" disabled>Simulate Pages</button>
+          </div>
+        </div>
+        <div class="status" id="status" role="status">Ready. A PAT is optional and remains only in this browser tab.</div>
+        <div class="panel-title">Search commits</div>
+        <div class="commit-search">
+          <div class="commit-search-row">
+            <input id="commitSearchInput" type="search" autocomplete="off" placeholder="Message, SHA, or date" aria-label="Search commits" />
+            <button class="btn ghost" id="commitSearchBtn" type="button" disabled>Search</button>
+          </div>
+          <div class="search-results" id="commitSearchResults" aria-live="polite"></div>
+        </div>
+        <div class="panel-title">All commits</div>
+        <div class="commit-list" id="commitList"></div>
+      </aside>
+
+      <section class="panel main-panel">
+        <div class="browser-bar">
+          <div class="traffic" aria-hidden="true"><i></i><i></i><i></i></div>
+          <input class="url-input" id="pathInput" value="index.html" aria-label="File path at selected commit" placeholder="index.html, /about/, or a GitHub Pages URL" />
+          <div class="view-toggle">
+            <button class="btn active" id="previewBtn" type="button" disabled>Preview</button>
+            <button class="btn" id="codeBtn" type="button" disabled>Code</button>
+            <button class="btn" id="goBtn" type="button" disabled>Go</button>
+          </div>
+        </div>
+        <div class="viewer-wrap">
+          <iframe id="viewer" title="Repository snapshot" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-downloads"></iframe>
+          <pre id="codeView" aria-label="Source code viewer"><code id="codeContent"></code></pre>
+          <div class="empty-view" id="emptyView"><div><strong>No snapshot loaded</strong>Select a commit, then load an HTML file.</div></div>
+        </div>
+        <div class="tree-section">
+          <div class="tree-head"><div class="panel-title">Files at this commit</div><span class="tree-count" id="treeCount">0 files</span></div>
+          <div class="tree-list" id="treeList"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    "use strict";
+
+    const API = "https://api.github.com";
+    const RAW = "https://raw.githubusercontent.com";
+    const state = { owner: "", repo: "", token: "", commits: [], selectedSha: "", selectedCommit: null, files: [], currentPath: "index.html", currentSource: "", viewMode: "preview" };
+
+    const $ = (id) => document.getElementById(id);
+    const ui = {
+      repoForm: $("repoForm"), owner: $("ownerInput"), repo: $("repoInput"), token: $("tokenInput"), loadRepo: $("loadRepoBtn"),
+      timeline: $("timeline"), timelineRange: $("timelineRange"), selectedLabel: $("selectedCommitLabel"),
+      dateTime: $("dateTimeInput"), loadTimestamp: $("loadTimestampBtn"), latest: $("latestBtn"),
+      simulate: $("simulateBtn"), status: $("status"), commitList: $("commitList"), commitSearch: $("commitSearchInput"), commitSearchBtn: $("commitSearchBtn"), commitSearchResults: $("commitSearchResults"), path: $("pathInput"),
+      go: $("goBtn"), preview: $("previewBtn"), code: $("codeBtn"), viewer: $("viewer"), codeView: $("codeView"), codeContent: $("codeContent"), empty: $("emptyView"), treeList: $("treeList"), treeCount: $("treeCount")
+    };
+
+    function setStatus(message, kind = "") {
+      ui.status.className = `status ${kind}`.trim();
+      ui.status.innerHTML = kind === "loading" ? `<span class="spinner"></span>${escapeHtml(message)}` : escapeHtml(message);
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"})[c]);
+    }
+
+    function firstLine(message) { return (message || "No commit message").split("\n")[0]; }
+    function shortSha(sha) { return sha.slice(0, 7); }
+    function formatDate(date) { return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(date)); }
+
+    function sanitizeToken(value) {
+      let token = String(value || "").trim();
+      // Accept pasted values such as "Bearer github_pat_..." and remove common
+      // smart quotes, invisible formatting marks, line breaks, and other non-ASCII
+      // characters that are invalid in an HTTP Authorization header.
+      token = token.replace(/^Bearer\s+/i, "");
+      token = token.replace(/[\u200B-\u200D\u2060\uFEFF]/g, "");
+      token = token.replace(/[\r\n\t ]+/g, "");
+      token = token.replace(/^[\"'`\u2018\u2019\u201C\u201D]+|[\"'`\u2018\u2019\u201C\u201D]+$/g, "");
+      return token;
+    }
+
+    function validateToken(token) {
+      if (!token) return "";
+      if (!/^[\x21-\x7E]+$/.test(token)) {
+        throw new Error("The PAT contains unsupported characters. Copy only the token itself, without quotes or extra text.");
+      }
+      // Current GitHub PATs normally begin with ghp_ or github_pat_. Older valid
+      // token formats may differ, so warn only through validation of safe ASCII.
+      return token;
+    }
+
+    function apiHeaders() {
+      const headers = { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
+      if (state.token) headers.Authorization = `Bearer ${state.token}`;
+      return headers;
+    }
+
+    async function checkedFetch(url, options = {}) {
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        let detail = "";
+        try { detail = (await response.json()).message || ""; } catch (_) { /* non-JSON error */ }
+        const rate = response.headers.get("x-ratelimit-remaining");
+        const reset = response.headers.get("x-ratelimit-reset");
+        const resetMessage = reset ? ` Limit resets at ${new Date(Number(reset) * 1000).toLocaleTimeString()}.` : "";
+        const suffix = response.status === 403 && rate === "0" ? ` GitHub API rate limit reached.${resetMessage}` : response.status === 401 ? " Check that your PAT is valid." : "";
+        throw new Error(`${response.status} ${response.statusText}${detail ? `: ${detail}` : ""}.${suffix}`);
+      }
+      return response;
+    }
+
+    async function loadRepo() {
+      const owner = ui.owner.value.trim();
+      const repo = ui.repo.value.trim();
+      if (!owner || !repo) return setStatus("Enter both a GitHub username and repository name.", "error");
+
+      try {
+        state.token = validateToken(sanitizeToken(ui.token.value));
+        // Reflect the cleaned token in the password field without storing it elsewhere.
+        ui.token.value = state.token;
+      } catch (error) {
+        state.token = "";
+        ui.token.value = "";
+        return setStatus(error.message, "error");
+      }
+
+      state.owner = owner; state.repo = repo; state.commits = []; state.files = []; state.selectedSha = ""; state.selectedCommit = null;
+      ui.loadRepo.disabled = true; disableSnapshotControls(true); ui.commitList.innerHTML = ""; ui.commitSearchResults.innerHTML = ""; ui.commitSearchResults.classList.remove("visible"); ui.commitSearchBtn.disabled = true; ui.treeList.innerHTML = ""; ui.treeCount.textContent = "0 files";
+      resetViewer(); setStatus(`Loading commits for ${owner}/${repo}${state.token ? " with authenticated API access" : " anonymously"}…`, "loading");
+
+      try {
+        await loadCommits();
+        updateTimelineUI(); updateCommitListUI();
+        disableSnapshotControls(false);
+        ui.commitSearchBtn.disabled = false;
+        setStatus(`Loaded ${state.commits.length} commits${state.token ? " using your session-only PAT" : " anonymously"}. Select a snapshot or load the latest.`, "success");
+      } catch (error) {
+        setStatus(`Could not load repository: ${error.message}`, "error");
+      } finally { ui.loadRepo.disabled = false; }
+    }
+
+    async function loadCommits() {
+      // GitHub returns at most 100 commits per page. Load up to 10 pages,
+      // stopping early as soon as a page contains fewer than 100 commits.
+      const perPage = 100;
+      const maxPages = 10;
+      const base = `${API}/repos/${encodeURIComponent(state.owner)}/${encodeURIComponent(state.repo)}/commits?per_page=${perPage}`;
+      const all = [];
+
+      for (let page = 1; page <= maxPages; page++) {
+        setStatus(`Loading commits for ${state.owner}/${state.repo}… page ${page} of ${maxPages}`, "loading");
+        const batch = await checkedFetch(`${base}&page=${page}`, { headers: apiHeaders() }).then(r => r.json());
+        all.push(...batch);
+
+        // A partial or empty page means there are no more commits to request.
+        if (batch.length < perPage) break;
+      }
+
+      state.commits = all.slice(0, 1000).map(item => ({
+        sha: item.sha,
+        date: item.commit.author?.date || item.commit.committer?.date,
+        message: item.commit.message || "No commit message"
+      })).filter(c => c.date);
+
+      if (!state.commits.length) throw new Error("No commits were returned for this repository");
+    }
+
+    function loadByTimestamp() {
+      if (!state.commits.length) return;
+      const target = new Date(ui.dateTime.value);
+      if (Number.isNaN(target.getTime())) return setStatus("Choose a valid date and time.", "error");
+      const closest = state.commits.reduce((best, commit) => Math.abs(new Date(commit.date) - target) < Math.abs(new Date(best.date) - target) ? commit : best);
+      loadCommit(closest.sha);
+    }
+
+    function loadLatest() {
+      if (!state.commits.length) return;
+      const latest = state.commits.reduce((a, b) => new Date(a.date) > new Date(b.date) ? a : b);
+      loadCommit(latest.sha);
+    }
+
+    async function loadCommit(sha) {
+      const commit = state.commits.find(c => c.sha === sha);
+      if (!commit) return;
+      state.selectedSha = sha; state.selectedCommit = commit;
+      setStatus(`Loading tree for ${shortSha(sha)}…`, "loading");
+      highlightSelection();
+
+      try {
+        const detail = await checkedFetch(`${API}/repos/${encodeURIComponent(state.owner)}/${encodeURIComponent(state.repo)}/commits/${sha}`, { headers: apiHeaders() }).then(r => r.json());
+        const treeSha = detail.commit?.tree?.sha;
+        if (!treeSha) throw new Error("The commit tree SHA was not available");
+        const tree = await checkedFetch(`${API}/repos/${encodeURIComponent(state.owner)}/${encodeURIComponent(state.repo)}/git/trees/${treeSha}?recursive=1`, { headers: apiHeaders() }).then(r => r.json());
+        state.files = (tree.tree || []).filter(item => item.type === "blob").map(item => item.path).sort((a, b) => a.localeCompare(b));
+        updateTreeListUI();
+        ui.dateTime.value = toLocalDateTimeValue(commit.date);
+        ui.selectedLabel.textContent = `${shortSha(sha)} · ${formatDate(commit.date)} · ${firstLine(commit.message)}`;
+        setStatus(`Snapshot ${shortSha(sha)} loaded with ${state.files.length} files.`, "success");
+        ui.go.disabled = ui.simulate.disabled = ui.preview.disabled = ui.code.disabled = false;
+        const initial = pickIndexFile();
+        if (initial) { ui.path.value = initial; await loadSnapshot(initial); }
+        else resetViewer("No index.html was found. Choose a file from the tree.");
+      } catch (error) { setStatus(`Could not load commit: ${error.message}`, "error"); }
+    }
+
+    function updateTimelineUI() {
+      ui.timeline.innerHTML = '<div class="timeline-axis"></div>';
+      const dates = state.commits.map(c => new Date(c.date).getTime());
+      let min = Math.min(...dates), max = Math.max(...dates);
+      if (min === max) { min -= 86400000; max += 86400000; }
+      const pad = 1.5; const position = time => pad + ((time - min) / (max - min)) * (100 - pad * 2);
+      const minDate = new Date(min), maxDate = new Date(max);
+      ui.timelineRange.textContent = `${formatDate(new Date(Math.min(...dates)))} → ${formatDate(new Date(Math.max(...dates)))} · ${state.commits.length} commits`;
+
+      for (let year = minDate.getUTCFullYear(); year <= maxDate.getUTCFullYear(); year++) {
+        const t = Date.UTC(year, 0, 1);
+        if (t >= min && t <= max) addTimelineElement("tick", position(t));
+        const labelT = Math.max(min, Math.min(max, Date.UTC(year, 6, 1)));
+        const label = addTimelineElement("year-label", position(labelT)); label.textContent = year;
+        for (let month = 0; month < 12; month++) {
+          const mt = Date.UTC(year, month, 1);
+          if (mt > min && mt < max) addTimelineElement("tick month", position(mt));
+        }
+      }
+
+      state.commits.forEach(commit => {
+        const dot = document.createElement("button");
+        dot.type = "button"; dot.className = "commit-dot"; dot.style.left = `${position(new Date(commit.date).getTime())}%`;
+        dot.dataset.sha = commit.sha; dot.dataset.tip = `${formatDate(commit.date)}\n${firstLine(commit.message)}`;
+        dot.setAttribute("aria-label", `${formatDate(commit.date)}: ${firstLine(commit.message)}`);
+        dot.addEventListener("click", () => loadCommit(commit.sha)); ui.timeline.appendChild(dot);
+      });
+    }
+
+    function addTimelineElement(className, left) {
+      const el = document.createElement("div"); el.className = className; el.style.left = `${left}%`; ui.timeline.appendChild(el); return el;
+    }
+
+    function normalizeSearchText(value) {
+      return String(value || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function scoreCommitMatch(commit, query) {
+      const q = normalizeSearchText(query).trim();
+      if (!q) return 0;
+      const message = normalizeSearchText(commit.message);
+      const sha = commit.sha.toLowerCase();
+      const date = normalizeSearchText(`${formatDate(commit.date)} ${commit.date}`);
+      const words = q.split(/\s+/).filter(Boolean);
+      let score = 0;
+
+      if (sha === q) score += 1000;
+      else if (sha.startsWith(q)) score += 650;
+      else if (sha.includes(q)) score += 350;
+      if (message === q) score += 800;
+      else if (message.startsWith(q)) score += 500;
+      else if (message.includes(q)) score += 260;
+      if (date.includes(q)) score += 220;
+
+      for (const word of words) {
+        if (sha.startsWith(word)) score += 120;
+        if (message.includes(word)) score += 70;
+        if (message.split(/\W+/).some(token => token.startsWith(word))) score += 35;
+        if (date.includes(word)) score += 25;
+      }
+      return score;
+    }
+
+    function showCommitSearchResults() {
+      const hasQuery = ui.commitSearch.value.trim().length > 0;
+      if (document.activeElement === ui.commitSearch && hasQuery) {
+        ui.commitSearchResults.classList.add("visible");
+      }
+    }
+
+    function hideCommitSearchResults() {
+      ui.commitSearchResults.classList.remove("visible");
+    }
+
+    function searchCommits() {
+      const query = ui.commitSearch.value.trim();
+      ui.commitSearchResults.innerHTML = "";
+      if (!query) {
+        ui.commitSearchResults.classList.remove("visible");
+        return;
+      }
+
+      const matches = state.commits
+        .map(commit => ({ commit, score: scoreCommitMatch(commit, query) }))
+        .filter(result => result.score > 0)
+        .sort((a, b) => b.score - a.score || new Date(b.commit.date) - new Date(a.commit.date))
+        .slice(0, 5);
+
+      if (document.activeElement === ui.commitSearch) showCommitSearchResults();
+      else hideCommitSearchResults();
+      const title = document.createElement("div");
+      title.className = "search-results-title";
+      title.textContent = matches.length ? `Top ${matches.length} related result${matches.length === 1 ? "" : "s"}` : "No related commits";
+      ui.commitSearchResults.appendChild(title);
+
+      if (!matches.length) {
+        const empty = document.createElement("div");
+        empty.className = "search-empty";
+        empty.textContent = "Try a commit message word, short SHA, month, or year.";
+        ui.commitSearchResults.appendChild(empty);
+        return;
+      }
+
+      matches.forEach(({ commit }) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "search-result";
+        button.innerHTML = `<strong>${escapeHtml(formatDate(commit.date))} · ${shortSha(commit.sha)}</strong><span>${escapeHtml(firstLine(commit.message))}</span>`;
+        button.addEventListener("click", () => {
+          hideCommitSearchResults();
+          ui.commitSearch.blur();
+          loadCommit(commit.sha);
+        });
+        ui.commitSearchResults.appendChild(button);
+      });
+    }
+
+    function updateCommitListUI() {
+      ui.commitList.innerHTML = "";
+      state.commits.forEach(commit => {
+        const button = document.createElement("button"); button.type = "button"; button.className = "commit-entry"; button.dataset.sha = commit.sha;
+        button.innerHTML = `<time>${escapeHtml(formatDate(commit.date))} · ${shortSha(commit.sha)}</time><span>${escapeHtml(firstLine(commit.message))}</span>`;
+        button.addEventListener("click", () => loadCommit(commit.sha)); ui.commitList.appendChild(button);
+      });
+    }
+
+    function updateTreeListUI() {
+      ui.treeList.innerHTML = ""; ui.treeCount.textContent = `${state.files.length} file${state.files.length === 1 ? "" : "s"}`;
+      state.files.forEach(path => {
+        const button = document.createElement("button"); button.type = "button"; button.className = "file-entry"; button.dataset.path = path;
+        button.innerHTML = `<span class="file-icon">◇</span><span>${escapeHtml(path)}</span>`;
+        button.addEventListener("click", () => { ui.path.value = path; loadSnapshot(path); }); ui.treeList.appendChild(button);
+      });
+    }
+
+    function highlightSelection() {
+      document.querySelectorAll("[data-sha]").forEach(el => el.classList.toggle("active", el.dataset.sha === state.selectedSha));
+    }
+
+    function highlightPath(path) {
+      document.querySelectorAll("[data-path]").forEach(el => el.classList.toggle("active", el.dataset.path === path));
+    }
+
+    function pickIndexFile() {
+      return state.files.includes("index.html") ? "index.html" : state.files.find(p => /(^|\/)index\.html$/i.test(p)) || "";
+    }
+
+    function normalizeRepoPath(input, baseFile = "") {
+      let path = String(input || "").trim().replace(/^#/, "");
+      if (!path) return "index.html";
+      try { path = decodeURIComponent(path); } catch (_) { /* keep original */ }
+      path = path.split(/[?#]/)[0].replace(/^\/+/, "");
+      if (path.endsWith("/")) path += "index.html";
+      const baseParts = baseFile ? baseFile.split("/").slice(0, -1) : [];
+      const parts = (input.startsWith("/") ? [] : baseParts).concat(path.split("/"));
+      const out = [];
+      for (const part of parts) { if (!part || part === ".") continue; if (part === "..") out.pop(); else out.push(part); }
+      return out.join("/");
+    }
+
+    function rawUrl(path) {
+      return `${RAW}/${encodeURIComponent(state.owner)}/${encodeURIComponent(state.repo)}/${state.selectedSha}/${path.split("/").map(encodeURIComponent).join("/")}`;
+    }
+
+    function pathFromUrlOrInput(input) {
+      const value = String(input || "").trim();
+      if (!/^https?:\/\//i.test(value)) return normalizeRepoPath(value);
+
+      let url;
+      try { url = new URL(value); } catch (_) { throw new Error("That URL is not valid"); }
+      const host = url.hostname.toLowerCase();
+      const parts = url.pathname.split("/").filter(Boolean).map(part => {
+        try { return decodeURIComponent(part); } catch (_) { return part; }
+      });
+
+      // raw.githubusercontent.com/OWNER/REPO/REF/PATH
+      if (host === "raw.githubusercontent.com") {
+        if (parts[0]?.toLowerCase() !== state.owner.toLowerCase() || parts[1]?.toLowerCase() !== state.repo.toLowerCase())
+          throw new Error("The URL belongs to a different repository");
+        return normalizeRepoPath(parts.slice(3).join("/"));
+      }
+
+      // github.com/OWNER/REPO/blob/REF/PATH or github.com/OWNER/REPO/tree/REF/PATH
+      if (host === "github.com") {
+        if (parts[0]?.toLowerCase() !== state.owner.toLowerCase() || parts[1]?.toLowerCase() !== state.repo.toLowerCase())
+          throw new Error("The URL belongs to a different repository");
+        const mode = parts[2];
+        if (mode === "blob" || mode === "tree") return normalizeRepoPath(parts.slice(4).join("/"));
+        return normalizeRepoPath(parts.slice(2).join("/"));
+      }
+
+      // OWNER.github.io[/REPO]/PATH. Project sites include the repo prefix;
+      // user sites (OWNER.github.io) do not.
+      const pagesHost = `${state.owner.toLowerCase()}.github.io`;
+      if (host === pagesHost || host === `www.${pagesHost}`) {
+        const isUserSite = state.repo.toLowerCase() === `${state.owner.toLowerCase()}.github.io`;
+        let siteParts = parts;
+        if (!isUserSite && parts[0]?.toLowerCase() === state.repo.toLowerCase()) siteParts = parts.slice(1);
+        return normalizeRepoPath(siteParts.join("/"));
+      }
+
+      // A custom-domain URL cannot be reliably mapped to a repository root,
+      // so use only its pathname and clearly report that behavior.
+      setStatus("Custom-domain URL detected. Mapping its pathname into this repository.", "loading");
+      return normalizeRepoPath(parts.join("/"));
+    }
+
+    function resolveExistingPath(input) {
+      let path = pathFromUrlOrInput(input);
+      if (!path) path = "index.html";
+      if (state.files.includes(path)) return path;
+      if (state.files.includes(`${path}/index.html`)) return `${path}/index.html`;
+      if (!/\.[^/]+$/.test(path) && state.files.includes(`${path}.html`)) return `${path}.html`;
+      return path;
+    }
+
+    async function loadSnapshot(path) {
+      if (!state.selectedSha) return setStatus("Select a commit first.", "error");
+      let resolved;
+      try { resolved = resolveExistingPath(path); }
+      catch (error) { return showViewerError(error.message); }
+      if (!resolved) return showViewerError("Enter a valid repository path or URL.");
+      state.currentPath = resolved; ui.path.value = resolved; highlightPath(resolved);
+      setStatus(`Loading ${resolved}…`, "loading");
+
+      try {
+        const response = await checkedFetch(rawUrl(resolved));
+        const ext = resolved.includes(".") ? resolved.split(".").pop().toLowerCase() : "";
+        if (["html", "htm"].includes(ext)) {
+          const html = await response.text();
+          state.currentSource = html;
+          ui.codeContent.textContent = html;
+          ui.viewer.removeAttribute("src");
+          ui.viewer.srcdoc = await prepareHtml(html, resolved);
+        } else if (["png","jpg","jpeg","gif","webp","svg","ico","bmp","avif"].includes(ext)) {
+          state.currentSource = `[Binary image: ${resolved}]`;
+          ui.codeContent.textContent = state.currentSource;
+          ui.viewer.srcdoc = simpleDocument(`<img src="${escapeHtml(rawUrl(resolved))}" alt="${escapeHtml(resolved)}">`, true);
+        } else if (["mp4","webm","ogg","mp3","wav"].includes(ext)) {
+          state.currentSource = `[Binary media: ${resolved}]`;
+          ui.codeContent.textContent = state.currentSource;
+          ui.viewer.srcdoc = simpleDocument(`<video src="${escapeHtml(rawUrl(resolved))}" controls style="max-width:100%;max-height:90vh"></video>`, true);
+        } else {
+          const text = await response.text();
+          state.currentSource = text;
+          ui.codeContent.textContent = text;
+          ui.viewer.srcdoc = simpleDocument(`<pre>${escapeHtml(text)}</pre>`);
+        }
+        ui.empty.hidden = true;
+        ui.empty.style.display = "none";
+        setViewMode("preview");
+        const pwaFile = /(^|\/)(service-worker|sw)\.js$/i.test(resolved) || /(^|\/)manifest(?:\.webmanifest|\.json)$/i.test(resolved);
+        setStatus(pwaFile
+          ? `Viewing ${resolved} as source only. PWA installation and service-worker control are safely simulated.`
+          : `Viewing ${resolved} at ${shortSha(state.selectedSha)}.`, "success");
+      } catch (error) { showViewerError(`Could not load ${resolved}: ${error.message}`); }
+    }
+
+    function showViewerError(message) {
+      ui.viewer.srcdoc = simpleDocument(`<div style="max-width:680px"><h2>Snapshot could not be displayed</h2><p>${escapeHtml(message)}</p><p>Try <b>index.html</b>, a repository-relative path, or a URL belonging to the loaded GitHub Pages site.</p></div>`, true);
+      ui.empty.hidden = true;
+      ui.empty.style.display = "none";
+      setStatus(message, "error");
+    }
+
+    function simpleDocument(body, centered = false) {
+      return `<!doctype html><meta charset="utf-8"><style>body{margin:0;padding:24px;background:#fff;color:#17131f;font:14px/1.55 ui-monospace,monospace;${centered ? "display:grid;place-items:center;min-height:calc(100vh - 48px)" : ""}}pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}img{max-width:100%;max-height:90vh}</style>${body}`;
+    }
+
+    async function simulateGitHubPages() {
+      const index = pickIndexFile();
+      if (!index) return setStatus("No index.html exists in this commit.", "error");
+      ui.path.value = index; await loadSnapshot(index);
+    }
+
+    function installEarlyNavigationBridge(owner) {
+      const pagesHost = `${String(owner).toLowerCase()}.github.io`;
+
+      window.__timeMachineNavigate = function (url) {
+        const value = String(url == null ? "" : url);
+        if (!value) return value;
+
+        // Keep fragment changes inside the currently rendered historical document.
+        if (value.startsWith("#")) {
+          try { location.hash = value; } catch (_) {}
+          return value;
+        }
+
+        parent.postMessage({ type: "gh-time-machine-nav", href: value }, "*");
+        return value;
+      };
+
+      window.__timeMachineOpen = function (url, target, features) {
+        const value = String(url == null ? "" : url);
+        if (!value) return null;
+
+        try {
+          const parsed = new URL(value, document.baseURI);
+          const isInternal = parsed.hostname === pagesHost ||
+            parsed.hostname === "raw.githubusercontent.com" ||
+            parsed.hostname === "github.com" ||
+            value.startsWith("/") || value.startsWith(".");
+
+          if (!isInternal) return window.open(value, target || "_blank", features);
+        } catch (_) {
+          // Invalid or relative-looking values are handled as repository paths.
+        }
+
+        parent.postMessage({ type: "gh-time-machine-nav", href: value }, "*");
+        return null;
+      };
+    }
+
+    function installPwaSimulation() {
+      const noop = () => Promise.resolve();
+      const registration = {
+        scope: location.href,
+        active: null,
+        installing: null,
+        waiting: null,
+        update: noop,
+        unregister: () => Promise.resolve(true),
+        showNotification: noop,
+        getNotifications: () => Promise.resolve([]),
+        pushManager: { getSubscription: () => Promise.resolve(null), subscribe: () => Promise.resolve(null), permissionState: () => Promise.resolve("denied") },
+        sync: { register: noop, getTags: () => Promise.resolve([]) },
+        periodicSync: { register: noop, unregister: noop, getTags: () => Promise.resolve([]) }
+      };
+      const serviceWorker = {
+        controller: null,
+        ready: Promise.resolve(registration),
+        register: () => Promise.resolve(registration),
+        getRegistration: () => Promise.resolve(registration),
+        getRegistrations: () => Promise.resolve([registration]),
+        startMessages() {},
+        addEventListener() {},
+        removeEventListener() {},
+        dispatchEvent() { return true; }
+      };
+      try { Object.defineProperty(navigator, "serviceWorker", { value: serviceWorker, configurable: true }); } catch (_) {}
+
+      const cache = {
+        add: noop, addAll: noop, put: noop,
+        match: () => Promise.resolve(undefined),
+        matchAll: () => Promise.resolve([]),
+        delete: () => Promise.resolve(false),
+        keys: () => Promise.resolve([])
+      };
+      const cachesShim = {
+        open: () => Promise.resolve(cache),
+        match: () => Promise.resolve(undefined),
+        has: () => Promise.resolve(false),
+        delete: () => Promise.resolve(false),
+        keys: () => Promise.resolve([])
+      };
+      try { Object.defineProperty(window, "caches", { value: cachesShim, configurable: true }); } catch (_) {}
+
+      try { Object.defineProperty(window, "PushManager", { value: function PushManager(){}, configurable: true }); } catch (_) {}
+      try { Object.defineProperty(window, "SyncManager", { value: function SyncManager(){}, configurable: true }); } catch (_) {}
+      try { Object.defineProperty(window, "BeforeInstallPromptEvent", { value: function BeforeInstallPromptEvent(){}, configurable: true }); } catch (_) {}
+      window.addEventListener("beforeinstallprompt", event => event.preventDefault());
+      window.addEventListener("appinstalled", event => event.stopImmediatePropagation());
+    }
+
+    function snapshotStorageKey() {
+      // Share storage across commits and pages of one repository, like one Pages origin.
+      return `gh-time-machine:storage:${state.owner.toLowerCase()}/${state.repo.toLowerCase()}`;
+    }
+
+    function installSnapshotStorage(initialData, storageKey) {
+      const data = { ...initialData };
+      const storage = {
+        get length() { return Object.keys(data).length; },
+        key(index) { return Object.keys(data)[Number(index)] ?? null; },
+        getItem(key) { key = String(key); return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : null; },
+        setItem(key, value) { data[String(key)] = String(value); parent.postMessage({ type: "gh-time-machine-storage", storageKey, data }, "*"); },
+        removeItem(key) { delete data[String(key)]; parent.postMessage({ type: "gh-time-machine-storage", storageKey, data }, "*"); },
+        clear() { for (const key of Object.keys(data)) delete data[key]; parent.postMessage({ type: "gh-time-machine-storage", storageKey, data }, "*"); }
+      };
+      try { Object.defineProperty(window, "localStorage", { value: storage, configurable: true }); } catch (_) {}
+      try { Object.defineProperty(window, "sessionStorage", { value: storage, configurable: true }); } catch (_) {}
+    }
+
+    function setViewMode(mode) {
+      state.viewMode = mode;
+      const code = mode === "code";
+      ui.viewer.style.display = code ? "none" : "block";
+      ui.codeView.style.display = code ? "block" : "none";
+      ui.preview.classList.toggle("active", !code);
+      ui.code.classList.toggle("active", code);
+    }
+
+    async function prepareHtml(source, htmlPath, frameDepth = 0) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(source, "text/html");
+
+      // Install redirect helpers before every historical script. Rewritten code such as
+      // window.location.href = "page.html" becomes window.__timeMachineNavigate("page.html").
+      const navigationBootstrap = doc.createElement("script");
+      navigationBootstrap.dataset.timeMachine = "early-navigation";
+      navigationBootstrap.textContent = `(${installEarlyNavigationBridge.toString()})(${JSON.stringify(state.owner.toLowerCase())});`;
+      doc.head.prepend(navigationBootstrap);
+
+      // Install synchronous, page-compatible storage before any historical script runs.
+      // Data is namespaced by repository and persists in the Time Machine host page.
+      const storageKey = snapshotStorageKey();
+      let savedStorage = {};
+      try { savedStorage = JSON.parse(localStorage.getItem(storageKey) || "{}") || {}; } catch (_) {}
+      const storageBootstrap = doc.createElement("script");
+      storageBootstrap.dataset.timeMachine = "storage";
+      storageBootstrap.textContent = `(${installSnapshotStorage.toString()})(${JSON.stringify(savedStorage)}, ${JSON.stringify(storageKey)});`;
+      doc.head.prepend(storageBootstrap);
+
+      // Historical PWA metadata belongs to its original deployment, not this replay.
+      // Remove manifests and legacy AppCache declarations so the browser does not
+      // attempt to install or control the Time Machine host page.
+      doc.documentElement.removeAttribute("manifest");
+      doc.querySelectorAll('link[rel~="manifest"]').forEach(link => link.remove());
+      doc.querySelectorAll('meta[name="mobile-web-app-capable"], meta[name="apple-mobile-web-app-capable"], meta[name="application-name"], meta[name="apple-mobile-web-app-title"]').forEach(meta => meta.remove());
+
+      // Install harmless PWA compatibility objects before historical scripts run.
+      // Calls resolve successfully, but no real worker, cache, notification, push,
+      // background sync, or app installation is created.
+      const pwaBootstrap = doc.createElement("script");
+      pwaBootstrap.dataset.timeMachine = "pwa";
+      pwaBootstrap.textContent = `(${installPwaSimulation.toString()})();`;
+      doc.head.prepend(pwaBootstrap);
+
+      // A historical page can contain a CSP that blocks its own rewritten assets
+      // inside srcdoc. Remove only document-level CSP declarations from the snapshot.
+      doc.querySelectorAll('meta[http-equiv]').forEach(meta => {
+        const directive = meta.getAttribute("http-equiv")?.toLowerCase();
+        if (directive === "content-security-policy" || directive === "refresh") meta.remove();
+      });
+
+      // Give srcdoc a useful address context. This makes runtime requests such as
+      // fetch("data.json"), new Image().src="image.png", and dynamically-created
+      // elements resolve against the selected commit directory.
+      doc.querySelectorAll("base").forEach(base => base.remove());
+      const base = doc.createElement("base");
+      const directory = htmlPath.includes("/") ? htmlPath.slice(0, htmlPath.lastIndexOf("/") + 1) : "";
+      base.href = rawUrl(directory);
+      doc.head.prepend(base);
+
+      // Rewrite CSS in <style> blocks and style="..." attributes so backgrounds,
+      // fonts, masks, cursors, and other url(...) resources use the chosen commit.
+      doc.querySelectorAll("style").forEach(style => {
+        style.textContent = rewriteCssUrls(style.textContent, htmlPath);
+      });
+      doc.querySelectorAll("[style]").forEach(el => {
+        el.setAttribute("style", rewriteCssUrls(el.getAttribute("style"), htmlPath));
+      });
+
+      // Inline same-repository stylesheets. raw.githubusercontent.com may serve CSS
+      // as text/plain, which browsers can reject as a linked stylesheet.
+      const styleLinks = [...doc.querySelectorAll('link[rel~="stylesheet"][href]')];
+      await Promise.all(styleLinks.map(async link => {
+        const href = link.getAttribute("href");
+        if (isExternalOrSpecial(href)) return;
+        const path = normalizeRepoPath(href, htmlPath);
+        try {
+          const css = await loadCssWithImports(path, new Set());
+          const style = doc.createElement("style");
+          style.textContent = css;
+          style.dataset.snapshotPath = path;
+          link.replaceWith(style);
+        } catch (_) {
+          link.removeAttribute("integrity");
+          link.removeAttribute("crossorigin");
+          link.href = rawUrl(path);
+        }
+      }));
+
+      // Rewrite redirects in inline historical scripts before they execute.
+      // Injected Time Machine shims are marked and excluded.
+      doc.querySelectorAll("script:not([src]):not([data-time-machine])").forEach(script => {
+        script.textContent = rewriteHistoricalNavigation(script.textContent);
+      });
+
+      // Inline repository JavaScript for the same MIME-type reason. Preserve module,
+      // defer, async, and other useful attributes, and rewrite static module imports.
+      const scripts = [...doc.querySelectorAll("script[src]")];
+      for (const script of scripts) {
+        const src = script.getAttribute("src");
+        if (isExternalOrSpecial(src)) continue;
+        const path = normalizeRepoPath(src, htmlPath);
+        try {
+          let code = await checkedFetch(rawUrl(path)).then(r => r.text());
+          code = rewriteHistoricalNavigation(code);
+          if ((script.getAttribute("type") || "").toLowerCase() === "module") code = rewriteModuleImports(code, path);
+          const inline = doc.createElement("script");
+          for (const attr of [...script.attributes]) {
+            if (!["src", "integrity", "crossorigin"].includes(attr.name)) inline.setAttribute(attr.name, attr.value);
+          }
+          inline.dataset.snapshotPath = path;
+          inline.textContent = code.replace(/<\/script/gi, "<\\/script");
+          script.replaceWith(inline);
+        } catch (_) {
+          script.removeAttribute("integrity");
+          script.removeAttribute("crossorigin");
+          script.src = rawUrl(path);
+        }
+      }
+
+      // raw.githubusercontent.com refuses direct iframe embedding. Fetch same-repo
+      // HTML ourselves and place it in srcdoc instead, so server frame headers do not
+      // block historical nested pages. Limit recursion to avoid frame loops.
+      const nestedFrames = [...doc.querySelectorAll("iframe[src], frame[src]")];
+      for (const nestedFrame of nestedFrames) {
+        const originalSrc = nestedFrame.getAttribute("src");
+        const nestedPath = repoPathFromHistoricalUrl(originalSrc, htmlPath);
+        if (!nestedPath || frameDepth >= 4) continue;
+        try {
+          const nestedSource = await checkedFetch(rawUrl(nestedPath)).then(r => r.text());
+          nestedFrame.removeAttribute("src");
+          nestedFrame.setAttribute("srcdoc", await prepareHtml(nestedSource, nestedPath, frameDepth + 1));
+          nestedFrame.setAttribute("data-time-machine-frame", nestedPath);
+        } catch (_) {
+          // If it cannot be replayed inline, route interaction through the parent app
+          // rather than leaving a raw.githubusercontent.com frame that will be blocked.
+          nestedFrame.removeAttribute("src");
+          nestedFrame.setAttribute("srcdoc", simpleDocument(`<p>Embedded snapshot unavailable.</p><p><a href="${escapeHtml(originalSrc)}">Open this historical page</a></p>`, true));
+        }
+      }
+
+      // Rewrite all common resource-bearing attributes. Frame src is intentionally
+      // excluded because historical HTML frames were converted to srcdoc above.
+      const resourceAttributes = ["src", "poster", "data", "background"];
+      doc.querySelectorAll(resourceAttributes.map(a => `[${a}]`).join(",")).forEach(el => {
+        for (const attr of resourceAttributes) {
+          const value = el.getAttribute(attr);
+          if (attr === "src" && /^(?:iframe|frame)$/i.test(el.tagName)) continue;
+          if (value && !isExternalOrSpecial(value)) el.setAttribute(attr, rawUrl(normalizeRepoPath(value, htmlPath)));
+        }
+      });
+      doc.querySelectorAll("[srcset]").forEach(el => {
+        const value = el.getAttribute("srcset");
+        el.setAttribute("srcset", value.split(",").map(part => {
+          const bits = part.trim().split(/\s+/);
+          if (!isExternalOrSpecial(bits[0])) bits[0] = rawUrl(normalizeRepoPath(bits[0], htmlPath));
+          return bits.join(" ");
+        }).join(", "));
+      });
+      doc.querySelectorAll('link[href]:not([rel~="stylesheet"])').forEach(link => {
+        const href = link.getAttribute("href");
+        if (href && !isExternalOrSpecial(href)) link.href = rawUrl(normalizeRepoPath(href, htmlPath));
+      });
+
+      // Keep same-site navigation inside the time machine, including absolute
+      // GitHub Pages URLs. External links continue to work normally.
+      const bridge = doc.createElement("script");
+      bridge.dataset.timeMachine = "navigation";
+      bridge.textContent = `(function(){
+        window.__timeMachineNavigate=function(url){
+          var value=String(url == null ? '' : url);
+          if(!value)return value;
+          if(value.charAt(0)==='#'){ location.hash=value; return value; }
+          parent.postMessage({type:'gh-time-machine-nav',href:value},'*');
+          return value;
+        };
+        window.__timeMachineOpen=function(url,target,features){
+          var value=String(url == null ? '' : url);
+          if(!value)return null;
+          if(/^https?:/i.test(value)){
+            try{var u=new URL(value,document.baseURI); var pagesHost=${JSON.stringify(state.owner.toLowerCase() + ".github.io")};
+              if(u.hostname!==pagesHost&&u.hostname!=='raw.githubusercontent.com'&&u.hostname!=='github.com') return window.open(value,target||'_blank',features);
+            }catch(_){}
+          }
+          parent.postMessage({type:'gh-time-machine-nav',href:value},'*'); return null;
+        };
+        var originalPush=history.pushState.bind(history), originalReplace=history.replaceState.bind(history);
+        history.pushState=function(stateValue,title,url){ if(url!=null) window.__timeMachineNavigate(url); else originalPush(stateValue,title,url); };
+        history.replaceState=function(stateValue,title,url){ if(url!=null) window.__timeMachineNavigate(url); else originalReplace(stateValue,title,url); };
+        document.addEventListener('submit',function(e){
+          var form=e.target; if(!form||!form.action)return;
+          e.preventDefault(); window.__timeMachineNavigate(form.getAttribute('action')||document.baseURI);
+        },true);
+        document.addEventListener('click',function(e){
+          var a=e.target.closest('a[href]'); if(!a)return;
+          var raw=a.getAttribute('href'); if(!raw||/^(mailto:|tel:|data:|blob:|javascript:|#)/i.test(raw))return;
+          var u; try{u=new URL(raw,document.baseURI)}catch(_){return}
+          var pagesHost=${JSON.stringify(state.owner.toLowerCase() + ".github.io")};
+          var rawHost='raw.githubusercontent.com';
+          if(!/^https?:$/i.test(u.protocol))return;
+          if(u.hostname!==pagesHost&&u.hostname!==rawHost&&u.hostname!=='github.com'&&!raw.startsWith('/')&&!raw.startsWith('.'))return;
+          e.preventDefault(); parent.postMessage({type:'gh-time-machine-nav',href:raw},'*');
+        });
+        // Catch scripts that later set iframe.src to a raw or same-site page.
+        // Route that navigation through the Time Machine before the browser can leave
+        // a blocked raw.githubusercontent.com frame on screen.
+        function inspectFrame(frame){
+          if(!frame||!frame.getAttribute)return;
+          var src=frame.getAttribute('src'); if(!src||/^(about:|data:|blob:|#)/i.test(src))return;
+          var internal=false;
+          try{var u=new URL(src,document.baseURI); internal=u.hostname==='raw.githubusercontent.com'||u.hostname===${JSON.stringify(state.owner.toLowerCase()+'.github.io')};}catch(_){}
+          if(internal){ frame.removeAttribute('src'); frame.srcdoc='<p style="font-family:sans-serif;padding:20px">Loading historical page...</p>'; parent.postMessage({type:'gh-time-machine-nav',href:src},'*'); }
+        }
+        new MutationObserver(function(changes){changes.forEach(function(change){
+          if(change.type==='attributes') inspectFrame(change.target);
+          change.addedNodes&&change.addedNodes.forEach(function(node){if(node.matches&&node.matches('iframe[src],frame[src]'))inspectFrame(node); node.querySelectorAll&&node.querySelectorAll('iframe[src],frame[src]').forEach(inspectFrame);});
+        });}).observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['src']});
+        window.addEventListener('error',function(e){
+          parent.postMessage({type:'gh-time-machine-error',message:e.message||'Snapshot script error'},'*');
+        });
+      })();`;
+      doc.body.appendChild(bridge);
+      return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
+    }
+
+    async function loadCssWithImports(path, visited) {
+      if (visited.has(path)) return "";
+      visited.add(path);
+      let css = await checkedFetch(rawUrl(path)).then(r => r.text());
+      const imports = [...css.matchAll(/@import\s+(?:url\(\s*)?["']([^"']+)["']\s*\)?\s*;/gi)];
+      for (const match of imports) {
+        if (isExternalOrSpecial(match[1])) continue;
+        const importedPath = normalizeRepoPath(match[1], path);
+        try { css = css.replace(match[0], await loadCssWithImports(importedPath, visited)); }
+        catch (_) { css = css.replace(match[0], `@import url("${rawUrl(importedPath)}");`); }
+      }
+      return rewriteCssUrls(css, path);
+    }
+
+    function repoPathFromHistoricalUrl(value, baseFile) {
+      const input = String(value || "").trim();
+      if (!input || /^(?:data:|blob:|javascript:|about:|#)/i.test(input)) return "";
+      if (!/^https?:\/\//i.test(input)) return normalizeRepoPath(input, baseFile);
+      try {
+        const url = new URL(input);
+        const parts = url.pathname.split("/").filter(Boolean).map(decodeURIComponent);
+        const host = url.hostname.toLowerCase();
+        if (host === "raw.githubusercontent.com" &&
+            parts[0]?.toLowerCase() === state.owner.toLowerCase() &&
+            parts[1]?.toLowerCase() === state.repo.toLowerCase()) {
+          return normalizeRepoPath(parts.slice(3).join("/"));
+        }
+        if (host === `${state.owner.toLowerCase()}.github.io`) {
+          const userSite = state.repo.toLowerCase() === `${state.owner.toLowerCase()}.github.io`;
+          const siteParts = !userSite && parts[0]?.toLowerCase() === state.repo.toLowerCase() ? parts.slice(1) : parts;
+          return normalizeRepoPath(siteParts.join("/"));
+        }
+      } catch (_) {}
+      return "";
+    }
+
+    function rewriteHistoricalNavigation(code) {
+      if (!code) return code;
+      let output = code;
+
+      // Exact/direct assignments:
+      // window.location.href = "page.html";
+      // location.href = path;
+      // document.location.href = `folder/${name}.html`;
+      output = output.replace(
+        /\b(?:window\s*\.\s*|document\s*\.\s*)?location\s*\.\s*href\s*=\s*([^;\n]+)\s*;?/g,
+        (_match, destination) => `window.__timeMachineNavigate(${destination.trim()});`
+      );
+
+      // Location methods:
+      // location.assign(path); location.replace(path);
+      output = output.replace(
+        /\b(?:window\s*\.\s*|document\s*\.\s*)?location\s*\.\s*(?:assign|replace)\s*\(/g,
+        "window.__timeMachineNavigate("
+      );
+
+      // Direct window.location or document.location assignment.
+      output = output.replace(
+        /\b(?:window|document)\s*\.\s*location\s*=\s*([^;\n]+)\s*;?/g,
+        (_match, destination) => `window.__timeMachineNavigate(${destination.trim()});`
+      );
+
+      // Bare location assignment, while avoiding declarations and comparisons.
+      output = output.replace(
+        /(^|[;{}]\s*)location\s*=\s*([^=;\n][^;\n]*)\s*;?/gm,
+        (_match, prefix, destination) => `${prefix}window.__timeMachineNavigate(${destination.trim()});`
+      );
+
+      output = output.replace(/\bwindow\s*\.\s*open\s*\(/g, "window.__timeMachineOpen(");
+      return output;
+    }
+
+    function rewriteModuleImports(code, scriptPath) {
+      return code.replace(/(\b(?:import|export)\s+(?:[^'";]*?\s+from\s+)?|\bimport\s*\(\s*)(["'])([^"']+)\2/g,
+        (full, prefix, quote, specifier) => isExternalOrSpecial(specifier) || !specifier.startsWith(".")
+          ? full
+          : `${prefix}${quote}${rawUrl(normalizeRepoPath(specifier, scriptPath))}${quote}`);
+    }
+
+    function rewriteCssUrls(css, cssPath) {
+      return css.replace(/url\(\s*(['"]?)([^'"\)]+)\1\s*\)/gi, (match, quote, value) => {
+        const clean = value.trim();
+        return isExternalOrSpecial(clean) ? match : `url("${rawUrl(normalizeRepoPath(clean, cssPath))}")`;
+      });
+    }
+
+    function isExternalOrSpecial(url) {
+      return /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(String(url || "").trim());
+    }
+
+    function toLocalDateTimeValue(date) {
+      const d = new Date(date); const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000); return local.toISOString().slice(0, 16);
+    }
+
+    function disableSnapshotControls(disabled) {
+      ui.loadTimestamp.disabled = disabled; ui.latest.disabled = disabled; ui.simulate.disabled = true; ui.go.disabled = true; ui.preview.disabled = true; ui.code.disabled = true;
+    }
+
+    function resetViewer(message = "Select a commit, then load an HTML file.") {
+      ui.viewer.removeAttribute("srcdoc"); ui.viewer.src = "about:blank";
+      ui.empty.hidden = false;
+      ui.empty.style.display = "grid";
+      ui.empty.innerHTML = `<div><strong>No snapshot loaded</strong>${escapeHtml(message)}</div>`;
+      state.currentSource = "";
+      ui.codeContent.textContent = "";
+      setViewMode("preview");
+      ui.selectedLabel.textContent = "No snapshot selected";
+    }
+
+    ui.token.addEventListener("change", () => {
+      ui.token.value = sanitizeToken(ui.token.value);
+    });
+    ui.repoForm.addEventListener("submit", e => { e.preventDefault(); loadRepo(); });
+    ui.loadTimestamp.addEventListener("click", loadByTimestamp);
+    ui.latest.addEventListener("click", loadLatest);
+    ui.commitSearchBtn.addEventListener("click", () => {
+      ui.commitSearch.focus();
+      searchCommits();
+    });
+    ui.commitSearch.addEventListener("focus", () => {
+      if (ui.commitSearch.value.trim()) searchCommits();
+    });
+    ui.commitSearch.addEventListener("input", searchCommits);
+    ui.commitSearch.addEventListener("blur", () => {
+      // Delay slightly so a result click can finish before the dropdown closes.
+      setTimeout(() => {
+        if (!ui.commitSearchResults.matches(":hover")) hideCommitSearchResults();
+      }, 140);
+    });
+    ui.commitSearch.addEventListener("keydown", event => {
+      if (event.key === "Enter") { event.preventDefault(); searchCommits(); }
+      if (event.key === "Escape") {
+        hideCommitSearchResults();
+        ui.commitSearch.blur();
+      }
+    });
+    document.addEventListener("pointerdown", event => {
+      if (!event.target.closest(".commit-search")) hideCommitSearchResults();
+    });
+    ui.simulate.addEventListener("click", simulateGitHubPages);
+    ui.preview.addEventListener("click", () => setViewMode("preview"));
+    ui.code.addEventListener("click", () => setViewMode("code"));
+    ui.go.addEventListener("click", () => loadSnapshot(ui.path.value));
+    ui.path.addEventListener("keydown", e => { if (e.key === "Enter") loadSnapshot(ui.path.value); });
+    window.addEventListener("message", event => {
+      if (event.data?.type === "gh-time-machine-nav") {
+        const href = event.data.href;
+        loadSnapshot(/^https?:\/\//i.test(href) ? href : normalizeRepoPath(href, state.currentPath));
+      }
+      if (event.data?.type === "gh-time-machine-storage") {
+        const expected = snapshotStorageKey();
+        if (event.data.storageKey === expected) {
+          try { localStorage.setItem(expected, JSON.stringify(event.data.data || {})); }
+          catch (_) { setStatus("Snapshot storage could not be saved in this browser.", "error"); }
+        }
+      }
+      if (event.data?.type === "gh-time-machine-error") {
+        setStatus(`Page rendered, but its script reported: ${event.data.message}`, "error");
+      }
+    });
+
+    // Keep the PAT only in memory for this tab. It is never written to localStorage,
+    // sessionStorage, the URL, or the generated viewer document.
+    window.addEventListener("pagehide", () => { state.token = ""; ui.token.value = ""; });
+
+    // Pre-fill the timestamp with the user's current local time.
+    ui.dateTime.value = toLocalDateTimeValue(new Date());
+  </script>
+</body>
+</html>

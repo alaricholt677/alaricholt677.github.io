@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Explore old versions of GitHub Pages sites by commit, date, and file.">
+  <title>GitHub Pages Time Machine</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08060e;
+      --panel: rgba(25, 19, 43, .78);
+      --line: rgba(190, 154, 255, .22);
+      --text: #f7f3ff;
+      --muted: #ada4c0;
+      --purple: #a879ff;
+      --purple-dark: #6847da;
+      --cyan: #62ddd8;
+      --radius: 22px;
+      --shadow: 0 25px 80px rgba(0,0,0,.42);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 18% -5%, rgba(139, 83, 237, .38), transparent 31%),
+        radial-gradient(circle at 90% 8%, rgba(66, 201, 205, .17), transparent 24%),
+        radial-gradient(circle at 55% 105%, rgba(105, 71, 218, .2), transparent 35%),
+        var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      padding: 16px clamp(18px, 5vw, 72px);
+      border-bottom: 1px solid var(--line);
+      background: rgba(8, 6, 14, .76);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand { display: flex; align-items: center; gap: 11px; font-weight: 850; }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 13px;
+      background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+      box-shadow: 0 0 28px rgba(168,121,255,.3);
+    }
+
+    .nav-links { display: flex; align-items: center; gap: 22px; color: var(--muted); font-size: .9rem; }
+    .nav-links a:hover { color: white; }
+
+    .button {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 9px;
+      min-height: 46px;
+      padding: 0 18px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      color: white;
+      background: rgba(255,255,255,.045);
+      box-shadow: 0 10px 28px rgba(0,0,0,.22);
+      transition: transform .18s, border-color .18s, background .18s;
+      cursor: pointer;
+    }
+    .button:hover { transform: translateY(-2px); border-color: var(--purple); background: rgba(168,121,255,.12); }
+    .button.primary { border-color: transparent; background: linear-gradient(135deg, #a56fff, #6546d1); font-weight: 800; }
+    .button.primary:hover { background: linear-gradient(135deg, #b484ff, #7356df); }
+
+    .hero {
+      width: min(1180px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: clamp(74px, 10vw, 132px) 0 70px;
+      text-align: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #d9c8ff;
+      background: rgba(168,121,255,.08);
+      font-size: .78rem;
+      font-weight: 750;
+      letter-spacing: .04em;
+    }
+    .eyebrow i { width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 12px var(--cyan); }
+
+    h1 {
+      max-width: 920px;
+      margin: 24px auto 18px;
+      font-size: clamp(2.5rem, 7vw, 5.8rem);
+      line-height: .98;
+      letter-spacing: -.065em;
+    }
+    .gradient-text { background: linear-gradient(95deg, #fff 12%, #c6a8ff 54%, #72dfdc); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero > p { max-width: 750px; margin: 0 auto; color: var(--muted); font-size: clamp(1rem, 2vw, 1.22rem); line-height: 1.7; }
+    .hero-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+    .hint { margin-top: 15px; color: #81778f; font-size: .78rem; }
+
+    .showcase {
+      position: relative;
+      width: min(1180px, calc(100% - 36px));
+      margin: 0 auto 100px;
+      padding: 1px;
+      border-radius: 25px;
+      background: linear-gradient(120deg, rgba(168,121,255,.6), rgba(98,221,216,.2), rgba(255,255,255,.08));
+      box-shadow: var(--shadow), 0 0 80px rgba(110,74,220,.14);
+    }
+
+    .app-window { overflow: hidden; min-height: 540px; border-radius: 24px; background: #0d0a16; }
+    .window-top { display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-bottom: 1px solid var(--line); background: #141020; }
+    .lights { display: flex; gap: 6px; }
+    .lights i { display: block; width: 10px; height: 10px; border-radius: 50%; }
+    .lights i:nth-child(1) { background: #ff749f; } .lights i:nth-child(2) { background: #ffc65f; } .lights i:nth-child(3) { background: #62dbaa; }
+    .fake-input { flex: 1; height: 34px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,.04); }
+    .fake-button { width: 94px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, #9964f7, #6344cc); }
+    .timeline { position: relative; height: 86px; border-bottom: 1px solid var(--line); background: #171126; }
+    .timeline-line { position: absolute; left: 4%; right: 4%; top: 50px; height: 3px; background: linear-gradient(90deg, rgba(168,121,255,.25), rgba(98,221,216,.28)); }
+    .year { position: absolute; top: 14px; color: #bdb1cf; font-size: .7rem; }
+    .dot { position: absolute; top: 44px; width: 13px; height: 13px; border: 2px solid white; border-radius: 50%; background: var(--purple); box-shadow: 0 0 15px rgba(168,121,255,.6); }
+    .dot.active { width: 17px; height: 17px; top: 42px; background: var(--cyan); }
+    .mock-body { display: grid; grid-template-columns: 245px 1fr; min-height: 440px; }
+    .mock-side { padding: 17px; border-right: 1px solid var(--line); background: #120e1d; }
+    .skeleton { height: 10px; margin-bottom: 10px; border-radius: 8px; background: rgba(255,255,255,.08); }
+    .skeleton.small { width: 65%; }
+    .commit { padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+    .commit .date { width: 76%; height: 7px; margin-bottom: 7px; background: rgba(98,221,216,.4); }
+    .viewer { padding: 20px; background: #e9e5f2; }
+    .browser { overflow: hidden; height: 100%; min-height: 400px; border-radius: 13px; background: linear-gradient(145deg, #f9f8fc, #d8d1e8); box-shadow: 0 15px 40px rgba(0,0,0,.2); }
+    .browser-bar { height: 44px; border-bottom: 1px solid #cbc3dc; background: #faf9fd; }
+    .browser-content { display: grid; place-items: center; min-height: 355px; color: #6b5b83; text-align: center; }
+    .browser-content strong { display: block; color: #4e376f; font-size: clamp(1.3rem, 3vw, 2.3rem); }
+
+    .section { width: min(1100px, calc(100% - 36px)); margin: 0 auto; padding: 75px 0; }
+    .section-heading { max-width: 680px; margin-bottom: 32px; }
+    .section-heading h2 { margin: 0 0 12px; font-size: clamp(2rem, 4vw, 3.2rem); letter-spacing: -.04em; }
+    .section-heading p { margin: 0; color: var(--muted); line-height: 1.7; }
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+    .feature { padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); box-shadow: 0 15px 40px rgba(0,0,0,.18); }
+    .feature-icon { display: grid; place-items: center; width: 42px; height: 42px; margin-bottom: 17px; border-radius: 12px; background: rgba(168,121,255,.14); color: #c7afff; }
+    .feature h3 { margin: 0 0 8px; font-size: 1rem; }
+    .feature p { margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.6; }
+
+    .cta { width: min(1100px, calc(100% - 36px)); margin: 70px auto; padding: clamp(32px, 7vw, 68px); border: 1px solid var(--line); border-radius: 28px; text-align: center; background: radial-gradient(circle at 50% 0, rgba(168,121,255,.24), transparent 54%), var(--panel); box-shadow: var(--shadow); }
+    .cta h2 { margin: 0 0 10px; font-size: clamp(2rem, 5vw, 3.7rem); letter-spacing: -.05em; }
+    .cta p { max-width: 650px; margin: 0 auto 25px; color: var(--muted); line-height: 1.65; }
+
+    footer { display: flex; justify-content: space-between; gap: 20px; width: min(1100px, calc(100% - 36px)); margin: 0 auto; padding: 34px 0; border-top: 1px solid var(--line); color: #867d95; font-size: .8rem; }
+
+    @media (max-width: 820px) {
+      .nav-links a:not(.button) { display: none; }
+      .features { grid-template-columns: 1fr; }
+      .mock-body { grid-template-columns: 1fr; }
+      .mock-side { display: none; }
+      .showcase, .app-window { min-height: 440px; }
+    }
+    @media (max-width: 520px) {
+      .nav { padding: 12px 14px; }
+      .brand span { display: none; }
+      .button { min-height: 42px; padding: 0 13px; }
+      .fake-button { width: 60px; }
+      footer { flex-direction: column; }
+    }
+
+
+    #starfield {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -3;
+      pointer-events: none;
+      opacity: .72;
+    }
+
+    .pointer-glow {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 420px;
+      height: 420px;
+      z-index: -2;
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: .42;
+      filter: blur(20px);
+      background: radial-gradient(circle, rgba(168,121,255,.22), rgba(98,221,216,.08) 38%, transparent 70%);
+      transform: translate3d(-50%, -50%, 0);
+      transition: opacity .25s;
+    }
+
+    .scroll-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 100;
+      width: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--purple), #d69cff, var(--cyan));
+      box-shadow: 0 0 18px rgba(168,121,255,.9);
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      z-index: -4;
+      width: 55vw;
+      aspect-ratio: 1;
+      border-radius: 46% 54% 65% 35% / 44% 42% 58% 56%;
+      filter: blur(80px);
+      opacity: .16;
+      pointer-events: none;
+      animation: auroraDrift 18s ease-in-out infinite alternate;
+    }
+    body::before { left: -18vw; top: 5vh; background: #8d4cff; }
+    body::after { right: -22vw; top: 32vh; background: #37d7d0; animation-delay: -9s; }
+
+    .nav { animation: navDrop .8s cubic-bezier(.2,.8,.2,1) both; }
+    .brand-mark { position: relative; overflow: hidden; animation: logoFloat 4s ease-in-out infinite; }
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      inset: -60%;
+      background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,.65) 50%, transparent 65%);
+      transform: translateX(-70%) rotate(15deg);
+      animation: logoShine 4.5s ease-in-out infinite;
+    }
+
+    .hero .eyebrow { animation: revealUp .75s .1s both, badgePulse 3s 1.2s ease-in-out infinite; }
+    .hero h1 { animation: revealUp .9s .22s cubic-bezier(.16,1,.3,1) both; }
+    .hero > p { animation: revealUp .9s .38s cubic-bezier(.16,1,.3,1) both; }
+    .hero-actions { animation: revealUp .9s .52s cubic-bezier(.16,1,.3,1) both; }
+    .hint { animation: revealUp .9s .62s both; }
+
+    .gradient-text {
+      background-size: 220% 220%;
+      animation: gradientFlow 7s ease infinite;
+      filter: drop-shadow(0 0 28px rgba(168,121,255,.16));
+    }
+
+    .button.primary { position: relative; overflow: hidden; }
+    .button.primary::before {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      background: linear-gradient(110deg, transparent 25%, rgba(255,255,255,.55), transparent 75%);
+      transform: translateX(-120%);
+      animation: buttonSweep 3.8s ease-in-out infinite;
+    }
+    .button > * { position: relative; z-index: 1; }
+
+    .showcase {
+      transform-style: preserve-3d;
+      will-change: transform;
+      animation: showcaseEnter 1.1s .5s cubic-bezier(.16,1,.3,1) both, showcaseGlow 5s 1.6s ease-in-out infinite;
+    }
+    .showcase::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      z-index: -1;
+      border-radius: inherit;
+      background: conic-gradient(from var(--spin, 0deg), var(--purple), transparent 28%, var(--cyan), transparent 68%, var(--purple));
+      filter: blur(16px);
+      opacity: .32;
+      animation: borderSpin 8s linear infinite;
+    }
+
+    .timeline-line::after {
+      content: "";
+      position: absolute;
+      top: -2px;
+      left: 0;
+      width: 22%;
+      height: 7px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, transparent, #fff, var(--cyan), transparent);
+      filter: blur(1px);
+      animation: timelineScan 3.2s ease-in-out infinite;
+    }
+    .dot { animation: dotPulse 2.4s ease-in-out infinite; }
+    .dot:nth-of-type(2n) { animation-delay: -.7s; }
+    .dot:nth-of-type(3n) { animation-delay: -1.3s; }
+    .dot.active { animation: activeDot 1.5s ease-in-out infinite; }
+
+    .browser-content strong::after {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 1em;
+      margin-left: 7px;
+      vertical-align: -.12em;
+      background: var(--purple);
+      animation: cursorBlink .8s steps(1) infinite;
+    }
+
+    .feature {
+      position: relative;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(28px) scale(.97);
+      transition: opacity .75s cubic-bezier(.16,1,.3,1), transform .75s cubic-bezier(.16,1,.3,1), border-color .3s, box-shadow .3s;
+    }
+    .feature.revealed { opacity: 1; transform: translateY(0) scale(1); }
+    .feature::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(380px circle at var(--mx, 50%) var(--my, 50%), rgba(168,121,255,.19), transparent 42%);
+      transition: opacity .25s;
+    }
+    .feature:hover { transform: translateY(-8px) scale(1.015); border-color: rgba(168,121,255,.58); box-shadow: 0 25px 60px rgba(0,0,0,.3), 0 0 35px rgba(168,121,255,.1); }
+    .feature:hover::before { opacity: 1; }
+    .feature-icon { transition: transform .35s cubic-bezier(.16,1,.3,1), box-shadow .35s; }
+    .feature:hover .feature-icon { transform: translateY(-4px) rotate(-6deg) scale(1.12); box-shadow: 0 10px 25px rgba(168,121,255,.2); }
+
+    .section-heading,
+    .cta {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity .8s cubic-bezier(.16,1,.3,1), transform .8s cubic-bezier(.16,1,.3,1);
+    }
+    .section-heading.revealed,
+    .cta.revealed { opacity: 1; transform: translateY(0); }
+
+    .cta { position: relative; overflow: hidden; }
+    .cta::after {
+      content: "";
+      position: absolute;
+      inset: -80% -30%;
+      z-index: -1;
+      background: conic-gradient(from 0deg, transparent, rgba(168,121,255,.17), transparent, rgba(98,221,216,.12), transparent);
+      animation: ctaSpin 12s linear infinite;
+    }
+
+    @property --spin { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+    @keyframes borderSpin { to { --spin: 360deg; } }
+    @keyframes auroraDrift { to { transform: translate3d(12vw, -8vh, 0) rotate(35deg) scale(1.15); } }
+    @keyframes navDrop { from { opacity: 0; transform: translateY(-100%); } }
+    @keyframes revealUp { from { opacity: 0; transform: translateY(28px); filter: blur(8px); } to { opacity: 1; transform: none; filter: blur(0); } }
+    @keyframes gradientFlow { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+    @keyframes badgePulse { 50% { box-shadow: 0 0 25px rgba(168,121,255,.16); border-color: rgba(168,121,255,.48); } }
+    @keyframes logoFloat { 50% { transform: translateY(-3px) rotate(3deg); } }
+    @keyframes logoShine { 0%,55% { transform: translateX(-75%) rotate(15deg); } 80%,100% { transform: translateX(75%) rotate(15deg); } }
+    @keyframes buttonSweep { 0%,55% { transform: translateX(-120%); } 80%,100% { transform: translateX(120%); } }
+    @keyframes showcaseEnter { from { opacity: 0; transform: perspective(1200px) translateY(70px) rotateX(12deg) scale(.94); } to { opacity: 1; transform: perspective(1200px) translateY(0) rotateX(0) scale(1); } }
+    @keyframes showcaseGlow { 50% { box-shadow: var(--shadow), 0 0 120px rgba(110,74,220,.3); } }
+    @keyframes timelineScan { from { transform: translateX(-110%); } to { transform: translateX(460%); } }
+    @keyframes dotPulse { 50% { transform: scale(.78); opacity: .7; } }
+    @keyframes activeDot { 50% { transform: scale(1.35); box-shadow: 0 0 0 10px rgba(98,221,216,.08), 0 0 28px rgba(98,221,216,.85); } }
+    @keyframes cursorBlink { 50% { opacity: 0; } }
+    @keyframes ctaSpin { to { transform: rotate(360deg); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .001ms !important; }
+      .feature, .section-heading, .cta { opacity: 1; transform: none; }
+      #starfield, .pointer-glow { display: none; }
+    }
+
+  </style>
+</head>
+<body>
+  <canvas id="starfield" aria-hidden="true"></canvas>
+  <div class="pointer-glow" id="pointerGlow" aria-hidden="true"></div>
+  <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
+  <nav class="nav">
+    <a class="brand" href="#top" aria-label="GitHub Pages Time Machine home">
+      <span class="brand-mark">⏱</span>
+      <span>GitHub Pages Time Machine</span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#showcase">Showcase</a>
+      <a class="button primary" href="./visit/">Launch Time Machine</a>
+    </div>
+  </nav>
+
+  <main id="top">
+    <section class="hero">
+      <span class="eyebrow"><i></i> Your repository history, brought back to life</span>
+      <h1><span class="gradient-text">Travel through every version of your GitHub Pages site.</span></h1>
+      <p>Choose a repository, explore its commit timeline, and replay old pages as they appeared during development. Rediscover forgotten designs, experiments, files, and features.</p>
+      <div class="hero-actions">
+        <a class="button primary" href="./visit/">Open the Time Machine →</a>
+        <a class="button" href="#showcase">See how it works</a>
+      </div>
+      <div class="hint">The Time Machine is installed at <strong>./visit/</strong></div>
+    </section>
+
+    <section class="showcase" id="showcase" aria-label="Time Machine interface preview">
+      <div class="app-window">
+        <div class="window-top">
+          <div class="lights"><i></i><i></i><i></i></div>
+          <div class="fake-input"></div>
+          <div class="fake-input"></div>
+          <div class="fake-button"></div>
+        </div>
+        <div class="timeline">
+          <span class="year" style="left:8%">2025</span>
+          <span class="year" style="left:47%">2026</span>
+          <div class="timeline-line"></div>
+          <i class="dot" style="left:10%"></i><i class="dot" style="left:19%"></i><i class="dot" style="left:29%"></i>
+          <i class="dot" style="left:42%"></i><i class="dot active" style="left:58%"></i><i class="dot" style="left:70%"></i>
+          <i class="dot" style="left:81%"></i><i class="dot" style="left:91%"></i>
+        </div>
+        <div class="mock-body">
+          <aside class="mock-side">
+            <div class="skeleton small"></div><div class="skeleton"></div>
+            <div class="commit"><div class="skeleton date"></div><div class="skeleton"></div><div class="skeleton small"></div></div>
+            <div class="commit"><div class="skeleton date"></div><div class="skeleton"></div><div class="skeleton small"></div></div>
+            <div class="commit"><div class="skeleton date"></div><div class="skeleton"></div><div class="skeleton small"></div></div>
+          </aside>
+          <div class="viewer">
+            <div class="browser">
+              <div class="browser-bar"></div>
+              <div class="browser-content"><div><strong>Historical snapshot loaded</strong><br>Rendered from the selected Git commit</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="section-heading">
+        <h2>More than a commit list</h2>
+        <p>The Time Machine reconstructs each historical page as an interactive snapshot rather than showing only a code diff.</p>
+      </div>
+      <div class="features">
+        <article class="feature"><div class="feature-icon">◷</div><h3>Visual timeline</h3><p>Pick commits from a year-and-month timeline, search commit messages, or find the closest snapshot to a timestamp.</p></article>
+        <article class="feature"><div class="feature-icon">▣</div><h3>Rendered replay</h3><p>Rebuild HTML, styles, scripts, media, nested frames, internal links, and repository-relative resources.</p></article>
+        <article class="feature"><div class="feature-icon">&lt;/&gt;</div><h3>Source explorer</h3><p>Switch between the rendered page and its original source, then browse every file that existed in the selected commit.</p></article>
+        <article class="feature"><div class="feature-icon">⌕</div><h3>Related commit search</h3><p>Search messages, SHAs, and dates with five ranked suggestions that appear only while you are actively searching.</p></article>
+        <article class="feature"><div class="feature-icon">↪</div><h3>Historical navigation</h3><p>Keep links, JavaScript redirects, forms, frame navigation, and history changes inside the selected snapshot.</p></article>
+        <article class="feature"><div class="feature-icon">◇</div><h3>Compatibility simulation</h3><p>Provide safe storage and PWA compatibility so older pages keep working without controlling the Time Machine host.</p></article>
+      </div>
+    </section>
+
+    <section class="cta">
+      <h2>Ready to revisit your code?</h2>
+      <p>Open the custom Wayback viewer, enter a GitHub username and repository, then pick any commit to begin exploring.</p>
+      <a class="button primary" href="./visit/">Launch from ./visit/ →</a>
+    </section>
+  </main>
+
+  <footer>
+    <span>GitHub Pages Time Machine</span>
+    <span>Repository history turned into an interactive archive.</span>
+  </footer>
+
+  <script>
+    const TIME_MACHINE_PATH = "./visit/";
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    window.addEventListener("keydown", event => {
+      if (event.altKey && event.key.toLowerCase() === "t") window.location.href = TIME_MACHINE_PATH;
+    });
+
+    const progress = document.getElementById("scrollProgress");
+    function updateScrollProgress() {
+      const max = document.documentElement.scrollHeight - innerHeight;
+      progress.style.width = `${max > 0 ? (scrollY / max) * 100 : 0}%`;
+    }
+    addEventListener("scroll", updateScrollProgress, { passive: true });
+    updateScrollProgress();
+
+    const revealObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const group = entry.target.closest(".features");
+          const delay = group ? [...group.children].indexOf(entry.target) * 90 : 0;
+          setTimeout(() => entry.target.classList.add("revealed"), delay);
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: .14 });
+    document.querySelectorAll(".feature, .section-heading, .cta").forEach(el => revealObserver.observe(el));
+
+    document.querySelectorAll(".feature").forEach(card => {
+      card.addEventListener("pointermove", event => {
+        const rect = card.getBoundingClientRect();
+        card.style.setProperty("--mx", `${event.clientX - rect.left}px`);
+        card.style.setProperty("--my", `${event.clientY - rect.top}px`);
+      });
+    });
+
+    const showcase = document.querySelector(".showcase");
+    if (!reduceMotion) {
+      showcase.addEventListener("pointermove", event => {
+        const rect = showcase.getBoundingClientRect();
+        const x = (event.clientX - rect.left) / rect.width - .5;
+        const y = (event.clientY - rect.top) / rect.height - .5;
+        showcase.style.transform = `perspective(1200px) rotateX(${-y * 4}deg) rotateY(${x * 6}deg) translateZ(0)`;
+      });
+      showcase.addEventListener("pointerleave", () => {
+        showcase.style.transform = "perspective(1200px) rotateX(0) rotateY(0)";
+      });
+    }
+
+    const glow = document.getElementById("pointerGlow");
+    let pointerX = innerWidth / 2, pointerY = innerHeight / 2, glowX = pointerX, glowY = pointerY;
+    addEventListener("pointermove", event => { pointerX = event.clientX; pointerY = event.clientY; }, { passive: true });
+
+    const canvas = document.getElementById("starfield");
+    const ctx = canvas.getContext("2d");
+    let stars = [];
+    function resizeCanvas() {
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+      canvas.width = innerWidth * dpr;
+      canvas.height = innerHeight * dpr;
+      canvas.style.width = `${innerWidth}px`;
+      canvas.style.height = `${innerHeight}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      stars = Array.from({ length: Math.min(110, Math.floor(innerWidth / 11)) }, () => ({
+        x: Math.random() * innerWidth,
+        y: Math.random() * innerHeight,
+        r: Math.random() * 1.5 + .3,
+        speed: Math.random() * .12 + .025,
+        phase: Math.random() * Math.PI * 2
+      }));
+    }
+
+    let frame = 0;
+    function animate() {
+      frame += .012;
+      glowX += (pointerX - glowX) * .09;
+      glowY += (pointerY - glowY) * .09;
+      glow.style.left = `${glowX}px`;
+      glow.style.top = `${glowY}px`;
+
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      for (const star of stars) {
+        star.y -= star.speed;
+        if (star.y < -3) { star.y = innerHeight + 3; star.x = Math.random() * innerWidth; }
+        const alpha = .25 + Math.sin(frame * 3 + star.phase) * .18;
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(220,205,255,${Math.max(.07, alpha)})`;
+        ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      requestAnimationFrame(animate);
+    }
+
+    if (!reduceMotion) {
+      resizeCanvas();
+      addEventListener("resize", resizeCanvas);
+      requestAnimationFrame(animate);
+    }
+  </script>
+</body>
+</html>

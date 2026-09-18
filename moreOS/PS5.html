@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Playstation 5 Simulator</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --panel: rgba(10, 23, 41, 0.67);
+      --panel-strong: rgba(11, 27, 49, 0.9);
+      --text: #f7fbff;
+      --muted: #a9b8cb;
+      --accent: #58a9ff;
+      --accent2: #8d74ff;
+      --line: rgba(255,255,255,.12);
+      --shadow: 0 24px 70px rgba(0,0,0,.4);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      overflow: hidden;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 78% 24%, rgba(75, 139, 255, .34), transparent 25%),
+        radial-gradient(circle at 30% 85%, rgba(91, 65, 196, .28), transparent 30%),
+        linear-gradient(145deg, #050b13, #0b1c31 60%, #0c1325);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -20%;
+      background:
+        conic-gradient(from 210deg at 55% 40%, transparent 0 18%, rgba(82,170,255,.11) 26%, transparent 36% 100%);
+      filter: blur(40px);
+      animation: drift 13s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+
+    @keyframes drift { to { transform: translate3d(-4%, 3%, 0) scale(1.08); } }
+
+    button { font: inherit; }
+
+
+    .shell{grid-template-rows:64px 1fr 72px}.top-actions{margin-left:auto;padding:6px 8px;border-radius:20px;background:rgba(5,13,25,.42);backdrop-filter:blur(14px)}
+    header{padding:0 28px}.hero{padding:8px 28px 10px}.hero h1{font-size:clamp(32px,4vw,58px)}.hero p{display:none}
+    main{justify-content:flex-start;padding-top:8px}.apps-wrap{padding:8px 28px 18px}.apps{gap:12px;padding-bottom:14px}
+    .app-card{flex:0 0 142px;height:164px;border-radius:20px;padding:14px}.app-icon{width:42px;height:42px;border-radius:13px;font-size:20px}.app-meta{left:14px;right:14px;bottom:13px}.app-title{font-size:15px}.app-sub{font-size:11px}
+    .top-stat{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;padding:0 5px}.top-stat b{color:var(--text)}
+    body.theme-light{--text:#0c1728;--muted:#42536a;--line:rgba(10,30,55,.18);background:linear-gradient(145deg,#eaf4ff,#cfdff4)}body.theme-light .shell{color:var(--text)}
+    body.theme-midnight{background:radial-gradient(circle at 70% 15%,#293c78,#090e25 48%,#040713)}
+    body.hide-status .status{visibility:hidden}.media-placeholder{padding:20px;border:1px dashed rgba(255,255,255,.25);border-radius:16px;text-align:center;color:#bac7da}
+
+    .shell {
+      height: 100%;
+      display: grid;
+      grid-template-rows: 76px 1fr 90px;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 44px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 13px; font-weight: 750; letter-spacing: .04em; }
+    .brand-mark {
+      width: 37px; height: 37px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: grid; place-items: center; box-shadow: 0 10px 35px rgba(88,169,255,.35);
+    }
+    .brand-mark::after { content: "◇"; font-size: 25px; transform: translateY(-1px); }
+
+    .top-actions { display: flex; align-items: center; gap: 10px; }
+    .icon-btn {
+      width: 42px; height: 42px; border: 1px solid transparent; border-radius: 50%;
+      color: var(--text); background: rgba(255,255,255,.07); cursor: pointer;
+      transition: .2s ease; display: grid; place-items: center;
+    }
+    .icon-btn:hover, .icon-btn:focus-visible { background: rgba(255,255,255,.15); border-color: var(--line); transform: translateY(-2px); outline: none; }
+    .clock { color: var(--muted); margin-left: 8px; min-width: 96px; text-align: right; }
+
+    main { min-height: 0; display: flex; flex-direction: column; justify-content: center; }
+    .hero { padding: 4px 44px 24px; }
+    .eyebrow { color: #bcd8f5; text-transform: uppercase; letter-spacing: .2em; font-size: 12px; font-weight: 800; }
+    h1 { font-size: clamp(38px, 5vw, 78px); line-height: .96; max-width: 820px; margin: 11px 0 13px; letter-spacing: -.055em; }
+    .hero p { max-width: 620px; margin: 0; font-size: 16px; line-height: 1.7; color: var(--muted); }
+
+    .apps-wrap { overflow: hidden; padding: 12px 44px 46px; }
+    .section-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .section-row h2 { margin: 0; font-size: 16px; letter-spacing: .03em; }
+    .hint { color: var(--muted); font-size: 13px; }
+
+    .apps {
+      display: flex; gap: 18px; overflow-x: auto; scroll-behavior: smooth;
+      padding: 7px 4px 24px; scrollbar-width: none;
+    }
+    .apps::-webkit-scrollbar { display: none; }
+    .app-card {
+      position: relative; flex: 0 0 220px; height: 270px; border: 1px solid var(--line);
+      border-radius: 28px; padding: 21px; color: var(--text); text-align: left; cursor: pointer;
+      background: linear-gradient(160deg, rgba(255,255,255,.13), rgba(255,255,255,.045));
+      backdrop-filter: blur(18px); box-shadow: 0 13px 35px rgba(0,0,0,.17);
+      overflow: hidden; transition: transform .26s ease, border-color .26s ease, box-shadow .26s ease;
+    }
+    .app-card::after {
+      content: ""; position: absolute; inset: 0;
+      background: radial-gradient(circle at 85% 7%, var(--glow), transparent 43%);
+      opacity: .85; pointer-events: none;
+    }
+    .app-card:hover, .app-card:focus-visible, .app-card.active {
+      transform: translateY(-9px) scale(1.025); border-color: rgba(255,255,255,.38);
+      box-shadow: 0 24px 55px rgba(0,0,0,.34); outline: none;
+    }
+    .app-icon {
+      width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center;
+      font-size: 27px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.15);
+      position: relative; z-index: 1;
+    }
+    .app-meta { position: absolute; left: 21px; right: 21px; bottom: 20px; z-index: 1; }
+    .app-title { font-size: 20px; font-weight: 760; display: block; }
+    .app-sub { color: rgba(235,244,255,.7); display: block; font-size: 13px; margin-top: 6px; }
+
+    footer {
+      margin: 0 28px 20px; border: 1px solid var(--line); border-radius: 24px;
+      background: rgba(6, 15, 27, .62); backdrop-filter: blur(22px);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+      box-shadow: var(--shadow);
+    }
+    .status, .controls { display: flex; align-items: center; gap: 18px; color: var(--muted); font-size: 13px; }
+    .online-dot { width: 9px; height: 9px; border-radius: 50%; background: #61e59d; box-shadow: 0 0 15px #61e59d; }
+    .key { color: var(--text); border: 1px solid var(--line); background: rgba(255,255,255,.08); border-radius: 8px; padding: 4px 8px; margin-right: 4px; }
+
+    .modal {
+      position: fixed; inset: 0; z-index: 10; display: none; place-items: center;
+      background: rgba(1,7,13,.62); backdrop-filter: blur(14px); padding: 24px;
+    }
+    .modal.open { display: grid; }
+    .dialog {
+      width: min(620px, 100%); border: 1px solid var(--line); border-radius: 30px;
+      background: var(--panel-strong); padding: 30px; box-shadow: var(--shadow);
+      animation: pop .2s ease-out;
+    }
+    @keyframes pop { from { transform: scale(.96); opacity: 0; } }
+    .dialog-head { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+    .dialog h3 { font-size: 28px; margin: 0; }
+    .dialog p { color: var(--muted); line-height: 1.7; }
+    .primary {
+      border: 0; border-radius: 14px; padding: 12px 18px; color: #07111f; font-weight: 800;
+      background: linear-gradient(135deg, #8dc8ff, #bcb0ff); cursor: pointer;
+    }
+    .toast {
+      position: fixed; right: 28px; bottom: 122px; z-index: 20; opacity: 0; transform: translateY(12px);
+      pointer-events: none; padding: 13px 17px; border: 1px solid var(--line); border-radius: 14px;
+      background: rgba(7,18,32,.93); color: var(--text); transition: .25s ease;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+
+
+
+
+
+    .popover { position:absolute; top:54px; right:0; width:min(360px, calc(100vw - 30px)); display:none; z-index:90; padding:14px; border:1px solid var(--line); border-radius:20px; background:rgba(7,18,32,.98); box-shadow:var(--shadow); }
+    .popover.open { display:block; }
+    .notification-wrap { position:relative; }
+    .popover-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+    .popover-head h3 { margin:0; font-size:18px; }
+    .notification-list { display:grid; gap:8px; max-height:350px; overflow:auto; }
+    .notification-item { padding:12px; border-radius:14px; background:rgba(255,255,255,.07); }
+    .notification-item strong { display:block; margin-bottom:4px; }
+    .notification-item span,.empty-copy { color:var(--muted); font-size:13px; }
+    .badge { position:absolute; top:-2px; right:-2px; min-width:18px; height:18px; display:none; place-items:center; padding:0 5px; border-radius:10px; color:white; background:#ef476f; font-size:10px; font-weight:800; }
+    .badge.show { display:grid; }
+    .overlay-screen { position:fixed; inset:0; z-index:80; display:none; overflow:auto; padding:28px; background:linear-gradient(145deg,#050b13,#0b1c31 65%,#111a31); }
+    .overlay-screen.open { display:block; }
+    .overlay-shell { width:min(1200px,100%); margin:0 auto; }
+    .overlay-header { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:22px; }
+    .overlay-header h1 { margin:0; font-size:clamp(34px,5vw,62px); }
+    .search-box { width:100%; padding:16px 18px; border:1px solid var(--line); border-radius:18px; color:var(--text); background:rgba(255,255,255,.08); outline:none; font-size:18px; }
+    .search-box:focus { border-color:var(--accent); box-shadow:0 0 0 4px rgba(88,169,255,.15); }
+    .game-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:18px; margin-top:22px; }
+    .game-tile { border:1px solid var(--line); border-radius:22px; padding:18px; color:var(--text); background:rgba(255,255,255,.065); min-height:210px; display:flex; flex-direction:column; gap:10px; }
+    .game-cover { height:100px; border-radius:17px; display:grid; place-items:center; font-size:40px; font-weight:850; background:linear-gradient(135deg,rgba(88,169,255,.55),rgba(141,116,255,.48)); }
+    .game-tile h3 { margin:0; }
+    .game-code { color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
+    .game-actions { display:flex; gap:8px; margin-top:auto; }
+    .small-btn { flex:1; border:1px solid var(--line); border-radius:12px; padding:10px; color:var(--text); background:rgba(255,255,255,.08); cursor:pointer; }
+    .small-btn.primary { color:#07111f; }
+
+    .virtual-controller { position:absolute; inset:auto 0 14px; display:flex; justify-content:space-between; align-items:flex-end; padding:0 24px; pointer-events:none; }
+    .stick-cluster,.face-cluster,.ps-button { pointer-events:auto; user-select:none; touch-action:none; }
+    .stick-cluster { width:146px; height:146px; position:relative; border-radius:50%; background:rgba(4,8,16,.64); border:1px solid rgba(255,255,255,.22); backdrop-filter:blur(12px); }
+    .stick-key { position:absolute; width:42px; height:42px; border:1px solid rgba(255,255,255,.28); border-radius:50%; color:white; background:rgba(255,255,255,.09); cursor:pointer; }
+    .stick-key:active,.stick-key.pressed { background:rgba(91,178,255,.7); transform:scale(.94); }
+    .stick-key.up { left:52px; top:7px; }.stick-key.down { left:52px; bottom:7px; }.stick-key.left { left:7px; top:52px; }.stick-key.right { right:7px; top:52px; }
+    .stick-label { position:absolute; inset:0; display:grid; place-items:center; color:rgba(255,255,255,.45); font-size:12px; pointer-events:none; }
+    .controller-center { pointer-events:auto; display:flex; flex-direction:column; align-items:center; gap:8px; }
+    .ps-button { width:50px;height:36px;border:1px solid rgba(255,255,255,.3);border-radius:18px;color:white;background:rgba(4,8,16,.78);cursor:pointer;font-weight:900; }
+    .controller-hint { color:rgba(255,255,255,.65);font-size:11px;background:rgba(0,0,0,.55);padding:5px 9px;border-radius:10px; }
+    .control-center {
+      position:fixed; left:0; right:0; bottom:0; width:100%; height:min(48vh,430px);
+      display:flex; flex-direction:column; justify-content:flex-end; padding:42px 18px 14px;
+      transform:translateY(100%); opacity:0; visibility:hidden; transition:transform .28s ease,opacity .28s ease,visibility .28s;
+      pointer-events:auto; background:linear-gradient(to top,rgba(3,7,15,.97) 0%,rgba(3,7,15,.82) 42%,rgba(3,7,15,.28) 76%,transparent 100%);
+    }
+    .control-center.open { opacity:1;visibility:visible;transform:translateY(0); }
+    .control-center:not(.open) { transition:transform .3s ease,opacity .42s ease,visibility .42s; }
+    .control-content {
+      width:min(940px,100%); min-height:130px; max-height:30vh; overflow:auto; margin:0 auto 12px; padding:20px 22px;
+      border:0; border-radius:0; color:white; background:transparent; backdrop-filter:none; box-shadow:none;
+    }
+    .control-content h3 { margin:0 0 8px;font-size:22px; }.control-content p { margin:0;color:#c3cede;line-height:1.6; }
+    .control-nav {
+      width:100%; display:flex;justify-content:center;gap:12px;padding:10px 12px 4px;
+      border:0;border-radius:0;background:transparent;backdrop-filter:none;
+    }
+    .control-tab { width:54px;height:48px;border:1px solid transparent;border-radius:15px;color:white;background:transparent;cursor:pointer;font-size:20px; }
+    .control-tab:hover,.control-tab.active { background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.18); }
+    @media(max-width:650px){.control-center{height:min(55vh,460px);padding-left:8px;padding-right:8px}.control-content{padding:16px 12px}.stick-cluster{width:116px;height:116px}.stick-key{width:36px;height:36px}.stick-key.up{left:40px}.stick-key.down{left:40px}.stick-key.left{top:40px}.stick-key.right{top:40px}.virtual-controller{padding:0 8px}.control-nav{overflow:auto;justify-content:flex-start}.control-tab{flex:0 0 48px}}
+
+    .player-screen { position:fixed; inset:0; z-index:120; display:none; background:#000; }
+    .player-screen.open { display:block; }
+    .game-frame { width:100%; height:100%; border:0; background:#000; }
+    .player-bar { position:absolute; top:16px; left:16px; right:16px; display:flex; justify-content:space-between; align-items:center; pointer-events:none; }
+    .player-bar > * { pointer-events:auto; }
+    .player-title { padding:10px 14px; border-radius:14px; color:white; background:rgba(0,0,0,.58); backdrop-filter:blur(12px); }
+    .mini-controller { position:absolute; left:50%; bottom:18px; transform:translateX(-50%); display:flex; align-items:center; gap:11px; padding:9px 14px; border:1px solid rgba(255,255,255,.24); border-radius:24px; color:white; background:rgba(0,0,0,.62); backdrop-filter:blur(13px); opacity:.78; }
+    .stick,.controller-key { width:28px;height:28px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.35);border-radius:50%;font-size:11px; }
+    .dpad { font-size:19px; }
+    .load-error { margin-top:20px; padding:16px; border:1px solid rgba(255,100,100,.35); border-radius:16px; color:#ffc2c6; background:rgba(255,60,60,.08); }
+
+    #userModal { z-index: 70; }
+    #userModal .dialog { width: min(560px, 100%); }
+    .create-user-preview {
+      display: flex; align-items: center; gap: 14px; margin: 18px 0 4px;
+      padding: 14px; border: 1px solid var(--line); border-radius: 17px;
+      background: rgba(255,255,255,.055);
+    }
+    .create-user-preview .avatar { width: 54px; height: 54px; border-radius: 17px; font-size: 22px; }
+    .preview-copy strong { display: block; font-size: 17px; }
+    .preview-copy span { color: var(--muted); font-size: 13px; }
+    .modal-error { min-height: 20px; color: #ff9da5; font-size: 13px; margin-top: 10px; }
+
+    .settings-screen {
+      position: fixed; inset: 0; z-index: 40; display: none; overflow: auto;
+      background: linear-gradient(145deg, rgba(5,11,19,.98), rgba(11,28,49,.98));
+      padding: 28px;
+    }
+    .settings-screen.open { display: block; }
+    .settings-shell { width: min(1180px, 100%); margin: 0 auto; }
+    .settings-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+    .settings-header h1 { font-size: clamp(34px, 5vw, 62px); margin: 0; }
+    .settings-layout { display: grid; grid-template-columns: 240px 1fr; gap: 22px; }
+    .settings-nav, .settings-panel { border: 1px solid var(--line); border-radius: 24px; background: rgba(255,255,255,.055); backdrop-filter: blur(18px); }
+    .settings-nav { padding: 12px; align-self: start; position: sticky; top: 16px; }
+    .settings-tab { width: 100%; border: 0; border-radius: 13px; padding: 12px; text-align: left; color: var(--muted); background: transparent; cursor: pointer; }
+    .settings-tab:hover, .settings-tab.active { color: var(--text); background: rgba(255,255,255,.11); }
+    .settings-panel { padding: 24px; min-height: 520px; }
+    .settings-section { display: none; }
+    .settings-section.active { display: block; }
+    .settings-section h2 { margin: 0 0 6px; font-size: 27px; }
+    .settings-description { color: var(--muted); margin: 0 0 22px; }
+    .setting-row { display: grid; grid-template-columns: 1fr minmax(150px, 260px); gap: 20px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
+    .setting-title { font-weight: 720; }
+    .setting-help { color: var(--muted); font-size: 13px; margin-top: 5px; }
+    .setting-control { width: 100%; accent-color: var(--accent); }
+    select.setting-control { color: var(--text); background: #14253a; border: 1px solid var(--line); border-radius: 11px; padding: 10px; }
+    input[type='range'].setting-control { cursor: pointer; }
+    .toggle { justify-self: end; width: 52px; height: 29px; appearance: none; border-radius: 20px; background: #435065; cursor: pointer; position: relative; transition: .2s; }
+    .toggle::after { content: ''; position: absolute; width: 23px; height: 23px; border-radius: 50%; background: white; top: 3px; left: 3px; transition: .2s; }
+    .toggle:checked { background: var(--accent); }
+    .toggle:checked::after { transform: translateX(23px); }
+    .danger-zone { border: 1px solid rgba(255,92,92,.4); background: rgba(255,70,70,.08); border-radius: 18px; padding: 18px; margin-top: 20px; }
+    .danger-btn { border: 1px solid rgba(255,105,105,.65); border-radius: 13px; padding: 12px 16px; color: white; background: #a92936; cursor: pointer; font-weight: 800; }
+    .danger-btn:hover { background: #c23442; }
+    .confirm-text { color: #ffb6ba; font-weight: 750; }
+    body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    body.high-contrast { --text:#fff; --muted:#e8f1ff; --line:rgba(255,255,255,.42); }
+    body.large-text { font-size: 118%; }
+    @media (max-width: 780px) { .settings-layout { grid-template-columns: 1fr; } .settings-nav { position: static; display:flex; overflow:auto; } .settings-tab { min-width: max-content; } .setting-row { grid-template-columns: 1fr; } .toggle { justify-self:start; } }
+
+    .login-screen {
+      position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; overflow: auto;
+      padding: 40px 24px; background:
+        radial-gradient(circle at 50% 15%, rgba(69,139,255,.34), transparent 30%),
+        linear-gradient(145deg, #050b13, #0b1c31 60%, #0b1222);
+      transition: opacity .3s ease, visibility .3s ease;
+    }
+    .login-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .login-content { width: min(1100px, 100%); text-align: center; }
+    .login-content h1 { max-width: none; margin: 0 0 12px; font-size: clamp(42px, 7vw, 82px); }
+    .login-lead { color: var(--muted); margin: 0 0 42px; }
+    .login-users { display: flex; justify-content: center; align-items: flex-start; gap: 24px; flex-wrap: wrap; }
+    .login-user { width: 150px; border: 0; color: var(--text); background: transparent; cursor: pointer; }
+    .login-avatar {
+      width: 126px; height: 126px; margin: 0 auto 14px; border-radius: 36px; display: grid; place-items: center;
+      font-size: 48px; font-weight: 850; border: 3px solid transparent; box-shadow: 0 18px 44px rgba(0,0,0,.28);
+      transition: .22s ease;
+    }
+    .login-user:hover .login-avatar, .login-user.selected .login-avatar { transform: translateY(-7px) scale(1.04); border-color: white; }
+    .login-name { font-size: 18px; font-weight: 750; overflow-wrap: anywhere; }
+    .login-create .login-avatar { color: var(--muted); background: rgba(255,255,255,.08); border: 2px dashed rgba(255,255,255,.22); }
+    .login-auth { width: min(390px, 100%); margin: 35px auto 0; display: none; }
+    .login-auth.open { display: block; animation: pop .2s ease-out; }
+    .login-auth .primary { width: 100%; margin-top: 12px; }
+    .pin-note { color: var(--muted); font-size: 12px; margin-top: 9px; }
+
+    .user-switcher { position: relative; }
+    .user-menu {
+      position: absolute; top: 52px; right: 0; width: 280px; z-index: 8;
+      display: none; padding: 14px; border: 1px solid var(--line); border-radius: 20px;
+      background: rgba(7,18,32,.96); backdrop-filter: blur(24px); box-shadow: var(--shadow);
+    }
+    .user-menu.open { display: block; }
+    .user-menu h4 { margin: 2px 4px 10px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .12em; }
+    .user-list { display: grid; gap: 7px; max-height: 260px; overflow: auto; }
+    .user-row {
+      width: 100%; display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 10px;
+      padding: 9px; border: 1px solid transparent; border-radius: 14px; color: var(--text);
+      background: transparent; cursor: pointer; text-align: left;
+    }
+    .user-row:hover, .user-row.selected { background: rgba(255,255,255,.09); border-color: var(--line); }
+    .avatar { width: 40px; height: 40px; border-radius: 14px; display: grid; place-items: center; font-weight: 850; color: white; }
+    .user-name { font-weight: 720; overflow: hidden; text-overflow: ellipsis; }
+    .check { color: #73d6ff; font-weight: 900; }
+    .create-user-btn {
+      width: 100%; margin-top: 10px; padding: 11px; border: 1px dashed rgba(255,255,255,.25);
+      border-radius: 13px; color: var(--text); background: rgba(255,255,255,.05); cursor: pointer;
+    }
+    .create-user-btn:hover { background: rgba(255,255,255,.11); }
+    .field-label { display: block; color: var(--muted); font-size: 13px; margin: 18px 0 8px; }
+    .text-input {
+      width: 100%; border: 1px solid var(--line); border-radius: 14px; padding: 13px 14px;
+      color: var(--text); background: rgba(255,255,255,.07); outline: none;
+    }
+    .text-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(88,169,255,.15); }
+    .color-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+    .color-choice { width: 38px; height: 38px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; }
+    .color-choice.selected { border-color: white; box-shadow: 0 0 0 3px rgba(255,255,255,.18); }
+    .dialog-actions { display: flex; gap: 10px; margin-top: 22px; }
+    .secondary { border: 1px solid var(--line); border-radius: 14px; padding: 12px 18px; color: var(--text); background: rgba(255,255,255,.07); cursor: pointer; }
+
+    @media (max-width: 700px) {
+      .shell { grid-template-rows: 68px 1fr 74px; }
+      header, .hero, .apps-wrap { padding-left: 20px; padding-right: 20px; }
+      .brand span:last-child { display: none; }
+      .hero { padding-top: 10px; }
+      h1 { font-size: 46px; }
+      .hero p { font-size: 14px; }
+      .app-card { flex-basis: 180px; height: 230px; }
+      footer { margin: 0 12px 12px; padding: 0 16px; }
+      .controls { display: none; }
+    }
+  
+    /* CSS-only top-right tile fitting patch */
+    html,body{width:100%;height:100%;overflow:hidden}
+    .shell{height:100dvh;max-height:100dvh;overflow:hidden;grid-template-rows:clamp(52px,7vh,64px) minmax(0,1fr) clamp(48px,7vh,68px)}
+    header{padding-inline:clamp(10px,1.8vw,26px);min-width:0}.top-actions{gap:clamp(3px,.5vw,8px);min-width:0}.icon-btn{width:36px;height:36px}.top-stat{font-size:9px}.clock{min-width:60px;font-size:12px}
+    main{position:relative;min-height:0;overflow:hidden;display:block;padding:0}.hero{position:absolute;left:clamp(12px,2vw,28px);top:clamp(12px,2vh,26px);width:min(42vw,560px);padding:0;z-index:1}.hero h1{font-size:clamp(24px,4.2vw,58px);line-height:.98}.hero p{display:block;font-size:clamp(11px,1.1vw,15px)}
+    .downloaded-strip{position:absolute!important;top:8px!important;right:clamp(8px,1.5vw,22px)!important;left:auto!important;bottom:8px!important;width:min(54vw,720px)!important;height:auto!important;margin:0!important;padding:0!important;z-index:3!important;overflow:hidden!important}
+    .downloaded-strip .section-row{height:24px;margin:0 0 5px;justify-content:flex-end;gap:10px}.downloaded-strip .section-row h2{font-size:12px}.downloaded-strip .hint{display:none}
+    .downloaded-strip .apps{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(68px,1fr))!important;grid-auto-rows:minmax(66px,1fr)!important;grid-auto-flow:row!important;align-content:stretch!important;justify-content:stretch!important;gap:clamp(4px,.55vw,8px)!important;width:100%!important;height:calc(100% - 29px)!important;max-height:none!important;overflow:hidden!important;padding:1px!important}
+    .downloaded-strip .app-card,.downloaded-strip .app-card[data-home-game]{display:block!important;position:relative!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;flex:none!important;padding:clamp(5px,.6vw,9px)!important;border-radius:clamp(10px,1.2vw,16px)!important;overflow:hidden!important}
+    .downloaded-strip .app-card .app-icon,.downloaded-strip .app-card[data-home-game] .app-icon{width:clamp(22px,2.4vw,34px)!important;height:clamp(22px,2.4vw,34px)!important;border-radius:9px!important;font-size:clamp(11px,1.1vw,15px)!important}
+    .downloaded-strip .app-card .app-meta,.downloaded-strip .app-card[data-home-game] .app-meta{left:clamp(5px,.6vw,9px)!important;right:clamp(5px,.6vw,9px)!important;bottom:clamp(4px,.5vw,8px)!important}
+    .downloaded-strip .app-card .app-title,.downloaded-strip .app-card[data-home-game] .app-title{font-size:clamp(8px,.9vw,11px)!important;line-height:1.05!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+    .downloaded-strip .app-card .app-sub,.downloaded-strip .app-card[data-home-game] .app-sub{font-size:clamp(7px,.7vw,9px)!important;line-height:1!important;margin-top:2px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+    .downloaded-strip .app-card:hover,.downloaded-strip .app-card:focus-visible,.downloaded-strip .app-card.active{transform:scale(.96)!important;box-shadow:0 0 0 2px rgba(255,255,255,.72)!important}
+    footer{margin:0 clamp(8px,1.3vw,18px) clamp(6px,.9vh,10px);min-height:0;padding-inline:clamp(9px,1.4vw,18px)}
+    @media(max-width:900px){.hero{width:34vw}.hero p{display:none}.downloaded-strip{width:62vw!important}.downloaded-strip .apps{grid-template-columns:repeat(auto-fit,minmax(60px,1fr))!important}}
+    @media(max-width:650px){.shell{grid-template-rows:auto minmax(0,1fr) 52px}header{padding-block:5px}.brand,.top-stat,.clock{display:none!important}.home-nav{grid-column:1!important;grid-row:1!important}.top-actions{grid-column:2!important}.hero{display:none}.downloaded-strip{top:5px!important;left:7px!important;right:7px!important;bottom:5px!important;width:auto!important}.downloaded-strip .apps{grid-template-columns:repeat(auto-fit,minmax(55px,1fr))!important;grid-auto-rows:minmax(58px,1fr)!important}.status span:nth-child(n+3),.controls{display:none}}
+    @media(max-height:560px){.hero{display:none}.downloaded-strip{left:clamp(8px,1.5vw,22px)!important;width:auto!important}.downloaded-strip .apps{grid-auto-rows:minmax(48px,1fr)!important}.downloaded-strip .app-icon{transform:scale(.8);transform-origin:top left}footer{display:none}.shell{grid-template-rows:auto minmax(0,1fr)}}
+
+  
+    /* Clean home mode: hide extra overlay copy while preserving interactive controls */
+    body:not(.game-running) .hero,
+    body:not(.game-running) .downloaded-strip > .section-row,
+    body:not(.game-running) footer{display:none!important}
+    body:not(.game-running) .shell{grid-template-rows:clamp(52px,7vh,64px) minmax(0,1fr)!important}
+    body:not(.game-running) main{height:100%;min-height:0}
+    body:not(.game-running) .downloaded-strip{top:8px!important;bottom:8px!important;height:auto!important}
+    body:not(.game-running) .downloaded-strip .apps{height:100%!important}
+    .top-stat{white-space:nowrap}.top-stat strong,.top-stat b{display:inline!important}
+
+  
+    /* Restored home navigation */
+    header{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:14px}
+    .home-nav{display:flex;align-items:center;gap:5px;justify-self:start;padding:4px;border:1px solid var(--line);border-radius:15px;background:rgba(5,13,25,.34);backdrop-filter:blur(14px)}
+    .home-nav-btn{border:0;border-radius:11px;padding:8px 13px;color:var(--muted);background:transparent;cursor:pointer;font-weight:750;font-size:12px}
+    .home-nav-btn.active{color:var(--text);background:rgba(255,255,255,.13)}
+    .top-actions{justify-self:end}.home-view{display:none!important}.home-view.active{display:block!important}
+    .media-home-placeholder{position:absolute;inset:16px 22px auto auto;width:min(54vw,720px);padding:24px;border:1px dashed var(--line);border-radius:18px;color:var(--muted);background:rgba(255,255,255,.06)}
+    body.theme-light .home-nav{background:rgba(255,255,255,.58);box-shadow:0 8px 20px rgba(52,79,111,.1)}body.theme-light .home-nav-btn.active{color:#153653;background:rgba(40,124,204,.13)}
+    @media(max-width:650px){header{grid-template-columns:auto 1fr!important}.home-nav{grid-column:1!important;grid-row:1!important}.top-actions{grid-column:2!important;grid-row:1!important}.media-home-placeholder{inset:10px;width:auto}}
+
+  
+    /* Trial sessions, wishlist, and always-visible controller */
+    .virtual-controller{position:fixed!important;left:0!important;right:0!important;bottom:12px!important;z-index:125!important;display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:none!important}
+    .virtual-controller .stick-cluster,.virtual-controller .controller-center{pointer-events:auto!important}
+    body:not(.game-running) .virtual-controller{transform:scale(.72);transform-origin:bottom center;opacity:.72!important}
+    body:not(.game-running) .player-screen{display:block!important;visibility:visible!important;pointer-events:none!important;background:transparent!important;z-index:15!important}
+    body:not(.game-running) .player-screen .game-frame,body:not(.game-running) .player-screen .player-bar{display:none!important}
+    body:not(.game-running) .virtual-controller{pointer-events:none!important}body:not(.game-running) .virtual-controller .stick-cluster,body:not(.game-running) .virtual-controller .controller-center{pointer-events:auto!important}
+    .trial-review{position:fixed;inset:0;z-index:210;display:none;place-items:center;padding:22px;background:rgba(1,7,14,.7);backdrop-filter:blur(16px)}.trial-review.open{display:grid}
+    .trial-card{width:min(520px,100%);padding:26px;border:1px solid var(--line);border-radius:25px;background:var(--panel-strong);box-shadow:var(--shadow)}.trial-card h2{margin:0 0 8px}.trial-card p{color:var(--muted)}
+    .opinion-row{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.opinion-btn{border:1px solid var(--line);border-radius:12px;padding:10px 14px;color:var(--text);background:rgba(255,255,255,.07);cursor:pointer}.opinion-btn.selected{background:var(--accent);color:#07111f}
+    .wishlist-btn.active{background:#f2b84b!important;color:#201500!important}.trial-timer{position:absolute;top:66px;right:18px;padding:8px 11px;border-radius:13px;color:white;background:rgba(0,0,0,.68);font-size:12px;z-index:4}
+
+  
+    /* Final home tile layout: small, uniform, top-left, responsive */
+    body:not(.game-running) main{position:relative!important;display:block!important;min-height:0!important;overflow:hidden!important}
+    body:not(.game-running) .downloaded-strip{
+      position:absolute!important;
+      inset:10px 12px 10px 12px!important;
+      width:auto!important;
+      height:auto!important;
+      margin:0!important;
+      padding:0!important;
+      overflow:hidden!important;
+      z-index:3!important;
+    }
+    body:not(.game-running) .downloaded-strip .apps{
+      display:grid!important;
+      grid-template-columns:repeat(auto-fill,minmax(76px,96px))!important;
+      grid-auto-rows:104px!important;
+      grid-auto-flow:row!important;
+      justify-content:start!important;
+      align-content:start!important;
+      gap:7px!important;
+      width:100%!important;
+      height:100%!important;
+      max-height:none!important;
+      padding:2px!important;
+      overflow:auto!important;
+      scrollbar-width:thin!important;
+      scrollbar-color:rgba(255,255,255,.25) transparent!important;
+    }
+    body:not(.game-running) .downloaded-strip .app-card,
+    body:not(.game-running) .downloaded-strip .app-card[data-home-game]{
+      display:block!important;
+      position:relative!important;
+      box-sizing:border-box!important;
+      width:100%!important;
+      height:104px!important;
+      min-width:0!important;
+      min-height:0!important;
+      max-width:none!important;
+      max-height:none!important;
+      flex:none!important;
+      padding:7px!important;
+      border-radius:14px!important;
+      overflow:hidden!important;
+      transform:none!important;
+    }
+    body:not(.game-running) .downloaded-strip .app-card .app-icon,
+    body:not(.game-running) .downloaded-strip .app-card[data-home-game] .app-icon{
+      width:29px!important;
+      height:29px!important;
+      border-radius:9px!important;
+      font-size:13px!important;
+    }
+    body:not(.game-running) .downloaded-strip .app-card .app-meta,
+    body:not(.game-running) .downloaded-strip .app-card[data-home-game] .app-meta{
+      left:7px!important;
+      right:7px!important;
+      bottom:7px!important;
+    }
+    body:not(.game-running) .downloaded-strip .app-card .app-title,
+    body:not(.game-running) .downloaded-strip .app-card[data-home-game] .app-title{
+      display:block!important;
+      font-size:10px!important;
+      line-height:1.1!important;
+      white-space:nowrap!important;
+      overflow:hidden!important;
+      text-overflow:ellipsis!important;
+    }
+    body:not(.game-running) .downloaded-strip .app-card .app-sub,
+    body:not(.game-running) .downloaded-strip .app-card[data-home-game] .app-sub{
+      display:block!important;
+      margin-top:2px!important;
+      font-size:8px!important;
+      line-height:1!important;
+      white-space:nowrap!important;
+      overflow:hidden!important;
+      text-overflow:ellipsis!important;
+    }
+    body:not(.game-running) .downloaded-strip .app-card:hover,
+    body:not(.game-running) .downloaded-strip .app-card:focus-visible,
+    body:not(.game-running) .downloaded-strip .app-card.active{
+      transform:translateY(-2px) scale(.98)!important;
+      box-shadow:0 0 0 2px rgba(255,255,255,.72),0 7px 18px rgba(0,0,0,.24)!important;
+    }
+    @media(max-width:700px){
+      body:not(.game-running) .downloaded-strip{inset:8px!important}
+      body:not(.game-running) .downloaded-strip .apps{grid-template-columns:repeat(auto-fill,minmax(68px,1fr))!important;grid-auto-rows:92px!important;gap:5px!important}
+      body:not(.game-running) .downloaded-strip .app-card,
+      body:not(.game-running) .downloaded-strip .app-card[data-home-game]{height:92px!important;padding:6px!important}
+    }
+    @media(max-height:520px){
+      body:not(.game-running) .downloaded-strip .apps{grid-template-columns:repeat(auto-fill,minmax(62px,82px))!important;grid-auto-rows:76px!important;gap:4px!important}
+      body:not(.game-running) .downloaded-strip .app-card,
+      body:not(.game-running) .downloaded-strip .app-card[data-home-game]{height:76px!important}
+      body:not(.game-running) .downloaded-strip .app-card .app-icon{width:23px!important;height:23px!important}
+      body:not(.game-running) .downloaded-strip .app-card .app-sub{display:none!important}
+    }
+
+  
+    .media-store{position:absolute;inset:8px 12px;overflow:auto}.media-toolbar{display:flex;gap:8px;margin-bottom:12px}.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.media-card{padding:12px;border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.07)}.media-card h3{margin:8px 0;font-size:14px}.media-cover{height:84px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#5baaff66,#8d74ff66);font-size:28px}
+    .media-player-screen{position:fixed;inset:0;z-index:180;display:none;background:radial-gradient(circle at 50% 30%,#183454,#03070d 65%);color:white}.media-player-screen.open{display:grid;place-items:center}.media-stage{text-align:center;width:min(760px,92vw)}.media-art{width:min(360px,70vw);aspect-ratio:1;margin:auto;border-radius:28px;display:grid;place-items:center;font-size:90px;background:linear-gradient(135deg,#287ccc,#715fd7);box-shadow:0 30px 90px #0009}.media-title{font-size:clamp(22px,4vw,38px);margin:18px 0 4px}.media-progress{width:100%;accent-color:#58a9ff}.media-controls{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:12px}.media-control{width:48px;height:48px;border:1px solid #ffffff33;border-radius:50%;color:white;background:#ffffff14;cursor:pointer}.media-control.main{width:62px;height:62px;font-size:22px}.media-time{display:flex;justify-content:space-between;font-size:11px;color:#b9c6d8}.media-context{position:fixed;z-index:230;display:none;min-width:190px;padding:8px;border:1px solid #ffffff2b;border-radius:14px;background:#07111ff2;box-shadow:0 20px 50px #0008}.media-context.open{display:grid}.media-context button{border:0;border-radius:9px;padding:10px;color:white;background:transparent;text-align:left;cursor:pointer}.media-context button:hover{background:#ffffff15}.media-import{display:none}.media-close{position:absolute;top:16px;right:16px}.offline-note{font-size:11px;color:var(--muted)}
+
+  
+    .setup-screen{position:fixed;inset:0;z-index:500;display:none;place-items:center;padding:24px;background:radial-gradient(circle at 50% 18%,#245899,#091426 48%,#03070d);color:white}.setup-screen.open{display:grid}.setup-card{width:min(650px,100%);padding:34px;border:1px solid #ffffff25;border-radius:30px;background:#071426dd;backdrop-filter:blur(20px);box-shadow:0 30px 90px #0009}.setup-card h1{font-size:clamp(34px,6vw,64px);margin:0 0 12px}.setup-card p{color:#b9c8dc;line-height:1.65}.setup-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:24px}.setup-step{display:none}.setup-step.active{display:block}.setup-progress{height:8px;border-radius:8px;background:#ffffff18;overflow:hidden;margin:20px 0}.setup-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,#5ab4ff,#9d83ff);transition:width .25s}.setup-fields{display:grid;gap:12px}.setup-choice{display:flex;gap:10px;align-items:center;padding:14px;border:1px solid #ffffff20;border-radius:15px;background:#ffffff08}.network-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#f65f70;margin-right:8px}.network-dot.online{background:#54df98;box-shadow:0 0 15px #54df98}.setup-spinner{width:42px;height:42px;border:4px solid #ffffff20;border-top-color:#65b6ff;border-radius:50%;animation:setupspin .8s linear infinite;margin:20px auto}@keyframes setupspin{to{transform:rotate(360deg)}}
+
+  
+    .game-context{position:fixed;z-index:620;display:none;min-width:230px;padding:8px;border:1px solid #ffffff28;border-radius:15px;background:#07111ff2;box-shadow:0 22px 60px #0009;backdrop-filter:blur(18px)}.game-context.open{display:grid}.game-context button{border:0;border-radius:10px;padding:11px;color:white;background:transparent;text-align:left;cursor:pointer}.game-context button:hover{background:#ffffff14}.game-context .danger{color:#ff9ca6}.game-context-time{padding:8px 11px;color:#aebcd0;font-size:11px;border-bottom:1px solid #ffffff16}.install-alert{position:fixed;inset:0;z-index:630;display:none;place-items:center;padding:20px;background:#01060db5;backdrop-filter:blur(15px)}.install-alert.open{display:grid}.install-alert-card{width:min(480px,100%);padding:25px;border:1px solid var(--line);border-radius:24px;background:var(--panel-strong);box-shadow:var(--shadow)}.install-alert-card h2{margin:0 0 8px}.install-alert-card p{color:var(--muted)}
+
+  </style>
+</head>
+<body>
+
+<div class="game-context" id="gameContext"><div class="game-context-time" id="gameContextTime">Not installed</div><button data-game-menu="updates">Check for updates</button><button data-game-menu="reinstall">Reinstall</button><button class="danger" data-game-menu="delete">Delete game</button></div><section class="install-alert" id="installAlert"><div class="install-alert-card"><h2 id="installAlertTitle">Game status</h2><p id="installAlertText"></p><div class="dialog-actions"><button class="primary" id="installAlertOk">OK</button></div></div></section>
+  <section class="setup-screen" id="setupScreen" aria-labelledby="setupTitle"><div class="setup-card">
+    <div class="setup-step active" data-setup-step="welcome"><div class="eyebrow">Console OS setup</div><h1 id="setupTitle">Welcome</h1><p>Let's prepare your console. Click Next to continue.</p><div class="setup-actions"><button class="primary" data-setup-next="network">Next</button></div></div>
+    <div class="setup-step" data-setup-step="network"><h1>Let's get connected</h1><p><span class="network-dot" id="networkDot"></span><span id="networkText">Checking your network connection…</span></p><p id="networkHelp">Connect this device to Wi-Fi or Ethernet. Setup will continue automatically when internet access is detected.</p></div>
+    <div class="setup-step" data-setup-step="credentials"><h1>Create your starter user</h1><p>Enter the local profile credentials you want to use.</p><div class="setup-fields"><input class="text-input" id="setupName" maxlength="24" placeholder="User name"><input class="text-input" id="setupPin" type="password" inputmode="numeric" maxlength="8" placeholder="Optional 4 to 8-digit PIN"><input id="setupColor" type="color" value="#547cff" aria-label="Profile color"></div><div class="modal-error" id="setupError"></div><div class="setup-actions"><button class="primary" id="setupCreateUser">Continue</button></div></div>
+    <div class="setup-step" data-setup-step="download"><h1>Downloading Astro's Playroom…</h1><div class="setup-spinner"></div><div class="setup-progress"><i id="setupDownloadBar"></i></div><p id="setupDownloadText">Loading the game catalog…</p></div>
+    <div class="setup-step" data-setup-step="friends"><h1>Starter friends?</h1><p>Would you like us to add a few local starter friends to this profile?</p><label class="setup-choice"><input type="checkbox" id="setupFriends" checked> Add starter friends</label><div class="setup-actions"><button class="primary" id="setupFriendsContinue">Continue</button></div></div>
+    <div class="setup-step" data-setup-step="adding"><h1>Adding friends…</h1><div class="setup-spinner"></div><p>Preparing your local friend list.</p></div>
+    <div class="setup-step" data-setup-step="complete"><div class="eyebrow">Setup complete</div><h1>Welcome</h1><p>Your console is ready. Click below to enter the login screen.</p><div class="setup-actions"><button class="primary" id="finishSetup">Enter login</button></div></div>
+  </div></section>
+
+
+  <section class="login-screen" id="loginScreen" aria-labelledby="loginHeading">
+    <div class="login-content">
+      <div class="eyebrow">Console OS</div>
+      <h1 id="loginHeading">Select your user</h1>
+      <p class="login-lead">Choose a profile to continue.</p>
+      <div class="login-users" id="loginUsers"></div>
+      <div class="login-auth" id="loginAuth">
+        <input class="text-input" id="loginPinInput" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password" placeholder="Enter PIN" aria-label="PIN" />
+        <button class="primary" id="signInButton">Sign in</button>
+        <div class="pin-note" id="loginMessage"></div>
+      </div>
+    </div>
+  </section>
+  <div class="shell">
+    <header>
+      <div class="brand"><div class="brand-mark"></div><span>CONSOLE OS</span></div>
+      <nav class="home-nav" aria-label="Home navigation"><button class="home-nav-btn active" data-home-view="games">Games</button><button class="home-nav-btn" data-home-view="media">Media</button></nav><div class="top-actions">
+        <button class="icon-btn" id="globalSearchButton" aria-label="Search">⌕</button>
+        <div class="notification-wrap"><button class="icon-btn" id="notificationButton" aria-label="Notifications">♢<span class="badge" id="notificationBadge">0</span></button><div class="popover" id="notificationMenu"><div class="popover-head"><h3>Notifications</h3><button class="small-btn" id="clearNotifications">Clear</button></div><div class="notification-list" id="notificationList"></div></div></div>
+        <div class="user-switcher">
+          <button class="icon-btn" id="userButton" aria-label="Switch user">☺</button>
+          <div class="user-menu" id="userMenu">
+            <h4>Users</h4>
+            <div class="user-list" id="userList"></div>
+            <button class="create-user-btn" id="createUserButton">＋ Create user</button>
+          </div>
+        </div>
+        <div class="top-stat">Games <b id="topGameCount">0</b></div><div class="top-stat">Friends <b id="topFriendCount">0</b></div><div class="clock" id="clock">--:--</div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="eyebrow" id="welcomeText">Welcome back, Player</div>
+        <h1>Your next world starts here.</h1>
+        <p>A clean, original console dashboard starter with keyboard navigation, responsive cards, a live clock, dialogs, and room for us to add real game-library features later.</p>
+      </section>
+
+      <section class="apps-wrap downloaded-strip home-view active" data-home-panel="games">
+        <div class="section-row"><h2>Downloaded games</h2><span class="hint">Use ← → and Enter</span></div>
+        <div class="apps" id="apps">
+          <button class="app-card" style="--glow: rgba(57,224,164,.52)" data-title="Game Library" data-description="This area can become a filterable library of installed and owned games.">
+            <span class="app-icon">▦</span><span class="app-meta"><span class="app-title">Game Library</span><span class="app-sub">4 items</span></span>
+          </button>
+          <button class="app-card" style="--glow: rgba(255,115,104,.52)" data-title="Media" data-description="A starter space for streaming apps, screenshots, clips, and music.">
+            <span class="app-icon">▶</span><span class="app-meta"><span class="app-title">Media</span><span class="app-sub">Watch and listen</span></span>
+          </button>
+          <button class="app-card" style="--glow: rgba(255,196,75,.48)" data-title="Store" data-description="Browse and download games." data-open-store="true">
+            <span class="app-icon">◇</span><span class="app-meta"><span class="app-title">Store</span><span class="app-sub">Discover games</span></span>
+          </button>
+          <button class="app-card" style="--glow: rgba(145,168,199,.52)" data-title="Settings" data-description="Configure your console experience." data-open-settings="true">
+            <span class="app-icon">⚙</span><span class="app-meta"><span class="app-title">Settings</span><span class="app-sub">System controls</span></span>
+          </button>
+        </div>
+      </section><section class="home-view" data-home-panel="media"><div class="media-store"><div class="media-toolbar"><button class="small-btn" id="refreshMedia">Refresh media</button><button class="small-btn" id="importMediaButton">Import temporary MP3</button><input class="media-import" id="mediaImport" type="file" accept="audio/mpeg,audio/mp3"></div><div class="offline-note" id="mediaStatus">Internet is required for catalog media. Imported MP3 files last only until this page is closed.</div><div class="media-grid" id="mediaGrid"></div></div></section>
+    </main>
+
+    <footer>
+      <div class="status"><span class="online-dot"></span><span>Online</span><span>Controller connected</span></div>
+      <div class="controls"><span><span class="key">Enter</span> Select</span><span><span class="key">Esc</span> Back</span></div>
+    </footer>
+  </div>
+
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+    <div class="dialog">
+      <div class="dialog-head"><h3 id="dialogTitle">App</h3><button class="icon-btn" id="closeModal" aria-label="Close">×</button></div>
+      <p id="dialogText"></p>
+      <button class="primary" id="launchBtn">Launch demo</button>
+    </div>
+  </div>
+
+
+
+  <section class="overlay-screen" id="storeScreen"><div class="overlay-shell"><div class="overlay-header"><div><div class="eyebrow">Console OS</div><h1>PlayStation Store</h1></div><button class="icon-btn" id="closeStore">×</button></div><input class="search-box" id="storeSearch" placeholder="Search every game by name or code"><div id="storeStatus" class="empty-copy">Loading catalog…</div><div class="game-grid" id="storeGrid"></div></div></section>
+  <section class="overlay-screen" id="searchScreen"><div class="overlay-shell"><div class="overlay-header"><div><div class="eyebrow">Console OS</div><h1>Search</h1></div><button class="icon-btn" id="closeSearch">×</button></div><input class="search-box" id="globalSearch" placeholder="Search games, downloaded titles, settings, and users"><div class="game-grid" id="searchResults"></div></div></section>
+  <section class="player-screen" id="playerScreen"><iframe class="game-frame" id="gameFrame" sandbox="allow-scripts allow-forms allow-pointer-lock allow-modals" referrerpolicy="no-referrer"></iframe><div class="player-bar"><div class="player-title" id="playerTitle">Game</div><button class="icon-btn" id="closePlayer">×</button></div><div class="virtual-controller" aria-label="Virtual controller">
+      <div class="stick-cluster" aria-label="Arrow stick">
+        <button class="stick-key up" data-virtual-key="ArrowUp">▲</button><button class="stick-key down" data-virtual-key="ArrowDown">▼</button><button class="stick-key left" data-virtual-key="ArrowLeft">◀</button><button class="stick-key right" data-virtual-key="ArrowRight">▶</button><span class="stick-label">ARROWS</span>
+      </div>
+      <div class="controller-center"><button class="ps-button" id="psButton" aria-label="PlayStation menu">PS</button><span class="controller-hint">Controller</span></div>
+      <div class="stick-cluster" aria-label="WASD stick">
+        <button class="stick-key up" data-virtual-key="w">W</button><button class="stick-key down" data-virtual-key="s">S</button><button class="stick-key left" data-virtual-key="a">A</button><button class="stick-key right" data-virtual-key="d">D</button><span class="stick-label">WASD</span>
+      </div>
+      <section class="control-center" id="controlCenter" aria-label="PlayStation menu">
+        <div class="control-content" id="controlContent"><h3>Home</h3><p>Home menu placeholder content. We can design this panel next.</p></div>
+        <nav class="control-nav" aria-label="Quick menu">
+          <button class="control-tab active" data-control-tab="home" title="Home" aria-label="Home">⌂</button>
+          <button class="control-tab" data-control-tab="games" title="Games" aria-label="Games">▦</button>
+          <button class="control-tab" data-control-tab="media" title="Media" aria-label="Media">▶</button>
+          <button class="control-tab" data-control-tab="friends" title="Friends" aria-label="Friends">♟</button>
+          <button class="control-tab" data-control-tab="notifications" title="Notifications" aria-label="Notifications">♢</button>
+          <button class="control-tab" data-control-tab="downloads" title="Download status" aria-label="Download status">⇩</button>
+          <button class="control-tab" data-control-tab="switcher" title="Switcher" aria-label="Switcher">▣</button>
+          <button class="control-tab" data-control-tab="power" title="Power" aria-label="Power">⏻</button>
+        </nav>
+      </section>
+    </div></section>
+
+  <section class="settings-screen" id="settingsScreen" aria-labelledby="settingsHeading">
+    <div class="settings-shell">
+      <div class="settings-header">
+        <div><div class="eyebrow">Console OS</div><h1 id="settingsHeading">Settings</h1></div>
+        <button class="icon-btn" id="closeSettings" aria-label="Close settings">×</button>
+      </div>
+      <div class="settings-layout">
+        <nav class="settings-nav" id="settingsNav">
+          <button class="settings-tab active" data-settings-tab="system">System</button>
+          <button class="settings-tab" data-settings-tab="display">Display</button>
+          <button class="settings-tab" data-settings-tab="audio">Audio</button>
+          <button class="settings-tab" data-settings-tab="network">Network</button>
+          <button class="settings-tab" data-settings-tab="controller">Controller</button>
+          <button class="settings-tab" data-settings-tab="accessibility">Accessibility</button>
+          <button class="settings-tab" data-settings-tab="privacy">Privacy</button>
+          <button class="settings-tab" data-settings-tab="account">Account</button>
+          <button class="settings-tab" data-settings-tab="storage">Storage & reset</button>
+        </nav>
+        <div class="settings-panel">
+          <section class="settings-section active" data-settings-section="system"><h2>System</h2><p class="settings-description">Startup, language, time, and update preferences.</p>
+            <div class="setting-row"><div><div class="setting-title">Language</div><div class="setting-help">Interface display language</div></div><select class="setting-control" data-setting="language"><option>English (US)</option><option>English (UK)</option><option>Spanish</option><option>French</option><option>German</option></select></div>
+            <div class="setting-row"><div><div class="setting-title">Time format</div></div><select class="setting-control" data-setting="timeFormat"><option value="12">12-hour</option><option value="24">24-hour</option></select></div>
+            <div class="setting-row"><div><div class="setting-title">Auto sign-out</div><div class="setting-help">Return to user selection after inactivity</div></div><select class="setting-control" data-setting="autoSignOut"><option value="never">Never</option><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">1 hour</option></select></div>
+            <div class="setting-row"><div><div class="setting-title">Automatic updates</div></div><input class="toggle" type="checkbox" data-setting="automaticUpdates"></div>
+          </section>
+          <section class="settings-section" data-settings-section="display"><h2>Display</h2><p class="settings-description">Appearance, interface scale, and visual preferences.</p>
+            <div class="setting-row"><div><div class="setting-title">Theme</div></div><select class="setting-control" data-setting="theme"><option value="dark">Dark</option><option value="midnight">Midnight blue</option><option value="light">Light</option></select></div>
+            <div class="setting-row"><div><div class="setting-title">Brightness</div></div><input class="setting-control" type="range" min="40" max="120" data-setting="brightness"></div>
+            <div class="setting-row"><div><div class="setting-title">Interface scale</div></div><select class="setting-control" data-setting="uiScale"><option value="90">Compact</option><option value="100">Default</option><option value="115">Large</option></select></div>
+            <div class="setting-row"><div><div class="setting-title">Background animation</div></div><input class="toggle" type="checkbox" data-setting="backgroundAnimation"></div>
+          </section>
+          <section class="settings-section" data-settings-section="audio"><h2>Audio</h2><p class="settings-description">Master volume and interface sounds.</p>
+            <div class="setting-row"><div><div class="setting-title">Master volume</div></div><input class="setting-control" type="range" min="0" max="100" data-setting="masterVolume"></div>
+            <div class="setting-row"><div><div class="setting-title">Music volume</div></div><input class="setting-control" type="range" min="0" max="100" data-setting="musicVolume"></div>
+            <div class="setting-row"><div><div class="setting-title">Sound effects</div></div><input class="toggle" type="checkbox" data-setting="soundEffects"></div>
+            <div class="setting-row"><div><div class="setting-title">Mute when inactive</div></div><input class="toggle" type="checkbox" data-setting="muteInactive"></div>
+          </section>
+          <section class="settings-section" data-settings-section="network"><h2>Network</h2><p class="settings-description">Local simulation settings for future online features.</p>
+            <div class="setting-row"><div><div class="setting-title">Online status</div></div><select class="setting-control" data-setting="onlineStatus"><option value="online">Online</option><option value="busy">Busy</option><option value="offline">Appear offline</option></select></div>
+            <div class="setting-row"><div><div class="setting-title">Allow background downloads</div></div><input class="toggle" type="checkbox" data-setting="backgroundDownloads"></div>
+            <div class="setting-row"><div><div class="setting-title">Data saver</div></div><input class="toggle" type="checkbox" data-setting="dataSaver"></div>
+          </section>
+          <section class="settings-section" data-settings-section="controller"><h2>Controller</h2><p class="settings-description">Input, vibration, and navigation behavior.</p>
+            <div class="setting-row"><div><div class="setting-title">Vibration</div></div><input class="toggle" type="checkbox" data-setting="vibration"></div>
+            <div class="setting-row"><div><div class="setting-title">Trigger effects</div></div><input class="toggle" type="checkbox" data-setting="triggerEffects"></div>
+            <div class="setting-row"><div><div class="setting-title">Button hold delay</div></div><select class="setting-control" data-setting="holdDelay"><option value="short">Short</option><option value="medium">Medium</option><option value="long">Long</option></select></div>
+            <div class="setting-row"><div><div class="setting-title">Swap confirm and back</div></div><input class="toggle" type="checkbox" data-setting="swapButtons"></div>
+          </section>
+          <section class="settings-section" data-settings-section="accessibility"><h2>Accessibility</h2><p class="settings-description">Options for text, contrast, motion, and assistance.</p>
+            <div class="setting-row"><div><div class="setting-title">Large text</div></div><input class="toggle" type="checkbox" data-setting="largeText"></div>
+            <div class="setting-row"><div><div class="setting-title">High contrast</div></div><input class="toggle" type="checkbox" data-setting="highContrast"></div>
+            <div class="setting-row"><div><div class="setting-title">Reduce motion</div></div><input class="toggle" type="checkbox" data-setting="reduceMotion"></div>
+            <div class="setting-row"><div><div class="setting-title">Screen reader hints</div></div><input class="toggle" type="checkbox" data-setting="screenReaderHints"></div>
+            <div class="setting-row"><div><div class="setting-title">Closed captions</div></div><input class="toggle" type="checkbox" data-setting="closedCaptions"></div>
+          </section>
+          <section class="settings-section" data-settings-section="privacy"><h2>Privacy</h2><p class="settings-description">Choose what this local prototype records and displays.</p>
+            <div class="setting-row"><div><div class="setting-title">Save activity history</div></div><input class="toggle" type="checkbox" data-setting="saveActivity"></div>
+            <div class="setting-row"><div><div class="setting-title">Show online status</div></div><input class="toggle" type="checkbox" data-setting="showOnlineStatus"></div>
+            <div class="setting-row"><div><div class="setting-title">Friend requests</div></div><select class="setting-control" data-setting="friendRequests"><option value="everyone">Everyone</option><option value="friendsOfFriends">Friends of friends</option><option value="none">No one</option></select></div>
+          </section>
+          <section class="settings-section" data-settings-section="account"><h2>Account</h2><p class="settings-description">Manage the active local profile.</p>
+            <div class="setting-row"><div><div class="setting-title">Profile name</div></div><input class="text-input" data-setting="profileName" maxlength="24"></div>
+            <div class="setting-row"><div><div class="setting-title">Require PIN</div><div class="setting-help">Create or replace the active profile PIN</div></div><input class="text-input" id="settingsPin" type="password" inputmode="numeric" maxlength="8" placeholder="New 4 to 8-digit PIN"></div>
+            <div class="dialog-actions"><button class="primary" id="saveAccountSettings">Save account changes</button><button class="secondary" id="removePin">Remove PIN</button></div>
+          </section>
+          <section class="settings-section" data-settings-section="storage"><h2>Storage & reset</h2><p class="settings-description">Review locally stored items or erase this prototype.</p>
+            <div class="setting-row"><div><div class="setting-title">Downloaded games</div></div><strong id="storageGames">0</strong></div>
+            <div class="setting-row"><div><div class="setting-title">Friends</div></div><strong id="storageFriends">0</strong></div>
+            <div class="setting-row"><div><div class="setting-title">Profiles</div></div><strong id="storageUsers">0</strong></div>
+            <div class="danger-zone"><h3>Factory reset</h3><p>This permanently deletes every user, PIN, downloaded game, friend, setting, save, achievement, and activity entry stored by Console OS in this browser.</p><button class="danger-btn" id="factoryResetButton">Factory reset Console OS</button></div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div class="modal" id="resetModal" role="dialog" aria-modal="true" aria-labelledby="resetTitle">
+    <div class="dialog"><div class="dialog-head"><h3 id="resetTitle">Factory reset?</h3><button class="icon-btn" id="closeResetModal">×</button></div>
+      <p class="confirm-text">This cannot be undone. Type RESET to permanently erase all Console OS data.</p>
+      <input class="text-input" id="resetConfirmInput" autocomplete="off" placeholder="Type RESET">
+      <div class="dialog-actions"><button class="danger-btn" id="confirmFactoryReset" disabled>Erase everything</button><button class="secondary" id="cancelFactoryReset">Cancel</button></div>
+    </div>
+  </div>
+
+  <div class="modal" id="userModal" role="dialog" aria-modal="true" aria-labelledby="userModalTitle">
+    <div class="dialog">
+      <div class="dialog-head"><h3 id="userModalTitle">Create user</h3><button class="icon-btn" id="closeUserModal" aria-label="Close">×</button></div>
+      <p>Create a local profile. Its games, friends, settings, saves, and activity stay separate from every other user.</p>
+      <div class="create-user-preview">
+        <span class="avatar" id="createUserAvatar" style="background:#547cff">?</span>
+        <div class="preview-copy"><strong id="createUserPreviewName">New user</strong><span id="createUserPreviewPin">No PIN required</span></div>
+      </div>
+      <label class="field-label" for="userNameInput">User name</label>
+      <input class="text-input" id="userNameInput" maxlength="24" autocomplete="off" placeholder="Enter a name" />
+      <label class="field-label" for="newPinInput">Optional PIN</label>
+      <input class="text-input" id="newPinInput" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="Leave blank for no PIN" />
+      <div class="pin-note">Use 4 to 8 digits, or leave blank for no PIN. This is a convenience lock for the local prototype.</div>
+      <div class="modal-error" id="createUserError" aria-live="polite"></div>
+      <span class="field-label">Profile color</span>
+      <div class="color-grid" id="colorGrid"></div>
+      <div class="dialog-actions">
+        <button class="primary" id="saveUserButton">Create user</button>
+        <button class="secondary" id="cancelUserButton">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+<section class="media-player-screen" id="mediaPlayerScreen"><button class="icon-btn media-close" id="closeMediaPlayer">×</button><div class="media-stage" id="mediaStage"><div class="media-art">♪</div><div class="media-title" id="mediaTitle">Media</div><div class="offline-note" id="mediaSource"></div><input class="media-progress" id="mediaSeek" type="range" min="0" max="100" value="0"><div class="media-time"><span id="mediaCurrent">0:00</span><span id="mediaDuration">0:00</span></div><div class="media-controls"><button class="media-control" id="mediaBack">−10</button><button class="media-control main" id="mediaToggle">▶</button><button class="media-control" id="mediaForward">+10</button><button class="media-control" id="mediaMute">🔊</button></div></div></section><div class="media-context" id="mediaContext"><button data-media-action="toggle">Play / pause</button><button data-media-action="back">Back 10 seconds</button><button data-media-action="forward">Forward 10 seconds</button><button data-media-action="mute">Mute / unmute</button><button data-media-action="restart">Restart</button><button data-media-action="close">Close player</button></div>
+  <section class="trial-review" id="trialReview" aria-labelledby="trialReviewTitle"><div class="trial-card"><h2 id="trialReviewTitle">How was the game?</h2><p id="trialReviewCopy">Your one-minute temporary session has ended.</p><div class="opinion-row"><button class="opinion-btn" data-opinion="liked">Liked it</button><button class="opinion-btn" data-opinion="not-sure">Not sure</button><button class="opinion-btn" data-opinion="not-for-me">Not for me</button></div><div class="dialog-actions"><button class="primary" id="trialDownload">Download</button><button class="secondary" id="trialClose">Close</button></div></div></section>
+  <div class="toast" id="toast">Ready</div>
+
+  <script>
+    const STORAGE_KEY = 'consoleOSStateV1';
+    const defaultState = { __DIdSetup__: false, activeUserId: null, users: [] };
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (saved && Array.isArray(saved.users)) { if (typeof saved.__DIdSetup__ !== 'boolean') saved.__DIdSetup__ = false; return saved; }
+      } catch (error) { console.warn('Could not read saved Console OS data.', error); }
+      return structuredClone(defaultState);
+    }
+
+    let state = loadState();
+    function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    function activeUser() { return state.users.find(u => u.id === state.activeUserId) || null; }
+
+    // Use this helper for every future feature that needs saved per-user data.
+    window.ConsoleOS = {
+      getState: () => structuredClone(state),
+      getActiveUser: () => activeUser() ? structuredClone(activeUser()) : null,
+      getUserData: () => activeUser() ? structuredClone(activeUser().data) : null,
+      updateUserData(mutator) {
+        const user = activeUser();
+        if (!user) return null;
+        mutator(user.data);
+        saveState();
+        return structuredClone(user.data);
+      }
+    };
+
+    let cards = [...document.querySelectorAll('.app-card')];
+    const modal = document.getElementById('modal');
+    const title = document.getElementById('dialogTitle');
+    const text = document.getElementById('dialogText');
+    const toast = document.getElementById('toast');
+    const userMenu = document.getElementById('userMenu');
+    const userModal = document.getElementById('userModal');
+    const userNameInput = document.getElementById('userNameInput');
+    const newPinInput = document.getElementById('newPinInput');
+    const loginScreen = document.getElementById('loginScreen');
+    const loginAuth = document.getElementById('loginAuth');
+    const loginPinInput = document.getElementById('loginPinInput');
+    let pendingLoginUserId = null;
+    const colors = ['#547cff','#8b5cf6','#ec4899','#ef4444','#f59e0b','#10b981','#06b6d4','#64748b'];
+    let selectedColor = colors[0];
+    let selected = 0;
+
+    function updateClock() {
+      const tf=activeUser()?.data.settings?.timeFormat; document.getElementById('clock').textContent = new Intl.DateTimeFormat([], {hour:'numeric', minute:'2-digit',hour12:tf!=='24'}).format(new Date());
+    }
+    updateClock(); setInterval(updateClock, 1000);
+
+    async function hashPin(pin) {
+      if (!pin) return '';
+      const bytes = new TextEncoder().encode(pin);
+      const digest = await crypto.subtle.digest('SHA-256', bytes);
+      return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function renderLoginUsers() {
+      document.querySelector('.login-lead').textContent = state.users.length ? 'Choose a profile to continue.' : 'No users yet. Create your first profile to begin.';
+      document.getElementById('loginUsers').innerHTML = state.users.map(u => `
+        <button class="login-user" data-login-user="${u.id}">
+          <span class="login-avatar" style="background:${u.color}">${escapeHtml(u.name.charAt(0).toUpperCase())}</span>
+          <span class="login-name">${escapeHtml(u.name)}</span>
+        </button>`).join('') + `
+        <button class="login-user login-create" id="loginCreateUser">
+          <span class="login-avatar">＋</span><span class="login-name">Create user</span>
+        </button>`;
+      document.querySelectorAll('[data-login-user]').forEach(btn => btn.addEventListener('click', () => chooseLoginUser(btn.dataset.loginUser)));
+      document.getElementById('loginCreateUser').addEventListener('click', openCreateUser);
+    }
+
+    function chooseLoginUser(id) {
+      pendingLoginUserId = id;
+      const user = state.users.find(u => u.id === id);
+      document.querySelectorAll('[data-login-user]').forEach(btn => btn.classList.toggle('selected', btn.dataset.loginUser === id));
+      document.getElementById('loginMessage').textContent = user.pinHash ? `Enter ${user.name}'s PIN` : `Continue as ${user.name}`;
+      loginPinInput.value = '';
+      loginPinInput.style.display = user.pinHash ? 'block' : 'none';
+      loginAuth.classList.add('open');
+      document.getElementById('signInButton').textContent = user.pinHash ? 'Sign in' : 'Continue';
+      (user.pinHash ? loginPinInput : document.getElementById('signInButton')).focus();
+    }
+
+    async function signIn() {
+      const user = state.users.find(u => u.id === pendingLoginUserId);
+      if (!user) return;
+      if (user.pinHash && await hashPin(loginPinInput.value) !== user.pinHash) {
+        document.getElementById('loginMessage').textContent = 'Incorrect PIN. Try again.';
+        loginPinInput.select(); return;
+      }
+      state.activeUserId = user.id;
+      user.data.activity.push({type:'signed-in', at:new Date().toISOString()});
+      saveState(); renderUsers(); loginScreen.classList.add('hidden');
+      loginAuth.classList.remove('open');if(state.setupAutoLaunchCode){const code=state.setupAutoLaunchCode;delete state.setupAutoLaunchCode;saveState();setTimeout(()=>playByCode(code),450);}
+    }
+
+    function showLoginScreen() {
+      pendingLoginUserId = null; userMenu.classList.remove('open'); loginAuth.classList.remove('open');
+      loginScreen.classList.remove('hidden'); renderLoginUsers();
+    }
+
+    function renderUsers() {
+      const user = activeUser();
+      if (!user) { document.getElementById('welcomeText').textContent = 'Create a user to begin'; renderLoginUsers(); return; }
+      document.getElementById('welcomeText').textContent = `Welcome back, ${user.name}`;
+      const userButton = document.getElementById('userButton');
+      userButton.textContent = user.name.charAt(0).toUpperCase();
+      userButton.style.background = user.color;
+      document.getElementById('userList').innerHTML = state.users.map(u => `
+        <button class="user-row ${u.id === state.activeUserId ? 'selected' : ''}" data-user-id="${u.id}">
+          <span class="avatar" style="background:${u.color}">${escapeHtml(u.name.charAt(0).toUpperCase())}</span>
+          <span class="user-name">${escapeHtml(u.name)}</span>
+          <span class="check">${u.id === state.activeUserId ? '✓' : ''}</span>
+        </button>`).join('');
+      document.querySelectorAll('[data-user-id]').forEach(btn => btn.addEventListener('click', () => switchUser(btn.dataset.userId)));
+      renderDownloadedHomeGames(); updateLibraryCount(); renderNotifications(); updateTopStats(); applySettings();
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+    }
+
+    function switchUser(id) {
+      if (!state.users.some(u => u.id === id)) return;
+      state.activeUserId = id;
+      activeUser().data.activity.push({type:'user-switched', at:new Date().toISOString()});
+      saveState(); renderUsers(); userMenu.classList.remove('open');
+      showToast(`Switched to ${activeUser().name}`);
+    }
+
+    function updateTopStats(){
+      const u=activeUser();
+      document.getElementById('topGameCount').textContent=u?(u.data.downloadedGames||[]).length:0;
+      document.getElementById('topFriendCount').textContent=u?(u.data.friends||[]).length:0;
+    }
+    function gameStorageCode(game){ return 'LOCAL-'+String(game.name||'game').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
+
+    function renderDownloadedHomeGames() {
+      const user = activeUser();
+      const apps = document.getElementById('apps');
+      if (!apps) return;
+      apps.querySelectorAll('[data-home-game]').forEach(card => card.remove());
+      if (user) {
+        const games = (user.data.downloadedGames || []).filter(game => typeof game === 'object');
+        const library = [...apps.children].find(card => card.dataset?.title === 'Game Library');
+        games.forEach((game, index) => {
+          const card = document.createElement('button');
+          card.className = 'app-card';
+          card.dataset.homeGame = 'true';
+          card.dataset.gameCode = gameStorageCode(game);
+          card.dataset.title = String(game.name || 'Downloaded game');
+          card.dataset.description = String(game.description || 'Downloaded and ready to play.');
+          card.style.setProperty('--glow', `hsla(${(index * 67 + 205) % 360}, 85%, 62%, .58)`);
+          const icon = document.createElement('span');
+          icon.className = 'app-icon';
+          icon.textContent = String(game.name || 'G').charAt(0).toUpperCase();
+          const meta = document.createElement('span');
+          meta.className = 'app-meta';
+          const gameTitle = document.createElement('span');
+          gameTitle.className = 'app-title';
+          gameTitle.textContent = String(game.name || 'Downloaded game');
+          const sub = document.createElement('span');
+          sub.className = 'app-sub';
+          sub.textContent = 'Play now';
+          meta.append(gameTitle, sub);
+          card.append(icon, meta);
+          apps.insertBefore(card, library || apps.firstChild);
+        });
+      }
+      bindHomeCards();
+    }
+
+    function updateLibraryCount() {
+      const libraryCard = cards.find(card => card.dataset.title === 'Game Library');
+      if (libraryCard) libraryCard.querySelector('.app-sub').textContent = `${activeUser().data.downloadedGames.length} downloaded`;
+    }
+
+    function updateCreateUserPreview() {
+      const name = userNameInput.value.trim();
+      const pin = newPinInput.value.trim();
+      const avatar = document.getElementById('createUserAvatar');
+      avatar.textContent = name ? name.charAt(0).toUpperCase() : '?';
+      avatar.style.background = selectedColor;
+      document.getElementById('createUserPreviewName').textContent = name || 'New user';
+      document.getElementById('createUserPreviewPin').textContent = pin ? 'PIN protected' : 'No PIN required';
+    }
+    function setCreateUserError(message = '') {
+      document.getElementById('createUserError').textContent = message;
+    }
+
+    function openCreateUser() {
+      userMenu.classList.remove('open'); userModal.classList.add('open');
+      userNameInput.value = ''; newPinInput.value = ''; selectedColor = colors[state.users.length % colors.length];
+      setCreateUserError(); renderColors(); updateCreateUserPreview(); setTimeout(() => userNameInput.focus(), 30);
+    }
+
+    function renderColors() {
+      document.getElementById('colorGrid').innerHTML = colors.map(color =>
+        `<button class="color-choice ${color === selectedColor ? 'selected' : ''}" style="background:${color}" data-color="${color}" aria-label="Choose ${color}"></button>`
+      ).join('');
+      document.querySelectorAll('[data-color]').forEach(btn => btn.addEventListener('click', () => { selectedColor = btn.dataset.color; renderColors(); updateCreateUserPreview(); }));
+    }
+
+    async function createUser() {
+      const name = userNameInput.value.trim();
+      const pin = newPinInput.value.trim();
+      if (pin && !/^\d{4,8}$/.test(pin)) { setCreateUserError('PIN must contain 4 to 8 digits.'); newPinInput.focus(); return; }
+      if (!name) { setCreateUserError('Enter a user name.'); userNameInput.focus(); return; }
+      const id = `user-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+      state.users.push({
+        id, name, color: selectedColor, pinHash: await hashPin(pin), createdAt: new Date().toISOString(),
+        data: { downloadedGames: [], friends: [], settings: {}, activity: [{type:'user-created', at:new Date().toISOString()}], favorites: [], achievements: [], media: [], store: {}, saves: {}, notifications: [] }
+      });
+      state.activeUserId = id; saveState(); closeUserModal(); renderUsers(); renderLoginUsers(); showToast(`${name} created`);
+      if (!loginScreen.classList.contains('hidden')) chooseLoginUser(id);
+    }
+
+    const defaultSettings = {
+      language:'English (US)', timeFormat:'12', autoSignOut:'never', automaticUpdates:true,
+      theme:'dark', brightness:100, uiScale:'100', backgroundAnimation:true,
+      masterVolume:80, musicVolume:55, soundEffects:true, muteInactive:false,
+      onlineStatus:'online', backgroundDownloads:true, dataSaver:false,
+      vibration:true, triggerEffects:true, holdDelay:'medium', swapButtons:false,
+      largeText:false, highContrast:false, reduceMotion:false, screenReaderHints:true, closedCaptions:false,
+      saveActivity:true, showOnlineStatus:true, friendRequests:'everyone'
+    };
+
+    function ensureSettings() {
+      const user = activeUser(); if (!user) return;
+      user.data.settings = {...defaultSettings, ...(user.data.settings || {})};
+    }
+    function openSettings() {
+      if (!activeUser()) return;
+      ensureSettings(); saveState(); loadSettingsControls();
+      document.getElementById('settingsScreen').classList.add('open');
+    }
+    function closeSettings() { document.getElementById('settingsScreen').classList.remove('open'); }
+    function loadSettingsControls() {
+      const user = activeUser(); if (!user) return;
+      ensureSettings();
+      document.querySelectorAll('[data-setting]').forEach(control => {
+        const key = control.dataset.setting;
+        if (key === 'profileName') { control.value = user.name; return; }
+        const value = user.data.settings[key];
+        if (control.type === 'checkbox') control.checked = Boolean(value); else if (value !== undefined) control.value = value;
+      });
+      document.getElementById('storageGames').textContent = user.data.downloadedGames.length;
+      document.getElementById('storageFriends').textContent = user.data.friends.length;
+      document.getElementById('storageUsers').textContent = state.users.length;
+      applySettings();
+    }
+    function saveSetting(control) {
+      const user = activeUser(); if (!user || control.dataset.setting === 'profileName') return;
+      const key = control.dataset.setting;
+      user.data.settings[key] = control.type === 'checkbox' ? control.checked : control.value;
+      saveState(); applySettings();
+    }
+    function applySettings() {
+      const user = activeUser(); if (!user) return;
+      const s = {...defaultSettings, ...user.data.settings};
+      document.body.classList.toggle('reduce-motion', s.reduceMotion || !s.backgroundAnimation);
+      document.body.classList.toggle('high-contrast', s.highContrast);
+      document.body.classList.toggle('large-text', s.largeText);
+      document.body.classList.toggle('theme-light',s.theme==='light');
+      document.body.classList.toggle('theme-midnight',s.theme==='midnight');
+      document.body.classList.toggle('hide-status',s.showOnlineStatus===false);
+      document.documentElement.style.setProperty('--ui-sound-volume',String((s.masterVolume||0)/100));
+      document.body.style.filter = `brightness(${Number(s.brightness || 100)}%)`;
+      document.documentElement.style.fontSize = `${Number(s.uiScale || 100)}%`;
+    }
+    async function saveAccountSettings() {
+      const user = activeUser(); if (!user) return;
+      const name = document.querySelector('[data-setting="profileName"]').value.trim();
+      const pin = document.getElementById('settingsPin').value.trim();
+      if (!name) { showToast('Profile name is required'); return; }
+      if (pin && !/^\d{4,8}$/.test(pin)) { showToast('PIN must be 4 to 8 digits'); return; }
+      user.name = name;
+      if (pin) user.pinHash = await hashPin(pin);
+      document.getElementById('settingsPin').value = '';
+      saveState(); renderUsers(); renderLoginUsers(); showToast('Account settings saved');
+    }
+    function openResetModal() {
+      document.getElementById('resetConfirmInput').value = '';
+      document.getElementById('confirmFactoryReset').disabled = true;
+      document.getElementById('resetModal').classList.add('open');
+      document.getElementById('resetConfirmInput').focus();
+    }
+    function closeResetModal() { document.getElementById('resetModal').classList.remove('open'); }
+    function factoryReset() {
+      localStorage.removeItem(STORAGE_KEY);
+      state = structuredClone(defaultState);
+      closeResetModal(); closeSettings();
+      document.body.className = '';
+      document.body.style.filter = '';
+      document.documentElement.style.fontSize = '';
+      renderLoginUsers(); showLoginScreen();
+      showToast('Factory reset complete');
+    }
+
+    const STORE_URL = 'https://alaricholt677.github.io/PlaystationStore/index.json';
+    let storeCatalog = [];
+
+    function decodeGameHtml(value) {
+      if (!value) return '';
+      try { return decodeURIComponent(escape(atob(String(value).replace(/^data:text\/html;base64,/, '')))); }
+      catch { try { return atob(String(value)); } catch { return String(value); } }
+    }
+    function normalizeCatalog(raw) {
+      const list = Array.isArray(raw) ? raw : (raw.games || raw.GAMES || raw.items || []);
+      return list.map((item,index) => ({
+        name: item.name || item.gamename || item.GAMENAME || item.title || `Game ${index+1}`,
+        code: item.GAMECODE || item.gamecode || item.code || `GAME-${index+1}`,
+        game: item.GAME || item.game || item.html || '',
+        description: item.description || ''
+      })).filter(g => g.game);
+    }
+    async function loadStore() {
+      const status = document.getElementById('storeStatus');
+      status.textContent = 'Loading catalog…';
+      try {
+        const response = await fetch(STORE_URL, {cache:'no-store'});
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const text = await response.text();
+        let raw;
+        try { raw = JSON.parse(text); }
+        catch {
+          const blocks = text.split(/\n(?=GAME(?:NAME|CODE)?\s*:)/i); const item={};
+          blocks.forEach(block => { const m=block.match(/^(GAME|GAMECODE|GAMENAME)\s*:\s*([\s\S]*)$/i); if(m)item[m[1].toUpperCase()]=m[2].trim(); });
+          raw = [item];
+        }
+        storeCatalog = normalizeCatalog(raw);
+        status.textContent = storeCatalog.length ? `${storeCatalog.length} games available` : 'The catalog loaded but contained no compatible GAME entries.';
+        renderStore();
+      } catch (error) {
+        status.innerHTML = `<div class="load-error">Could not load the remote catalog. ${escapeHtml(error.message)}. Downloads already saved to this user still work.</div>`;
+        renderStore();
+      }
+    }
+    function gameCard(game, downloaded=false) {
+      const safeCode = escapeHtml(game.code); const safeName = escapeHtml(game.name);
+      const wished=activeUser()?.data.wishlist?.some(code=>String(code)===String(game.code)); return `<article class="game-tile"><div class="game-cover">${safeName.charAt(0).toUpperCase()}</div><h3>${safeName}</h3><div class="game-code">${safeCode}</div><div class="game-actions"><button class="small-btn primary" data-play-code="${safeCode}">${downloaded?'Play':'1 minute trial'}</button>${downloaded?'':'<button class="small-btn" data-download-code="'+safeCode+'">Download</button><button class="small-btn wishlist-btn '+(wished?'active':'')+'" data-wishlist-code="'+safeCode+'">♡</button>'}</div></article>`;
+    }
+    function bindGameButtons(root) {
+      root.querySelectorAll('[data-play-code]').forEach(b => b.addEventListener('click',()=>playByCode(b.dataset.playCode)));
+      root.querySelectorAll('[data-download-code]').forEach(b => b.addEventListener('click',()=>DownloadExternally(b.dataset.downloadCode)));
+      root.querySelectorAll('[data-wishlist-code]').forEach(b=>b.addEventListener('click',()=>toggleWishlist(b.dataset.wishlistCode)));
+    }
+    function renderStore(query='') {
+      const user=activeUser(); if(!user)return;
+      const downloadedCodes = installedCodeSet();
+      const games=storeCatalog.filter(g => `${g.name} ${g.code}`.toLowerCase().includes(query.toLowerCase()));
+      const grid=document.getElementById('storeGrid'); grid.innerHTML=games.map(g=>gameCard(g,downloadedCodes.has(g.code))).join(''); bindGameButtons(grid);
+    }
+    function addNotification(title,message) {
+      const user=activeUser(); if(!user)return;
+      user.data.notifications ||= []; user.data.notifications.unshift({id:Date.now(),title,message,at:new Date().toISOString(),read:false});
+      saveState(); renderNotifications();
+    }
+    function renderNotifications() {
+      const user=activeUser(); if(!user)return;
+      user.data.notifications ||= []; const unread=user.data.notifications.filter(n=>!n.read).length;
+      const badge=document.getElementById('notificationBadge'); badge.textContent=unread; badge.classList.toggle('show',unread>0);
+      document.getElementById('notificationList').innerHTML=user.data.notifications.length?user.data.notifications.map(n=>`<div class="notification-item"><strong>${escapeHtml(n.title)}</strong><span>${escapeHtml(n.message)}</span></div>`).join(''):'<div class="empty-copy">No notifications yet.</div>';
+    }
+    window.DownloadCustom = function(gamename, GAME, gamecode='CUSTOM-'+Date.now()) {
+      const user=activeUser(); if(!user)return false;
+      const record={name:String(gamename),GAME:String(GAME)};
+      const recordCode=gameStorageCode(record);
+      const i=user.data.downloadedGames.findIndex(g=>typeof g==='object'&&gameStorageCode(g)===recordCode); if(i>=0)user.data.downloadedGames[i]=record;else user.data.downloadedGames.push(record);
+      try { saveState(); } catch(e) { user.data.downloadedGames=user.data.downloadedGames.filter(g=>g!==record); showToast('Not enough browser storage for this game'); return false; }
+      renderDownloadedHomeGames(); updateLibraryCount(); updateTopStats(); renderStore(document.getElementById('storeSearch').value); addNotification('Download complete',`${record.name} is ready to play.`); return true;
+    };
+    window.DownloadExternally = function(gamecode) {
+      const game=storeCatalog.find(g=>String(g.code)===String(gamecode)); if(!game){showToast('Game code not found');return false;} return DownloadCustom(game.name,game.game,game.code);
+    };
+    function findGame(code) {
+      const user=activeUser(); const local=user?.data.downloadedGames.find(g=>typeof g==='object'&&gameStorageCode(g)===String(code)); if(local)return {name:local.name,game:local.GAME,code:gameStorageCode(local)}; return storeCatalog.find(g=>String(g.code)===String(code));
+    }
+    function addControllerBridge(gameHtml) {
+      const bridge = `<script>addEventListener('message',function(e){if(!e.data||e.data.type!=='console-os-key')return;var t=document.activeElement||document.body;var o={key:e.data.key,code:e.data.code||e.data.key,bubbles:true,cancelable:true};t.dispatchEvent(new KeyboardEvent(e.data.action||'keydown',o));document.dispatchEvent(new KeyboardEvent(e.data.action||'keydown',o));});<\/script>`;
+      return /<\/body>/i.test(gameHtml) ? gameHtml.replace(/<\/body>/i, bridge+'</body>') : gameHtml+bridge;
+    }
+    let trialTimer=null,trialTick=null,trialGame=null,trialOpinion='';
+    function isDownloadedCode(code){return (activeUser()?.data.downloadedGames||[]).some(g=>typeof g==='object'&&gameStorageCode(g)===String(code));}
+    function toggleWishlist(code){const u=activeUser();if(!u)return;u.data.wishlist||=[];const i=u.data.wishlist.findIndex(x=>String(x)===String(code));if(i>=0)u.data.wishlist.splice(i,1);else u.data.wishlist.push(String(code));saveState();renderStore(document.getElementById('storeSearch').value);showToast(i>=0?'Removed from wishlist':'Added to wishlist');}
+    function beginTrial(game,code){endTrialTimers();trialGame={...game,code:String(code)};let left=60;const badge=document.createElement('div');badge.className='trial-timer';badge.id='trialTimerBadge';badge.textContent='Trial 1:00';document.getElementById('playerScreen').appendChild(badge);trialTick=setInterval(()=>{left--;badge.textContent='Trial '+Math.floor(left/60)+':'+String(left%60).padStart(2,'0');},1000);trialTimer=setTimeout(()=>finishTrial(),60000);}
+    function endTrialTimers(){clearTimeout(trialTimer);clearInterval(trialTick);trialTimer=trialTick=null;document.getElementById('trialTimerBadge')?.remove();}
+    function finishTrial(){if(!trialGame)return;endTrialTimers();document.getElementById('gameFrame').srcdoc='';document.getElementById('controlCenter').classList.remove('open');document.getElementById('trialReviewCopy').textContent=`Your one-minute temporary session of ${trialGame.name} has ended. What did you think?`;document.getElementById('trialReview').classList.add('open');document.querySelectorAll('[data-opinion]').forEach(b=>b.classList.remove('selected'));trialOpinion='';}
+    function playByCode(code) { const game=findGame(code); if(!game){showToast('Game not available');return;} const downloaded=isDownloadedCode(code); document.getElementById('playerTitle').textContent=game.name; document.getElementById('gameFrame').srcdoc=addControllerBridge(decodeGameHtml(game.game)); document.getElementById('playerScreen').classList.add('open'); document.body.classList.add('game-running'); if(!downloaded)beginTrial(game,code); }
+    function closePlayer(){if(trialGame){finishTrial();return;}document.body.classList.remove('game-running');document.getElementById('playerScreen').classList.remove('open');document.getElementById('controlCenter').classList.remove('open');document.getElementById('gameFrame').srcdoc='';}
+    function openStore(){document.getElementById('storeScreen').classList.add('open');renderStore();if(!storeCatalog.length)loadStore();setTimeout(()=>document.getElementById('storeSearch').focus(),20);}
+    function searchAll(query) {
+      const user=activeUser(); if(!user)return; const q=query.toLowerCase(); const local=user.data.downloadedGames.filter(g=>typeof g==='object');
+      const games=[...local,...storeCatalog].filter((g,i,a)=>a.findIndex(x=>x.code===g.code)===i).filter(g=>`${g.name} ${g.code}`.toLowerCase().includes(q));
+      const grid=document.getElementById('searchResults'); grid.innerHTML=games.map(g=>gameCard(g,local.some(x=>x.code===g.code))).join('') || '<div class="empty-copy">No matching games.</div>'; bindGameButtons(grid);
+    }
+
+    function selectCard(index) {
+      if (!cards.length) return;
+      selected = (index + cards.length) % cards.length;
+      cards.forEach((card, i) => card.classList.toggle('active', i === selected));
+      cards[selected].focus({preventScroll: true});
+      cards[selected].scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+    }
+
+    function openCard(card) {
+      if (card.dataset.openSettings === 'true') { openSettings(); return; }
+      if (card.dataset.openStore === 'true') { openStore(); return; }
+      title.textContent = card.dataset.title;
+      text.textContent = card.dataset.description;
+      if (activeUser().data.settings?.saveActivity !== false) activeUser().data.activity.push({type:'opened', item:card.dataset.title, at:new Date().toISOString()});
+      saveState(); modal.classList.add('open'); document.getElementById('closeModal').focus();
+    }
+
+    function bindHomeCards() {
+      cards = [...document.querySelectorAll('.app-card')];
+      if (selected >= cards.length) selected = Math.max(0, cards.length - 1);
+      cards.forEach((card, i) => {
+        if (card.dataset.homeBound === 'true') return;
+        card.dataset.homeBound = 'true';
+        card.addEventListener('focus', () => {
+          selected = cards.indexOf(card);
+          cards.forEach((c, j) => c.classList.toggle('active', j === selected));
+        });
+        card.addEventListener('click', () => {
+          if (card.dataset.homeGame === 'true') {
+            playByCode(card.dataset.gameCode);
+            return;
+          }
+          openCard(card);
+        });
+      });
+      cards.forEach((card, i) => card.classList.toggle('active', i === selected));
+    }
+    bindHomeCards();
+
+    document.addEventListener('keydown', e => {
+      if (userModal.classList.contains('open')) { if (e.key === 'Escape') closeUserModal(); return; }
+      if (modal.classList.contains('open')) { if (e.key === 'Escape') closeModal(); return; }
+      if (e.key === 'Escape') userMenu.classList.remove('open');
+      if (e.key === 'ArrowRight') { e.preventDefault(); selectCard(selected + 1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); selectCard(selected - 1); }
+      if (e.key === 'Enter' && document.activeElement.classList.contains('app-card')) openCard(cards[selected]);
+    });
+
+    function closeModal() { modal.classList.remove('open'); cards[selected].focus(); }
+    function closeUserModal() { userModal.classList.remove('open'); if (loginScreen.classList.contains('hidden')) document.getElementById('userButton').focus(); }
+    document.getElementById('closeModal').addEventListener('click', closeModal);
+    document.getElementById('userButton').addEventListener('click', e => { e.stopPropagation(); showLoginScreen(); });
+    document.getElementById('createUserButton').addEventListener('click', openCreateUser);
+    document.getElementById('closeUserModal').addEventListener('click', closeUserModal);
+    document.getElementById('cancelUserButton').addEventListener('click', closeUserModal);
+    document.getElementById('saveUserButton').addEventListener('click', createUser);
+    document.getElementById('signInButton').addEventListener('click', signIn);
+    loginPinInput.addEventListener('keydown', e => { if (e.key === 'Enter') signIn(); });
+    userNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') createUser(); });
+    userNameInput.addEventListener('input', () => { setCreateUserError(); updateCreateUserPreview(); });
+    newPinInput.addEventListener('input', () => { newPinInput.value = newPinInput.value.replace(/\D/g, ''); setCreateUserError(); updateCreateUserPreview(); });
+    newPinInput.addEventListener('keydown', e => { if (e.key === 'Enter') createUser(); });
+    document.addEventListener('click', e => { if (!e.target.closest('.user-switcher')) userMenu.classList.remove('open'); });
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+    userModal.addEventListener('click', e => { if (e.target === userModal) closeUserModal(); });
+    document.getElementById('launchBtn').addEventListener('click', () => {
+      const launchedTitle = title.textContent;
+      window.ConsoleOS.updateUserData(data => data.activity.push({type:'launched', item:launchedTitle, at:new Date().toISOString()}));
+      closeModal(); showToast(`${launchedTitle} launched for ${activeUser().name}`);
+    });
+
+    function showToast(message) {
+      toast.textContent = message; toast.classList.add('show');
+      clearTimeout(showToast.timer); showToast.timer = setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+    document.querySelectorAll('[data-toast]').forEach(btn => btn.addEventListener('click', () => showToast(btn.dataset.toast)));
+
+        const controlPlaceholders = {
+      home:['Home','Home menu placeholder content. We can design this panel next.'],
+      friends:['Friends','Friends placeholder content. Friends, parties, and online status will appear here.'],
+      notifications:['Notifications','Notification placeholder content. Alerts and recent events will appear here.'],
+      downloads:['Downloads','Download-status placeholder content. Active, paused, and completed downloads will appear here.'],
+      switcher:['Switcher','Switcher placeholder content. Games and recent apps will appear here.'],
+      power:['Power','Power placeholder content. Sign out, switch user, restart, and shutdown controls will appear here.']
+    };
+    function sendVirtualKey(key,action='keydown') {
+      const code = ({w:'KeyW',a:'KeyA',s:'KeyS',d:'KeyD'})[key] || key;
+      document.getElementById('gameFrame').contentWindow?.postMessage({type:'console-os-key',key,code,action},'*');
+    }
+    document.querySelectorAll('[data-virtual-key]').forEach(button=>{
+      const key=button.dataset.virtualKey;
+      const down=e=>{e.preventDefault();button.classList.add('pressed');sendVirtualKey(key,'keydown');};
+      const up=e=>{e.preventDefault();button.classList.remove('pressed');sendVirtualKey(key,'keyup');};
+      button.addEventListener('pointerdown',down);button.addEventListener('pointerup',up);button.addEventListener('pointercancel',up);button.addEventListener('pointerleave',e=>{if(button.classList.contains('pressed'))up(e);});
+    });
+    document.getElementById('psButton').addEventListener('click',()=>document.getElementById('controlCenter').classList.toggle('open'));
+    document.querySelectorAll('[data-control-tab]').forEach(tab=>tab.addEventListener('click',()=>{
+      document.querySelectorAll('[data-control-tab]').forEach(t=>t.classList.toggle('active',t===tab));
+      const [heading,copy]=controlPlaceholders[tab.dataset.controlTab];
+      document.getElementById('controlContent').innerHTML=`<h3>${heading}</h3><p>${copy}</p>`;
+    }));
+
+    document.getElementById('notificationButton').addEventListener('click',e=>{e.stopPropagation();const m=document.getElementById('notificationMenu');m.classList.toggle('open');const u=activeUser();if(u){(u.data.notifications||[]).forEach(n=>n.read=true);saveState();renderNotifications();}});
+    document.getElementById('clearNotifications').addEventListener('click',()=>{const u=activeUser();if(u){u.data.notifications=[];saveState();renderNotifications();}});
+    document.getElementById('globalSearchButton').addEventListener('click',()=>{document.getElementById('searchScreen').classList.add('open');searchAll('');document.getElementById('globalSearch').focus();});
+    document.getElementById('closeSearch').addEventListener('click',()=>document.getElementById('searchScreen').classList.remove('open'));
+    document.getElementById('globalSearch').addEventListener('input',e=>searchAll(e.target.value));
+    document.getElementById('closeStore').addEventListener('click',()=>document.getElementById('storeScreen').classList.remove('open'));
+    document.getElementById('storeSearch').addEventListener('input',e=>renderStore(e.target.value));
+    document.getElementById('closePlayer').addEventListener('click',closePlayer);
+
+    document.getElementById('closeSettings').addEventListener('click', closeSettings);
+    document.querySelectorAll('.settings-tab').forEach(tab => tab.addEventListener('click', () => {
+      document.querySelectorAll('.settings-tab').forEach(t => t.classList.toggle('active', t === tab));
+      document.querySelectorAll('.settings-section').forEach(s => s.classList.toggle('active', s.dataset.settingsSection === tab.dataset.settingsTab));
+    }));
+    document.querySelectorAll('[data-setting]').forEach(control => control.addEventListener('change', () => saveSetting(control)));
+    document.getElementById('saveAccountSettings').addEventListener('click', saveAccountSettings);
+    document.getElementById('removePin').addEventListener('click', () => { const user=activeUser(); if(user){ user.pinHash=''; saveState(); showToast('PIN removed'); } });
+    document.getElementById('factoryResetButton').addEventListener('click', openResetModal);
+    document.getElementById('closeResetModal').addEventListener('click', closeResetModal);
+    document.getElementById('cancelFactoryReset').addEventListener('click', closeResetModal);
+    document.getElementById('resetConfirmInput').addEventListener('input', e => { document.getElementById('confirmFactoryReset').disabled = e.target.value !== 'RESET'; });
+    document.getElementById('confirmFactoryReset').addEventListener('click', factoryReset);
+
+    document.querySelectorAll('[data-home-view]').forEach(button=>button.addEventListener('click',()=>{
+      document.querySelectorAll('[data-home-view]').forEach(item=>item.classList.toggle('active',item===button));
+      document.querySelectorAll('[data-home-panel]').forEach(panel=>panel.classList.toggle('active',panel.dataset.homePanel===button.dataset.homeView));
+    }));
+    document.querySelectorAll('[data-opinion]').forEach(button=>button.addEventListener('click',()=>{trialOpinion=button.dataset.opinion;document.querySelectorAll('[data-opinion]').forEach(b=>b.classList.toggle('selected',b===button));}));
+    document.getElementById('trialDownload').addEventListener('click',()=>{if(!trialGame)return;const g=trialGame;DownloadCustom(g.name,g.game,g.code);trialGame=null;document.getElementById('trialReview').classList.remove('open');document.body.classList.remove('game-running');document.getElementById('playerScreen').classList.remove('open');showToast('Game downloaded for offline play');});
+    document.getElementById('trialClose').addEventListener('click',()=>{if(trialGame&&trialOpinion){const u=activeUser();u.data.gameOpinions||={};u.data.gameOpinions[trialGame.code]=trialOpinion;saveState();}trialGame=null;document.getElementById('trialReview').classList.remove('open');document.body.classList.remove('game-running');document.getElementById('playerScreen').classList.remove('open');});
+    const MEDIA_URL='https://alaricholt677.github.io/PlaystationStore/index_media.json';let mediaCatalog=[],temporaryMedia=[];const mediaAudio=new Audio();
+    function normalizeMedia(raw){const list=Array.isArray(raw)?raw:(raw.media||raw.medias||raw.items||[]);return list.map((x,i)=>({name:x.name||x.title||`Media ${i+1}`,url:x.url||x.mediaURL||x.src||''})).filter(x=>x.url)}
+    async function loadMedia(){const status=document.getElementById('mediaStatus');status.textContent='Loading media catalog…';try{const r=await fetch(MEDIA_URL,{cache:'no-store'});if(!r.ok)throw Error(`HTTP ${r.status}`);const text=await r.text();let raw;try{raw=JSON.parse(text)}catch{const doc=new DOMParser().parseFromString(text,'text/html');raw=[...doc.querySelectorAll('[data-url],a[href]')].map((el,i)=>({name:el.dataset.name||el.textContent.trim()||`Media ${i+1}`,url:el.dataset.url||el.href}))}mediaCatalog=normalizeMedia(raw);status.textContent=mediaCatalog.length?`${mediaCatalog.length} online media items`:'No compatible media entries found.';}catch(e){mediaCatalog=[];status.textContent=`Media catalog unavailable: ${e.message}`;}renderMedia()}
+    function renderMedia(){const grid=document.getElementById('mediaGrid'),all=[...temporaryMedia,...mediaCatalog];grid.innerHTML=all.map((m,i)=>`<article class="media-card"><div class="media-cover">♪</div><h3>${escapeHtml(m.name)}</h3><div class="offline-note">${m.temporary?'Temporary local MP3':'Online media'}</div><button class="small-btn" data-media-index="${i}">Open</button></article>`).join('')||'<div class="media-card">No media available.</div>';grid.querySelectorAll('[data-media-index]').forEach(b=>b.onclick=()=>openMedia(all[Number(b.dataset.mediaIndex)]))}
+    function openMedia(item){mediaAudio.src=item.url;document.getElementById('mediaTitle').textContent=item.name;document.getElementById('mediaSource').textContent=item.temporary?'Temporary imported MP3':'Streaming from the internet';document.getElementById('mediaPlayerScreen').classList.add('open');mediaAudio.play().catch(()=>{});updateMediaButton()}
+    function closeMedia(){mediaAudio.pause();document.getElementById('mediaPlayerScreen').classList.remove('open');document.getElementById('mediaContext').classList.remove('open')}
+    function fmt(t){if(!Number.isFinite(t))return'0:00';return`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`}
+    function updateMediaButton(){document.getElementById('mediaToggle').textContent=mediaAudio.paused?'▶':'Ⅱ'}
+    mediaAudio.addEventListener('timeupdate',()=>{document.getElementById('mediaSeek').value=mediaAudio.duration?mediaAudio.currentTime/mediaAudio.duration*100:0;document.getElementById('mediaCurrent').textContent=fmt(mediaAudio.currentTime);document.getElementById('mediaDuration').textContent=fmt(mediaAudio.duration)});mediaAudio.addEventListener('play',updateMediaButton);mediaAudio.addEventListener('pause',updateMediaButton);
+    document.getElementById('mediaToggle').onclick=()=>mediaAudio.paused?mediaAudio.play():mediaAudio.pause();document.getElementById('mediaBack').onclick=()=>mediaAudio.currentTime=Math.max(0,mediaAudio.currentTime-10);document.getElementById('mediaForward').onclick=()=>mediaAudio.currentTime=Math.min(mediaAudio.duration||Infinity,mediaAudio.currentTime+10);document.getElementById('mediaMute').onclick=()=>{mediaAudio.muted=!mediaAudio.muted;document.getElementById('mediaMute').textContent=mediaAudio.muted?'🔇':'🔊'};document.getElementById('mediaSeek').oninput=e=>{if(mediaAudio.duration)mediaAudio.currentTime=mediaAudio.duration*e.target.value/100};document.getElementById('closeMediaPlayer').onclick=closeMedia;document.getElementById('refreshMedia').onclick=loadMedia;
+    document.getElementById('importMediaButton').onclick=()=>document.getElementById('mediaImport').click();document.getElementById('mediaImport').onchange=e=>{const f=e.target.files[0];if(!f)return;temporaryMedia.unshift({name:f.name,url:URL.createObjectURL(f),temporary:true});renderMedia();openMedia(temporaryMedia[0]);e.target.value=''};
+    document.getElementById('mediaStage').addEventListener('contextmenu',e=>{e.preventDefault();const m=document.getElementById('mediaContext');m.style.left=Math.min(e.clientX,innerWidth-210)+'px';m.style.top=Math.min(e.clientY,innerHeight-250)+'px';m.classList.add('open')});document.addEventListener('click',e=>{if(!e.target.closest('#mediaContext'))document.getElementById('mediaContext').classList.remove('open')});document.querySelectorAll('[data-media-action]').forEach(b=>b.onclick=()=>{const a=b.dataset.mediaAction;if(a==='toggle')document.getElementById('mediaToggle').click();if(a==='back')document.getElementById('mediaBack').click();if(a==='forward')document.getElementById('mediaForward').click();if(a==='mute')document.getElementById('mediaMute').click();if(a==='restart')mediaAudio.currentTime=0;if(a==='close')closeMedia()});loadMedia();
+
+        let selectedGameContextCode=null;
+    async function gameDigest(value){const bytes=new TextEncoder().encode(String(value||''));const digest=await crypto.subtle.digest('SHA-256',bytes);return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('');}
+    function installedGameByCode(code){const u=activeUser();if(!u)return null;return (u.data.downloadedGames||[]).find(g=>typeof g==='object'&&(String(g.sourceCode||'')===String(code)||gameStorageCode(g)===String(code)))||null;}
+    function installedCodeSet(){const u=activeUser();return new Set((u?.data.downloadedGames||[]).filter(g=>typeof g==='object').flatMap(g=>[String(g.sourceCode||''),gameStorageCode(g)]));}
+    async function installCatalogGame(game,{reinstall=false}={}){const u=activeUser();if(!u||!game)return false;const sourceCode=String(game.code||gameStorageCode(game));const hash=await gameDigest(game.game);const record={name:String(game.name),GAME:String(game.game),sourceCode,downloadedAt:new Date().toISOString(),hash};const games=u.data.downloadedGames||=[];const index=games.findIndex(g=>typeof g==='object'&&(String(g.sourceCode||'')===sourceCode||gameStorageCode(g)===gameStorageCode(record)));if(index>=0)games[index]=record;else games.push(record);saveState();renderDownloadedHomeGames();updateLibraryCount();updateTopStats();renderStore(document.getElementById('storeSearch').value);addNotification(reinstall?'Reinstall complete':'Download complete',`${record.name} is ready to play.`);return true;}
+    function catalogGame(code){return storeCatalog.find(g=>String(g.code)===String(code))||storeCatalog.find(g=>gameStorageCode(g)===String(code));}
+    function showInstallAlert(title,text){document.getElementById('installAlertTitle').textContent=title;document.getElementById('installAlertText').textContent=text;document.getElementById('installAlert').classList.add('open');}
+    async function checkGameUpdate(code){if(!storeCatalog.length)await loadStore();const local=installedGameByCode(code);if(!local){showInstallAlert('Not installed','This game is not currently installed.');return}const remote=catalogGame(local.sourceCode||code);if(!remote){showInstallAlert('Game unavailable',`${local.name} no longer exists in the PlayStation Store catalog.`);return}const localHash=local.hash||await gameDigest(local.GAME||local.game);const remoteHash=await gameDigest(remote.game);local.hash=localHash;saveState();showInstallAlert(localHash===remoteHash?'Up to date':'Update available',localHash===remoteHash?`${local.name} is up to date.`:`A different game build is available. Use Reinstall to replace the current copy.`);}
+    async function reinstallGame(code){if(!storeCatalog.length)await loadStore();const local=installedGameByCode(code);const remote=catalogGame(local?.sourceCode||code);if(!remote){showInstallAlert('Cannot reinstall',`${local?.name||'This game'} no longer exists in the Store catalog.`);return}await installCatalogGame(remote,{reinstall:true});showInstallAlert('Reinstalled',`${remote.name} was reinstalled successfully.`);}
+    function deleteInstalledGame(code){const u=activeUser();if(!u)return;const local=installedGameByCode(code);if(!local)return;u.data.downloadedGames=u.data.downloadedGames.filter(g=>g!==local);saveState();renderDownloadedHomeGames();updateLibraryCount();updateTopStats();renderStore(document.getElementById('storeSearch').value);addNotification('Game deleted',`${local.name} was removed from this user.`);}
+    function openGameContext(code,x,y){selectedGameContextCode=String(code);const local=installedGameByCode(code),menu=document.getElementById('gameContext');document.getElementById('gameContextTime').textContent=local?.downloadedAt?`Downloaded ${new Date(local.downloadedAt).toLocaleString()}`:'Not installed';menu.querySelector('[data-game-menu="delete"]').disabled=!local;menu.querySelector('[data-game-menu="reinstall"]').disabled=!local;menu.style.left=Math.min(x,innerWidth-245)+'px';menu.style.top=Math.min(y,innerHeight-190)+'px';menu.classList.add('open');}
+    document.addEventListener('contextmenu',e=>{const home=e.target.closest('[data-home-game]'),store=e.target.closest('.game-tile');if(!home&&!store)return;e.preventDefault();const code=home?.dataset.gameCode||store?.querySelector('[data-play-code]')?.dataset.playCode;if(code)openGameContext(code,e.clientX,e.clientY)});
+    document.addEventListener('click',e=>{if(!e.target.closest('#gameContext'))document.getElementById('gameContext').classList.remove('open')});document.querySelectorAll('[data-game-menu]').forEach(b=>b.onclick=async()=>{document.getElementById('gameContext').classList.remove('open');if(b.dataset.gameMenu==='updates')await checkGameUpdate(selectedGameContextCode);if(b.dataset.gameMenu==='reinstall')await reinstallGame(selectedGameContextCode);if(b.dataset.gameMenu==='delete')deleteInstalledGame(selectedGameContextCode)});document.getElementById('installAlertOk').onclick=()=>document.getElementById('installAlert').classList.remove('open');
+    const originalGameCard=gameCard;gameCard=function(game){const downloaded=installedCodeSet().has(String(game.code))||installedCodeSet().has(gameStorageCode(game));return originalGameCard(game,downloaded);};
+    DownloadCustom=async function(gamename,GAME,gamecode='CUSTOM-'+Date.now()){const remote={name:String(gamename),game:String(GAME),code:String(gamecode)};return installCatalogGame(remote);};window.DownloadCustom=DownloadCustom;
+    DownloadExternally=async function(gamecode){if(!storeCatalog.length)await loadStore();const game=catalogGame(gamecode);if(!game){showInstallAlert('Game unavailable','This game no longer exists in the Store catalog.');return false}return installCatalogGame(game);};window.DownloadExternally=DownloadExternally;
+
+        let setupNetworkTimer=null;
+    function showSetupStep(name){document.querySelectorAll('[data-setup-step]').forEach(step=>step.classList.toggle('active',step.dataset.setupStep===name));if(name==='network')waitForNetwork();}
+    function waitForNetwork(){const dot=document.getElementById('networkDot'),text=document.getElementById('networkText');const check=()=>{const online=navigator.onLine;dot.classList.toggle('online',online);text.textContent=online?'Connected. Continuing…':'You are offline.';if(online){clearInterval(setupNetworkTimer);setTimeout(()=>showSetupStep('credentials'),650)}};check();setupNetworkTimer=setInterval(check,1000);window.addEventListener('online',check,{once:true});}
+    async function setupCreateStarterUser(){const name=document.getElementById('setupName').value.trim(),pin=document.getElementById('setupPin').value.trim(),error=document.getElementById('setupError');error.textContent='';if(!name){error.textContent='Enter a user name.';return}if(pin&&!/^\d{4,8}$/.test(pin)){error.textContent='PIN must contain 4 to 8 digits.';return}const id=`user-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;state.users=[{id,name,color:document.getElementById('setupColor').value,pinHash:await hashPin(pin),createdAt:new Date().toISOString(),data:{downloadedGames:[],friends:[],settings:{},activity:[{type:'user-created',at:new Date().toISOString()}],favorites:[],achievements:[],media:[],store:{},saves:{},notifications:[]}}];state.activeUserId=id;saveState();renderUsers();showSetupStep('download');setupDownloadAstro();}
+    async function setupDownloadAstro(){const bar=document.getElementById('setupDownloadBar'),text=document.getElementById('setupDownloadText');let fake=8;bar.style.width=fake+'%';try{if(!storeCatalog.length)await loadStore();const astro=storeCatalog.find(g=>/astro.?s playroom|astro playroom/i.test(g.name))||storeCatalog.find(g=>/astro/i.test(g.name));if(!astro)throw new Error("Astro's Playroom was not found in the catalog");text.textContent=`Downloading ${astro.name}…`;const tick=setInterval(()=>{fake=Math.min(90,fake+7);bar.style.width=fake+'%'},180);await DownloadExternally(astro.code);state.setupAutoLaunchCode=String(astro.code);saveState();const started=Date.now();const wait=setInterval(()=>{const found=(activeUser()?.data.downloadedGames||[]).some(g=>typeof g==='object'&&String(g.name).toLowerCase()===String(astro.name).toLowerCase());if(found||Date.now()-started>15000){clearInterval(wait);clearInterval(tick);bar.style.width='100%';text.textContent=found?'Download complete.':'The download was started.';setTimeout(()=>showSetupStep('friends'),700)}},250)}catch(e){bar.style.width='100%';text.textContent=e.message+'. You can download it later from the Store.';setTimeout(()=>showSetupStep('friends'),1400)}}
+    function addSetupFriends(){showSetupStep('adding');if(document.getElementById('setupFriends').checked){const u=activeUser();u.data.friends=[{name:'Nova',color:'#8b5cf6',points:0},{name:'Pixel',color:'#06b6d4',points:0},{name:'Sky',color:'#f59e0b',points:0}];saveState();}setTimeout(()=>showSetupStep('complete'),850)}
+    document.querySelectorAll('[data-setup-next]').forEach(b=>b.onclick=()=>showSetupStep(b.dataset.setupNext));document.getElementById('setupCreateUser').onclick=setupCreateStarterUser;document.getElementById('setupFriendsContinue').onclick=addSetupFriends;document.getElementById('finishSetup').onclick=()=>{state.__DIdSetup__=true;state.activeUserId=null;saveState();document.getElementById('setupScreen').classList.remove('open');renderLoginUsers();showLoginScreen();};
+    if(state.__DIdSetup__!==true){document.getElementById('setupScreen').classList.add('open');showSetupStep('welcome');}
+
+        saveState(); renderColors(); renderUsers(); renderLoginUsers();
+  
+
+    /* Integrated PS menu tabs */
+(() => {
+  const NEWS_URL = 'https://alaricholt677.github.io/news/news.json';
+  let news = [], jobs = [];
+  const esc = window.escapeHtml || (v => String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
+  const user = () => window.ConsoleOS?.getActiveUser?.();
+  const liveUser = () => typeof activeUser === 'function' ? activeUser() : null;
+  const downloaded = () => (liveUser()?.data.downloadedGames || []).filter(x => typeof x === 'object');
+  const content = () => document.getElementById('controlContent');
+
+  const style = document.createElement('style');
+  style.textContent = `.cc-card{padding:12px;margin:8px 0;border-radius:14px;background:#ffffff12}.cc-row{display:flex;gap:9px;align-items:center;padding:9px;border-bottom:1px solid #ffffff18}.cc-input,.cc-btn{padding:9px;border:1px solid #ffffff33;border-radius:10px;color:#fff;background:#ffffff12}.cc-news{display:flex;gap:10px;overflow:auto}.cc-news article{flex:0 0 250px;background:#ffffff12;border-radius:14px;overflow:hidden}.cc-news img{width:100%;height:95px;object-fit:cover}.cc-news div{padding:10px}.progress{height:8px;background:#ffffff22;border-radius:6px;overflow:hidden}.progress i{display:block;height:100%;background:#54aaff}.power-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.power-grid button{padding:20px 8px;font-size:19px}.system-blackout{position:fixed;inset:0;z-index:400;display:none;place-items:center;background:#000;color:#fff}.system-blackout.open{display:grid}@media(max-width:600px){.power-grid{grid-template-columns:repeat(2,1fr)}}`;
+  document.head.appendChild(style);
+  const blackout = document.createElement('div'); blackout.id='systemBlackout'; blackout.className='system-blackout'; document.body.appendChild(blackout);
+
+  async function loadNews(){ try { const r=await fetch(NEWS_URL,{cache:'no-store'}); news=(await r.json()).articles||[]; } catch { news=[]; } draw('home'); }
+  function draw(tab){ const c=content(), u=liveUser(); if(!c||!u)return;
+    if(tab==='home'){ c.innerHTML=`<h3>Home</h3><button class="cc-btn" id="leaveGame">Leave game</button><h4>News</h4><div class="cc-news">${news.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,7).map(a=>`<article><img src="${esc(a.imageURL||'')}" alt=""><div><b>${esc(a.name)}</b><small>${esc(a.date||'')}</small><p>${esc((a.content||'').slice(0,130))}…</p></div></article>`).join('')||'<p>News unavailable.</p>'}</div>`; document.getElementById('leaveGame').onclick=()=>window.closePlayer?.(); }
+    if(tab==='games'){c.innerHTML=`<h3>Games</h3>${downloaded().map(g=>`<div class="cc-row"><b style="flex:1">${esc(g.name)}</b><button class="cc-btn" data-game-play="${esc(gameStorageCode(g))}">Play</button></div>`).join('')||'<p>No downloaded games.</p>'}`;c.querySelectorAll('[data-game-play]').forEach(b=>b.onclick=()=>playByCode(b.dataset.gamePlay));}
+    if(tab==='media'){c.innerHTML='<h3>Media</h3><div class="media-placeholder">Media placeholder. Screenshots, clips, music, and streaming features will be added next.</div>';}
+    if(tab==='friends'){ u.data.friends||=[]; c.innerHTML=`<h3>Friends</h3><input class="cc-input" id="fn" placeholder="Friend name"><input id="fc" type="color" value="#547cff"><button class="cc-btn" id="fa">Add friend</button>${u.data.friends.map((f,i)=>`<div class="cc-row"><span style="background:${f.color};padding:10px;border-radius:10px">${esc(f.name[0]||'?')}</span><b style="flex:1">${esc(f.name)}</b><button class="cc-btn" data-pt="${i},-1">−</button>${f.points||0}<button class="cc-btn" data-pt="${i},1">+</button></div>`).join('')||'<p>No friends.</p>'}`; fa.onclick=()=>{if(fn.value.trim()){u.data.friends.push({name:fn.value.trim(),color:fc.value,points:0});saveState();draw(tab)}};c.querySelectorAll('[data-pt]').forEach(b=>b.onclick=()=>{let[i,d]=b.dataset.pt.split(',').map(Number);u.data.friends[i].points=(u.data.friends[i].points||0)+d;saveState();draw(tab)}); }
+    if(tab==='notifications'){u.data.notifications||=[];c.innerHTML=`<h3>Notifications <span style="background:var(--accent);border-radius:20px;padding:4px 7px">${u.data.notifications.length>99?'99+':u.data.notifications.length}</span></h3><button class="cc-btn" id="nclear">Clear all</button>${u.data.notifications.map(n=>`<div class="cc-card"><b>${esc(n.title)}</b><p>${esc(n.message)}</p></div>`).join('')||'<p>No notifications.</p>'}`;nclear.onclick=()=>{u.data.notifications=[];saveState();renderNotifications();draw(tab)};}
+    if(tab==='downloads'){c.innerHTML=`<h3>Downloads</h3>${jobs.map(j=>`<div class="cc-row"><div style="flex:1"><b>${esc(j.name)}</b><p>${esc(j.description||'Downloading')}</p><div class="progress"><i style="width:${j.progress}%"></i></div>${j.progress}%</div></div>`).join('')}${downloaded().map(g=>`<div class="cc-row"><div style="flex:1"><b>${esc(g.name)}</b><p>${esc(g.description||'Downloaded')}</p></div><button class="cc-btn" data-open="${esc(g.code)}">Open</button></div>`).join('')||(!jobs.length?'<p>No downloads.</p>':'')}`;c.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>playByCode(b.dataset.open));}
+    if(tab==='switcher'){const recent=(u.data.activity||[]).filter(a=>a.type==='played-game').slice(-6).reverse();c.innerHTML=`<h3>Switcher</h3><h4>Recent</h4>${recent.map(a=>`<div class="cc-row"><b style="flex:1">${esc(a.item)}</b><button class="cc-btn" data-recent-play="${esc(a.gameCode||'')}">Play</button></div>`).join('')||'<p>No recently played games.</p>'}<h4>Recently downloaded</h4>${downloaded().slice(-6).reverse().map(g=>`<div class="cc-row"><b style="flex:1">${esc(g.name)}</b><button class="cc-btn" data-play="${esc(g.code)}">Play</button></div>`).join('')||'<p>No games.</p>'}`;c.querySelectorAll('[data-play]').forEach(b=>b.onclick=()=>playByCode(b.dataset.play));c.querySelectorAll('[data-recent-play]').forEach(b=>b.onclick=()=>playByCode(b.dataset.recentPlay));}
+    if(tab==='power'){c.innerHTML=`<h3>Power</h3><div class="power-grid"><button class="cc-btn" data-power="shutdown">⏻<br>Shut down</button><button class="cc-btn" data-power="restart">↻<br>Restart</button><button class="cc-btn" data-power="sleep">☾<br>Sleep</button><button class="cc-btn" data-power="signout">⇥<br>Sign out</button></div>`;c.querySelectorAll('[data-power]').forEach(b=>b.onclick=()=>power(b.dataset.power));}
+  }
+  function power(a){if(a==='signout'){closePlayer();showLoginScreen();return}blackout.textContent=a==='restart'?'Restarting…':a==='sleep'?'Sleeping…':'Powered off';blackout.classList.add('open');if(a==='restart')setTimeout(()=>location.reload(),1100);if(a==='sleep')blackout.onclick=()=>blackout.classList.remove('open');}
+  const oldDownload=window.DownloadExternally;
+  window.DownloadExternally = code => {const g=window.storeCatalog?.find(x=>String(x.code)===String(code));if(!g)return oldDownload(code);const j={...g,progress:0};jobs.push(j);addNotification('Download started',g.name+' is downloading.');const q=setInterval(()=>{j.progress+=10;if(document.querySelector('[data-control-tab="downloads"]')?.classList.contains('active'))draw('downloads');if(j.progress>=100){clearInterval(q);jobs=jobs.filter(x=>x!==j);DownloadCustom(g.name,g.game,g.code);saveState();}},180);return true;};
+  document.querySelectorAll('[data-control-tab]').forEach(tab=>{const clone=tab.cloneNode(true);tab.replaceWith(clone);clone.onclick=()=>{document.querySelectorAll('[data-control-tab]').forEach(x=>x.classList.toggle('active',x===clone));draw(clone.dataset.controlTab);};});
+  loadNews();
+})();
+
+  </script>
+</body>
+</html>

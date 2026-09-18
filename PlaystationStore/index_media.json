@@ -1,0 +1,20 @@
+{
+  "media": [
+    {
+      "name": "Synth Melody - 12 Seconds",
+      "url": "https://samplelib.com/mp3/sample-12s.mp3"
+    },
+    {
+      "name": "Music Loop - 30 Seconds",
+      "url": "https://samplelib.com/mp3/sample-30s.mp3"
+    },
+    {
+      "name": "Music Loop - 55 Seconds",
+      "url": "https://samplelib.com/mp3/sample-55s.mp3"
+    },
+    {
+      "name": "English Speech - 1 Minute",
+      "url": "https://samplelib.com/mp3/sample-speech-1m.mp3"
+    }
+  ]
+}

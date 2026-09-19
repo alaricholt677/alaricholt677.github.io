@@ -1,0 +1,11 @@
+{
+  "packs": [
+    {
+      "id": "win12-glass",
+      "name": "Win12 Glass",
+      "description": "A glass-style animated Windows cursor pack.",
+      "icon": "https://alaricholt677.github.io/ANI/win12-glass.png",
+      "zip_url": "https://alaricholt677.github.io/ANI/win12-glass.zip"
+    }
+  ]
+}

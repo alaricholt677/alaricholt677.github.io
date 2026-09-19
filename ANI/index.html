@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#070917" />
+  <meta name="description" content="Download ANI Studio Pro, a glass-powered workspace for animated Windows cursor creation." />
+  <title>ANI Studio Pro | Download</title>
+  <style>
+    :root {
+      --bg: #060713;
+      --panel: rgba(18, 22, 44, 0.68);
+      --panel-strong: rgba(25, 31, 61, 0.9);
+      --text: #f7f8ff;
+      --muted: #aab3d3;
+      --primary: #8b7cff;
+      --cyan: #48dbfb;
+      --pink: #ff6fd8;
+      --green: #6fffc1;
+      --border: rgba(255,255,255,.13);
+      --shadow: 0 30px 90px rgba(0,0,0,.48);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 15%, rgba(139,124,255,.17), transparent 32rem),
+        radial-gradient(circle at 85% 20%, rgba(72,219,251,.13), transparent 28rem),
+        radial-gradient(circle at 55% 92%, rgba(255,111,216,.12), transparent 34rem),
+        var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .24;
+      background-image:
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: linear-gradient(to bottom, black, transparent 85%);
+    }
+
+    #particles {
+      position: fixed;
+      inset: 0;
+      z-index: -3;
+      width: 100%;
+      height: 100%;
+    }
+
+    .orb {
+      position: fixed;
+      z-index: -2;
+      border-radius: 999px;
+      filter: blur(10px);
+      opacity: .55;
+      animation: drift 15s ease-in-out infinite alternate;
+    }
+    .orb.one { width: 420px; height: 420px; left: -160px; top: 10%; background: radial-gradient(circle at 40% 40%, #8379ff, transparent 68%); }
+    .orb.two { width: 500px; height: 500px; right: -210px; top: 16%; background: radial-gradient(circle at 50% 50%, #38d8f8, transparent 70%); animation-delay: -5s; }
+    .orb.three { width: 440px; height: 440px; left: 40%; bottom: -250px; background: radial-gradient(circle at 50% 50%, #ef65c8, transparent 68%); animation-delay: -9s; }
+
+    @keyframes drift {
+      from { transform: translate3d(-20px,-15px,0) scale(.95); }
+      to { transform: translate3d(38px,34px,0) scale(1.08); }
+    }
+
+    .wrap { width: min(1180px, calc(100% - 36px)); margin: 0 auto; }
+
+    nav {
+      position: sticky;
+      top: 14px;
+      z-index: 20;
+      margin: 14px auto 0;
+      width: min(1180px, calc(100% - 36px));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px 12px 18px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: rgba(9,12,27,.68);
+      box-shadow: 0 15px 50px rgba(0,0,0,.25);
+      backdrop-filter: blur(24px) saturate(150%);
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 900; letter-spacing: .13em; }
+    .brand-mark {
+      position: relative;
+      width: 38px;
+      height: 38px;
+      border-radius: 13px;
+      background: linear-gradient(135deg, var(--primary), var(--cyan));
+      box-shadow: 0 0 30px rgba(122,120,255,.48);
+      transform: rotate(-6deg);
+    }
+    .brand-mark::before, .brand-mark::after { content: ""; position: absolute; background: white; border-radius: 99px; }
+    .brand-mark::before { width: 9px; height: 22px; left: 11px; top: 8px; transform: rotate(-28deg); }
+    .brand-mark::after { width: 9px; height: 9px; right: 8px; bottom: 8px; }
+
+    .nav-links { display: flex; align-items: center; gap: 6px; }
+    .nav-links a { color: var(--muted); text-decoration: none; padding: 9px 12px; border-radius: 10px; font-size: .93rem; transition: .25s ease; }
+    .nav-links a:hover { color: white; background: rgba(255,255,255,.08); }
+
+    .hero {
+      min-height: 720px;
+      display: grid;
+      grid-template-columns: 1.08fr .92fr;
+      align-items: center;
+      gap: 58px;
+      padding: 78px 0 58px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      width: fit-content;
+      padding: 8px 12px;
+      border: 1px solid rgba(139,124,255,.4);
+      border-radius: 999px;
+      color: #d8d4ff;
+      background: rgba(139,124,255,.1);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+      animation: rise .75s ease both;
+    }
+    .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 0 rgba(111,255,193,.7); animation: pulse 2s infinite; }
+    @keyframes pulse { 70% { box-shadow: 0 0 0 10px rgba(111,255,193,0); } 100% { box-shadow: 0 0 0 0 rgba(111,255,193,0); } }
+
+    h1 {
+      margin: 24px 0 18px;
+      max-width: 760px;
+      font-size: clamp(3.3rem, 7vw, 6.6rem);
+      line-height: .93;
+      letter-spacing: -.065em;
+      animation: rise .8s .08s ease both;
+    }
+    .gradient-text {
+      color: transparent;
+      background: linear-gradient(100deg, #fff 5%, #b9afff 33%, #68e7ff 65%, #ff8fe2 96%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      background-size: 220% auto;
+      animation: shimmer 6s linear infinite;
+    }
+    @keyframes shimmer { to { background-position: 220% center; } }
+
+    .lead { max-width: 650px; margin: 0 0 30px; color: var(--muted); font-size: clamp(1rem, 2vw, 1.18rem); line-height: 1.8; animation: rise .8s .16s ease both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 13px; animation: rise .8s .24s ease both; }
+    .button {
+      position: relative;
+      isolation: isolate;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 54px;
+      padding: 0 22px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      color: white;
+      text-decoration: none;
+      font-weight: 850;
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+    }
+    .button.primary { background: linear-gradient(135deg, #7768ff, #965dff 55%, #4ddcf5); box-shadow: 0 18px 44px rgba(110,87,255,.34); }
+    .button.secondary { background: rgba(255,255,255,.06); backdrop-filter: blur(16px); }
+    .button:hover { transform: translateY(-3px) scale(1.015); border-color: rgba(255,255,255,.34); box-shadow: 0 24px 55px rgba(85,70,220,.38); }
+    .button:active { transform: translateY(0) scale(.99); }
+    .button.primary::before { content: ""; position: absolute; z-index: -1; inset: -150% -30%; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.5), transparent 65%); transform: translateX(-45%); animation: shine 4.5s infinite; }
+    @keyframes shine { 45%,100% { transform: translateX(95%); } }
+    .download-icon { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 2.2; }
+
+    .trust { display: flex; flex-wrap: wrap; gap: 12px 20px; margin-top: 24px; color: #96a1c8; font-size: .9rem; animation: rise .8s .32s ease both; }
+    .trust span { display: inline-flex; align-items: center; gap: 7px; }
+    .check { color: var(--green); font-weight: 900; }
+
+    .visual { position: relative; min-height: 520px; perspective: 1200px; animation: rise 1s .15s ease both; }
+    .app-window {
+      position: absolute;
+      inset: 44px 0 0 10px;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 28px;
+      overflow: hidden;
+      background: linear-gradient(145deg, rgba(29,35,70,.92), rgba(10,13,30,.86));
+      box-shadow: var(--shadow), inset 0 1px rgba(255,255,255,.12);
+      backdrop-filter: blur(26px);
+      transform: rotateY(-7deg) rotateX(3deg);
+      animation: float 6s ease-in-out infinite;
+    }
+    @keyframes float { 50% { transform: rotateY(-3deg) rotateX(1deg) translateY(-12px); } }
+    .window-top { height: 54px; display: flex; align-items: center; gap: 8px; padding: 0 18px; border-bottom: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.035); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #ff6f86; }
+    .dot:nth-child(2) { background: #ffd66f; }
+    .dot:nth-child(3) { background: #70ffc0; }
+    .window-title { margin-left: 10px; color: #aeb8da; font-size: .78rem; font-weight: 700; letter-spacing: .08em; }
+    .window-body { display: grid; grid-template-columns: 86px 1fr 105px; height: calc(100% - 54px); }
+    .rail { padding: 16px 12px; border-right: 1px solid rgba(255,255,255,.07); }
+    .tool { height: 38px; margin-bottom: 9px; border-radius: 11px; background: rgba(255,255,255,.055); }
+    .tool.active { background: linear-gradient(135deg, rgba(139,124,255,.85), rgba(72,219,251,.45)); box-shadow: 0 8px 24px rgba(100,90,255,.25); }
+    .canvas-wrap { display: grid; place-items: center; padding: 28px; }
+    .canvas {
+      position: relative;
+      width: min(300px, 78%);
+      aspect-ratio: 1;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 22px;
+      background-color: #e9edf5;
+      background-image: linear-gradient(45deg,#cfd5e1 25%,transparent 25%),linear-gradient(-45deg,#cfd5e1 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#cfd5e1 75%),linear-gradient(-45deg,transparent 75%,#cfd5e1 75%);
+      background-size: 30px 30px;
+      background-position: 0 0,0 15px,15px -15px,-15px 0;
+      box-shadow: 0 20px 50px rgba(0,0,0,.32);
+    }
+    .cursor-art { position: absolute; left: 29%; top: 18%; width: 43%; height: 61%; filter: drop-shadow(0 14px 10px rgba(0,0,0,.25)); animation: cursor-bob 3.2s ease-in-out infinite; }
+    @keyframes cursor-bob { 50% { transform: translate(12px, -9px) rotate(3deg); } }
+    .objects { padding: 16px 10px; border-left: 1px solid rgba(255,255,255,.07); }
+    .layer { height: 48px; margin-bottom: 9px; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; background: rgba(255,255,255,.045); }
+    .layer:first-child { border-color: rgba(139,124,255,.65); background: rgba(139,124,255,.14); }
+    .float-chip { position: absolute; padding: 12px 15px; border: 1px solid var(--border); border-radius: 14px; background: rgba(14,18,40,.76); box-shadow: 0 18px 40px rgba(0,0,0,.32); backdrop-filter: blur(18px); font-size: .86rem; font-weight: 800; }
+    .chip-one { left: -22px; top: 26px; animation: chip 4s ease-in-out infinite; }
+    .chip-two { right: -22px; bottom: 38px; animation: chip 4.5s -1.4s ease-in-out infinite; }
+    @keyframes chip { 50% { transform: translateY(-10px); } }
+
+    section { padding: 82px 0; }
+    .section-head { max-width: 690px; margin-bottom: 30px; }
+    .section-head h2 { margin: 0 0 12px; font-size: clamp(2.1rem, 4vw, 3.5rem); letter-spacing: -.04em; }
+    .section-head p { color: var(--muted); line-height: 1.75; }
+
+    .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .feature {
+      position: relative;
+      min-height: 210px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background: var(--panel);
+      box-shadow: inset 0 1px rgba(255,255,255,.06);
+      backdrop-filter: blur(18px);
+      transition: transform .3s ease, border-color .3s ease, background .3s ease;
+      overflow: hidden;
+    }
+    .feature:hover { transform: translateY(-7px); border-color: rgba(139,124,255,.55); background: rgba(25,31,61,.78); }
+    .feature::after { content: ""; position: absolute; width: 130px; height: 130px; right: -55px; top: -55px; border-radius: 50%; background: radial-gradient(circle, rgba(139,124,255,.32), transparent 70%); }
+    .feature-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; background: linear-gradient(135deg, rgba(139,124,255,.3), rgba(72,219,251,.16)); border: 1px solid rgba(139,124,255,.4); font-size: 1.2rem; }
+    .feature h3 { margin: 20px 0 10px; font-size: 1.14rem; }
+    .feature p { margin: 0; color: var(--muted); line-height: 1.62; font-size: .95rem; }
+
+    .download-card {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 28px;
+      padding: 34px;
+      border: 1px solid rgba(139,124,255,.4);
+      border-radius: 28px;
+      background: linear-gradient(135deg, rgba(139,124,255,.18), rgba(72,219,251,.08) 48%, rgba(255,111,216,.1));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .download-card::before { content: ""; position: absolute; inset: -2px; z-index: -1; background: conic-gradient(from var(--angle), var(--primary), var(--cyan), var(--pink), var(--primary)); filter: blur(28px); opacity: .22; animation: spin 8s linear infinite; }
+    @property --angle { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+    @keyframes spin { to { --angle: 360deg; } }
+    .download-card h2 { margin: 0 0 10px; font-size: clamp(1.8rem, 4vw, 3rem); }
+    .download-card p { margin: 0; color: var(--muted); line-height: 1.65; }
+
+    footer { padding: 48px 0 60px; color: #7f89aa; text-align: center; font-size: .9rem; }
+
+    .reveal { opacity: 0; transform: translateY(28px); transition: .8s cubic-bezier(.2,.75,.25,1); }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 28px;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 16px;
+      border: 1px solid rgba(111,255,193,.32);
+      border-radius: 14px;
+      background: rgba(10,23,25,.88);
+      color: #dffff3;
+      backdrop-filter: blur(18px);
+      transform: translate(-50%, 140%);
+      opacity: 0;
+      transition: .35s ease;
+    }
+    .toast.show { transform: translate(-50%,0); opacity: 1; }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; padding-top: 60px; }
+      .visual { min-height: 470px; }
+      .feature-grid { grid-template-columns: 1fr 1fr; }
+      .download-card { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 620px) {
+      .nav-links a:not(.download-nav) { display: none; }
+      .hero { min-height: auto; }
+      h1 { font-size: 3.6rem; }
+      .visual { min-height: 390px; }
+      .app-window { inset: 28px 0 0; }
+      .window-body { grid-template-columns: 58px 1fr 72px; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .download-card { padding: 25px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="particles" aria-hidden="true"></canvas>
+  <div class="orb one"></div><div class="orb two"></div><div class="orb three"></div>
+
+  <nav aria-label="Main navigation">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>ANI STUDIO</span></div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#download">Install</a>
+      <a class="download-nav" href="install_ani_studio_snapshot.py" download>Download</a>
+    </div>
+  </nav>
+
+  <main>
+    <div class="wrap hero">
+      <div>
+        <div class="eyebrow"><span class="pulse-dot"></span> Windows animated cursor studio</div>
+        <h1>Make every <span class="gradient-text">click</span> feel alive.</h1>
+        <p class="lead">Create, animate, preview, and install polished Windows cursor experiences in one expressive glass-powered workspace.</p>
+        <div class="actions">
+          <a class="button primary download-trigger" href="install_ani_studio_snapshot.py" download>
+            <svg class="download-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 21h14"/></svg>
+            Download installer
+          </a>
+          <a class="button secondary" href="#features">Explore features</a>
+        </div>
+        <div class="trust">
+          <span><b class="check">✓</b> Windows 10 &amp; 11</span>
+          <span><b class="check">✓</b> Python installer</span>
+          <span><b class="check">✓</b> Animated ANI workflow</span>
+        </div>
+      </div>
+
+      <div class="visual" aria-label="ANI Studio interface preview">
+        <div class="float-chip chip-one">✦ Object paint system</div>
+        <div class="float-chip chip-two">▶ Live animation preview</div>
+        <div class="app-window" id="tilt-card">
+          <div class="window-top"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="window-title">ANI STUDIO PRO · OBJECT PAINT EDITOR</span></div>
+          <div class="window-body">
+            <div class="rail"><div class="tool active"></div><div class="tool"></div><div class="tool"></div><div class="tool"></div><div class="tool"></div></div>
+            <div class="canvas-wrap"><div class="canvas">
+              <svg class="cursor-art" viewBox="0 0 180 250" aria-hidden="true"><defs><linearGradient id="cursorGradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffffff"/><stop offset=".34" stop-color="#b9adff"/><stop offset=".68" stop-color="#62e3ff"/><stop offset="1" stop-color="#ff7bd8"/></linearGradient></defs><path fill="url(#cursorGradient)" stroke="#ffffff" stroke-width="8" stroke-linejoin="round" d="M20 16 158 139l-66 8 39 77-36 18-38-78-42 50z"/></svg>
+            </div></div>
+            <div class="objects"><div class="layer"></div><div class="layer"></div><div class="layer"></div><div class="layer"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section id="features">
+      <div class="wrap">
+        <div class="section-head reveal"><div class="eyebrow">Everything in one studio</div><h2>Built for motion, detail, and personality.</h2><p>From individual paint objects to complete cursor packs, ANI Studio keeps the full creative workflow close at hand.</p></div>
+        <div class="feature-grid">
+          <article class="feature reveal"><div class="feature-icon">✎</div><h3>Object-based painting</h3><p>Keep strokes, shapes, fills, and eraser passes as movable objects with resize and rotation controls.</p></article>
+          <article class="feature reveal"><div class="feature-icon">◷</div><h3>Frame animation</h3><p>Build animated cursor sequences with frame thumbnails, timing controls, duplication, and live playback.</p></article>
+          <article class="feature reveal"><div class="feature-icon">◉</div><h3>Cursor state lab</h3><p>Preview Normal, Busy, Text, Link, Resize, Move, and other Windows cursor states on hoverable cards.</p></article>
+          <article class="feature reveal"><div class="feature-icon">⬡</div><h3>Color Studio</h3><p>Fine-tune RGB, HSV, alpha transparency, and hexadecimal color values with a live preview.</p></article>
+          <article class="feature reveal"><div class="feature-icon">⬇</div><h3>Public pack library</h3><p>Browse hosted cursor packs, open temporary previews, and use a guided download-and-apply flow.</p></article>
+          <article class="feature reveal"><div class="feature-icon">◆</div><h3>Glass motion interface</h3><p>Enjoy a vivid, responsive workspace with animated navigation, rich panels, and theme customization.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="download">
+      <div class="wrap">
+        <div class="download-card reveal">
+          <div><div class="eyebrow">Ready to create?</div><h2>Download ANI Studio Pro.</h2><p>Save the installer, then run it with Python on your Windows PC.</p></div>
+          <a class="button primary download-trigger" href="install_ani_studio_snapshot.py" download>
+            <svg class="download-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 21h14"/></svg>
+            Get the installer
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="wrap">ANI Studio Pro · Design motion. Shape every click.</div></footer>
+  <div class="toast" id="toast"><span class="check">✓</span><span>Your installer download is starting.</span></div>
+
+  <script>
+    const canvas = document.getElementById('particles');
+    const ctx = canvas.getContext('2d');
+    const particles = [];
+    const mouse = { x: -1000, y: -1000 };
+    function resize() { canvas.width = innerWidth * devicePixelRatio; canvas.height = innerHeight * devicePixelRatio; canvas.style.width = innerWidth + 'px'; canvas.style.height = innerHeight + 'px'; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); }
+    function seed() { particles.length = 0; const count = Math.min(95, Math.floor(innerWidth / 15)); for (let i=0;i<count;i++) particles.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,r:Math.random()*1.8+.4,a:Math.random()*.55+.15}); }
+    function draw() {
+      ctx.clearRect(0,0,innerWidth,innerHeight);
+      for (const p of particles) {
+        const dx=p.x-mouse.x, dy=p.y-mouse.y, dist=Math.hypot(dx,dy);
+        if(dist<120){ p.x += dx/dist*.45; p.y += dy/dist*.45; }
+        p.x+=p.vx; p.y+=p.vy;
+        if(p.x<0)p.x=innerWidth; if(p.x>innerWidth)p.x=0; if(p.y<0)p.y=innerHeight; if(p.y>innerHeight)p.y=0;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fillStyle=`rgba(170,180,255,${p.a})`; ctx.fill();
+      }
+      requestAnimationFrame(draw);
+    }
+    addEventListener('resize',()=>{resize();seed();}); addEventListener('pointermove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;}); resize();seed();draw();
+
+    const observer = new IntersectionObserver(entries => entries.forEach(entry => { if(entry.isIntersecting) entry.target.classList.add('visible'); }), {threshold:.14});
+    document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+
+    const tilt = document.getElementById('tilt-card');
+    document.querySelector('.visual').addEventListener('pointermove', e => {
+      const r=e.currentTarget.getBoundingClientRect(), x=(e.clientX-r.left)/r.width-.5, y=(e.clientY-r.top)/r.height-.5;
+      tilt.style.transform=`rotateY(${x*10-5}deg) rotateX(${-y*7+2}deg) translateY(-5px)`;
+    });
+    document.querySelector('.visual').addEventListener('pointerleave',()=>tilt.style.transform='');
+
+    const toast=document.getElementById('toast');
+    document.querySelectorAll('.download-trigger').forEach(link=>link.addEventListener('click',()=>{toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),3200);}));
+  </script>
+</body>
+</html>

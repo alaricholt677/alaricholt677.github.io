@@ -396,3 +396,5 @@ Your support helps the project grow.
 | ![win12 Icon](https://alaricholt677.github.io/win12-icon.svg) **WINWeather** | [Click To Visit](https://alaricholt677.github.io/win12WeatherApp) | *WINWeather* |
 | ![search Icon](https://alaricholt677.github.io/search.svg) **PACKAGES** | [Click To Visit](https://alaricholt677.github.io/PKGS) | *paquetes* |
 | ![search Icon](https://alaricholt677.github.io/search.svg) **RepoArchive** | [Click To Visit](https://alaricholt677.github.io/RepoArchive) | *ArchivoRepo* |
+| ![search Icon](https://alaricholt677.github.io/search.svg) **RepoArchive** | [Click To Visit](https://alaricholt677.github.io/RepoArchive) | *ArchivoRepo* |
+| ![Search icon](https://alaricholt677.github.io/search.svg) **ANI Studio Setup**| [Click To Visit](https://alaricholt677.github.io/ANI) | *Configuración de ANI Studio* |

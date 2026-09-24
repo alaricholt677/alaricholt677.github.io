@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Redirecting...</title>
+    <script>
+        // Grab the hash and remove the '#'
+        const hash = window.location.hash.substring(1);
+
+        if (hash) {
+            let targetUrl = hash;
+
+            // Optional: Support #url=https://example.com syntax
+            if (hash.startsWith('url=')) {
+                targetUrl = decodeURIComponent(hash.substring(4));
+            }
+
+            // Instantly redirect to the extracted URL
+            window.location.replace(targetUrl);
+        }
+    </script>
+</head>
+<body>
+    <p>Redirecting... If it doesn't redirect, <a href="../">click here</a>.</p>
+</body>
+</html>

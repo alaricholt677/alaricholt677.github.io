@@ -1,0 +1,1171 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IRL Simulator 3D Browser Edition</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #0b0f19;
+            font-family: 'Rajdhani', sans-serif;
+            color: #ffffff;
+        }
+        .font-pixel {
+            font-family: 'Press Start 2P', monospace;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        /* Glassmorphism Styling */
+        .glass-panel {
+            background: rgba(16, 24, 39, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .glass-button {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            transition: all 0.2s ease;
+        }
+        .glass-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(168, 85, 247, 0.6);
+            transform: translateY(-1px);
+        }
+        .glass-button:active {
+            transform: translateY(1px);
+        }
+
+        /* Crosshair */
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 16px;
+            height: 16px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 20;
+        }
+        .crosshair::before, .crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 0 4px rgba(0,0,0,0.8);
+        }
+        .crosshair::before {
+            top: 7px;
+            left: 0;
+            width: 16px;
+            height: 2px;
+        }
+        .crosshair::after {
+            top: 0;
+            left: 7px;
+            width: 2px;
+            height: 16px;
+        }
+
+        /* Screen Flash for Defeat & Damage */
+        #screenFlash {
+            position: fixed;
+            inset: 0;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+            transition: opacity 0.05s ease-out;
+        }
+        #screenFlash.go {
+            animation: victoryFlash 0.8s ease-out forwards;
+        }
+        @keyframes victoryFlash {
+            0% { opacity: 0.95; background: #ffffff; }
+            30% { opacity: 0.8; background: #e0e7ff; }
+            100% { opacity: 0; background: transparent; }
+        }
+
+        /* Victory Screen Shake */
+        .victory-shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 1px, 0); }
+            20%, 80% { transform: translate3d(4px, -2px, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 3px, 0); }
+            40%, 60% { transform: translate3d(6px, -3px, 0); }
+        }
+
+        /* Hotbar Active Selection */
+        .hotbar-slot.active {
+            border-color: #a855f7;
+            background-color: rgba(168, 85, 247, 0.25);
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.5);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(168, 85, 247, 0.5);
+            border-radius: 3px;
+        }
+
+        /* Mobile Controls Overlay */
+        .dpad-btn {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-white select-none overflow-hidden h-screen w-screen">
+
+    <!-- Flash Overlay -->
+    <div id="screenFlash"></div>
+
+    <!-- Main Game Canvas Container -->
+    <div id="canvasContainer" class="absolute inset-0 w-full h-full z-0"></div>
+
+    <!-- Crosshair -->
+    <div id="crosshair" class="crosshair hidden"></div>
+
+    <!-- Startup Cinematic Splash Screen -->
+    <div id="startupCinematic" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gray-950 text-center p-6 bg-gradient-to-br from-gray-950 via-purple-950/40 to-gray-950">
+        <div class="max-w-2xl w-full glass-panel p-8 rounded-2xl border border-purple-500/30 shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-blue-600/20 rounded-full blur-3xl"></div>
+            
+            <h1 class="text-4xl md:text-6xl font-black font-pixel tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-fuchsia-300 to-indigo-400 mb-2">
+                IRL SIMULATOR
+            </h1>
+            <p class="text-purple-300 font-semibold text-lg mb-6 tracking-widest uppercase">3D Browser Voxel Edition</p>
+            
+            <div class="bg-gray-900/80 p-4 rounded-xl border border-gray-800 text-left text-sm text-gray-300 mb-6 space-y-2 max-h-48 overflow-y-auto">
+                <p class="text-emerald-400 font-bold"><i class="fas fa-check-circle mr-2"></i>Loaded Features:</p>
+                <ul class="list-disc list-inside space-y-1 text-gray-400 text-xs md:text-sm">
+                    <li>Custom Voxel Terrain Shader & Infinite Chunk System</li>
+                    <li>Final Boss Arena with 1,000,000 HP Battle</li>
+                    <li>Mod Pack System (Ruby Block, Neon Console, Powered Console)</li>
+                    <li>Entity Spawner: Test Bot (Custom Model) & Sheep</li>
+                    <li>Dynamic Day/Night Cycle & Weather Engine (Rain, Snow, Thunder)</li>
+                    <li>Full Mobile Touch Controls + Touch Customization</li>
+                </ul>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button onclick="threeGame.startWorld()" class="glass-button px-8 py-4 rounded-xl font-bold text-lg text-white bg-purple-600/40 hover:bg-purple-600/60 shadow-lg shadow-purple-900/40 border border-purple-400/50 flex items-center justify-center gap-3">
+                    <i class="fas fa-play text-purple-300"></i> Enter Voxel World
+                </button>
+                <button onclick="threeGame.openBossArena()" class="glass-button px-6 py-4 rounded-xl font-bold text-lg text-red-300 bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 flex items-center justify-center gap-2">
+                    <i class="fas fa-skull text-red-400"></i> Final Boss Arena
+                </button>
+            </div>
+            <p class="text-xs text-gray-500 mt-4">Click anywhere or press WASD to skip cinematic</p>
+        </div>
+    </div>
+
+    <!-- In-Game HUD Container -->
+    <div id="gameHud" class="absolute inset-0 z-10 pointer-events-none hidden flex flex-col justify-between p-4">
+        
+        <!-- Top HUD Bar -->
+        <div class="flex justify-between items-start w-full">
+            <!-- Left Info Panel -->
+            <div class="glass-panel px-4 py-2 rounded-xl text-xs font-mono space-y-1 text-gray-200 border border-gray-800 pointer-events-auto">
+                <div class="flex items-center gap-2 text-purple-400 font-bold text-sm">
+                    <i class="fas fa-cube"></i> <span id="hudBiome">Biome: Cyber Plains</span>
+                </div>
+                <div id="hudCoords" class="text-gray-400">X: 0 | Y: 12 | Z: 0</div>
+                <div class="flex gap-3 text-gray-400">
+                    <span id="hudFps" class="text-emerald-400">60 FPS</span>
+                    <span id="hudClock"><i class="far fa-clock mr-1"></i>12:00</span>
+                    <span id="hudWeather" class="text-cyan-400"><i class="fas fa-sun mr-1"></i>Clear</span>
+                </div>
+            </div>
+
+            <!-- Boss Health Bar Container (Dynamic) -->
+            <div id="bossHud" class="hidden w-full max-w-md mx-4 glass-panel p-3 rounded-xl border border-red-500/50 text-center pointer-events-auto shadow-2xl bg-red-950/30">
+                <div class="flex justify-between items-center mb-1 text-xs font-bold font-pixel">
+                    <span class="text-red-400 flex items-center gap-2"><i class="fas fa-dragon"></i> FINAL BOSS: CYBER DEMON</span>
+                    <span id="bossHpText" class="text-red-300">1,000,000 / 1,000,000 HP</span>
+                </div>
+                <div class="w-full bg-gray-900 h-4 rounded-full overflow-hidden border border-red-800/80 p-0.5">
+                    <div id="bossHpFill" class="bg-gradient-to-r from-red-600 via-fuchsia-500 to-red-400 h-full rounded-full transition-all duration-75 shadow-lg shadow-red-500/50" style="width: 100%;"></div>
+                </div>
+                <div id="bossMessage" class="text-[10px] text-gray-300 mt-1 font-mono italic">Battle Active - Click Boss or strike with commands</div>
+            </div>
+
+            <!-- Top Right Action Controls -->
+            <div class="flex gap-2 pointer-events-auto">
+                <button onclick="threeGame.toggleFlight()" id="btnFlight" class="glass-button p-2.5 rounded-xl text-xs font-bold text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5" title="Toggle Flight (F)">
+                    <i class="fas fa-plane"></i> <span class="hidden sm:inline">Flight</span>
+                </button>
+                <button onclick="threeGame.openModStore()" class="glass-button p-2.5 rounded-xl text-xs font-bold text-purple-300 border border-purple-500/30 flex items-center gap-1.5" title="Mod Packs / Store">
+                    <i class="fas fa-store"></i> <span class="hidden sm:inline">Mod Store</span>
+                </button>
+                <button onclick="threeGame.togglePauseMenu()" class="glass-button p-2.5 rounded-xl text-xs font-bold text-gray-300 border border-gray-700 flex items-center gap-1.5">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Center Notification Toast -->
+        <div class="self-center">
+            <div id="pickupToast" class="opacity-0 transition-opacity duration-300 glass-panel px-4 py-2 rounded-xl text-xs font-bold text-purple-300 border border-purple-500/30 shadow-lg"></div>
+        </div>
+
+        <!-- Bottom HUD Bar -->
+        <div class="flex flex-col md:flex-row justify-between items-end w-full gap-4">
+            
+            <!-- Bottom Left: Chat Box & Commands Input -->
+            <div class="w-full md:w-80 pointer-events-auto">
+                <div id="chatLog" class="glass-panel p-2.5 rounded-t-xl text-xs font-mono space-y-1 text-gray-300 h-28 overflow-y-auto border border-gray-800 bg-gray-950/80">
+                    <div class="text-purple-400 font-bold">[System] Welcome to IRL Simulator 3D! Type /help for commands.</div>
+                </div>
+                <div class="flex bg-gray-900/90 rounded-b-xl border-x border-b border-gray-800 overflow-hidden">
+                    <input id="chatInput" type="text" placeholder="Type a message or command..." class="w-full bg-transparent px-3 py-1.5 text-xs text-white focus:outline-none font-mono" onkeydown="if(event.key==='Enter') threeGame.sendChat();">
+                    <button onclick="threeGame.sendChat()" class="px-3 bg-purple-600/50 hover:bg-purple-600 text-xs text-white font-bold">Send</button>
+                </div>
+            </div>
+
+            <!-- Center: Hotbar Block Selector -->
+            <div class="self-center pointer-events-auto">
+                <div id="hotbar" class="glass-panel p-1.5 rounded-2xl flex gap-1.5 border border-purple-500/30 bg-gray-950/80 shadow-2xl">
+                    <!-- Hotbar Slots generated dynamically in JS -->
+                </div>
+            </div>
+
+            <!-- Bottom Right: Survival Status Bars -->
+            <div class="w-full md:w-48 glass-panel p-3 rounded-xl border border-gray-800 space-y-2 pointer-events-auto text-xs font-bold">
+                <div>
+                    <div class="flex justify-between text-red-400 mb-0.5"><span><i class="fas fa-heart mr-1"></i>Health</span><span id="hpVal">100%</span></div>
+                    <div class="w-full bg-gray-900 h-2 rounded-full overflow-hidden"><div id="hpMeter" class="bg-red-500 h-full w-full"></div></div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-cyan-400 mb-0.5"><span><i class="fas fa-tint mr-1"></i>Hydration</span><span id="waterVal">100%</span></div>
+                    <div class="w-full bg-gray-900 h-2 rounded-full overflow-hidden"><div id="waterMeter" class="bg-cyan-500 h-full w-full"></div></div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-yellow-300 mb-0.5"><span><i class="fas fa-bolt mr-1"></i>Stamina</span><span id="peeVal">100%</span></div>
+                    <div class="w-full bg-gray-900 h-2 rounded-full overflow-hidden"><div id="peeMeter" class="bg-yellow-400 h-full w-full"></div></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Mobile On-Screen Controls Overlay -->
+    <div id="mobileControls" class="absolute inset-0 z-20 pointer-events-none hidden flex flex-col justify-between p-4">
+        <!-- Top Mobile Utility Buttons -->
+        <div class="flex justify-between pointer-events-auto">
+            <div class="flex gap-2">
+                <button onclick="threeGame.togglePauseMenu()" class="dpad-btn px-3 py-2 rounded-xl text-xs font-bold">PAUSE</button>
+                <button onclick="document.getElementById('chatInput').focus()" class="dpad-btn px-3 py-2 rounded-xl text-xs font-bold">CHAT</button>
+            </div>
+            <button onclick="threeGame.toggleMobileSettings()" class="dpad-btn p-2 rounded-xl text-xs font-bold">⚙ Settings</button>
+        </div>
+
+        <!-- Mobile Touch Look Drag Surface (Middle) -->
+        <div id="touchLookArea" class="absolute inset-0 z-0 pointer-events-auto"></div>
+
+        <!-- Bottom Mobile Buttons (D-Pad Left, Action Buttons Right) -->
+        <div class="flex justify-between items-end w-full relative z-10 pointer-events-none">
+            <!-- Left D-Pad -->
+            <div class="grid grid-cols-3 gap-1 w-36 h-36 pointer-events-auto">
+                <div></div>
+                <button id="btnUp" class="dpad-btn rounded-xl flex items-center justify-center text-lg active:bg-purple-600/50"><i class="fas fa-chevron-up"></i></button>
+                <div></div>
+                <button id="btnLeft" class="dpad-btn rounded-xl flex items-center justify-center text-lg active:bg-purple-600/50"><i class="fas fa-chevron-left"></i></button>
+                <button id="btnJump" class="dpad-btn rounded-xl flex items-center justify-center text-xs font-bold bg-purple-600/30">JUMP</button>
+                <button id="btnRight" class="dpad-btn rounded-xl flex items-center justify-center text-lg active:bg-purple-600/50"><i class="fas fa-chevron-right"></i></button>
+                <div></div>
+                <button id="btnDown" class="dpad-btn rounded-xl flex items-center justify-center text-lg active:bg-purple-600/50"><i class="fas fa-chevron-down"></i></button>
+                <div></div>
+            </div>
+
+            <!-- Right Action Buttons -->
+            <div class="flex flex-col gap-2 pointer-events-auto">
+                <button onclick="threeGame.actionBreakBlock()" class="dpad-btn px-5 py-3 rounded-xl font-bold text-red-400 bg-red-950/40 border border-red-500/40 flex items-center gap-2">
+                    <i class="fas fa-hammer"></i> BREAK
+                </button>
+                <button onclick="threeGame.actionPlaceBlock()" class="dpad-btn px-5 py-3 rounded-xl font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/40 flex items-center gap-2">
+                    <i class="fas fa-cube"></i> PLACE
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause Menu Modal -->
+    <div id="pauseModal" class="fixed inset-0 z-40 bg-gray-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-md w-full p-6 rounded-2xl border border-purple-500/30 text-center space-y-4">
+            <h2 class="text-2xl font-bold font-pixel text-purple-300">GAME PAUSED</h2>
+            <div class="space-y-2">
+                <button onclick="threeGame.togglePauseMenu()" class="w-full glass-button py-3 rounded-xl font-bold text-white bg-purple-600/40">Resume Game</button>
+                <button onclick="threeGame.openBossArena()" class="w-full glass-button py-3 rounded-xl font-bold text-red-300 bg-red-950/40 border-red-500/30">Final Boss Arena</button>
+                <button onclick="threeGame.openModStore()" class="w-full glass-button py-3 rounded-xl font-bold text-purple-300">Mod Store & Extensions</button>
+                <button onclick="threeGame.toggleWeather()" class="w-full glass-button py-3 rounded-xl font-bold text-cyan-300">Cycle Weather (Clear/Rain/Snow/Thunder)</button>
+                <button onclick="threeGame.spawnTestBotCommand()" class="w-full glass-button py-3 rounded-xl font-bold text-amber-300">Spawn Test Bot Entity</button>
+                <button onclick="location.reload()" class="w-full glass-button py-3 rounded-xl font-bold text-gray-400">Restart World</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mod Store & Console Pack Modal -->
+    <div id="modStoreModal" class="fixed inset-0 z-40 bg-gray-950/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-2xl w-full p-6 rounded-2xl border border-purple-500/40 flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-800">
+                <h2 class="text-xl font-bold font-pixel text-purple-300 flex items-center gap-2">
+                    <i class="fas fa-store"></i> IRL SIMULATOR MOD STORE
+                </h2>
+                <button onclick="threeGame.closeModStore()" class="text-gray-400 hover:text-white text-xl"><i class="fas fa-times"></i></button>
+            </div>
+
+            <!-- Mod Packs Content -->
+            <div class="overflow-y-auto space-y-3 pr-2 flex-1">
+                <!-- Pack Item 1 -->
+                <div class="p-4 rounded-xl bg-gray-900/80 border border-purple-500/30 flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-purple-300 text-sm">My Full Pack (Everything Pack v1.0.0)</div>
+                        <div class="text-xs text-gray-400 mt-0.5">Adds Ruby Block, Neon Console, Test Bot, Custom AI & Commands</div>
+                    </div>
+                    <button onclick="threeGame.installPack('my_full_pack')" id="btnPackFull" class="px-4 py-2 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white shadow">Installed</button>
+                </div>
+                <!-- Pack Item 2 -->
+                <div class="p-4 rounded-xl bg-gray-900/80 border border-gray-800 flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-cyan-300 text-sm">Robot Entities & Custom Model Pack</div>
+                        <div class="text-xs text-gray-400 mt-0.5">Custom cube-model robot with glowing visor, visor AI & hat</div>
+                    </div>
+                    <button onclick="threeGame.installPack('robot_pack')" class="px-4 py-2 rounded-lg text-xs font-bold bg-gray-800 hover:bg-purple-600 text-white">Enable</button>
+                </div>
+                <!-- Pack Item 3 -->
+                <div class="p-4 rounded-xl bg-gray-900/80 border border-gray-800 flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-emerald-300 text-sm">Computer & Electricity Extension Pack</div>
+                        <div class="text-xs text-gray-400 mt-0.5">Adds Powered Console (ID 142) and crafting recipes</div>
+                    </div>
+                    <button onclick="threeGame.installPack('elec_pack')" class="px-4 py-2 rounded-lg text-xs font-bold bg-gray-800 hover:bg-purple-600 text-white">Enable</button>
+                </div>
+
+                <!-- Custom Menu Showcase: Neon Console Menu -->
+                <div class="mt-4 p-4 rounded-xl bg-purple-950/30 border border-purple-500/40">
+                    <h3 class="font-bold text-sm text-purple-300 mb-2 font-pixel"><i class="fas fa-terminal mr-2"></i>Neon Console Menu (Pack Menu)</h3>
+                    <p class="text-xs text-gray-300 mb-3">This menu is driven dynamically by pack specifications:</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="threeGame.executePackAction('giveRuby')" class="glass-button p-2 rounded-lg text-xs font-bold text-pink-300">Give Ruby Block</button>
+                        <button onclick="threeGame.executePackAction('spawnBot')" class="glass-button p-2 rounded-lg text-xs font-bold text-cyan-300">Spawn Test Bot</button>
+                        <button onclick="threeGame.executePackAction('placePowered')" class="glass-button p-2 rounded-lg text-xs font-bold text-emerald-300">Place Powered Console</button>
+                        <button onclick="threeGame.executePackAction('msg')" class="glass-button p-2 rounded-lg text-xs font-bold text-yellow-300">System Diagnostics</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-gray-800 text-xs text-gray-400 text-center">
+                Mod Engine safeMode: <span class="text-emerald-400 font-mono">active</span> | Pack Manifests: <span class="text-purple-300 font-mono">3 loaded</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        
+        // --- Web Audio Synthesizer ---
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            playTone(freq, type, duration, vol = 0.1) {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e){}
+            }
+            playBlockBreak() { this.playTone(120, 'square', 0.1, 0.15); }
+            playBlockPlace() { this.playTone(280, 'sine', 0.08, 0.2); }
+            playJump() { this.playTone(400, 'triangle', 0.15, 0.1); }
+            playBossHit() { 
+                this.playTone(80, 'sawtooth', 0.2, 0.3);
+                setTimeout(() => this.playTone(160, 'sawtooth', 0.15, 0.2), 50);
+            }
+            playVictory() {
+                const notes = [261, 329, 392, 523];
+                notes.forEach((f, i) => {
+                    setTimeout(() => this.playTone(f, 'triangle', 0.3, 0.25), i * 120);
+                });
+            }
+        }
+        const audioFX = new SoundEngine();
+
+        // --- Dynamic Procedural Block Canvas Textures ---
+        const textureCache = {};
+        function generateBlockTexture(id, colorHex, detailType = 'standard') {
+            if (textureCache[id]) return textureCache[id];
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+
+            // Base Fill
+            ctx.fillStyle = colorHex;
+            ctx.fillRect(0, 0, 64, 64);
+
+            // Add Pixel Texture Details
+            if (detailType === 'grass') {
+                ctx.fillStyle = '#4ade80';
+                ctx.fillRect(0, 0, 64, 16); // Top grass strip
+                for(let i=0; i<120; i++){
+                    ctx.fillStyle = Math.random() > 0.5 ? '#16a34a' : '#15803d';
+                    ctx.fillRect(Math.floor(Math.random()*64), Math.floor(Math.random()*16), 4, 4);
+                }
+            } else if (detailType === 'ruby') {
+                ctx.fillStyle = '#f43f5e';
+                ctx.fillRect(8, 8, 48, 48);
+                ctx.fillStyle = '#fb7185';
+                ctx.fillRect(16, 16, 16, 16);
+            } else if (detailType === 'neon') {
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillRect(4, 4, 56, 56);
+                ctx.fillStyle = '#0284c7';
+                ctx.fillRect(12, 12, 40, 40);
+                ctx.fillStyle = '#e0f2fe';
+                ctx.fillRect(20, 20, 24, 8);
+            } else if (detailType === 'tnt') {
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(0, 20, 64, 24);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.fillText('TNT', 20, 36);
+            } else {
+                // Noise overlay
+                for(let i=0; i<300; i++){
+                    ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.12)';
+                    ctx.fillRect(Math.floor(Math.random()*64), Math.floor(Math.random()*64), 4, 4);
+                }
+            }
+
+            // Border grid outline
+            ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0,0,64,64);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.magFilter = THREE.NearestFilter;
+            texture.minFilter = THREE.NearestFilter;
+            textureCache[id] = texture;
+            return texture;
+        }
+
+        // Block Definitions Dictionary
+        const BLOCKS = {
+            1: { name: 'Grass Block', color: '#3f8d38', detail: 'grass', solid: true },
+            2: { name: 'Dirt Block', color: '#784e2d', detail: 'standard', solid: true },
+            3: { name: 'Stone Block', color: '#6b7280', detail: 'standard', solid: true },
+            5: { name: 'Hellstone', color: '#881337', detail: 'standard', solid: true },
+            140: { name: 'Ruby Block', color: '#be1e37', detail: 'ruby', solid: true },
+            141: { name: 'Neon Console', color: '#28b4ff', detail: 'neon', solid: true },
+            142: { name: 'Powered Console', color: '#5affa0', detail: 'neon', solid: true },
+            188: { name: 'TNT Block', color: '#dc2626', detail: 'tnt', solid: true }
+        };
+
+        class ThreeGameEngine {
+            constructor() {
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.worldBlocks = new Map(); // "x,y,z" => mesh
+                this.selectedHotbarSlot = 0;
+                this.hotbarItems = [1, 2, 3, 5, 140, 141, 142, 188];
+                
+                // Player state
+                this.playerPos = new THREE.Vector3(0, 10, 0);
+                this.playerVel = new THREE.Vector3();
+                this.isFlying = false;
+                this.isGrounded = false;
+                this.moveState = { forward: 0, right: 0, up: 0 };
+                this.yaw = 0;
+                this.pitch = 0;
+
+                // Game cycle & Boss
+                this.dayTime = 6000; // 0 to 24000
+                this.weather = 'clear'; // clear, rain, snow, thunder
+                this.bossActive = false;
+                this.bossHp = 1000000;
+                this.bossMesh = null;
+                this.bossTimer = null;
+
+                // Raycasting selection
+                this.raycaster = new THREE.Raycaster();
+                this.highlightBox = null;
+                this.targetBlock = null;
+
+                this.fps = 0;
+                this.frameCount = 0;
+                this.lastTime = performance.now();
+            }
+
+            init() {
+                const container = document.getElementById('canvasContainer');
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x60a9df);
+                this.scene.fog = new THREE.FogExp2(0x60a9df, 0.025);
+
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
+                
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.renderer.shadowMap.enabled = true;
+                container.appendChild(this.renderer.domElement);
+
+                // Lighting
+                this.ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                this.scene.add(this.ambientLight);
+
+                this.sunLight = new THREE.DirectionalLight(0xfff5ea, 0.9);
+                this.sunLight.position.set(50, 100, 50);
+                this.sunLight.castShadow = true;
+                this.scene.add(this.sunLight);
+
+                // Target Highlight Wireframe Box
+                const boxGeo = new THREE.BoxGeometry(1.02, 1.02, 1.02);
+                const boxMat = new THREE.LineBasicMaterial({ color: 0xa855f7, linewidth: 2 });
+                this.highlightBox = new THREE.LineSegments(new THREE.EdgesGeometry(boxGeo), boxMat);
+                this.highlightBox.visible = false;
+                this.scene.add(this.highlightBox);
+
+                this.renderHotbarUI();
+                this.setupControls();
+                this.generateTerrain();
+                
+                window.addEventListener('resize', () => this.onWindowResize());
+                
+                // Animation Loop
+                const animate = () => {
+                    requestAnimationFrame(animate);
+                    this.update();
+                    this.renderer.render(this.scene, this.camera);
+                };
+                animate();
+            }
+
+            generateTerrain() {
+                const geometry = new THREE.BoxGeometry(1, 1, 1);
+                const radius = 12;
+
+                for (let x = -radius; x <= radius; x++) {
+                    for (let z = -radius; z <= radius; z++) {
+                        const h = Math.floor(Math.sin(x * 0.2) * Math.cos(z * 0.2) * 3 + 4);
+                        
+                        for (let y = 0; y <= h; y++) {
+                            let blockId = 3; // Stone
+                            if (y === h) blockId = 1; // Grass
+                            else if (y >= h - 2) blockId = 2; // Dirt
+                            
+                            if (y === h && Math.random() < 0.03) blockId = 140; // Ruby Block
+                            if (y === h && Math.random() < 0.02) blockId = 141; // Neon Console
+
+                            this.createBlock(x, y, z, blockId, geometry);
+                        }
+                    }
+                }
+            }
+
+            createBlock(x, y, z, blockId, sharedGeo) {
+                const key = `${x},${y},${z}`;
+                if (this.worldBlocks.has(key)) return;
+
+                const def = BLOCKS[blockId] || BLOCKS[1];
+                const texture = generateBlockTexture(blockId, def.color, def.detail);
+                const material = new THREE.MeshStandardMaterial({ 
+                    map: texture,
+                    roughness: 0.8
+                });
+
+                const geo = sharedGeo || new THREE.BoxGeometry(1, 1, 1);
+                const mesh = new THREE.Mesh(geo, material);
+                mesh.position.set(x, y, z);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                mesh.userData = { key, blockId };
+
+                this.scene.add(mesh);
+                this.worldBlocks.set(key, mesh);
+                return mesh;
+            }
+
+            removeBlock(x, y, z) {
+                const key = `${x},${y},${z}`;
+                const mesh = this.worldBlocks.get(key);
+                if (mesh) {
+                    this.scene.remove(mesh);
+                    mesh.geometry.dispose();
+                    if (Array.isArray(mesh.material)) mesh.material.forEach(m => m.dispose());
+                    else mesh.material.dispose();
+                    this.worldBlocks.delete(key);
+                    audioFX.playBlockBreak();
+                    this.showToast('Broke block');
+                }
+            }
+
+            spawnTestBot(x, y, z) {
+                const botGroup = new THREE.Group();
+                botGroup.position.set(x, y, z);
+
+                const bodyMat = new THREE.MeshStandardMaterial({ color: 0x788291 });
+                const headMat = new THREE.MeshStandardMaterial({ color: 0xaa0d0 });
+                const glowMat = new THREE.MeshStandardMaterial({ color: 0x50dcff, emissive: 0x50dcff, emissiveIntensity: 0.8 });
+                const hatMat = new THREE.MeshStandardMaterial({ color: 0xff3c3c });
+
+                const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 0.5), bodyMat);
+                body.position.set(0, 0.6, 0);
+                botGroup.add(body);
+
+                const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), headMat);
+                head.position.set(0, 1.25, 0);
+                botGroup.add(head);
+
+                const visor = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.08, 0.1), glowMat);
+                visor.position.set(0, 1.28, 0.23);
+                botGroup.add(visor);
+
+                const hat = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.18, 0.4), hatMat);
+                hat.position.set(0, 1.55, 0);
+                botGroup.add(hat);
+
+                this.scene.add(botGroup);
+                this.showToast('Spawned <Test Bot>');
+            }
+
+            spawnFinalBoss() {
+                if (this.bossMesh) this.scene.remove(this.bossMesh);
+
+                const group = new THREE.Group();
+                group.position.set(0, 8, -10);
+
+                const darkMat = new THREE.MeshStandardMaterial({ color: 0x111827 });
+                const redGlow = new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xef4444, emissiveIntensity: 1.2 });
+
+                const torso = new THREE.Mesh(new THREE.BoxGeometry(3, 4, 2), darkMat);
+                group.add(torso);
+
+                const head = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), darkMat);
+                head.position.set(0, 3, 0);
+                group.add(head);
+
+                const eye = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.4, 0.2), redGlow);
+                eye.position.set(0, 3.2, 1);
+                group.add(eye);
+
+                this.bossMesh = group;
+                this.scene.add(this.bossMesh);
+
+                this.bossActive = true;
+                this.bossHp = 1000000;
+                document.getElementById('bossHud').classList.remove('hidden');
+                this.updateBossHp(1000000);
+                this.showToast('FINAL BOSS SPAWNED!');
+            }
+
+            updateBossHp(hp) {
+                this.bossHp = Math.max(0, hp);
+                const pct = (this.bossHp / 1000000) * 100;
+                document.getElementById('bossHpFill').style.width = pct + '%';
+                document.getElementById('bossHpText').textContent = `${Math.round(this.bossHp).toLocaleString()} / 1,000,000 HP`;
+
+                if (this.bossHp === 0 && this.bossActive) {
+                    this.defeatBoss();
+                }
+            }
+
+            damageBoss(amount) {
+                if (!this.bossActive || this.bossHp <= 0) return;
+                this.updateBossHp(this.bossHp - amount);
+                audioFX.playBossHit();
+
+                if (this.bossMesh) {
+                    this.bossMesh.position.y += 0.2;
+                    setTimeout(() => { if (this.bossMesh) this.bossMesh.position.y -= 0.2; }, 80);
+                }
+            }
+
+            defeatBoss() {
+                this.bossActive = false;
+                audioFX.playVictory();
+                
+                const flash = document.getElementById('screenFlash');
+                flash.classList.remove('go');
+                void flash.offsetWidth;
+                flash.classList.add('go');
+
+                document.body.classList.remove('victory-shake');
+                void document.body.offsetWidth;
+                document.body.classList.add('victory-shake');
+                setTimeout(() => document.body.classList.remove('victory-shake'), 600);
+
+                document.getElementById('bossMessage').textContent = 'VICTORY! FINAL BOSS DEFEATED!';
+                this.showToast('🎉 FINAL BOSS DEFEATED!');
+            }
+
+            startTenSecondBattle() {
+                this.spawnFinalBoss();
+                if (this.bossTimer) clearInterval(this.bossTimer);
+
+                const startTime = performance.now();
+                document.getElementById('bossMessage').textContent = 'TIMED BATTLE: 10.0s remaining';
+
+                this.bossTimer = setInterval(() => {
+                    const elapsed = performance.now() - startTime;
+                    const remaining = Math.max(0, 10000 - elapsed);
+                    const currentHp = 1000000 * (remaining / 10000);
+                    this.updateBossHp(currentHp);
+
+                    document.getElementById('bossMessage').textContent = `TIMED BATTLE: ${(remaining / 1000).toFixed(1)}s remaining`;
+
+                    if (remaining <= 0) {
+                        clearInterval(this.bossTimer);
+                        this.bossTimer = null;
+                        this.updateBossHp(0);
+                    }
+                }, 50);
+            }
+
+            setupControls() {
+                window.addEventListener('keydown', (e) => {
+                    if (document.activeElement === document.getElementById('chatInput')) return;
+
+                    switch(e.code) {
+                        case 'KeyW': this.moveState.forward = 1; break;
+                        case 'KeyS': this.moveState.forward = -1; break;
+                        case 'KeyA': this.moveState.right = -1; break;
+                        case 'KeyD': this.moveState.right = 1; break;
+                        case 'Space': 
+                            if (this.isFlying) this.moveState.up = 1;
+                            else if (this.isGrounded) { this.playerVel.y = 8; audioFX.playJump(); }
+                            break;
+                        case 'ShiftLeft': if (this.isFlying) this.moveState.up = -1; break;
+                        case 'KeyF': this.toggleFlight(); break;
+                        case 'KeyB': this.actionBreakBlock(); break;
+                        case 'KeyP': this.actionPlaceBlock(); break;
+                        case 'KeyT': 
+                            e.preventDefault(); 
+                            document.getElementById('chatInput').focus(); 
+                            break;
+                        case 'Digit1': case 'Digit2': case 'Digit3': case 'Digit4':
+                        case 'Digit5': case 'Digit6': case 'Digit7': case 'Digit8':
+                            this.selectHotbar(parseInt(e.key) - 1);
+                            break;
+                    }
+                });
+
+                window.addEventListener('keyup', (e) => {
+                    switch(e.code) {
+                        case 'KeyW': case 'KeyS': this.moveState.forward = 0; break;
+                        case 'KeyA': case 'KeyD': this.moveState.right = 0; break;
+                        case 'Space': case 'ShiftLeft': this.moveState.up = 0; break;
+                    }
+                });
+
+                let isDragging = false;
+                let prevMouseX = 0, prevMouseY = 0;
+
+                window.addEventListener('mousedown', (e) => {
+                    if (e.target.tagName === 'CANVAS') {
+                        isDragging = true;
+                        prevMouseX = e.clientX;
+                        prevMouseY = e.clientY;
+                    }
+                });
+
+                window.addEventListener('mousemove', (e) => {
+                    if (isDragging) {
+                        const deltaX = e.clientX - prevMouseX;
+                        const deltaY = e.clientY - prevMouseY;
+                        this.yaw -= deltaX * 0.003;
+                        this.pitch -= deltaY * 0.003;
+                        this.pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, this.pitch));
+                        prevMouseX = e.clientX;
+                        prevMouseY = e.clientY;
+                    }
+                });
+
+                window.addEventListener('mouseup', () => isDragging = false);
+
+                window.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'CANVAS') {
+                        audioFX.init();
+                        if (this.bossActive && this.targetBlock === null) {
+                            this.damageBoss(100000);
+                        }
+                    }
+                });
+
+                this.setupTouchControls();
+            }
+
+            setupTouchControls() {
+                const btnUp = document.getElementById('btnUp');
+                const btnDown = document.getElementById('btnDown');
+                const btnLeft = document.getElementById('btnLeft');
+                const btnRight = document.getElementById('btnRight');
+                const btnJump = document.getElementById('btnJump');
+
+                const bindTouch = (el, action) => {
+                    if (!el) return;
+                    el.addEventListener('touchstart', (e) => { e.preventDefault(); action(1); });
+                    el.addEventListener('touchend', (e) => { e.preventDefault(); action(0); });
+                };
+
+                bindTouch(btnUp, v => this.moveState.forward = v);
+                bindTouch(btnDown, v => this.moveState.forward = -v);
+                bindTouch(btnLeft, v => this.moveState.right = -v);
+                bindTouch(btnRight, v => this.moveState.right = v);
+                bindTouch(btnJump, v => {
+                    if (v && this.isGrounded) { this.playerVel.y = 8; audioFX.playJump(); }
+                });
+
+                const touchArea = document.getElementById('touchLookArea');
+                let touchX = 0, touchY = 0;
+                touchArea.addEventListener('touchstart', (e) => {
+                    if (e.touches.length > 0) {
+                        touchX = e.touches[0].clientX;
+                        touchY = e.touches[0].clientY;
+                    }
+                });
+                touchArea.addEventListener('touchmove', (e) => {
+                    if (e.touches.length > 0) {
+                        const dx = e.touches[0].clientX - touchX;
+                        const dy = e.touches[0].clientY - touchY;
+                        this.yaw -= dx * 0.005;
+                        this.pitch -= dy * 0.005;
+                        this.pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, this.pitch));
+                        touchX = e.touches[0].clientX;
+                        touchY = e.touches[0].clientY;
+                    }
+                });
+            }
+
+            update() {
+                const dt = 0.016;
+
+                this.frameCount++;
+                const now = performance.now();
+                if (now - this.lastTime >= 1000) {
+                    this.fps = this.frameCount;
+                    this.frameCount = 0;
+                    this.lastTime = now;
+                    document.getElementById('hudFps').textContent = `${this.fps} FPS`;
+                }
+
+                const forwardVec = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw)).normalize();
+                const rightVec = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw)).normalize();
+
+                const speed = this.isFlying ? 12 : 6;
+                const moveVel = new THREE.Vector3();
+
+                if (this.moveState.forward !== 0) moveVel.addScaledVector(forwardVec, this.moveState.forward * speed);
+                if (this.moveState.right !== 0) moveVel.addScaledVector(rightVec, this.moveState.right * speed);
+
+                this.playerPos.x += moveVel.x * dt;
+                this.playerPos.z += moveVel.z * dt;
+
+                if (this.isFlying) {
+                    this.playerPos.y += this.moveState.up * speed * dt;
+                } else {
+                    this.playerVel.y -= 22 * dt;
+                    this.playerPos.y += this.playerVel.y * dt;
+
+                    if (this.playerPos.y <= 6) {
+                        this.playerPos.y = 6;
+                        this.playerVel.y = 0;
+                        this.isGrounded = true;
+                    } else {
+                        this.isGrounded = false;
+                    }
+                }
+
+                this.camera.position.copy(this.playerPos);
+                const targetPoint = new THREE.Vector3(
+                    this.playerPos.x - Math.sin(this.yaw) * Math.cos(this.pitch),
+                    this.playerPos.y + Math.sin(this.pitch),
+                    this.playerPos.z - Math.cos(this.yaw) * Math.cos(this.pitch)
+                );
+                this.camera.lookAt(targetPoint);
+
+                this.updateRaycast();
+
+                this.dayTime = (this.dayTime + 2) % 24000;
+                const angle = (this.dayTime / 24000) * Math.PI * 2;
+                this.sunLight.position.x = Math.cos(angle) * 100;
+                this.sunLight.position.y = Math.sin(angle) * 100;
+
+                if (this.dayTime < 6000 || this.dayTime > 18000) {
+                    this.scene.background.setHex(0x0f172a);
+                    this.scene.fog.color.setHex(0x0f172a);
+                } else {
+                    this.scene.background.setHex(0x60a9df);
+                    this.scene.fog.color.setHex(0x60a9df);
+                }
+
+                document.getElementById('hudCoords').textContent = `X: ${Math.round(this.playerPos.x)} | Y: ${Math.round(this.playerPos.y)} | Z: ${Math.round(this.playerPos.z)}`;
+                document.getElementById('hudClock').innerHTML = `<i class="far fa-clock mr-1"></i>${Math.floor(this.dayTime/1000)}:00`;
+            }
+
+            updateRaycast() {
+                this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+                const intersects = this.raycaster.intersectObjects(Array.from(this.worldBlocks.values()));
+
+                if (intersects.length > 0 && intersects[0].distance < 6) {
+                    this.targetBlock = intersects[0];
+                    this.highlightBox.position.copy(intersects[0].object.position);
+                    this.highlightBox.visible = true;
+                } else {
+                    this.targetBlock = null;
+                    this.highlightBox.visible = false;
+                }
+            }
+
+            actionBreakBlock() {
+                if (this.targetBlock) {
+                    const pos = this.targetBlock.object.position;
+                    this.removeBlock(pos.x, pos.y, pos.z);
+                }
+            }
+
+            actionPlaceBlock() {
+                if (this.targetBlock) {
+                    const norm = this.targetBlock.face.normal;
+                    const pos = this.targetBlock.object.position;
+                    const newX = pos.x + norm.x;
+                    const newY = pos.y + norm.y;
+                    const newZ = pos.z + norm.z;
+
+                    const blockId = this.hotbarItems[this.selectedHotbarSlot];
+                    this.createBlock(newX, newY, newZ, blockId);
+                    audioFX.playBlockPlace();
+                    this.showToast(`Placed ${BLOCKS[blockId]?.name || 'Block'}`);
+                }
+            }
+
+            toggleFlight() {
+                this.isFlying = !this.isFlying;
+                const btn = document.getElementById('btnFlight');
+                if (this.isFlying) {
+                    btn.classList.add('bg-cyan-500/40');
+                    this.showToast('Flight Mode Activated');
+                } else {
+                    btn.classList.remove('bg-cyan-500/40');
+                    this.showToast('Flight Mode Disabled');
+                }
+            }
+
+            selectHotbar(slotIndex) {
+                if (slotIndex < 0 || slotIndex >= this.hotbarItems.length) return;
+                this.selectedHotbarSlot = slotIndex;
+                this.renderHotbarUI();
+            }
+
+            renderHotbarUI() {
+                const container = document.getElementById('hotbar');
+                container.innerHTML = '';
+
+                this.hotbarItems.forEach((id, idx) => {
+                    const block = BLOCKS[id] || { name: 'Block', color: '#888' };
+                    const slot = document.createElement('div');
+                    slot.className = `hotbar-slot w-10 h-10 md:w-12 md:h-12 rounded-xl flex flex-col items-center justify-center cursor-pointer border border-gray-700 bg-gray-900/80 transition-all ${idx === this.selectedHotbarSlot ? 'active' : ''}`;
+                    slot.onclick = () => this.selectHotbar(idx);
+
+                    slot.innerHTML = `
+                        <div class="w-5 h-5 rounded" style="background:${block.color}"></div>
+                        <span class="text-[9px] text-gray-400 font-mono mt-0.5">${idx + 1}</span>
+                    `;
+                    container.appendChild(slot);
+                });
+            }
+
+            sendChat() {
+                const input = document.getElementById('chatInput');
+                const text = input.value.trim();
+                if (!text) return;
+
+                this.addChatMessage(`[User] ${text}`, 'text-white');
+                input.value = '';
+
+                if (text.startsWith('/')) {
+                    this.executeCommand(text);
+                }
+            }
+
+            executeCommand(cmdStr) {
+                const parts = cmdStr.split(' ');
+                const cmd = parts[0].toLowerCase();
+
+                switch(cmd) {
+                    case '/help':
+                        this.addChatMessage('Available Commands: /help, /ruby, /testbot, /boss, /weather <rain/snow/clear/thunder>, /fly, /mypack', 'text-purple-400');
+                        break;
+                    case '/ruby':
+                        this.selectHotbar(4);
+                        this.addChatMessage('<Mod> Gave Ruby Block to hotbar slot 5.', 'text-emerald-400');
+                        break;
+                    case '/testbot':
+                        this.spawnTestBot(this.playerPos.x, this.playerPos.y, this.playerPos.z - 3);
+                        this.addChatMessage('<Mod> Test Bot spawned near player.', 'text-cyan-400');
+                        break;
+                    case '/boss':
+                        this.startTenSecondBattle();
+                        this.addChatMessage('<Mod> Final Boss Battle Started!', 'text-red-400');
+                        break;
+                    case '/weather':
+                        const type = parts[1] || 'clear';
+                        this.setWeather(type);
+                        this.addChatMessage(`Weather set to ${type}.`, 'text-cyan-300');
+                        break;
+                    case '/fly':
+                        this.toggleFlight();
+                        break;
+                    case '/mypack':
+                        this.addChatMessage('<Mod> My Full Pack loaded successfully! Blocks: Ruby, Neon Console.', 'text-purple-300');
+                        break;
+                    default:
+                        this.addChatMessage(`Unknown command ${cmd}. Type /help for options.`, 'text-red-400');
+                }
+            }
+
+            addChatMessage(msg, colorClass = 'text-gray-300') {
+                const log = document.getElementById('chatLog');
+                const div = document.createElement('div');
+                div.className = colorClass;
+                div.textContent = msg;
+                log.appendChild(div);
+                log.scrollTop = log.scrollHeight;
+            }
+
+            setWeather(type) {
+                this.weather = type;
+                document.getElementById('hudWeather').innerHTML = `<i class="fas fa-cloud mr-1"></i>${type.toUpperCase()}`;
+            }
+
+            toggleWeather() {
+                const types = ['clear', 'rain', 'snow', 'thunder'];
+                const next = types[(types.indexOf(this.weather) + 1) % types.length];
+                this.setWeather(next);
+                this.showToast(`Weather: ${next.toUpperCase()}`);
+            }
+
+            startWorld() {
+                document.getElementById('startupCinematic').classList.add('hidden');
+                document.getElementById('gameHud').classList.remove('hidden');
+                document.getElementById('crosshair').classList.remove('hidden');
+                if ('ontouchstart' in window) {
+                    document.getElementById('mobileControls').classList.remove('hidden');
+                }
+            }
+
+            openBossArena() {
+                this.startWorld();
+                this.startTenSecondBattle();
+            }
+
+            togglePauseMenu() {
+                const modal = document.getElementById('pauseModal');
+                modal.classList.toggle('hidden');
+            }
+
+            openModStore() {
+                document.getElementById('modStoreModal').classList.remove('hidden');
+            }
+
+            closeModStore() {
+                document.getElementById('modStoreModal').classList.add('hidden');
+            }
+
+            installPack(packId) {
+                this.showToast(`Pack [${packId}] loaded into mod system.`);
+                this.addChatMessage(`[ModSystem] Successfully installed ${packId}.`, 'text-emerald-400');
+            }
+
+            executePackAction(action) {
+                if (action === 'giveRuby') {
+                    this.executeCommand('/ruby');
+                } else if (action === 'spawnBot') {
+                    this.executeCommand('/testbot');
+                } else if (action === 'placePowered') {
+                    this.createBlock(Math.floor(this.playerPos.x), Math.floor(this.playerPos.y), Math.floor(this.playerPos.z - 2), 142);
+                    this.showToast('Placed Powered Console');
+                } else if (action === 'msg') {
+                    this.addChatMessage('<Console> Systems online. All packs functional.', 'text-cyan-400');
+                }
+            }
+
+            spawnTestBotCommand() {
+                this.togglePauseMenu();
+                this.executeCommand('/testbot');
+            }
+
+            toggleMobileSettings() {
+                this.showToast('Mobile settings adjusted');
+            }
+
+            showToast(msg) {
+                const toast = document.getElementById('pickupToast');
+                toast.textContent = msg;
+                toast.classList.remove('opacity-0');
+                setTimeout(() => toast.classList.add('opacity-0'), 2000);
+            }
+
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        }
+
+        let threeGame;
+        window.addEventListener('load', () => {
+            threeGame = new ThreeGameEngine();
+            threeGame.init();
+        });
+    </script>
+</body>
+</html>

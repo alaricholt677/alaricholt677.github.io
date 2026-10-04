@@ -1,0 +1,2057 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>macOS Web Clone - Pro</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root {
+--menu-bar-height: 28px;
+--dock-height: 70px;
+}
+body {
+font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+overflow: hidden;
+background-color: #000;
+user-select: none;
+-webkit-user-select: none;
+touch-action: none;
+}
+.desktop-bg {
+background-image: url('https://images.unsplash.com/photo-1617040619263-41c5a9cb7521?q=80&w=2574&auto=format&fit=crop');
+background-size: cover;
+background-position: center;
+transition: background-image 0.5s ease-in-out;
+}
+.glass-panel {
+background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 100%);
+backdrop-filter: blur(40px) saturate(200%);
+-webkit-backdrop-filter: blur(40px) saturate(200%);
+border: 1px solid rgba(255, 255, 255, 0.4);
+border-top: 1px solid rgba(255, 255, 255, 0.8);
+border-left: 1px solid rgba(255, 255, 255, 0.6);
+box-shadow: 0 30px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.8);
+}
+.glass-panel-dark {
+background: linear-gradient(135deg, rgba(40, 40, 40, 0.7) 0%, rgba(10, 10, 10, 0.5) 100%);
+backdrop-filter: blur(40px) saturate(150%);
+-webkit-backdrop-filter: blur(40px) saturate(150%);
+border: 1px solid rgba(255, 255, 255, 0.1);
+border-top: 1px solid rgba(255, 255, 255, 0.2);
+box-shadow: 0 30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1);
+color: white;
+}
+.window {
+position: absolute;
+display: flex;
+flex-direction: column;
+border-radius: 0.75rem;
+overflow: hidden;
+transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s;
+transform-origin: center;
+will-change: transform, top, left, width, height;
+background: rgba(255, 255, 255, 0.95);
+backdrop-filter: blur(20px);
+border: 1px solid rgba(255, 255, 255, 0.5);
+box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.2), inset 0 1px 0 rgba(255,255,255,1);
+}
+.window-dark {
+background: rgba(30, 30, 30, 0.95);
+border: 1px solid rgba(255, 255, 255, 0.1);
+box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255,255,255,0.05), inset 0 1px 0 rgba(255,255,255,0.1);
+color: #fff;
+}
+.window.minimized {
+transform: scale(0.2) translateY(800px);
+opacity: 0;
+pointer-events: none;
+}
+.window.maximized {
+top: var(--menu-bar-height) !important;
+left: 0 !important;
+width: 100vw !important;
+height: calc(100vh - var(--menu-bar-height)) !important;
+border-radius: 0;
+}
+.window-header {
+height: 38px;
+background: linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(240,240,240,0.9));
+border-bottom: 1px solid rgba(0,0,0,0.1);
+display: flex;
+align-items: center;
+padding: 0 12px;
+cursor: default;
+}
+.window-dark .window-header {
+background: linear-gradient(to bottom, rgba(70,70,70,0.9), rgba(50,50,50,0.9));
+border-bottom: 1px solid rgba(0,0,0,0.5);
+color: #eee;
+}
+.window-controls {
+display: flex;
+gap: 8px;
+width: 60px;
+}
+.control-btn {
+width: 12px;
+height: 12px;
+border-radius: 50%;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 8px;
+color: rgba(0,0,0,0.6);
+opacity: 0.9;
+}
+.window:hover .control-btn i { opacity: 1; }
+.control-btn i { opacity: 0; transition: opacity 0.1s; }
+.btn-close { background-color: #ff5f56; border: 1px solid #e0443e; box-shadow: inset 0 1px 1px rgba(255,255,255,0.5); }
+.btn-minimize { background-color: #ffbd2e; border: 1px solid #dea123; box-shadow: inset 0 1px 1px rgba(255,255,255,0.5); }
+.btn-maximize { background-color: #27c93f; border: 1px solid #1aab29; box-shadow: inset 0 1px 1px rgba(255,255,255,0.5); }
+.dock-container {
+max-width: 95vw;
+overflow-x: auto;
+overflow-y: hidden;
+-webkit-overflow-scrolling: touch;
+padding-bottom: 10px;
+}
+.dock-container::-webkit-scrollbar { display: none; }
+.app-icon {
+width: 54px;
+height: 54px;
+border-radius: 14px;
+box-shadow: 0 10px 20px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.5);
+transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+position: relative;
+flex-shrink: 0;
+transform-origin: bottom center;
+}
+@media (hover: hover) {
+.app-icon:hover {
+transform: scale(1.3) translateY(-10px);
+margin: 0 15px;
+z-index: 100;
+}
+}
+.dock-indicator {
+width: 4px;
+height: 4px;
+background-color: rgba(255,255,255,0.8);
+border-radius: 50%;
+position: absolute;
+bottom: -10px;
+left: 50%;
+transform: translateX(-50%);
+display: none;
+box-shadow: 0 0 4px rgba(255,255,255,0.8);
+}
+.app-icon.active .dock-indicator { display: block; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.4); }
+.fullscreen-overlay {
+position: fixed;
+top: 0; left: 0; right: 0; bottom: 0;
+z-index: 9999;
+display: flex;
+align-items: center;
+justify-content: center;
+flex-direction: column;
+background-color: #000;
+transition: opacity 0.5s ease-out;
+}
+.apple-logo-boot { font-size: 80px; color: white; margin-bottom: 40px; }
+.progress-bar-container { width: 200px; height: 4px; background: #333; border-radius: 2px; overflow: hidden; }
+.progress-bar { height: 100%; width: 0%; background: white; border-radius: 2px; transition: width 0.5s ease-in-out; }
+#lock-screen {
+background-image: url('https://images.unsplash.com/photo-1617040619263-41c5a9cb7521?q=80&w=2574&auto=format&fit=crop');
+background-size: cover;
+background-position: center;
+}
+.lock-screen-blur {
+position: absolute;
+top: 0; left: 0; right: 0; bottom: 0;
+backdrop-filter: blur(20px);
+-webkit-backdrop-filter: blur(20px);
+background: rgba(0,0,0,0.3);
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+}
+.pin-input { letter-spacing: 0.5em; font-family: monospace; }
+.mac-modal {
+position: fixed;
+top: 50%; left: 50%;
+transform: translate(-50%, -50%);
+z-index: 10000;
+width: 320px;
+background: rgba(255, 255, 255, 0.95);
+backdrop-filter: blur(20px);
+border-radius: 12px;
+box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+padding: 20px;
+text-align: center;
+display: none;
+border: 1px solid rgba(0,0,0,0.1);
+}
+</style>
+</head>
+<body class="w-screen h-screen flex flex-col relative text-gray-800">
+
+<div id="boot-screen" class="fullscreen-overlay">
+<i class="fab fa-apple apple-logo-boot"></i>
+<div class="progress-bar-container">
+<div id="boot-progress" class="progress-bar"></div>
+</div>
+<div id="boot-status" class="text-gray-500 text-xs mt-4 font-mono">Loading local environment...</div>
+</div>
+
+<div id="kernel-panic" class="fullscreen-overlay hidden" style="background-color: #000; color: white; z-index: 999999; flex-direction: column; align-items: center; justify-content: center;">
+<i class="fas fa-power-off text-6xl mb-8 text-white"></i>
+<h1 class="text-xl font-medium mb-2 text-center">Your computer restarted because of a problem.</h1>
+<h1 class="text-xl font-medium mb-2 text-center text-gray-300">L'ordinateur a redémarré en raison d'un problème.</h1>
+<h1 class="text-xl font-medium mb-6 text-center text-gray-400">El ordenador se ha reiniciado debido a un problema.</h1>
+<p class="text-sm text-gray-500 max-w-lg text-center font-mono mt-4 px-4" id="panic-msg">System encountered a critical error.</p>
+<button onclick="location.reload()" class="mt-8 px-6 py-2 border border-white/30 rounded-full hover:bg-white/10 transition-colors">Restart</button>
+</div>
+
+<div id="lock-screen" class="fullscreen-overlay hidden">
+<div class="lock-screen-blur">
+<div class="text-white text-6xl font-medium mb-12 drop-shadow-lg" id="lock-clock">10:42 AM</div>
+
+<div id="user-list" class="flex flex-wrap justify-center gap-8 mb-8 max-w-3xl"></div>
+
+<div id="pin-entry" class="hidden flex-col items-center">
+<img id="active-user-avatar" src="" class="w-24 h-24 rounded-full border-2 border-white/50 mb-4 object-cover shadow-lg">
+<div id="active-user-name" class="text-white text-xl font-medium mb-4 drop-shadow-md">Username</div>
+<div class="flex items-center gap-2">
+<div class="relative">
+<input type="password" id="pin-input" class="bg-white/20 border border-white/30 text-white rounded-full px-4 py-2 w-48 outline-none focus:bg-white/30 transition-colors backdrop-blur-md pin-input text-center" placeholder="Enter PIN" maxlength="6">
+</div>
+<button onclick="attemptLogin()" class="w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 border border-white/30 text-white flex items-center justify-center transition-colors backdrop-blur-md">
+<i class="fas fa-arrow-right"></i>
+</button>
+</div>
+<button onclick="showUserList()" class="text-white/70 hover:text-white mt-6 text-sm transition-colors">Cancel</button>
+</div>
+
+<div id="create-user-form" class="hidden flex-col items-center glass-panel p-8 rounded-2xl w-80">
+<h2 class="text-white text-xl mb-6 font-semibold">Create Account</h2>
+
+<div class="flex gap-2 mb-4 justify-center">
+<img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full cursor-pointer border-2 border-transparent hover:border-white opacity-50 hover:opacity-100 transition-all avatar-select active-avatar" onclick="selectAvatar(this)">
+<img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full cursor-pointer border-2 border-transparent hover:border-white opacity-50 hover:opacity-100 transition-all avatar-select" onclick="selectAvatar(this)">
+<img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full cursor-pointer border-2 border-transparent hover:border-white opacity-50 hover:opacity-100 transition-all avatar-select" onclick="selectAvatar(this)">
+</div>
+
+<input type="text" id="new-username" class="bg-black/20 border border-white/20 text-white placeholder-white/50 rounded-lg px-4 py-2 w-full mb-3 outline-none focus:border-white/50 transition-colors" placeholder="Username">
+<input type="password" id="new-pin" class="bg-black/20 border border-white/20 text-white placeholder-white/50 rounded-lg px-4 py-2 w-full mb-6 outline-none focus:border-white/50 transition-colors pin-input" placeholder="PIN (e.g. 1234)" maxlength="6">
+
+<div class="flex gap-3 w-full">
+<button onclick="showUserList()" class="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 rounded-lg transition-colors text-sm font-medium border border-white/10">Cancel</button>
+<button onclick="createUser()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition-colors text-sm font-medium shadow-lg">Create</button>
+</div>
+</div>
+
+<div id="lock-footer" class="absolute bottom-8 flex gap-8 text-white/70">
+<div class="flex flex-col items-center gap-2 cursor-pointer hover:text-white transition-colors" onclick="showCreateUser()">
+<div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-md border border-white/20">
+<i class="fas fa-user-plus"></i>
+</div>
+<span class="text-xs">New User</span>
+</div>
+</div>
+</div>
+</div>
+
+<div id="desktop" class="w-full h-full flex flex-col relative desktop-bg hidden">
+<div id="brightness-overlay" class="pointer-events-none fixed inset-0 z-[190] bg-black opacity-0 transition-opacity duration-75"></div>
+
+<div class="h-[28px] w-full glass-panel-dark flex items-center justify-between px-4 text-[13px] font-medium z-[1000] fixed top-0 select-none">
+<div class="flex items-center gap-2 sm:gap-4 h-full">
+<div class="flex items-center h-full px-2 hover:bg-white/20 rounded cursor-pointer transition-colors relative" id="apple-menu-trigger" onclick="toggleAppleMenu(event)">
+<i class="fab fa-apple text-[15px]"></i>
+</div>
+<div id="active-app-name" class="font-bold cursor-pointer hover:bg-white/20 px-2 rounded transition-colors h-full flex items-center">Finder</div>
+<div class="hidden sm:flex items-center gap-1 h-full">
+<div class="cursor-pointer hover:bg-white/20 px-2 rounded transition-colors h-full flex items-center">File</div>
+<div class="cursor-pointer hover:bg-white/20 px-2 rounded transition-colors h-full flex items-center">Edit</div>
+<div class="cursor-pointer hover:bg-white/20 px-2 rounded transition-colors h-full flex items-center">View</div>
+<div class="cursor-pointer hover:bg-white/20 px-2 rounded transition-colors h-full flex items-center">Go</div>
+<div class="cursor-pointer hover:bg-white/20 px-2 rounded transition-colors h-full flex items-center">Window</div>
+</div>
+</div>
+<div class="flex items-center gap-3 sm:gap-4 h-full">
+<div class="flex items-center gap-1 bg-white/10 px-2 py-1 rounded-full text-xs font-semibold">
+<img id="menu-avatar" src="" class="w-4 h-4 rounded-full object-cover">
+<span id="menu-username" class="hidden sm:block">User</span>
+</div>
+<div class="cursor-pointer hover:bg-white/20 px-2 rounded transition-colors h-full flex items-center" onclick="toggleControlCenter(event)"><i class="fas fa-wifi text-sm"></i></div>
+<div class="cursor-pointer hover:bg-white/20 px-2 rounded transition-colors h-full flex items-center" onclick="toggleControlCenter(event)"><i class="fas fa-sliders-h text-sm"></i></div>
+<div id="desktop-clock" class="cursor-pointer hover:bg-white/20 px-2 rounded transition-colors h-full flex items-center">Mon Oct 2 10:00 AM</div>
+</div>
+</div>
+
+<div id="apple-menu-panel" class="hidden absolute top-[35px] left-2 w-[260px] glass-panel-dark rounded-xl p-1.5 z-[2500] shadow-2xl flex flex-col gap-0.5 text-white text-xs transition-all duration-150 opacity-0 scale-95 origin-top-left border border-white/20 backdrop-blur-3xl">
+<div class="px-3 py-2 hover:bg-white/20 rounded-lg cursor-pointer flex justify-between items-center transition-colors" onclick="closeAppleMenu(); openApp('settings')">
+<span>About This Mac</span>
+<span class="text-white/50 text-[10px]">macOS Sequoia</span>
+</div>
+<div class="h-[1px] bg-white/10 my-1"></div>
+<div class="px-3 py-2 hover:bg-white/20 rounded-lg cursor-pointer flex justify-between items-center transition-colors" onclick="closeAppleMenu(); openApp('settings')">
+<span>System Settings...</span>
+<i class="fas fa-cog text-white/50"></i>
+</div>
+<div class="h-[1px] bg-white/10 my-1"></div>
+<div class="px-3 py-2 hover:bg-white/20 rounded-lg cursor-pointer flex justify-between items-center transition-colors text-red-400 hover:bg-red-500/20" onclick="closeAppleMenu(); lockSystem()">
+<span>Lock Screen</span>
+<span class="text-[10px] font-mono">⌃⌘Q</span>
+</div>
+<div class="px-3 py-2 hover:bg-white/20 rounded-lg cursor-pointer flex justify-between items-center transition-colors text-red-400 hover:bg-red-500/20" onclick="closeAppleMenu(); logoutSystem()">
+<span>Log Out User...</span>
+<span class="text-[10px] font-mono">⇧⌘Q</span>
+</div>
+</div>
+
+<div id="control-center" class="hidden absolute top-[35px] right-2 w-[320px] glass-panel-dark rounded-3xl p-4 z-[2000] shadow-2xl flex flex-col gap-4 text-white text-sm transition-all duration-200 opacity-0 scale-95 origin-top-right border border-white/20 backdrop-blur-3xl">
+<div class="flex gap-3 h-[135px]">
+<div class="flex-1 bg-white/10 rounded-2xl p-3 flex flex-col justify-between border border-white/10 shadow-inner">
+<div class="flex items-center gap-3 cursor-pointer group hover:bg-white/20 p-1 -mx-1 rounded-lg transition-colors" onclick="toggleQS('wifi', event)">
+<div id="qs-wifi-btn" class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-lg transition-transform group-active:scale-95"><i id="qs-wifi-icon" class="fas fa-wifi text-white text-[13px]"></i></div>
+<div class="flex flex-col"><span class="font-medium text-[13px] leading-tight text-white">Wi-Fi</span><span id="qs-wifi-status" class="text-[11px] text-blue-300">Home Network</span></div>
+</div>
+<div class="flex items-center gap-3 cursor-pointer group hover:bg-white/20 p-1 -mx-1 rounded-lg transition-colors" onclick="toggleQS('bluetooth', event)">
+<div id="qs-bt-btn" class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-lg transition-transform group-active:scale-95"><i id="qs-bt-icon" class="fab fa-bluetooth-b text-white text-[14px]"></i></div>
+<div class="flex flex-col"><span class="font-medium text-[13px] leading-tight text-white">Bluetooth</span><span id="qs-bt-status" class="text-[11px] text-blue-300">On</span></div>
+</div>
+<div class="flex items-center gap-3 cursor-pointer group hover:bg-white/20 p-1 -mx-1 rounded-lg transition-colors" onclick="toggleQS('airdrop', event)">
+<div id="qs-ad-btn" class="w-8 h-8 rounded-full bg-gray-500/50 flex items-center justify-center shadow-lg transition-transform group-active:scale-95"><i id="qs-ad-icon" class="fas fa-dot-circle text-white/50 text-[13px]"></i></div>
+<div class="flex flex-col"><span class="font-medium text-[13px] leading-tight text-white">AirDrop</span><span id="qs-ad-status" class="text-[11px] text-gray-400">Off</span></div>
+</div>
+</div>
+
+<div class="w-[120px] flex flex-col gap-3">
+<div id="qs-dnd" class="flex-1 bg-white/10 rounded-2xl p-3 flex flex-col justify-center items-center gap-1.5 border border-white/10 cursor-pointer hover:bg-white/20 transition-all shadow-inner active:scale-[0.98]" onclick="toggleQS('dnd', event)">
+<i id="qs-dnd-icon" class="fas fa-moon text-gray-300 text-xl drop-shadow-md"></i>
+<span class="text-[12px] font-medium text-white">Do Not Disturb</span>
+</div>
+<div id="qs-mirror" class="flex-1 bg-white/10 rounded-2xl p-3 flex flex-col justify-center items-center gap-1.5 border border-white/10 cursor-pointer hover:bg-white/20 transition-all shadow-inner active:scale-[0.98]" onclick="toggleQS('mirror', event)">
+<i id="qs-mirror-icon" class="fas fa-clone text-gray-300 text-xl drop-shadow-md"></i>
+<span class="text-[11px] font-medium text-center leading-tight text-white">Screen Mirroring</span>
+</div>
+</div>
+</div>
+
+<div class="bg-white/10 rounded-2xl p-3.5 flex flex-col gap-4 border border-white/10 shadow-inner">
+<div class="flex flex-col gap-1.5">
+<span class="text-[12px] font-medium ml-1 text-white">Display</span>
+<div id="slider-display" class="relative w-full h-6 bg-black/40 rounded-full overflow-hidden border border-white/10 flex items-center px-2 cursor-pointer group select-none">
+<div id="slider-display-fill" class="absolute left-0 top-0 bottom-0 bg-white w-[100%] rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)] transition-none pointer-events-none"></div>
+<i class="fas fa-sun text-gray-700 text-[11px] z-10 pointer-events-none"></i>
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<span class="text-[12px] font-medium ml-1 text-white">Sound</span>
+<div id="slider-sound" class="relative w-full h-6 bg-black/40 rounded-full overflow-hidden border border-white/10 flex items-center px-2 cursor-pointer group select-none">
+<div id="slider-sound-fill" class="absolute left-0 top-0 bottom-0 bg-white w-[75%] rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)] transition-none pointer-events-none"></div>
+<i id="sound-icon" class="fas fa-volume-up text-gray-700 text-[11px] z-10 pointer-events-none"></i>
+</div>
+</div>
+</div>
+
+<div class="bg-white/10 rounded-2xl p-4 flex items-center gap-4 border border-white/10 shadow-inner">
+<div id="qs-music-art" class="w-14 h-14 bg-black/50 rounded-xl flex items-center justify-center overflow-hidden border border-white/10 shadow-md transition-all">
+<i id="qs-music-icon-art" class="fas fa-music text-gray-400 text-xl"></i>
+</div>
+<div class="flex flex-col flex-1 gap-0.5">
+<span id="qs-music-title" class="text-[13px] font-medium text-white truncate w-24">Not Playing</span>
+<span id="qs-music-app" class="text-[11px] text-gray-300">Music</span>
+</div>
+<div class="flex gap-3 text-gray-200">
+<i class="fas fa-backward hover:text-white cursor-pointer transition-colors drop-shadow-sm"></i>
+<i id="qs-play-btn" class="fas fa-play hover:text-white cursor-pointer transition-colors text-lg drop-shadow-sm" onclick="toggleMusic(event)"></i>
+<i class="fas fa-forward hover:text-white cursor-pointer transition-colors drop-shadow-sm"></i>
+</div>
+</div>
+</div>
+
+<div id="desktop-area" class="flex-1 relative w-full h-full mt-[28px] mb-[80px]"></div>
+
+<div id="file-context-menu" class="hidden absolute z-[3000] w-48 glass-panel-dark rounded-xl p-1.5 shadow-2xl flex flex-col gap-0.5 text-white text-xs border border-white/20 backdrop-blur-3xl select-none">
+<div class="px-3 py-2 hover:bg-white/20 rounded-lg cursor-pointer flex items-center gap-2 transition-colors" onclick="ctxAction('open')">
+<i class="fas fa-folder-open w-4 text-blue-400"></i> Open
+</div>
+<div class="px-3 py-2 hover:bg-white/20 rounded-lg cursor-pointer flex items-center gap-2 transition-colors" onclick="ctxAction('notes')">
+<i class="fas fa-book-open w-4 text-yellow-400"></i> Open in notes
+</div>
+<div class="h-[1px] bg-white/10 my-1"></div>
+<div class="px-3 py-2 hover:bg-white/20 rounded-lg cursor-pointer flex items-center gap-2 transition-colors" onclick="ctxAction('rename')">
+<i class="fas fa-edit w-4 text-gray-300"></i> Rename
+</div>
+<div class="px-3 py-2 hover:bg-white/20 rounded-lg cursor-pointer flex items-center gap-2 transition-colors" onclick="ctxAction('move')">
+<i class="fas fa-arrow-right w-4 text-teal-300"></i> Move to directory
+</div>
+<div class="h-[1px] bg-white/10 my-1"></div>
+<div class="px-3 py-2 hover:bg-white/20 rounded-lg cursor-pointer flex items-center gap-2 transition-colors text-red-400 hover:bg-red-500/20" onclick="ctxAction('delete')">
+<i class="fas fa-trash w-4"></i> Delete
+</div>
+<div class="h-[1px] bg-white/10 my-1"></div>
+<div class="px-3 py-2 hover:bg-white/20 rounded-lg cursor-pointer flex items-center gap-2 transition-colors" onclick="ctxAction('properties')">
+<i class="fas fa-info-circle w-4 text-blue-300"></i> Properties
+</div>
+</div>
+
+<div id="create-item-modal" class="mac-modal">
+<h3 class="font-bold mb-1 text-gray-800 text-base">Create New Item</h3>
+<p class="text-xs text-gray-500 mb-4">Choose item type and provide a name</p>
+<div class="flex gap-2 mb-4">
+<button id="create-type-file" onclick="setCreateItemType('file')" class="flex-1 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-medium shadow-sm transition-colors">File</button>
+<button id="create-type-folder" onclick="setCreateItemType('folder')" class="flex-1 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-300 transition-colors">Folder</button>
+</div>
+<input type="text" id="create-item-name-input" class="w-full bg-gray-100 border border-gray-300 text-gray-800 text-sm rounded-lg px-3 py-2 outline-none focus:border-blue-500 mb-4" placeholder="e.g. document.txt or ProjectX">
+<div class="flex gap-2">
+<button onclick="closeCreateItemModal()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-1.5 rounded-lg text-xs font-medium transition-colors">Cancel</button>
+<button onclick="confirmCreateItem()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-1.5 rounded-lg text-xs font-medium shadow-sm transition-colors">Create</button>
+</div>
+</div>
+
+<div id="rename-modal" class="mac-modal">
+<h3 class="font-bold mb-1 text-gray-800 text-base">Rename Item</h3>
+<p id="rename-modal-subtitle" class="text-xs text-gray-500 mb-4">Enter a new name for the item</p>
+<input type="text" id="rename-item-input" class="w-full bg-gray-100 border border-gray-300 text-gray-800 text-sm rounded-lg px-3 py-2 outline-none focus:border-blue-500 mb-4" placeholder="New name">
+<div class="flex gap-2">
+<button onclick="closeRenameModal()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-1.5 rounded-lg text-xs font-medium transition-colors">Cancel</button>
+<button onclick="confirmRenameItem()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-1.5 rounded-lg text-xs font-medium shadow-sm transition-colors">Rename</button>
+</div>
+</div>
+
+<div id="move-dir-modal" class="mac-modal">
+<h3 class="font-bold mb-1 text-gray-800 text-base">Move Item</h3>
+<p id="move-dir-subtitle" class="text-xs text-gray-500 mb-4">Select target destination folder</p>
+<select id="move-dir-select" class="w-full bg-gray-100 border border-gray-300 text-gray-800 text-sm rounded-lg px-3 py-2 outline-none focus:border-blue-500 mb-4 cursor-pointer"></select>
+<div class="flex gap-2">
+<button onclick="closeMoveDirModal()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-1.5 rounded-lg text-xs font-medium transition-colors">Cancel</button>
+<button onclick="confirmMoveDir()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-1.5 rounded-lg text-xs font-medium shadow-sm transition-colors">Move</button>
+</div>
+</div>
+
+<div id="delete-confirm-modal" class="mac-modal">
+<h3 class="font-bold mb-1 text-gray-800 text-base">Confirm Delete</h3>
+<p id="delete-confirm-subtitle" class="text-xs text-gray-500 mb-4">Are you sure you want to delete this item?</p>
+<div class="flex gap-2">
+<button onclick="closeDeleteConfirmModal()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-1.5 rounded-lg text-xs font-medium transition-colors">Cancel</button>
+<button onclick="executeDeleteAction()" class="flex-1 bg-red-500 hover:bg-red-600 text-white py-1.5 rounded-lg text-xs font-medium shadow-sm transition-colors">Delete</button>
+</div>
+</div>
+
+<div class="fixed bottom-2 w-full flex justify-center z-[500] pointer-events-none px-2">
+<div class="dock-container pointer-events-auto">
+<div id="dock" class="glass-panel px-2 py-2 rounded-2xl flex items-end gap-2 border border-white/40 shadow-2xl h-[70px]"></div>
+</div>
+</div>
+</div>
+
+<div id="custom-alert" class="mac-modal">
+<h3 id="alert-title" class="font-bold mb-2 text-gray-800">Notice</h3>
+<p id="alert-message" class="text-sm text-gray-600 mb-4">Message</p>
+<button onclick="closeAlert()" class="bg-blue-500 text-white px-6 py-1.5 rounded-md text-xs font-medium w-full hover:bg-blue-600">OK</button>
+</div>
+
+<script>
+window.onerror = function(msg, url, line, col, error) {
+const panic = document.getElementById('kernel-panic');
+if(panic) {
+panic.classList.remove('hidden');
+panic.style.display = 'flex';
+document.getElementById('panic-msg').innerText = msg + (line ? ' (Line: ' + line + ')' : '');
+}
+return false;
+};
+window.addEventListener('unhandledrejection', function(event) {
+const panic = document.getElementById('kernel-panic');
+if(panic) {
+panic.classList.remove('hidden');
+panic.style.display = 'flex';
+document.getElementById('panic-msg').innerText = event.reason || 'Promise Rejection';
+}
+});
+</script>
+
+<script>
+let currentUser = null;
+let allUsers = [];
+let userNotes = [];
+let userVFSFiles = [];
+let contextMenuTarget = null;
+let createItemType = 'file';
+let itemToDeleteTarget = null;
+
+window.showAlert = function(title, message) {
+const alertTitle = document.getElementById('alert-title');
+const alertMessage = document.getElementById('alert-message');
+const customAlert = document.getElementById('custom-alert');
+if(alertTitle) alertTitle.innerText = title;
+if(alertMessage) alertMessage.innerText = message;
+if(customAlert) customAlert.style.display = 'block';
+};
+
+window.closeAlert = function() {
+const customAlert = document.getElementById('custom-alert');
+if(customAlert) customAlert.style.display = 'none';
+};
+
+window.showUserList = showUserList;
+window.showCreateUser = showCreateUser;
+window.selectAvatar = selectAvatar;
+window.createUser = createUser;
+window.attemptLogin = attemptLogin;
+
+window.toggleAppleMenu = function(e) {
+if(e) e.stopPropagation();
+const menu = document.getElementById('apple-menu-panel');
+if (!menu) return;
+if (menu.classList.contains('hidden')) {
+closeControlCenter();
+menu.classList.remove('hidden');
+setTimeout(() => {
+menu.classList.remove('opacity-0', 'scale-95');
+}, 10);
+} else {
+closeAppleMenu();
+}
+};
+
+window.closeAppleMenu = function() {
+const menu = document.getElementById('apple-menu-panel');
+if(!menu) return;
+menu.classList.add('opacity-0', 'scale-95');
+setTimeout(() => {
+menu.classList.add('hidden');
+}, 150);
+};
+
+window.lockSystem = function() {
+const desktop = document.getElementById('desktop');
+const lockScreen = document.getElementById('lock-screen');
+if(desktop) desktop.classList.add('hidden');
+if(lockScreen) {
+lockScreen.classList.remove('hidden');
+lockScreen.style.opacity = '1';
+}
+showPinEntry(currentUser);
+};
+
+window.logoutSystem = function() {
+currentUser = null;
+const desktop = document.getElementById('desktop');
+const lockScreen = document.getElementById('lock-screen');
+if(desktop) desktop.classList.add('hidden');
+if(lockScreen) {
+lockScreen.classList.remove('hidden');
+lockScreen.style.opacity = '1';
+}
+showUserList();
+};
+
+function init() {
+updateBootStatus('Loading profiles from localStorage...');
+
+const storedUsers = localStorage.getItem('macos_users');
+if (storedUsers) {
+try {
+allUsers = JSON.parse(storedUsers);
+} catch(e) {
+allUsers = [];
+}
+}
+
+if (allUsers.length === 0) {
+allUsers = [
+{
+id: 'user_guest_' + Date.now(),
+name: 'Guest User',
+pin: '0000',
+avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
+}
+];
+saveUsersToLocalStorage();
+}
+
+setTimeout(() => {
+const bootProgress = document.getElementById('boot-progress');
+if(bootProgress) bootProgress.style.width = '100%';
+setTimeout(() => {
+const bootScreen = document.getElementById('boot-screen');
+const lockScreen = document.getElementById('lock-screen');
+if(bootScreen) {
+bootScreen.style.opacity = '0';
+setTimeout(() => {
+bootScreen.classList.add('hidden');
+if(lockScreen) lockScreen.classList.remove('hidden');
+showUserList();
+setupQuickSettings();
+}, 500);
+}
+}, 400);
+}, 600);
+}
+
+function updateBootStatus(msg) {
+const statusEl = document.getElementById('boot-status');
+if(statusEl) statusEl.innerText = msg;
+const bar = document.getElementById('boot-progress');
+if(bar) {
+let w = parseInt(bar.style.width || '0');
+if (w < 80) bar.style.width = (w + 30) + '%';
+}
+}
+
+function saveUsersToLocalStorage() {
+localStorage.setItem('macos_users', JSON.stringify(allUsers));
+}
+
+function loadUserDataForCurrentUser() {
+if (!currentUser) return;
+
+const storedNotes = localStorage.getItem(`macos_notes_${currentUser.id}`);
+if (storedNotes) {
+try {
+userNotes = JSON.parse(storedNotes);
+} catch(e) {
+userNotes = [];
+}
+} else {
+userNotes = [
+{ id: 'note_' + Date.now(), title: 'Welcome to Notes', content: 'You can write and save notes here. Click the bright Save button to write your content directly to the VFS!', updated: Date.now() }
+];
+saveNotesToLocalStorage();
+}
+
+const storedVFS = localStorage.getItem(`macos_vfs_${currentUser.id}`);
+if (storedVFS) {
+try {
+userVFSFiles = JSON.parse(storedVFS);
+} catch(e) {
+userVFSFiles = [];
+}
+} else {
+userVFSFiles = [
+{ path: 'Desktop', name: 'Project Proposal.docx', type: 'file', icon: 'far fa-file-word text-blue-500', size: '1.2 MB', date: 'Oct 2, 2026', content: 'Project Proposal Draft contents...' },
+{ path: 'Desktop', name: 'Budget 2026.xlsx', type: 'file', icon: 'far fa-file-excel text-green-500', size: '840 KB', date: 'Oct 1, 2026', content: 'Budget details and estimates...' },
+{ path: 'Desktop', name: 'Vacation Photos', type: 'folder', icon: 'fas fa-folder text-blue-400', size: '2 items', date: 'Sep 28, 2026' },
+{ path: 'Documents', name: 'Resume_Final.pdf', type: 'file', icon: 'far fa-file-pdf text-red-500', size: '340 KB', date: 'Sep 15, 2026', content: 'John Doe Resume info...' },
+{ path: 'Documents', name: 'Tax_Forms', type: 'folder', icon: 'fas fa-folder text-blue-400', size: '2 items', date: 'Aug 10, 2026' },
+{ path: 'Documents', name: 'Meeting Notes.txt', type: 'file', icon: 'far fa-file-alt text-gray-500', size: '12 KB', date: 'Sep 30, 2026', content: 'Discussed product roadmap and milestones.' },
+{ path: 'Downloads', name: 'macOS_Installer.pkg', type: 'file', icon: 'fab fa-apple text-gray-700', size: '4.8 GB', date: 'Yesterday', content: 'Installer package binary data.' },
+{ path: 'Downloads', name: 'Wallpaper_Pack.zip', type: 'file', icon: 'far fa-file-archive text-yellow-500', size: '128 MB', date: 'Oct 2, 2026', content: 'Archive of HD wallpapers.' },
+{ path: 'Vacation Photos', name: 'Beach_Sunset.png', type: 'file', icon: 'far fa-file-image text-purple-400', size: '3.4 MB', date: 'Sep 25, 2026', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1000&auto=format&fit=crop' },
+{ path: 'Vacation Photos', name: 'Mountain_Hike.jpg', type: 'file', icon: 'far fa-file-image text-purple-400', size: '4.1 MB', date: 'Sep 26, 2026', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1000&auto=format&fit=crop' },
+{ path: 'Tax_Forms', name: '2025_Return.pdf', type: 'file', icon: 'far fa-file-pdf text-red-500', size: '1.1 MB', date: 'Apr 12, 2026', content: 'Tax return summary 2025.' },
+{ path: 'Tax_Forms', name: 'Receipts.pdf', type: 'file', icon: 'far fa-file-pdf text-red-500', size: '2.5 MB', date: 'Apr 10, 2026', content: 'Scanned receipts bundle.' }
+];
+saveVFSToLocalStorage();
+}
+rebuildDirectoriesFromVFS();
+}
+
+function saveNotesToLocalStorage() {
+if (!currentUser) return;
+localStorage.setItem(`macos_notes_${currentUser.id}`, JSON.stringify(userNotes));
+}
+
+function saveVFSToLocalStorage() {
+if (!currentUser) return;
+localStorage.setItem(`macos_vfs_${currentUser.id}`, JSON.stringify(userVFSFiles));
+}
+
+function rebuildDirectoriesFromVFS() {
+filesState.directories = {
+'Desktop': [],
+'Documents': [],
+'Downloads': [],
+'Vacation Photos': [],
+'Tax_Forms': []
+};
+
+userVFSFiles.forEach(f => {
+if (!filesState.directories[f.path]) {
+filesState.directories[f.path] = [];
+}
+filesState.directories[f.path].push(f);
+});
+
+userVFSFiles.forEach(f => {
+if (f.type === 'folder' && !filesState.directories[f.name]) {
+filesState.directories[f.name] = [];
+}
+});
+}
+
+let activeAvatarUrl = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80";
+let selectedLoginUserId = null;
+
+function showUserList() {
+const pinEntry = document.getElementById('pin-entry');
+const createUserForm = document.getElementById('create-user-form');
+const lockFooter = document.getElementById('lock-footer');
+const listDiv = document.getElementById('user-list');
+
+if(pinEntry) pinEntry.classList.add('hidden');
+if(createUserForm) createUserForm.classList.add('hidden');
+if(lockFooter) lockFooter.classList.remove('hidden');
+
+if(!listDiv) return;
+listDiv.innerHTML = '';
+listDiv.classList.remove('hidden');
+
+if (allUsers.length === 0) {
+listDiv.innerHTML = '<div class="text-white/70 text-sm">No users found. Create one.</div>';
+return;
+}
+
+allUsers.forEach(u => {
+const userEl = document.createElement('div');
+userEl.className = 'flex flex-col items-center gap-3 cursor-pointer group';
+userEl.onclick = () => showPinEntry(u);
+userEl.innerHTML = `<img src="${u.avatar}" class="w-24 h-24 rounded-full border-2 border-transparent group-hover:border-white/50 transition-all object-cover shadow-lg"> <span class="text-white font-medium drop-shadow-md">${u.name}</span>`;
+listDiv.appendChild(userEl);
+});
+}
+
+function showPinEntry(user) {
+if(!user) return;
+selectedLoginUserId = user.id;
+const userList = document.getElementById('user-list');
+const pinEntry = document.getElementById('pin-entry');
+const lockFooter = document.getElementById('lock-footer');
+const avatarEl = document.getElementById('active-user-avatar');
+const nameEl = document.getElementById('active-user-name');
+const pinInput = document.getElementById('pin-input');
+
+if(userList) userList.classList.add('hidden');
+if(lockFooter) lockFooter.classList.add('hidden');
+
+if(avatarEl) avatarEl.src = user.avatar;
+if(nameEl) nameEl.innerText = user.name;
+if(pinInput) pinInput.value = '';
+
+if(pinEntry) {
+pinEntry.classList.remove('hidden');
+pinEntry.classList.add('flex');
+}
+
+setTimeout(() => {
+if(pinInput) pinInput.focus();
+}, 100);
+}
+
+function showCreateUser() {
+const userList = document.getElementById('user-list');
+const pinEntry = document.getElementById('pin-entry');
+const lockFooter = document.getElementById('lock-footer');
+const newUsername = document.getElementById('new-username');
+const newPin = document.getElementById('new-pin');
+const createUserForm = document.getElementById('create-user-form');
+
+if(userList) userList.classList.add('hidden');
+if(pinEntry) pinEntry.classList.add('hidden');
+if(lockFooter) lockFooter.classList.add('hidden');
+
+if(newUsername) newUsername.value = '';
+if(newPin) newPin.value = '';
+
+if(createUserForm) {
+createUserForm.classList.remove('hidden');
+createUserForm.classList.add('flex');
+}
+}
+
+function selectAvatar(el) {
+document.querySelectorAll('.avatar-select').forEach(a => {
+a.classList.remove('active-avatar');
+a.classList.replace('opacity-100', 'opacity-50');
+a.style.borderColor = 'transparent';
+});
+el.classList.add('active-avatar');
+el.classList.replace('opacity-50', 'opacity-100');
+el.style.borderColor = 'white';
+activeAvatarUrl = el.src;
+}
+
+function createUser() {
+const nameEl = document.getElementById('new-username');
+const pinEl = document.getElementById('new-pin');
+const name = nameEl ? nameEl.value.trim() : '';
+const pin = pinEl ? pinEl.value.trim() : '';
+
+if(!name || !pin) {
+showAlert("Error", "Name and PIN are required.");
+return;
+}
+if(pin.length < 4) {
+showAlert("Error", "PIN must be at least 4 characters.");
+return;
+}
+
+const newUserId = 'user_' + Date.now();
+allUsers.push({ id: newUserId, name, pin, avatar: activeAvatarUrl });
+saveUsersToLocalStorage();
+
+showUserList();
+}
+
+function attemptLogin() {
+const pinInput = document.getElementById('pin-input');
+const pin = pinInput ? pinInput.value : '';
+const user = allUsers.find(u => u.id === selectedLoginUserId);
+
+if (user && user.pin === pin) {
+loginSuccess(user);
+} else {
+if(pinInput) {
+pinInput.classList.add('border-red-500', 'bg-red-500/20');
+setTimeout(() => {
+pinInput.classList.remove('border-red-500', 'bg-red-500/20');
+pinInput.value = '';
+}, 500);
+}
+}
+}
+
+function loginSuccess(user) {
+currentUser = user;
+loadUserDataForCurrentUser();
+
+const lockScreen = document.getElementById('lock-screen');
+const desktop = document.getElementById('desktop');
+const menuUsername = document.getElementById('menu-username');
+const menuAvatar = document.getElementById('menu-avatar');
+
+if(lockScreen) lockScreen.style.opacity = '0';
+if(menuUsername) menuUsername.innerText = user.name;
+if(menuAvatar) menuAvatar.src = user.avatar;
+
+setTimeout(() => {
+if(lockScreen) lockScreen.classList.add('hidden');
+if(desktop) {
+desktop.classList.remove('hidden');
+desktop.classList.add('flex');
+}
+initDock();
+}, 500);
+}
+
+const pinInputEl = document.getElementById('pin-input');
+if(pinInputEl) {
+pinInputEl.addEventListener('keypress', function(e) {
+if(e.key === 'Enter') attemptLogin();
+});
+}
+
+function updateClock() {
+const now = new Date();
+const options = { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
+const timeStr = now.toLocaleDateString('en-US', options).replace(',', '');
+const desktopClock = document.getElementById('desktop-clock');
+const lockClock = document.getElementById('lock-clock');
+
+if(desktopClock) desktopClock.innerText = timeStr;
+if(lockClock) lockClock.innerText = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+let zIndexCounter = 100;
+const openWindows = {};
+
+function getOptimalWindowSize(appWidth, appHeight) {
+const sw = window.innerWidth;
+const sh = window.innerHeight;
+const mb = 28;
+const dock = 80;
+
+const w = Math.min(appWidth, sw - 20);
+const h = Math.min(appHeight, sh - mb - dock - 10);
+
+return { width: w, height: h };
+}
+
+const apps = {
+'settings': {
+id: 'settings', name: 'System Settings',
+icon: '<div class="w-full h-full bg-gradient-to-br from-gray-200 to-gray-400 rounded-2xl flex items-center justify-center shadow-[inset_0_1px_2px_rgba(255,255,255,0.8),0_5px_15px_rgba(0,0,0,0.3)] border border-gray-400/50 relative overflow-hidden"><div class="absolute inset-0 bg-white/20"></div><i class="fas fa-cog text-gray-700 text-4xl drop-shadow-md z-10"></i></div>', bg: 'bg-transparent',
+width: 750, height: 550,
+render: renderSettings
+},
+'paint': {
+id: 'paint', name: 'Paint',
+icon: '<div class="w-full h-full bg-gradient-to-br from-red-400 via-yellow-400 to-blue-500 rounded-2xl flex items-center justify-center shadow-[inset_0_1px_2px_rgba(255,255,255,0.8),0_5px_15px_rgba(0,0,0,0.3)] border border-white/50 relative overflow-hidden"><div class="absolute inset-0 bg-white/10"></div><i class="fas fa-paint-brush text-white text-3xl drop-shadow-md z-10"></i></div>', bg: 'bg-transparent',
+width: 800, height: 550,
+render: renderPaintApp
+},
+'finder': {
+id: 'finder', name: 'Finder',
+icon: '<i class="fas fa-smile text-blue-500 text-3xl"></i>', bg: 'bg-white',
+width: 700, height: 450,
+render: renderFinder
+},
+'files': {
+id: 'files', name: 'Files',
+icon: '<div class="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-[inset_0_1px_2px_rgba(255,255,255,0.8),0_5px_15px_rgba(0,0,0,0.3)] border border-blue-500/50 relative overflow-hidden"><div class="absolute inset-0 bg-white/20"></div><i class="fas fa-folder-open text-white text-3xl drop-shadow-md z-10"></i></div>', bg: 'bg-transparent',
+width: 760, height: 500,
+render: renderFilesApp
+},
+'safari': {
+id: 'safari', name: 'Safari',
+icon: '<i class="far fa-compass text-blue-500 text-4xl"></i>', bg: 'bg-white',
+width: 800, height: 550,
+render: renderSafari
+},
+'notes': {
+id: 'notes', name: 'Notes',
+icon: '<i class="fas fa-book-open text-yellow-600 text-3xl"></i>', bg: 'bg-yellow-100',
+width: 700, height: 500,
+render: renderNotesBase
+},
+'terminal': {
+id: 'terminal', name: 'Terminal',
+icon: '<i class="fas fa-terminal text-white text-2xl"></i>', bg: 'bg-gray-900',
+width: 550, height: 380,
+dark: true,
+render: renderTerminal
+}
+};
+
+function initDock() {
+const dock = document.getElementById('dock');
+if(!dock) return;
+dock.innerHTML = '';
+Object.values(apps).forEach(app => {
+const icon = document.createElement('div');
+icon.className = 'app-icon cursor-pointer flex items-center justify-center';
+icon.classList.add(app.bg);
+icon.id = `dock-${app.id}`;
+icon.innerHTML = `${app.icon}<div class="dock-indicator"></div>`;
+icon.title = app.name;
+icon.onclick = () => openApp(app.id);
+dock.appendChild(icon);
+});
+}
+
+window.openApp = function(appId, specificNoteId = null) {
+const app = apps[appId];
+if (!app) return;
+
+const dockIcon = document.getElementById(`dock-${appId}`);
+if(dockIcon) dockIcon.classList.add('active');
+updateMenuBar(app.name);
+
+if (openWindows[appId]) {
+const win = openWindows[appId];
+win.classList.remove('minimized');
+bringToFront(win);
+if (appId === 'notes' && specificNoteId) {
+selectNote(specificNoteId);
+}
+return;
+}
+
+const win = document.createElement('div');
+win.className = `window ${app.dark ? 'window-dark' : ''}`;
+
+const size = getOptimalWindowSize(app.width, app.height);
+win.style.width = `${size.width}px`;
+win.style.height = `${size.height}px`;
+
+const offset = Object.keys(openWindows).length * 20;
+const startX = Math.max(10, (window.innerWidth - size.width) / 2 + offset);
+const startY = Math.max(30, (window.innerHeight - size.height) / 2 + offset - 40);
+
+win.style.top = `${startY}px`;
+win.style.left = `${startX}px`;
+win.style.zIndex = ++zIndexCounter;
+win.id = `window-${appId}`;
+
+const header = document.createElement('div');
+header.className = 'window-header flex justify-between select-none handle';
+
+const controls = document.createElement('div');
+controls.className = 'window-controls';
+controls.innerHTML = `<div class="control-btn btn-close cursor-pointer" onclick="closeApp('${appId}', event)"><i class="fas fa-times"></i></div> <div class="control-btn btn-minimize cursor-pointer" onclick="minimizeApp('${appId}', event)"><i class="fas fa-minus"></i></div> <div class="control-btn btn-maximize cursor-pointer" onclick="maximizeApp('${appId}', event)"><i class="fas fa-expand-alt"></i></div>`;
+
+const title = document.createElement('div');
+title.className = 'text-xs font-semibold flex-1 text-center truncate';
+title.innerText = app.name;
+
+const spacer = document.createElement('div');
+spacer.style.width = '60px';
+
+header.appendChild(controls);
+header.appendChild(title);
+header.appendChild(spacer);
+
+const content = document.createElement('div');
+content.className = 'flex-1 overflow-hidden relative w-full h-full flex flex-col bg-transparent';
+content.id = `content-${appId}`;
+
+win.appendChild(header);
+win.appendChild(content);
+
+const desktopArea = document.getElementById('desktop-area');
+if(desktopArea) desktopArea.appendChild(win);
+openWindows[appId] = win;
+
+if (appId === 'notes') {
+content.innerHTML = renderNotesBase();
+renderNotesList();
+if (specificNoteId) {
+selectNote(specificNoteId);
+} else if (userNotes.length > 0) {
+selectNote(userNotes[0].id);
+}
+} else {
+content.innerHTML = app.render();
+}
+if (appId === 'terminal') initTerminal(content);
+
+makeDraggable(win, header);
+
+win.addEventListener('mousedown', () => { bringToFront(win); updateMenuBar(app.name); }, {passive: true});
+win.addEventListener('touchstart', () => { bringToFront(win); updateMenuBar(app.name); }, {passive: true});
+};
+
+window.closeApp = function(appId, event) {
+if(event) event.stopPropagation();
+const win = openWindows[appId];
+if(win) {
+win.remove();
+delete openWindows[appId];
+const dockIcon = document.getElementById(`dock-${appId}`);
+if(dockIcon) dockIcon.classList.remove('active');
+}
+};
+
+window.minimizeApp = function(appId, event) {
+if(event) event.stopPropagation();
+const win = openWindows[appId];
+if(win) {
+win.classList.add('minimized');
+}
+};
+
+window.maximizeApp = function(appId, event) {
+if(event) event.stopPropagation();
+const win = openWindows[appId];
+if(win) {
+win.classList.toggle('maximized');
+}
+};
+
+function bringToFront(win) {
+if(win) win.style.zIndex = ++zIndexCounter;
+}
+
+function updateMenuBar(appName) {
+const activeAppName = document.getElementById('active-app-name');
+if(activeAppName) activeAppName.innerText = appName;
+}
+
+function makeDraggable(element, handle) {
+let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+handle.onmousedown = dragMouseDown;
+handle.ontouchstart = dragMouseDown;
+
+function dragMouseDown(e) {
+e = e || window.event;
+if (element.classList.contains('maximized')) return;
+const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+pos3 = clientX;
+pos4 = clientY;
+document.onmouseup = closeDragElement;
+document.ontouchend = closeDragElement;
+document.onmousemove = elementDrag;
+document.ontouchmove = elementDrag;
+bringToFront(element);
+}
+
+function elementDrag(e) {
+e = e || window.event;
+const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+pos1 = pos3 - clientX;
+pos2 = pos4 - clientY;
+pos3 = clientX;
+pos4 = clientY;
+
+let newTop = element.offsetTop - pos2;
+let newLeft = element.offsetLeft - pos1;
+
+if (newTop < 28) newTop = 28;
+element.style.top = newTop + "px";
+element.style.left = newLeft + "px";
+}
+
+function closeDragElement() {
+document.onmouseup = null;
+document.ontouchend = null;
+document.onmousemove = null;
+document.ontouchmove = null;
+}
+}
+
+function renderFinder() {
+return `<div class="flex h-full w-full bg-white/90 backdrop-blur-md rounded-b-xl overflow-hidden text-gray-800"> <div class="w-48 border-r border-gray-200 bg-gray-50/70 p-3 flex flex-col gap-1"> <div class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 px-2 mt-2">Favorites</div> <div class="px-3 py-2 rounded-lg text-sm font-medium bg-blue-500 text-white shadow-sm flex items-center gap-2"> <i class="fas fa-home w-4 text-center"></i> Home </div> <div class="px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-200/60 cursor-pointer flex items-center gap-2"> <i class="fas fa-desktop w-4 text-center"></i> Desktop </div> <div class="px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-200/60 cursor-pointer flex items-center gap-2"> <i class="fas fa-file-alt w-4 text-center"></i> Documents </div> </div> <div class="flex-1 flex flex-col bg-white"> <div class="h-12 border-b border-gray-200 px-6 flex items-center justify-between bg-gray-50/30"> <div class="font-semibold text-sm text-gray-700">Home</div> </div> <div class="flex-1 p-6 grid grid-cols-4 gap-6 content-start"> <div class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-blue-50 cursor-pointer group"> <i class="fas fa-folder text-blue-400 text-5xl"></i> <span class="text-xs text-gray-700 font-medium text-center">Applications</span> </div> <div class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-blue-50 cursor-pointer group"> <i class="fas fa-folder text-blue-400 text-5xl"></i> <span class="text-xs text-gray-700 font-medium text-center">Library</span> </div> </div> </div> </div>`;
+}
+
+let filesState = {
+currentPath: 'Desktop',
+directories: {
+'Desktop': [],
+'Documents': [],
+'Downloads': [],
+'Vacation Photos': [],
+'Tax_Forms': []
+}
+};
+
+window.setFilesPath = function(path) {
+filesState.currentPath = path;
+const content = document.getElementById('content-files');
+if(content) content.innerHTML = renderFilesApp();
+};
+
+window.openCreateItemModal = function() {
+createItemType = 'file';
+const modal = document.getElementById('create-item-modal');
+const nameInput = document.getElementById('create-item-name-input');
+const btnFile = document.getElementById('create-type-file');
+const btnFolder = document.getElementById('create-type-folder');
+
+if(btnFile) btnFile.className = "flex-1 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-medium shadow-sm transition-colors";
+if(btnFolder) btnFolder.className = "flex-1 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-300 transition-colors";
+
+if(nameInput) {
+nameInput.value = '';
+nameInput.placeholder = 'e.g. document.txt or ProjectX';
+}
+if(modal) modal.style.display = 'block';
+if(nameInput) setTimeout(() => nameInput.focus(), 50);
+};
+
+window.closeCreateItemModal = function() {
+const modal = document.getElementById('create-item-modal');
+if(modal) modal.style.display = 'none';
+};
+
+window.setCreateItemType = function(type) {
+createItemType = type;
+const btnFile = document.getElementById('create-type-file');
+const btnFolder = document.getElementById('create-type-folder');
+const nameInput = document.getElementById('create-item-name-input');
+
+if (type === 'file') {
+if(btnFile) btnFile.className = "flex-1 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-medium shadow-sm transition-colors";
+if(btnFolder) btnFolder.className = "flex-1 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-300 transition-colors";
+if(nameInput) nameInput.placeholder = 'e.g. notes.txt, index.html';
+} else {
+if(btnFolder) btnFolder.className = "flex-1 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-medium shadow-sm transition-colors";
+if(btnFile) btnFile.className = "flex-1 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-300 transition-colors";
+if(nameInput) nameInput.placeholder = 'e.g. WorkProjects, Archives';
+}
+};
+
+window.confirmCreateItem = function() {
+const nameInput = document.getElementById('create-item-name-input');
+const name = nameInput ? nameInput.value.trim() : '';
+if(!name) {
+showAlert("Error", "Please enter a valid name.");
+return;
+}
+
+const isFolder = createItemType === 'folder';
+let icon = 'far fa-file-alt text-gray-500';
+if (!isFolder) {
+if (name.endsWith('.html') || name.endsWith('.htm')) icon = 'fab fa-html5 text-orange-500';
+else if (name.endsWith('.txt')) icon = 'far fa-file-alt text-gray-500';
+else if (name.match(/\.(png|jpg|jpeg|gif)$/i)) icon = 'far fa-file-image text-purple-400';
+} else {
+icon = 'fas fa-folder text-blue-400';
+}
+
+const fileContent = isFolder ? '' : (name.endsWith('.html') ? '<h1>Hello from HTML File!</h1><p>Edit this in Notes or view it in Safari.</p>' : 'Initial text content for ' + name);
+
+const newItem = {
+name: name,
+type: isFolder ? 'folder' : 'file',
+icon: icon,
+size: isFolder ? '0 items' : '12 KB',
+date: 'Just now',
+content: fileContent
+};
+
+if (!filesState.directories[filesState.currentPath]) {
+filesState.directories[filesState.currentPath] = [];
+}
+userVFSFiles.push({ path: filesState.currentPath, ...newItem });
+
+if (!isFolder) {
+userNotes.unshift({
+id: 'note_' + Date.now(),
+title: name,
+content: fileContent,
+updated: Date.now()
+});
+saveNotesToLocalStorage();
+}
+
+saveVFSToLocalStorage();
+rebuildDirectoriesFromVFS();
+closeCreateItemModal();
+setFilesPath(filesState.currentPath);
+};
+
+window.openRenameModal = function(item) {
+contextMenuTarget = item;
+const modal = document.getElementById('rename-modal');
+const input = document.getElementById('rename-item-input');
+const subtitle = document.getElementById('rename-modal-subtitle');
+
+if(subtitle) subtitle.innerText = `Enter a new name for "${item.name}"`;
+if(input) {
+input.value = item.name;
+}
+if(modal) modal.style.display = 'block';
+if(input) {
+setTimeout(() => {
+input.focus();
+input.select();
+}, 50);
+}
+};
+
+window.closeRenameModal = function() {
+const modal = document.getElementById('rename-modal');
+if(modal) modal.style.display = 'none';
+contextMenuTarget = null;
+};
+
+window.confirmRenameItem = function() {
+const input = document.getElementById('rename-item-input');
+const newName = input ? input.value.trim() : '';
+
+if(!newName || !contextMenuTarget) {
+closeRenameModal();
+return;
+}
+
+const item = contextMenuTarget;
+const vfsItem = userVFSFiles.find(f => f.path === item.path && f.name === item.name);
+if(vfsItem) {
+const oldName = vfsItem.name;
+vfsItem.name = newName;
+
+const note = userNotes.find(n => n.title === oldName);
+if(note) {
+note.title = newName;
+saveNotesToLocalStorage();
+}
+
+saveVFSToLocalStorage();
+rebuildDirectoriesFromVFS();
+setFilesPath(filesState.currentPath);
+showAlert("Files", `Successfully renamed to "${newName}"`);
+}
+closeRenameModal();
+};
+
+window.openMoveDirModal = function(item) {
+contextMenuTarget = item;
+const modal = document.getElementById('move-dir-modal');
+const selectEl = document.getElementById('move-dir-select');
+const subtitle = document.getElementById('move-dir-subtitle');
+
+if(subtitle) subtitle.innerText = `Select destination directory for "${item.name}"`;
+
+if(selectEl) {
+selectEl.innerHTML = '';
+const allDirs = ['Desktop', 'Documents', 'Downloads', 'Vacation Photos', 'Tax_Forms'];
+userVFSFiles.forEach(f => {
+if(f.type === 'folder' && !allDirs.includes(f.name)) {
+allDirs.push(f.name);
+}
+});
+
+allDirs.forEach(dir => {
+if(dir !== item.name) {
+const opt = document.createElement('option');
+opt.value = dir;
+opt.innerText = dir;
+if(dir === item.path) opt.selected = true;
+selectEl.appendChild(opt);
+}
+});
+}
+
+if(modal) modal.style.display = 'block';
+};
+
+window.closeMoveDirModal = function() {
+const modal = document.getElementById('move-dir-modal');
+if(modal) modal.style.display = 'none';
+contextMenuTarget = null;
+};
+
+window.confirmMoveDir = function() {
+const selectEl = document.getElementById('move-dir-select');
+const targetDir = selectEl ? selectEl.value : null;
+
+if(!targetDir || !contextMenuTarget) {
+closeMoveDirModal();
+return;
+}
+
+const item = contextMenuTarget;
+const vfsItem = userVFSFiles.find(f => f.path === item.path && f.name === item.name);
+if(vfsItem) {
+vfsItem.path = targetDir;
+saveVFSToLocalStorage();
+rebuildDirectoriesFromVFS();
+setFilesPath(filesState.currentPath);
+showAlert("Files", `Successfully moved "${item.name}" to ${targetDir}`);
+}
+closeMoveDirModal();
+};
+
+window.openDeleteConfirmModal = function(item) {
+itemToDeleteTarget = item;
+const modal = document.getElementById('delete-confirm-modal');
+const subtitle = document.getElementById('delete-confirm-subtitle');
+if(subtitle) subtitle.innerText = `Are you sure you want to delete "${item.name}"? This action cannot be undone.`;
+if(modal) modal.style.display = 'block';
+};
+
+window.closeDeleteConfirmModal = function() {
+const modal = document.getElementById('delete-confirm-modal');
+if(modal) modal.style.display = 'none';
+itemToDeleteTarget = null;
+};
+
+window.executeDeleteAction = function() {
+if(!itemToDeleteTarget) {
+closeDeleteConfirmModal();
+return;
+}
+const item = itemToDeleteTarget;
+
+userVFSFiles = userVFSFiles.filter(f => !(f.path === item.path && f.name === item.name));
+
+if(item.type === 'folder') {
+userVFSFiles = userVFSFiles.filter(f => f.path !== item.name);
+delete filesState.directories[item.name];
+}
+
+userNotes = userNotes.filter(n => n.title !== item.name);
+saveNotesToLocalStorage();
+
+saveVFSToLocalStorage();
+rebuildDirectoriesFromVFS();
+closeDeleteConfirmModal();
+setFilesPath(filesState.currentPath);
+
+const notesListEl = document.getElementById('notes-list');
+if(notesListEl) {
+renderNotesList();
+if(currentEditingNoteId && !userNotes.some(n => n.id === currentEditingNoteId)) {
+createNewNote();
+}
+}
+};
+
+window.openFileItem = function(itemStr) {
+const item = typeof itemStr === 'string' ? JSON.parse(decodeURIComponent(itemStr)) : itemStr;
+if(item.type === 'folder') {
+if(!filesState.directories[item.name]) {
+filesState.directories[item.name] = [];
+}
+setFilesPath(item.name);
+} else if(item.name.match(/\.(html|htm)$/i)) {
+openSafariWithHtml(item.name, item.content || '<h1>Empty HTML file</h1>');
+} else if(item.name.match(/\.(txt|docx|xlsx|pdf|md)$/i) || item.type === 'file') {
+openNoteWithFile(item);
+} else if(item.name.match(/\.(png|jpg|jpeg|gif)$/i) || item.url) {
+const imgUrl = item.url || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1000&auto=format&fit=crop';
+openImageViewer(item.name, imgUrl);
+} else {
+showAlert("Files", `Opening "${item.name}"...`);
+}
+};
+
+window.openNoteWithFile = function(item) {
+let note = userNotes.find(n => n.title === item.name);
+if (!note) {
+note = {
+id: 'note_' + Date.now(),
+title: item.name,
+content: item.content || `Contents of ${item.name}:\n\n(Edit and save your changes here)`,
+updated: Date.now()
+};
+userNotes.unshift(note);
+saveNotesToLocalStorage();
+}
+openApp('notes', note.id);
+};
+
+window.showFileContextMenu = function(e, itemStr) {
+e.preventDefault();
+e.stopPropagation();
+const item = typeof itemStr === 'string' ? JSON.parse(decodeURIComponent(itemStr)) : itemStr;
+contextMenuTarget = item;
+
+const menu = document.getElementById('file-context-menu');
+if(!menu) return;
+
+menu.style.left = `${Math.min(e.clientX, window.innerWidth - 200)}px`;
+menu.style.top = `${Math.min(e.clientY, window.innerHeight - 250)}px`;
+menu.classList.remove('hidden');
+};
+
+window.ctxAction = function(action) {
+const menu = document.getElementById('file-context-menu');
+if(menu) menu.classList.add('hidden');
+if(!contextMenuTarget) return;
+
+const item = contextMenuTarget;
+
+if (action === 'open') {
+openFileItem(item);
+} else if (action === 'notes') {
+openNoteWithFile(item);
+} else if (action === 'rename') {
+openRenameModal(item);
+return;
+} else if (action === 'move') {
+openMoveDirModal(item);
+return;
+} else if (action === 'delete') {
+openDeleteConfirmModal(item);
+return;
+} else if (action === 'properties') {
+showAlert("Properties", `Name: ${item.name}\nType: ${item.type}\nPath: ${item.path}\nSize: ${item.size || 'N/A'}\nDate: ${item.date || 'N/A'}`);
+}
+contextMenuTarget = null;
+};
+
+document.addEventListener('click', (e) => {
+const menu = document.getElementById('file-context-menu');
+if (menu && !menu.contains(e.target)) {
+menu.classList.add('hidden');
+}
+});
+
+function renderFilesApp() {
+const navItems = ['Desktop', 'Documents', 'Downloads', 'Vacation Photos', 'Tax_Forms'];
+const currentItems = filesState.directories[filesState.currentPath] || [];
+
+return `<div class="flex h-full w-full bg-white/80 backdrop-blur-md rounded-b-xl overflow-hidden text-gray-800"> <div class="w-56 border-r border-gray-200 bg-gray-50/70 p-3 flex flex-col gap-1"> <div class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 px-2 mt-2">Locations</div> ${navItems.map(path =>
+`<div class="px-3 py-2 rounded-lg text-sm font-medium cursor-pointer flex items-center gap-2.5 transition-colors ${filesState.currentPath === path ? 'bg-blue-500 text-white shadow-sm' : 'text-gray-700 hover:bg-gray-200/60'}" onclick="setFilesPath('${path}')">
+<i class="fas ${path.includes('Photo') || path.includes('Tax') ? 'fa-folder' : (path === 'Desktop' ? 'fa-desktop' : (path === 'Documents' ? 'fa-file' : 'fa-download'))} w-4 text-center"></i>
+<span class="truncate">${path}</span>
+</div>`
+).join('')}
+<div class="mt-auto p-2">
+<button onclick="openCreateItemModal()" class="w-full bg-blue-500 hover:bg-blue-600 text-white text-xs py-2 rounded-lg font-medium shadow-md transition-colors flex items-center justify-center gap-2">
+<i class="fas fa-plus"></i> New Item
+</button>
+</div>
+</div>
+<div class="flex-1 flex flex-col bg-white">
+<div class="h-12 border-b border-gray-200 px-6 flex items-center justify-between bg-gray-50/30">
+<div class="font-semibold text-sm text-gray-700 flex items-center gap-2">
+<i class="fas fa-folder-open text-blue-500"></i> ${filesState.currentPath}
+</div>
+<div class="text-xs text-gray-400">${currentItems.length} items</div>
+</div>
+<div class="flex-1 p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 content-start overflow-y-auto">
+${currentItems.length === 0 ? '<div class="col-span-full text-center text-gray-400 py-12 text-sm">This folder is empty</div>' : currentItems.map(item => `
+<div class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-blue-50 cursor-pointer group transition-all border border-transparent hover:border-blue-200" onclick="openFileItem('${encodeURIComponent(JSON.stringify(item))}')" oncontextmenu="showFileContextMenu(event, '${encodeURIComponent(JSON.stringify(item))}')">
+<i class="${item.icon} text-5xl group-hover:scale-105 transition-transform drop-shadow-sm"></i>
+<span class="text-xs text-gray-800 font-medium text-center truncate w-full px-1">${item.name}</span>
+<span class="text-[10px] text-gray-400">${item.size}</span>
+</div>
+`).join('')} </div> </div> </div>`;
+}
+
+function renderPaintApp() {
+setTimeout(initPaintCanvas, 50);
+return `<div class="flex flex-col h-full w-full bg-[#f0f0f0] rounded-b-xl overflow-hidden select-none"> <div class="h-12 bg-white border-b border-gray-200 px-4 flex items-center gap-4 shadow-sm"> <div class="flex items-center gap-2"> <button onclick="setPaintTool('brush')" id="tool-brush" class="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-medium shadow-sm transition-colors">Brush</button> <button onclick="setPaintTool('eraser')" id="tool-eraser" class="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-300 transition-colors">Eraser</button> </div> <div class="h-6 w-[1px] bg-gray-300"></div> <div class="flex items-center gap-2"> <span class="text-xs text-gray-500 font-medium">Size:</span> <input type="range" min="2" max="40" value="6" class="w-24 cursor-pointer" oninput="setPaintSize(this.value)"> </div> <div class="h-6 w-[1px] bg-gray-300"></div> <div class="flex items-center gap-1.5"> <div class="w-6 h-6 rounded-full bg-black cursor-pointer border-2 border-white shadow-sm ring-1 ring-gray-300" onclick="setPaintColor('#000000')"></div> <div class="w-6 h-6 rounded-full bg-red-500 cursor-pointer border-2 border-white shadow-sm ring-1 ring-gray-300" onclick="setPaintColor('#ef4444')"></div> <div class="w-6 h-6 rounded-full bg-blue-500 cursor-pointer border-2 border-white shadow-sm ring-1 ring-gray-300" onclick="setPaintColor('#3b82f6')"></div> <div class="w-6 h-6 rounded-full bg-green-500 cursor-pointer border-2 border-white shadow-sm ring-1 ring-gray-300" onclick="setPaintColor('#22c55e')"></div> <div class="w-6 h-6 rounded-full bg-yellow-400 cursor-pointer border-2 border-white shadow-sm ring-1 ring-gray-300" onclick="setPaintColor('#facc15')"></div> <input type="color" id="paint-color-input" value="#000000" class="w-6 h-6 rounded border-none cursor-pointer bg-transparent" oninput="setPaintColor(this.value)" onchange="setPaintColor(this.value)"> </div> <div class="ml-auto flex gap-2"> <button onclick="clearPaintCanvas()" class="px-3 py-1.5 bg-gray-200 hover:bg-red-100 hover:text-red-600 text-gray-700 rounded-lg text-xs font-medium transition-colors">Clear</button> <button onclick="savePaintCanvas()" class="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-medium shadow-sm transition-colors">Save to Files</button> </div> </div> <div class="flex-1 p-4 flex items-center justify-center overflow-hidden bg-gray-100"> <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200"> <canvas id="paint-canvas" width="700" height="400" class="cursor-crosshair bg-white block"></canvas> </div> </div> </div>`;
+}
+
+let paintSettings = { color: '#000000', size: 6, tool: 'brush' };
+window.setPaintTool = function(tool) {
+paintSettings.tool = tool;
+const toolBrush = document.getElementById('tool-brush');
+const toolEraser = document.getElementById('tool-eraser');
+if(toolBrush) toolBrush.className = tool === 'brush' ? 'px-3 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-medium shadow-sm transition-colors' : 'px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-300 transition-colors';
+if(toolEraser) toolEraser.className = tool === 'eraser' ? 'px-3 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-medium shadow-sm transition-colors' : 'px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-300 transition-colors';
+};
+window.setPaintColor = function(color) {
+paintSettings.color = color;
+paintSettings.tool = 'brush';
+setPaintTool('brush');
+const colorPicker = document.getElementById('paint-color-input');
+if (colorPicker && colorPicker.value !== color) {
+colorPicker.value = color;
+}
+};
+window.setPaintSize = function(size) {
+paintSettings.size = parseInt(size);
+};
+window.clearPaintCanvas = function() {
+const canvas = document.getElementById('paint-canvas');
+if(!canvas) return;
+const ctx = canvas.getContext('2d');
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+};
+window.savePaintCanvas = function() {
+const canvas = document.getElementById('paint-canvas');
+if(!canvas) return;
+const dataUrl = canvas.toDataURL('image/png');
+const name = prompt("Enter file name for your drawing:", "MyDrawing.png");
+if(!name) return;
+
+const newItem = {
+name: name.endsWith('.png') ? name : name + '.png',
+type: 'file',
+icon: 'far fa-file-image text-purple-400',
+size: '240 KB',
+date: 'Just now',
+url: dataUrl
+};
+userVFSFiles.push({ path: 'Desktop', ...newItem });
+saveVFSToLocalStorage();
+rebuildDirectoriesFromVFS();
+showAlert("Paint", `Successfully saved "${name}" to Desktop!`);
+};
+
+function initPaintCanvas() {
+const canvas = document.getElementById('paint-canvas');
+if(!canvas) return;
+const ctx = canvas.getContext('2d');
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+let painting = false;
+
+function startPosition(e) {
+painting = true;
+draw(e);
+}
+function endPosition() {
+painting = false;
+ctx.beginPath();
+}
+function draw(e) {
+if(!painting) return;
+const rect = canvas.getBoundingClientRect();
+const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+const x = clientX - rect.left;
+const y = clientY - rect.top;
+
+ctx.lineWidth = paintSettings.size;
+ctx.lineCap = 'round';
+ctx.strokeStyle = paintSettings.tool === 'eraser' ? '#ffffff' : paintSettings.color;
+
+ctx.lineTo(x, y);
+ctx.stroke();
+ctx.beginPath();
+ctx.moveTo(x, y);
+}
+
+canvas.addEventListener('mousedown', startPosition);
+canvas.addEventListener('mouseup', endPosition);
+canvas.addEventListener('mousemove', draw);
+
+canvas.addEventListener('touchstart', startPosition, {passive: true});
+canvas.addEventListener('touchend', endPosition, {passive: true});
+canvas.addEventListener('touchmove', draw, {passive: true});
+}
+
+function renderSafari() {
+return `<div class="flex flex-col h-full w-full bg-white">
+<div class="h-12 bg-gray-100 border-b border-gray-300 flex items-center px-4 gap-3 shadow-sm">
+<div class="flex gap-2 text-gray-500">
+<i class="fas fa-chevron-left cursor-pointer hover:text-gray-800" onclick="safariGoBack()"></i>
+<i class="fas fa-chevron-right cursor-pointer hover:text-gray-800" onclick="safariGoForward()"></i>
+</div>
+<div class="flex-1 flex items-center bg-white border border-gray-300 rounded-md px-3 h-8 shadow-inner gap-2">
+<i class="fas fa-lock text-[10px] text-gray-400"></i>
+<input type="text" id="safari-url-input" class="w-full text-sm outline-none bg-transparent text-gray-700" value="https://en.wikipedia.org" onkeypress="if(event.key==='Enter') navigateSafari()">
+</div>
+<button onclick="navigateSafari()" class="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-xs font-semibold shadow-sm transition-colors">Go</button>
+</div>
+<div class="flex-1 bg-white relative overflow-hidden flex flex-col">
+<iframe id="safari-iframe" src="https://en.wikipedia.org" class="w-full h-full border-none" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+</div>
+</div>`;
+}
+
+window.navigateSafari = function() {
+const input = document.getElementById('safari-url-input');
+const iframe = document.getElementById('safari-iframe');
+if(!input || !iframe) return;
+
+let url = input.value.trim();
+if(url.startsWith('local://')) {
+return;
+}
+if (!url.startsWith('http://') && !url.startsWith('https://')) {
+if (url.includes('.') && !url.includes(' ')) {
+url = 'https://' + url;
+} else {
+url = 'https://www.google.com/search?q=' + encodeURIComponent(url);
+}
+}
+input.value = url;
+iframe.removeAttribute('srcdoc');
+iframe.src = url;
+};
+
+window.safariGoBack = function() {
+const iframe = document.getElementById('safari-iframe');
+if(iframe && iframe.contentWindow) {
+try { iframe.contentWindow.history.back(); } catch(e) {}
+}
+};
+
+window.safariGoForward = function() {
+const iframe = document.getElementById('safari-iframe');
+if(iframe && iframe.contentWindow) {
+try { iframe.contentWindow.history.forward(); } catch(e) {}
+}
+};
+
+function renderNotesBase() {
+return `<div class="flex h-full w-full bg-white">
+<div class="w-64 border-r border-gray-200 bg-[#f6f6f6] flex flex-col">
+<div class="h-12 border-b border-gray-200 flex items-center px-4 justify-between">
+<i class="fas fa-th-large text-gray-500"></i>
+<div class="flex items-center gap-2">
+<i class="fas fa-trash text-gray-400 hover:text-red-500 cursor-pointer transition-colors" title="Delete current note" onclick="deleteCurrentNote()"></i>
+<i class="fas fa-edit text-gray-500 cursor-pointer hover:text-gray-800" title="New Note" onclick="createNewNote()"></i>
+</div>
+</div>
+<div id="notes-list" class="flex-1 overflow-y-auto"></div>
+</div>
+<div class="flex-1 flex flex-col relative">
+<div class="absolute top-2 right-4 flex items-center gap-3">
+<span class="text-gray-400 text-xs">Oct 2, 2026</span>
+<button onclick="manualSaveNote()" class="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-blue-500/30 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 border border-blue-400/50">
+<i class="fas fa-save text-sm"></i> SAVE TO VFS
+</button>
+</div>
+<input type="text" id="note-title" class="text-xl font-bold text-gray-800 p-6 pb-2 outline-none bg-transparent" placeholder="Title..." onblur="autoSaveNote()">
+<textarea id="note-content" class="flex-1 p-6 pt-2 outline-none bg-transparent resize-none text-gray-700 text-sm" placeholder="Start typing here..." onblur="autoSaveNote()"></textarea>
+</div>
+</div>`;
+}
+
+let currentEditingNoteId = null;
+
+window.renderNotesList = function() {
+const listEl = document.getElementById('notes-list');
+if (!listEl) return;
+
+userNotes.sort((a,b) => b.updated - a.updated);
+listEl.innerHTML = '';
+userNotes.forEach(note => {
+const isSelected = note.id === currentEditingNoteId;
+const div = document.createElement('div');
+div.className = `p-4 border-b border-gray-100 cursor-pointer ${isSelected ? 'bg-yellow-100' : 'hover:bg-gray-200/50'}`;
+div.innerHTML = `<div class="font-bold text-sm text-gray-800 truncate">${note.title || 'New Note'}</div> <div class="text-xs text-gray-500 truncate">${note.content || 'No additional text'}</div>`;
+div.onclick = () => selectNote(note.id);
+listEl.appendChild(div);
+});
+}
+
+window.createNewNote = function() {
+currentEditingNoteId = null;
+const noteTitle = document.getElementById('note-title');
+const noteContent = document.getElementById('note-content');
+if(noteTitle) noteTitle.value = '';
+if(noteContent) noteContent.value = '';
+renderNotesList();
+}
+
+window.selectNote = function(id) {
+currentEditingNoteId = id;
+const note = userNotes.find(n => n.id === id);
+if(note) {
+const noteTitle = document.getElementById('note-title');
+const noteContent = document.getElementById('note-content');
+if(noteTitle) noteTitle.value = note.title || '';
+if(noteContent) noteContent.value = note.content || '';
+renderNotesList();
+}
+}
+
+window.autoSaveNote = function() {
+const noteTitle = document.getElementById('note-title');
+const noteContent = document.getElementById('note-content');
+const title = noteTitle ? noteTitle.value.trim() : '';
+const content = noteContent ? noteContent.value.trim() : '';
+if(!title && !content) return;
+
+if (currentEditingNoteId) {
+const note = userNotes.find(n => n.id === currentEditingNoteId);
+if (note) {
+const oldTitle = note.title;
+note.title = title;
+note.content = content;
+note.updated = Date.now();
+
+// Write new content and sync title changes directly to VFS
+let vfsFile = userVFSFiles.find(f => f.name === oldTitle || f.name === title);
+if(vfsFile) {
+vfsFile.name = title || 'Untitled Note';
+vfsFile.content = content;
+} else {
+userVFSFiles.push({
+path: 'Documents',
+name: (title || 'Untitled Note').endsWith('.txt') ? (title || 'Untitled Note') : (title || 'Untitled Note') + '.txt',
+type: 'file',
+icon: 'far fa-file-alt text-gray-500',
+size: '12 KB',
+date: 'Just now',
+content: content
+});
+}
+saveVFSToLocalStorage();
+rebuildDirectoriesFromVFS();
+}
+} else {
+const newNote = {
+id: 'note_' + Date.now(),
+title: title || 'Untitled Note',
+content,
+updated: Date.now()
+};
+userNotes.unshift(newNote);
+currentEditingNoteId = newNote.id;
+
+userVFSFiles.push({
+path: 'Documents',
+name: (title || 'Untitled Note').endsWith('.txt') ? (title || 'Untitled Note') : (title || 'Untitled Note') + '.txt',
+type: 'file',
+icon: 'far fa-file-alt text-gray-500',
+size: '12 KB',
+date: 'Just now',
+content: content
+});
+saveVFSToLocalStorage();
+rebuildDirectoriesFromVFS();
+}
+saveNotesToLocalStorage();
+renderNotesList();
+}
+
+window.manualSaveNote = function() {
+autoSaveNote();
+showAlert("VFS Write Success", "File content successfully written and synchronized to VFS!");
+}
+
+window.deleteCurrentNote = function() {
+if (!currentEditingNoteId) {
+showAlert("Notes", "No note selected to delete.");
+return;
+}
+const note = userNotes.find(n => n.id === currentEditingNoteId);
+if (!note) return;
+
+if (confirm(`Are you sure you want to delete note "${note.title || 'Untitled'}"?`)) {
+userVFSFiles = userVFSFiles.filter(f => f.name !== note.title);
+saveVFSToLocalStorage();
+rebuildDirectoriesFromVFS();
+
+userNotes = userNotes.filter(n => n.id !== currentEditingNoteId);
+saveNotesToLocalStorage();
+
+createNewNote();
+showAlert("Notes", "Note deleted successfully.");
+}
+};
+
+function renderTerminal() {
+return `<div class="h-full w-full bg-[#1e1e1e] text-[#d4d4d4] font-mono text-xs p-2 overflow-y-auto flex flex-col" id="terminal-content"> <div>Last login: Mon Oct 2 10:00:15 on ttys000</div> <div class="mt-2" id="terminal-output"></div> <div class="flex items-center mt-1"> <span class="text-green-400 mr-2">➜</span> <span class="text-blue-400 mr-2">~</span> <input type="text" id="terminal-input" class="bg-transparent outline-none border-none flex-1 text-[#d4d4d4]" autofocus autocomplete="off"> </div> </div>`;
+}
+
+function initTerminal(container) {
+const input = container.querySelector('#terminal-input');
+const output = container.querySelector('#terminal-output');
+if(!input || !output) return;
+input.addEventListener('keypress', (e) => {
+if (e.key === 'Enter') {
+const cmd = input.value.trim();
+const line = document.createElement('div');
+line.innerHTML = `<span class="text-green-400 mr-2">➜</span><span class="text-blue-400 mr-2">~</span>${cmd}`;
+output.appendChild(line);
+
+const res = document.createElement('div');
+if (cmd === 'ls') res.innerText = 'Desktop Documents Downloads Music Pictures';
+else if (cmd === 'whoami') res.innerText = currentUser ? currentUser.name : 'guest';
+else if (cmd === 'clear') { output.innerHTML = ''; return input.value = ''; }
+else if (cmd.startsWith('rm ')) {
+const targetName = cmd.replace('rm ', '').trim();
+const found = userVFSFiles.find(f => f.name === targetName);
+if (found) {
+userVFSFiles = userVFSFiles.filter(f => f.name !== targetName);
+saveVFSToLocalStorage();
+rebuildDirectoriesFromVFS();
+res.innerText = `Removed "${targetName}"`;
+} else {
+res.innerText = `rm: ${targetName}: No such file or directory`;
+}
+}
+else if (cmd.length > 0) res.innerText = `command not found: ${cmd}`;
+
+if(res.innerText) output.appendChild(res);
+input.value = '';
+const termContent = container.querySelector('#terminal-content');
+if(termContent) termContent.scrollTop = termContent.scrollHeight;
+}
+});
+}
+
+const settingsState = { activeTab: 'wifi' };
+
+window.setSettingsTab = function(tab) {
+settingsState.activeTab = tab;
+const content = document.getElementById('content-settings');
+if(content) content.innerHTML = renderSettings();
+}
+
+window.toggleSettingsQS = function(key) {
+toggleQS(key);
+}
+
+window.setWallpaper = function(url) {
+const desktopBg = document.querySelector('.desktop-bg');
+const lockScreen = document.getElementById('lock-screen');
+if(desktopBg) desktopBg.style.backgroundImage = `url('${url}')`;
+if(lockScreen) lockScreen.style.backgroundImage = `url('${url}')`;
+}
+
+window.setBrightness = function(val) {
+const percentage = val / 100;
+const darkness = 0.7 - (percentage * 0.7);
+const brightnessOverlay = document.getElementById('brightness-overlay');
+if(brightnessOverlay) brightnessOverlay.style.opacity = darkness;
+const sliderFill = document.getElementById('slider-display-fill');
+if(sliderFill) sliderFill.style.width = `${percentage * 100}%`;
+}
+
+window.toggleDarkMode = function(enabled) {
+if(enabled) {
+document.body.classList.add('force-dark');
+document.querySelectorAll('.window').forEach(w => w.classList.add('window-dark'));
+} else {
+document.body.classList.remove('force-dark');
+document.querySelectorAll('.window').forEach(w => {
+const appId = w.id.replace('window-', '');
+if(!apps[appId] || !apps[appId].dark) {
+w.classList.remove('window-dark');
+}
+});
+}
+if(openWindows['settings']) {
+const settingsContent = document.getElementById('content-settings');
+if(settingsContent) settingsContent.innerHTML = renderSettings();
+}
+}
+
+function renderSettings() {
+const tabs = [
+{ id: 'wifi', name: 'Wi-Fi', icon: 'fas fa-wifi', color: 'bg-blue-500' },
+{ id: 'bluetooth', name: 'Bluetooth', icon: 'fab fa-bluetooth-b', color: 'bg-blue-600' },
+{ id: 'display', name: 'Displays', icon: 'fas fa-desktop', color: 'bg-blue-400' },
+{ id: 'wallpaper', name: 'Wallpaper', icon: 'fas fa-image', color: 'bg-teal-500' },
+{ id: 'general', name: 'General', icon: 'fas fa-cog', color: 'bg-gray-500' },
+];
+
+const renderSidebar = () => {
+return tabs.map(tab => {
+const isActive = settingsState.activeTab === tab.id;
+const bgClass = isActive ? 'bg-blue-500 text-white shadow-sm' : 'text-gray-700 hover:bg-gray-200';
+return `<div class="px-2 py-1.5 ${bgClass} rounded-md font-medium cursor-pointer flex items-center gap-2 transition-colors mb-1" onclick="setSettingsTab('${tab.id}')"> <div class="w-5 h-5 rounded flex items-center justify-center ${tab.color} text-white text-[10px] shadow-sm"><i class="${tab.icon}"></i></div> ${tab.name} </div>`;
+}).join('');
+};
+
+const renderContent = () => {
+if (settingsState.activeTab === 'wifi') {
+return `<div class="max-w-md w-full mx-auto mt-10"> <div class="flex items-center gap-4 mb-8"> <div class="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center shadow-md"> <i class="fas fa-wifi text-white text-3xl"></i> </div> <div> <h2 class="text-2xl font-semibold text-gray-800">Wi-Fi</h2> </div> </div> <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm"> <div class="p-4 flex justify-between items-center border-b border-gray-100"> <span class="font-medium text-gray-800">Wi-Fi</span> <label class="relative inline-flex items-center cursor-pointer"> <input type="checkbox" class="sr-only peer" ${qsState.wifi ? 'checked' : ''} onchange="toggleSettingsQS('wifi')"> <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div> </label> </div>`;
+} else if (settingsState.activeTab === 'wallpaper') {
+return `<div class="max-w-2xl w-full mx-auto mt-6"> <h2 class="text-2xl font-semibold text-gray-800 mb-6">Wallpaper</h2> <div class="grid grid-cols-2 gap-4"> <div class="cursor-pointer rounded-xl overflow-hidden border-2 border-blue-500 shadow-md" onclick="setWallpaper('https://images.unsplash.com/photo-1617040619263-41c5a9cb7521?q=80&w=2574&auto=format&fit=crop')"> <img src="https://images.unsplash.com/photo-1617040619263-41c5a9cb7521?q=80&w=500&auto=format&fit=crop" class="w-full h-32 object-cover"> <div class="p-2 bg-white text-xs font-medium text-center">Sequoia Abstract</div> </div> <div class="cursor-pointer rounded-xl overflow-hidden border border-gray-200 hover:border-blue-400 shadow-sm" onclick="setWallpaper('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=500&auto=format&fit=crop')"> <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=500&auto=format&fit=crop" class="w-full h-32 object-cover"> <div class="p-2 bg-white text-xs font-medium text-center">Tropical Beach</div> </div> </div> </div>`;
+} else if (settingsState.activeTab === 'general') {
+return `<div class="max-w-md w-full mx-auto mt-10"> <h2 class="text-2xl font-semibold text-gray-800 mb-6">General</h2> <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex items-center justify-between"> <span class="font-medium text-gray-800">User Account</span> <span class="text-sm text-gray-500">${currentUser ? currentUser.name : 'Guest'}</span> </div> </div>`;
+} else {
+return `<div class="max-w-md w-full mx-auto mt-10 text-gray-500 text-center">Settings for ${settingsState.activeTab}</div>`;
+}
+};
+
+return `<div class="flex h-full w-full bg-[#f6f6f6] rounded-b-xl overflow-hidden text-gray-800"> <div class="w-56 border-r border-gray-200 bg-[#f0f0f0] p-3 flex flex-col"> <div class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 px-2 mt-2">Preferences</div> ${renderSidebar()} </div> <div class="flex-1 bg-white p-6 overflow-y-auto">${renderContent()}</div> </div>`;
+}
+
+let qsState = { wifi: true, bluetooth: true, airdrop: false, dnd: false, mirror: false, musicPlaying: false };
+
+function setupQuickSettings() {
+const displaySlider = document.getElementById('slider-display');
+if (displaySlider) {
+displaySlider.addEventListener('click', (e) => {
+const rect = displaySlider.getBoundingClientRect();
+const x = e.clientX - rect.left;
+const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+setBrightness(percentage);
+});
+}
+
+const soundSlider = document.getElementById('slider-sound');
+if (soundSlider) {
+soundSlider.addEventListener('click', (e) => {
+const rect = soundSlider.getBoundingClientRect();
+const x = e.clientX - rect.left;
+const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+const fill = document.getElementById('slider-sound-fill');
+if(fill) fill.style.width = `${percentage}%`;
+});
+}
+}
+
+window.toggleControlCenter = function(e) {
+if(e) e.stopPropagation();
+const cc = document.getElementById('control-center');
+if(!cc) return;
+if(cc.classList.contains('hidden')) {
+closeAppleMenu();
+cc.classList.remove('hidden');
+setTimeout(() => {
+cc.classList.remove('opacity-0', 'scale-95');
+}, 10);
+} else {
+closeControlCenter();
+}
+};
+
+window.closeControlCenter = function() {
+const cc = document.getElementById('control-center');
+if(!cc) return;
+cc.classList.add('opacity-0', 'scale-95');
+setTimeout(() => {
+cc.classList.add('hidden');
+}, 200);
+};
+
+window.toggleQS = function(key, e) {
+if(e) e.stopPropagation();
+qsState[key] = !qsState[key];
+if (key === 'wifi') {
+const btn = document.getElementById('qs-wifi-btn');
+const status = document.getElementById('qs-wifi-status');
+if(btn && status) {
+btn.className = qsState.wifi ? 'w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-lg transition-transform group-active:scale-95' : 'w-8 h-8 rounded-full bg-gray-500/50 flex items-center justify-center shadow-lg transition-transform group-active:scale-95';
+status.innerText = qsState.wifi ? 'Home Network' : 'Off';
+}
+} else if (key === 'bluetooth') {
+const btn = document.getElementById('qs-bt-btn');
+const status = document.getElementById('qs-bt-status');
+if(btn && status) {
+btn.className = qsState.bluetooth ? 'w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-lg transition-transform group-active:scale-95' : 'w-8 h-8 rounded-full bg-gray-500/50 flex items-center justify-center shadow-lg transition-transform group-active:scale-95';
+status.innerText = qsState.bluetooth ? 'On' : 'Off';
+}
+} else if (key === 'airdrop') {
+const btn = document.getElementById('qs-ad-btn');
+const status = document.getElementById('qs-ad-status');
+if(btn && status) {
+btn.className = qsState.airdrop ? 'w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-lg transition-transform group-active:scale-95' : 'w-8 h-8 rounded-full bg-gray-500/50 flex items-center justify-center shadow-lg transition-transform group-active:scale-95';
+status.innerText = qsState.airdrop ? 'Everyone' : 'Off';
+}
+} else if (key === 'dnd') {
+const el = document.getElementById('qs-dnd');
+if(el) {
+el.className = qsState.dnd ? 'flex-1 bg-indigo-600 rounded-2xl p-3 flex flex-col justify-center items-center gap-1.5 border border-white/20 cursor-pointer hover:bg-indigo-500 transition-all shadow-inner active:scale-[0.98]' : 'flex-1 bg-white/10 rounded-2xl p-3 flex flex-col justify-center items-center gap-1.5 border border-white/10 cursor-pointer hover:bg-white/20 transition-all shadow-inner active:scale-[0.98]';
+}
+} else if (key === 'mirror') {
+const el = document.getElementById('qs-mirror');
+if(el) {
+el.className = qsState.mirror ? 'flex-1 bg-indigo-600 rounded-2xl p-3 flex flex-col justify-center items-center gap-1.5 border border-white/20 cursor-pointer hover:bg-indigo-500 transition-all shadow-inner active:scale-[0.98]' : 'flex-1 bg-white/10 rounded-2xl p-3 flex flex-col justify-center items-center gap-1.5 border border-white/10 cursor-pointer hover:bg-white/20 transition-all shadow-inner active:scale-[0.98]';
+}
+}
+};
+
+window.toggleMusic = function(e) {
+if(e) e.stopPropagation();
+qsState.musicPlaying = !qsState.musicPlaying;
+const btn = document.getElementById('qs-play-btn');
+const title = document.getElementById('qs-music-title');
+if(btn) {
+btn.className = qsState.musicPlaying ? 'fas fa-pause hover:text-white cursor-pointer transition-colors text-lg drop-shadow-sm' : 'fas fa-play hover:text-white cursor-pointer transition-colors text-lg drop-shadow-sm';
+}
+if(title) {
+title.innerText = qsState.musicPlaying ? 'Sequoia Chill' : 'Not Playing';
+}
+};
+
+window.openImageViewer = function(title, url) {
+const win = document.createElement('div');
+win.className = 'window';
+const size = getOptimalWindowSize(600, 450);
+win.style.width = `${size.width}px`;
+win.style.height = `${size.height}px`;
+win.style.top = `${(window.innerHeight - size.height) / 2}px`;
+win.style.left = `${(window.innerWidth - size.width) / 2}px`;
+win.style.zIndex = ++zIndexCounter;
+
+win.innerHTML = `<div class="window-header flex justify-between select-none handle">
+<div class="window-controls">
+<div class="control-btn btn-close cursor-pointer" onclick="this.closest('.window').remove()"><i class="fas fa-times"></i></div>
+<div class="control-btn btn-minimize cursor-pointer" onclick="this.closest('.window').classList.add('minimized')"><i class="fas fa-minus"></i></div>
+<div class="control-btn btn-maximize cursor-pointer" onclick="this.closest('.window').classList.toggle('maximized')"><i class="fas fa-expand-alt"></i></div>
+</div>
+<div class="text-xs font-semibold flex-1 text-center truncate">${title}</div>
+<div style="width: 60px;"></div>
+</div>
+<div class="flex-1 bg-black flex items-center justify-center p-4 overflow-hidden relative">
+<img src="${url}" class="max-w-full max-h-full object-contain rounded shadow-2xl">
+</div>`;
+
+const desktopArea = document.getElementById('desktop-area');
+if(desktopArea) desktopArea.appendChild(win);
+makeDraggable(win, win.querySelector('.window-header'));
+win.addEventListener('mousedown', () => bringToFront(win));
+};
+
+window.openSafariWithHtml = function(title, htmlContent) {
+openApp('safari');
+setTimeout(() => {
+const iframe = document.getElementById('safari-iframe');
+const input = document.getElementById('safari-url-input');
+if(iframe) {
+iframe.srcdoc = htmlContent;
+}
+if(input) {
+input.value = `local://${title}`;
+}
+}, 100);
+};
+
+window.onload = init;
+</script>
+</body>
+</html>

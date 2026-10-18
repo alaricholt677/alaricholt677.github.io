@@ -370,31 +370,291 @@ Your support helps the project grow.
 
 ---
 
-# 🙏 Thank You
+# 🙏 Thank You<div align="center">
 
-## 📌 Extra Pages & Quick Links
+<img src="https://alaricholt677.github.io/win12-icon.svg" width="88" height="88" alt="Project Directory Icon">
 
-| Page | Visit | Spanish/española |
-|------|--------|---------|
-| ![Win12 Icon](https://alaricholt677.github.io/win12-icon.svg) **Thank‑You Page** | [Click to visit](https://alaricholt677.github.io/thanks/thanks.html) | *Santuario de Agradecimiento* |
-| ![Search Icon](https://alaricholt677.github.io/search.svg) **MOD Hub** | [Click to visit](https://alaricholt677.github.io/MOD) | *Centro de Mods y Juegos* |
-| ![User Icon](https://alaricholt677.github.io/user.png) **Minecraft Recreation** | [Click to visit](https://alaricholt677.github.io/downloads/) | *Descarga de la Recreación de Minecraft* |
-| ![Win12 Icon](https://alaricholt677.github.io/win12-icon.svg) **Win12 Simulator Homepage** | [Click to visit](https://alaricholt677.github.io) | *Página Principal del Simulador Win12* |
-| ![Search Icon](https://alaricholt677.github.io/search.svg) **Win12 Preview (External)** | [Click to visit](https://tjy-gitnub.github.io/win12/desktop.html) | *Vista Previa Externa de Win12* |
-| ![User Icon](https://alaricholt677.github.io/user.png) **Recommended Files** | [Click to visit](view-source:https://alaricholt677.github.io) | *Archivos Recomendados* |
-| ![Cat Icon](https://alaricholt677.github.io/github_mascot_README.svg) **Github-Style REPO Viewer (do not get confused with github)** | [Click to visit](https://alaricholt677.github.io/github-style-previewer) | *Visor de REPO al estilo Github (no te confundas con github)* |
-| ![Search](https://alaricholt677.github.io/search.svg) **MoreOS Selection** | [Click to visit](https://alaricholt677.github.io/moreOS) | *Selección de MoreOS* |
-| ![UserIcon](https://alaricholt677.github.io/github_mascot_README.svg) **Setup Before Use** | [Click to visit](https://alaricholt677.github.io/setup/) | *Configuración antes de usar* |
-| ![Folder Icon](https://alaricholt677.github.io/search.svg) **Extensions Manager** | [Click to visit](https://alaricholt677.github.io/extensions/) | *Administrador de Extensiones* |
-| ![Folder Icon](https://alaricholt677.github.io/search.svg) **Extension Files** | [Click to visit](https://alaricholt677.github.io/extension/files/) | *Archivos de Extensiones* |
-| ![Image Icon](https://alaricholt677.github.io/github_mascot_README.svg) **Images Directory** | [Click to visit](https://alaricholt677.github.io/images/) | *Directorio de Imágenes* |
-| ![Drive Icon](https://alaricholt677.github.io/user.png) **LocalDrive Embed Mode** | [Click to visit](https://alaricholt677.github.io/localdrive/embed/) | *Modo Incrustado de LocalDrive* |
-| ![Win12 Icon](https://alaricholt677.github.io/win12-icon.svg) **Win12 Pages (Dynamic)** | [Click to visit](https://alaricholt677.github.io/win12pages/) | *Páginas Dinámicas de Win12* |
-| ![Win12 Icon](https://alaricholt677.github.io/win12-icon.svg) **Win12 Page Selector** | [Click to visit](https://alaricholt677.github.io/win12pages/#home) | *Selector de Página Win12* |
-| ![GitIcon](https://alaricholt677.github.io/github_mascot_README.svg) **DOWNLOAD THE KINGERSOLUTION** | [Click to visit](https://alaricholt677.github.io/KingerSolution2.0/) | *DESCARGA EL KINGERSOLUTION* |
-| ![Win12 Icon](https://alaricholt677.github.io/win12-icon.svg) **WinUI3 Kit (PKG)** | [Click to visit](https://alaricholt677.github.io/PKGS/winui3/) | *Kit WinUI3 (Paquete)* |
-| ![win12 Icon](https://alaricholt677.github.io/win12-icon.svg) **WINWeather** | [Click To Visit](https://alaricholt677.github.io/win12WeatherApp) | *WINWeather* |
-| ![search Icon](https://alaricholt677.github.io/search.svg) **PACKAGES** | [Click To Visit](https://alaricholt677.github.io/PKGS) | *paquetes* |
-| ![search Icon](https://alaricholt677.github.io/search.svg) **RepoArchive** | [Click To Visit](https://alaricholt677.github.io/RepoArchive) | *ArchivoRepo* |
-| ![search Icon](https://alaricholt677.github.io/search.svg) **RepoArchive** | [Click To Visit](https://alaricholt677.github.io/RepoArchive) | *ArchivoRepo* |
-| ![Search icon](https://alaricholt677.github.io/search.svg) **ANI Studio Setup**| [Click To Visit](https://alaricholt677.github.io/ANI) | *Configuración de ANI Studio* |
+# ✨ Project Directory
+
+### Simulators · Downloads · Developer Tools · Packages · Experiments
+
+Browse the complete collection of projects and utilities.  
+Select an entry to reveal its description and launch button.
+
+<br>
+
+![Projects](https://img.shields.io/badge/Directory-Projects-52E4FF?style=for-the-badge)
+![Platform](https://img.shields.io/badge/Platform-Web-B188FF?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Online-70E891?style=for-the-badge)
+
+</div>
+
+---
+
+## ⭐ Featured Projects
+
+- <details open>
+  <summary>
+    <img src="https://alaricholt677.github.io/win12-icon.svg" width="26" height="26" alt="Trusten Icon">
+    &nbsp;<strong>Trusten OS ISO Builder</strong>
+    &nbsp;<code>FEATURED</code>
+  </summary>
+
+  <br>
+
+  > **One executable. An entire desktop environment.**
+
+  Download the Phone Link Python builder and complete the interactive Windows PE roadmap. The guide walks through the ADK, WinPE add-on, Python, Tkinter, MinGW-w64, compilation, and ISO creation.
+
+  **Español:** *Constructor de ISO de Trusten con una guía interactiva paso a paso.*
+
+  <p>
+    <a href="https://alaricholt677.github.io/ISOBuilder/">
+      <img src="https://img.shields.io/badge/Open-ISO_Builder-52E4FF?style=for-the-badge" alt="Open ISO Builder">
+    </a>
+  </p>
+  </details>
+
+- <details>
+  <summary>
+    <img src="https://alaricholt677.github.io/win12-icon.svg" width="26" height="26" alt="Win12 Icon">
+    &nbsp;<strong>Win12 Simulator Homepage</strong>
+    &nbsp;<code>SIMULATOR</code>
+  </summary>
+
+  <br>
+
+  Main homepage for the Win12 Simulator.
+
+  **Español:** *Página Principal del Simulador Win12*
+
+  <p>
+    <a href="https://alaricholt677.github.io">
+      <img src="https://img.shields.io/badge/Open-Win12_Simulator-B188FF?style=for-the-badge" alt="Open Win12 Simulator">
+    </a>
+  </p>
+  </details>
+
+- <details>
+  <summary>
+    <img src="https://alaricholt677.github.io/search.svg" width="26" height="26" alt="MoreOS Icon">
+    &nbsp;<strong>MoreOS Selection</strong>
+    &nbsp;<code>OPERATING SYSTEMS</code>
+  </summary>
+
+  <br>
+
+  Browse additional operating-system projects and experiments.
+
+  **Español:** *Selección de MoreOS*
+
+  <p>
+    <a href="https://alaricholt677.github.io/moreOS">
+      <img src="https://img.shields.io/badge/Explore-MoreOS-52E4FF?style=for-the-badge" alt="Explore MoreOS">
+    </a>
+  </p>
+  </details>
+
+---
+
+## 🎮 Simulators and Downloads
+
+- <details>
+  <summary>
+    <img src="https://alaricholt677.github.io/user.png" width="26" height="26" alt="Minecraft Icon">
+    &nbsp;<strong>Minecraft Recreation</strong>
+    &nbsp;<code>DOWNLOAD</code>
+  </summary>
+
+  <br>
+
+  Download the Minecraft recreation project.
+
+  **Español:** *Descarga de la Recreación de Minecraft*
+
+  <p>
+    <a href="https://alaricholt677.github.io/downloads/">
+      <img src="https://img.shields.io/badge/Download-Minecraft_Recreation-70E891?style=for-the-badge" alt="Download Minecraft Recreation">
+    </a>
+  </p>
+  </details>
+
+- <details>
+  <summary>
+    <img src="https://alaricholt677.github.io/search.svg" width="26" height="26" alt="MOD Icon">
+    &nbsp;<strong>MOD Hub</strong>
+    &nbsp;<code>MODS & GAMES</code>
+  </summary>
+
+  <br>
+
+  Browse mods, games, and related project downloads.
+
+  **Español:** *Centro de Mods y Juegos*
+
+  <p>
+    <a href="https://alaricholt677.github.io/MOD">
+      <img src="https://img.shields.io/badge/Open-MOD_Hub-FF8BCB?style=for-the-badge" alt="Open MOD Hub">
+    </a>
+  </p>
+  </details>
+
+- <details>
+  <summary>
+    <img src="https://alaricholt677.github.io/search.svg" width="26" height="26" alt="Preview Icon">
+    &nbsp;<strong>Win12 Preview</strong>
+    &nbsp;<code>EXTERNAL</code>
+  </summary>
+
+  <br>
+
+  External preview of the Win12 desktop.
+
+  **Español:** *Vista Previa Externa de Win12*
+
+  <p>
+    <a href="https://tjy-gitnub.github.io/win12/desktop.html">
+      <img src="https://img.shields.io/badge/Open-External_Preview-FFD27D?style=for-the-badge" alt="Open External Preview">
+    </a>
+  </p>
+  </details>
+
+- <details>
+  <summary>
+    🐙 &nbsp;<strong>Download KingerSolution</strong>
+    &nbsp;<code>DOWNLOAD</code>
+  </summary>
+
+  <br>
+
+  Download or open KingerSolution 2.0.
+
+  **Español:** *Descarga KingerSolution*
+
+  <p>
+    <a href="https://alaricholt677.github.io/KingerSolution2.0/">
+      <img src="https://img.shields.io/badge/Download-KingerSolution-70E891?style=for-the-badge" alt="Download KingerSolution">
+    </a>
+  </p>
+  </details>
+
+---
+
+## 🪟 Win12 Collection
+
+- <details>
+  <summary>
+    <img src="https://alaricholt677.github.io/win12-icon.svg" width="26" height="26" alt="Win12 Icon">
+    &nbsp;<strong>Win12 Pages</strong>
+    &nbsp;<code>DYNAMIC</code>
+  </summary>
+
+  <br>
+
+  Browse the collection of dynamic Win12 pages.
+
+  **Español:** *Páginas Dinámicas de Win12*
+
+  <p>
+    <a href="https://alaricholt677.github.io/win12pages/">
+      <img src="https://img.shields.io/badge/Open-Win12_Pages-B188FF?style=for-the-badge" alt="Open Win12 Pages">
+    </a>
+  </p>
+  </details>
+
+- <details>
+  <summary>
+    <img src="https://alaricholt677.github.io/win12-icon.svg" width="26" height="26" alt="Win12 Icon">
+    &nbsp;<strong>Win12 Page Selector</strong>
+    &nbsp;<code>NAVIGATION</code>
+  </summary>
+
+  <br>
+
+  Select a page from the Win12 collection.
+
+  **Español:** *Selector de Página Win12*
+
+  <p>
+    <a href="https://alaricholt677.github.io/win12pages/#home">
+      <img src="https://img.shields.io/badge/Open-Page_Selector-52E4FF?style=for-the-badge" alt="Open Page Selector">
+    </a>
+  </p>
+  </details>
+
+- <details>
+  <summary>
+    <img src="https://alaricholt677.github.io/win12-icon.svg" width="26" height="26" alt="Weather Icon">
+    &nbsp;<strong>WINWeather</strong>
+    &nbsp;<code>WEATHER</code>
+  </summary>
+
+  <br>
+
+  Weather application created for the Win12 environment.
+
+  **Español:** *Aplicación meteorológica WINWeather*
+
+  <p>
+    <a href="https://alaricholt677.github.io/win12WeatherApp">
+      <img src="https://img.shields.io/badge/Open-WINWeather-52E4FF?style=for-the-badge" alt="Open WINWeather">
+    </a>
+  </p>
+  </details>
+
+---
+
+## 🧰 Development Tools
+
+- <details>
+  <summary>
+    👤 &nbsp;<strong>Setup Before Use</strong>
+    &nbsp;<code>SETUP</code>
+  </summary>
+
+  <br>
+
+  Complete the required setup before using supported projects.
+
+  **Español:** *Configuración antes de usar*
+
+  <p>
+    <a href="https://alaricholt677.github.io/setup/">
+      <img src="https://img.shields.io/badge/Open-Setup_Guide-FFD27D?style=for-the-badge" alt="Open Setup Guide">
+    </a>
+  </p>
+  </details>
+
+- <details>
+  <summary>
+    🔍 &nbsp;<strong>ANI Studio Setup</strong>
+    &nbsp;<code>DEVELOPER TOOL</code>
+  </summary>
+
+  <br>
+
+  Open the ANI Studio installation and setup page.
+
+  **Español:** *Configuración de ANI Studio*
+
+  <p>
+    <a href="https://alaricholt677.github.io/ANI">
+      <img src="https://img.shields.io/badge/Open-ANI_Studio_Setup-FF8BCB?style=for-the-badge" alt="Open ANI Studio Setup">
+    </a>
+  </p>
+  </details>
+
+- <details>
+  <summary>
+    🪟 &nbsp;<strong>WinUI 3 Kit</strong>
+    &nbsp;<code>PKG</code>
+  </summary>
+
+  <br>
+
+  Open the WinUI 3 development package.
+
+  **Español:** *Kit WinUI 3*
+
+  <p>
+   

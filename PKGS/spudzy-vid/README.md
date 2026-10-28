@@ -22,7 +22,7 @@ Everything runs locally in the browser.
 
 1. Include the library:
 
-https://your-username.github.io/PKGS/spudzy-vid/spudzy-vid-js.js?v=1script>
+https://alaricholt677.github.io/PKGS/spudzy-vid/spudzy-vid-js.js?v=1script>
 
 2. Generate a video:
 

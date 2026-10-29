@@ -1232,10 +1232,25 @@
       switcher:['Switcher','Switcher placeholder content. Games and recent apps will appear here.'],
       power:['Power','Power placeholder content. Sign out, switch user, restart, and shutdown controls will appear here.']
     };
-    function sendVirtualKey(key,action='keydown') {
-      const code = ({w:'KeyW',a:'KeyA',s:'KeyS',d:'KeyD'})[key] || key;
-      document.getElementById('gameFrame').contentWindow?.postMessage({type:'console-os-key',key,code,action},'*');
-    }
+    function sendVirtualKey(key, action = 'keydown') {
+  const keyMap = {
+    w: { key: 'w', code: 'KeyW' },
+    a: { key: 'a', code: 'KeyA' },
+    s: { key: 's', code: 'KeyS' },
+    d: { key: 'd', code: 'KeyD' },
+    Space: { key: ' ', code: 'Space' }
+  };
+
+  const mapped = keyMap[key] || { key, code: key };
+
+  document.getElementById('gameFrame').contentWindow?.postMessage({
+    type: 'console-os-key',
+    key: mapped.key,
+    code: mapped.code,
+    action
+  }, '*');
+}
+
     document.querySelectorAll('[data-virtual-key]').forEach(button=>{
       const key=button.dataset.virtualKey;
       const down=e=>{e.preventDefault();button.classList.add('pressed');sendVirtualKey(key,'keydown');};

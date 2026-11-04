@@ -39,7 +39,7 @@
       "mc": "the raw java enviroment",
       "loader": "java runtime",
       "date": "2026-05-12",
-      "file": "IRLSimulatorLauncher.java",
+      "file": "IRLSimulatorLauncher.jar",
       "notes": "IRL Simulator official launcher"
     },
     {

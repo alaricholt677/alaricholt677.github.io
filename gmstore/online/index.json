@@ -16,6 +16,21 @@
                       "arguments":  [
 
                                     ]
+                  },
+                  {
+                      "id":  "irl-simulator",
+                      "name":  "IRL Simulator",
+                      "description":  "IRL Simulator, delivered as a verified ZIP and launched from the GM Store RAM session.",
+                      "version":  "2026.07.24",
+                      "download":  "https://archive.org/download/irl_20260724/irl.zip",
+                      "sha256":  "c4971e0182076ac0a51754c9b11173fe80471fa72b5b8270bdadcfa4d1a235e1",
+                      "sizeBytes":  35703314,
+                      "entrypoint":  "IRLSimulator.jar",
+                      "mode":  "ram-drive",
+                      "ramMb":  2048,
+                      "arguments":  [
+
+                                    ]
                   }
               ]
 }

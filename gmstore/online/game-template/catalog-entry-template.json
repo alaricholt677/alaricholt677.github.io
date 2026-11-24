@@ -1,0 +1,15 @@
+﻿{
+    "mode":  "ram-drive",
+    "id":  "game-id",
+    "ramMb":  512,
+    "version":  "1.0.0",
+    "description":  "Game description",
+    "name":  "Game Name",
+    "entrypoint":  "Game.jar",
+    "sha256":  "LOWERCASE SHA256",
+    "arguments":  [
+
+                  ],
+    "download":  "GAME ZIP URL",
+    "sizeBytes":  0
+}

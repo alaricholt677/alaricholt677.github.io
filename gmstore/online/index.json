@@ -1,0 +1,21 @@
+{
+    "formatVersion":  1,
+    "storeName":  "GM Store",
+    "games":  [
+                  {
+                      "id":  "sample-game",
+                      "name":  "RAM Sample Game",
+                      "description":  "A compiled Java collection game for testing GM Store RAM execution.",
+                      "version":  "1.0.0",
+                      "download":  "https://alaricholt677.github.io/gmstore/online/games/sample-game.zip",
+                      "sha256":  "c43c2a83c7ab39cd13ca7b763095429172ff4698b38a6458dfdf0cfe6aa85df6",
+                      "sizeBytes":  3325,
+                      "entrypoint":  "SampleGame.jar",
+                      "mode":  "ram-drive",
+                      "ramMb":  512,
+                      "arguments":  [
+
+                                    ]
+                  }
+              ]
+}

@@ -44,7 +44,7 @@ jobs:
 
           if echo "$CHANGED" | grep -q "ALL"; then
             echo "skip=false" >> $GITHUB_OUTPUT
-          elif ! echo "$CHANGED" | grep -qE "^(PKGS/|index.html|spudzy.js)"; then
+          elif ! echo "$CHANGED" | grep -qE "^(PKGS/|gmstore/|index.html|spudzy.js)"; then
             echo "skip=true" >> $GITHUB_OUTPUT
           else
             echo "skip=false" >> $GITHUB_OUTPUT
@@ -95,7 +95,7 @@ jobs:
       - name: Skip deploy for docs-only commits
         if: contains(github.event.head_commit.message, '[docs]')
         run: |
-          echo "Docs-only commit detected — skipping deploy"
+          echo "Docs-only commit detected â€” skipping deploy"
           exit 0
 
       # -----------------------------
@@ -119,7 +119,7 @@ jobs:
           touch archive/processed_commits.txt
 
           if [ -d "archive" ] && [ $(du -s archive | awk '{print $1}') -gt 500000 ]; then
-            echo "Archive too large — resetting"
+            echo "Archive too large â€” resetting"
             rm -rf archive
             mkdir -p archive
             touch archive/processed_commits.txt
@@ -180,7 +180,7 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: .
 

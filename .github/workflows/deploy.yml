@@ -16,151 +16,49 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ============================================================
-  # BUILD AND UPLOAD THE GITHUB PAGES ARTIFACT
-  # ============================================================
   build:
     runs-on: ubuntu-latest
 
-    outputs:
-      should_deploy: ${{ steps.changes.outputs.should_deploy }}
-
     steps:
-      # --------------------------------------------------------
-      # Checkout complete repository history
-      # --------------------------------------------------------
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # --------------------------------------------------------
-      # Decide whether this run should create a Pages deployment
-      # --------------------------------------------------------
-      - name: Detect relevant changes
-        id: changes
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "Event: $GITHUB_EVENT_NAME"
-
-          # A manually started workflow should always deploy.
-          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
-            echo "Manual run requested. Deployment enabled."
-            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # A commit explicitly marked as documentation-only does not deploy.
-          COMMIT_MESSAGE="$(git log -1 --pretty=%B)"
-
-          if printf '%s\n' "$COMMIT_MESSAGE" | grep -Fq "[docs]"; then
-            echo "Commit is marked [docs]. Deployment disabled."
-            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # Get the changed paths. If no previous commit is available,
-          # deploy everything.
-          if git rev-parse HEAD~1 >/dev/null 2>&1; then
-            CHANGED="$(git diff --name-only HEAD~1 HEAD)"
-          else
-            CHANGED="ALL"
-          fi
-
-          echo "Changed paths:"
-          printf '%s\n' "$CHANGED"
-
-          if printf '%s\n' "$CHANGED" | grep -q "^ALL$"; then
-            echo "No previous commit was available. Deployment enabled."
-            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
-          elif printf '%s\n' "$CHANGED" |
-            grep -qE '^(\.github/workflows/deploy\.yml|PKGS/|gmstore/|index\.html$|spudzy\.js$)'; then
-            echo "A Pages-relevant change was found. Deployment enabled."
-            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "No Pages-relevant changes were found."
-            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      # --------------------------------------------------------
-      # Show the decision clearly in the log
-      # --------------------------------------------------------
-      - name: Report deployment decision
-        shell: bash
-        run: |
-          echo "should_deploy=${{ steps.changes.outputs.should_deploy }}"
-
-      # --------------------------------------------------------
-      # Configure GitHub Pages
-      # --------------------------------------------------------
       - name: Configure GitHub Pages
-        if: steps.changes.outputs.should_deploy == 'true'
         uses: actions/configure-pages@v5
 
-      # --------------------------------------------------------
-      # Inject YouTube API key when available
-      #
-      # Missing secret no longer prevents GM Store deployment.
-      # --------------------------------------------------------
-      - name: Inject YouTube API key
-        if: steps.changes.outputs.should_deploy == 'true'
-        shell: bash
+      - name: Inject YouTube API key when available
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        shell: bash
         run: |
           set -euo pipefail
-
           if [ -z "${YOUTUBE_API_KEY:-}" ]; then
-            echo "YOUTUBE_API_KEY is not configured."
-            echo "Skipping YouTube key injection."
+            echo "YOUTUBE_API_KEY is unavailable; skipping injection."
             exit 0
           fi
+          find . \( -name "spudzy.js" -o -name "index.html" \) \
+            -type f -not -path "./.git/*" -not -path "./archive/*" \
+            -exec sed -i "s|__YOUTUBE_API_KEY__|${YOUTUBE_API_KEY}|g" {} \;
 
-          find . \
-            \( -name "spudzy.js" -o -name "index.html" \) \
-            -type f \
-            -not -path "./.git/*" \
-            -not -path "./archive/*" \
-            -exec sed -i \
-              "s|__YOUTUBE_API_KEY__|${YOUTUBE_API_KEY}|g" {} \;
-
-          echo "YouTube API key injection completed."
-
-      # --------------------------------------------------------
-      # Broken-link check
-      # --------------------------------------------------------
-      - name: Check for broken links
-        if: steps.changes.outputs.should_deploy == 'true'
+      - name: Check links
         uses: lycheeverse/lychee-action@v2.0.2
         with:
-          args: >-
-            --verbose
-            --exclude-path .git
-            --exclude-path archive
-            .
+          args: --verbose --exclude-path .git --exclude-path archive .
         continue-on-error: true
 
-      # --------------------------------------------------------
-      # JavaScript syntax check
-      # --------------------------------------------------------
       - name: JavaScript syntax check
-        if: steps.changes.outputs.should_deploy == 'true'
         shell: bash
         run: |
           if command -v npx >/dev/null 2>&1; then
             npx eslint .
           else
-            echo "ESLint is unavailable. Skipping JavaScript check."
+            echo "ESLint is unavailable."
           fi
         continue-on-error: true
 
-      # --------------------------------------------------------
-      # Restore historical archive cache
-      # --------------------------------------------------------
-      - name: Restore archived versions cache
-        if: steps.changes.outputs.should_deploy == 'true'
+      - name: Restore archive cache
         uses: actions/cache/restore@v4
         with:
           path: archive
@@ -168,162 +66,64 @@ jobs:
           restore-keys: |
             archive-v2-
 
-      # --------------------------------------------------------
-      # Build historical archive snapshots
-      # --------------------------------------------------------
       - name: Build archive snapshots
-        if: steps.changes.outputs.should_deploy == 'true'
         shell: bash
         run: |
           set -euo pipefail
-
-          echo "Synchronizing optimized historical timeline..."
-
           mkdir -p archive
           touch archive/processed_commits.txt
-
-          ARCHIVE_SIZE="$(du -s archive | awk '{print $1}')"
-
-          if [ "$ARCHIVE_SIZE" -gt 500000 ]; then
-            echo "Archive cache is too large. Resetting it."
-
+          if [ "$(du -s archive | awk '{print $1}')" -gt 500000 ]; then
             rm -rf archive
             mkdir -p archive
             touch archive/processed_commits.txt
           fi
-
-          git log \
-            --reverse \
-            --format="%h|%cd" \
-            --date=short |
-          awk -F'|' '
+          git log --reverse --format="%h|%cd" --date=short | awk -F'|' '
             {
               split($2, dateParts, "-");
               monthKey = dateParts[1] "-" dateParts[2];
-
-              if (!seen[monthKey]++) {
-                print $0;
-              }
+              if (!seen[monthKey]++) print $0;
             }
-          ' |
-          while IFS='|' read -r hash date; do
-            if grep -Fq "$hash" archive/processed_commits.txt; then
-              continue
-            fi
-
-            VERSION_LABEL="v$(printf '%s' "$date" | cut -d'-' -f1-2)"
-
-            echo "Processing snapshot: $VERSION_LABEL ($hash)"
-
-            rm -rf "archive/$VERSION_LABEL"
-            mkdir -p "archive/$VERSION_LABEL"
-
-            git archive "$hash" |
-              tar -x -C "archive/$VERSION_LABEL"
-
-            find "archive/$VERSION_LABEL" \
-              -type f \
-              \( \
-                -name "*.png" -o \
-                -name "*.jpg" -o \
-                -name "*.jpeg" -o \
-                -name "*.gif" -o \
-                -name "*.svg" -o \
-                -name "*.mp4" -o \
-                -name "*.mp3" -o \
-                -name "*.zip" -o \
-                -name "*.tar.gz" -o \
-                -name "*.md" -o \
-                -name "*.json" -o \
-                -name "package-lock.json" -o \
-                -name ".eslintrc*" -o \
-                -name ".gitignore" \
-              \) \
-              -delete
-
-            find "archive/$VERSION_LABEL" \
-              -type d \
-              -empty \
-              -delete
-
+          ' | while IFS='|' read -r hash date; do
+            if grep -Fq "$hash" archive/processed_commits.txt; then continue; fi
+            label="v$(printf '%s' "$date" | cut -d'-' -f1-2)"
+            rm -rf "archive/$label"
+            mkdir -p "archive/$label"
+            git archive "$hash" | tar -x -C "archive/$label"
+            find "archive/$label" -type f \( \
+              -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o \
+              -name "*.gif" -o -name "*.svg" -o -name "*.mp4" -o \
+              -name "*.mp3" -o -name "*.zip" -o -name "*.tar.gz" -o \
+              -name "*.md" -o -name "*.json" -o -name "package-lock.json" -o \
+              -name ".eslintrc*" -o -name ".gitignore" \) -delete
+            find "archive/$label" -type d -empty -delete
             echo "$hash" >> archive/processed_commits.txt
           done
+          current_date="$(date +'%Y-%m-%d')"
+          rm -rf "archive/$current_date"
+          mkdir -p "archive/$current_date"
+          rsync -av --exclude='archive' --exclude='.git' --exclude='.github' --exclude='_site' ./ "archive/$current_date/"
 
-          CURRENT_DATE="$(date +'%Y-%m-%d')"
-
-          echo "Updating live checkpoint: archive/$CURRENT_DATE"
-
-          rm -rf "archive/$CURRENT_DATE"
-          mkdir -p "archive/$CURRENT_DATE"
-
-          rsync \
-            -av \
-            --exclude="archive" \
-            --exclude=".git" \
-            --exclude=".github" \
-            --exclude="_site" \
-            ./ \
-            "archive/$CURRENT_DATE/"
-
-      # --------------------------------------------------------
-      # Save updated archive cache
-      # --------------------------------------------------------
-      - name: Save updated archive cache
-        if: steps.changes.outputs.should_deploy == 'true'
+      - name: Save archive cache
         uses: actions/cache/save@v4
         with:
           path: archive
           key: archive-v2-${{ github.sha }}
 
-      # --------------------------------------------------------
-      # Prepare a clean Pages directory
-      #
-      # This prevents .git, workflow files, temporary files,
-      # and Archive.org packages from entering the Pages artifact.
-      # --------------------------------------------------------
-      - name: Prepare GitHub Pages directory
-        if: steps.changes.outputs.should_deploy == 'true'
+      - name: Prepare Pages directory
         shell: bash
         run: |
           set -euo pipefail
-
           rm -rf _site
           mkdir -p _site
-
-          rsync \
-            -av \
-            --delete \
-            --exclude=".git" \
-            --exclude=".github" \
-            --exclude="_site" \
-            --exclude="site.tar" \
-            ./ \
-            _site/
-
+          rsync -av --delete \
+            --exclude='.git' --exclude='.github' --exclude='_site' --exclude='site.tar' \
+            ./ _site/
           touch _site/.nojekyll
-
-          echo "Prepared GitHub Pages directory."
-          echo "Total Pages directory size:"
+          test -f _site/gmstore/online/index.html
+          test -f _site/gmstore/online/index.json
           du -sh _site
 
-          echo "Confirming GM Store files:"
-          find _site/gmstore -maxdepth 4 -type f -print 2>/dev/null || true
-
-          if [ ! -f "_site/gmstore/online/index.html" ]; then
-            echo "GM Store index.html is missing from the Pages directory."
-            exit 1
-          fi
-
-          if [ ! -f "_site/gmstore/online/index.json" ]; then
-            echo "GM Store index.json is missing from the Pages directory."
-            exit 1
-          fi
-
-      # --------------------------------------------------------
-      # Upload the exact artifact expected by deploy-pages
-      # --------------------------------------------------------
       - name: Upload GitHub Pages artifact
-        if: steps.changes.outputs.should_deploy == 'true'
         id: upload
         uses: actions/upload-pages-artifact@v4
         with:
@@ -331,29 +131,13 @@ jobs:
           path: _site
           retention-days: 1
 
-      # --------------------------------------------------------
-      # Record the uploaded artifact ID in the log
-      # --------------------------------------------------------
-      - name: Confirm GitHub Pages artifact
-        if: steps.changes.outputs.should_deploy == 'true'
+      - name: Confirm Pages artifact
         shell: bash
         run: |
-          echo "GitHub Pages artifact upload completed."
           echo "Artifact ID: ${{ steps.upload.outputs.artifact_id }}"
+          test -n "${{ steps.upload.outputs.artifact_id }}"
 
-          if [ -z "${{ steps.upload.outputs.artifact_id }}" ]; then
-            echo "The Pages artifact action did not return an artifact ID."
-            exit 1
-          fi
-
-      # --------------------------------------------------------
-      # Upload a separate snapshot to Archive.org
-      #
-      # This does not control the GitHub Pages deployment.
-      # Missing Archive.org credentials will not fail Pages.
-      # --------------------------------------------------------
       - name: Upload snapshot to Archive.org
-        if: steps.changes.outputs.should_deploy == 'true'
         continue-on-error: true
         env:
           IA_ACCESS_KEY: ${{ secrets.ARCHIVEORG_ACCESS_KEY }}
@@ -361,94 +145,27 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
-          if [ -z "${IA_ACCESS_KEY:-}" ] ||
-             [ -z "${IA_SECRET_KEY:-}" ]; then
-            echo "Archive.org credentials are unavailable."
-            echo "Skipping Archive.org upload."
+          if [ -z "${IA_ACCESS_KEY:-}" ] || [ -z "${IA_SECRET_KEY:-}" ]; then
+            echo "Archive.org credentials unavailable; skipping."
             exit 0
           fi
-
           python -m pip install internetarchive
-
-          echo "Packaging prepared site for Archive.org..."
-
-          tar \
-            -cvf site.tar \
-            -C _site \
-            .
-
-          echo "Uploading snapshot to Archive.org..."
-
-          ia upload \
-            "alaricholt677.github.io" \
-            site.tar \
+          tar -cvf site.tar -C _site .
+          ia upload "alaricholt677.github.io" site.tar \
             --metadata="title=GitHub Pages Snapshot" \
             --metadata="mediatype=software" \
             --metadata="description=Automated deployment snapshot from GitHub Actions"
 
-      # --------------------------------------------------------
-      # Request a Wayback Machine snapshot
-      # --------------------------------------------------------
-      - name: Save to Wayback Machine
-        if: steps.changes.outputs.should_deploy == 'true'
-        continue-on-error: true
-        shell: bash
-        env:
-          TARGET_HOST: alaricholt677.github.io
-        run: |
-          set -euo pipefail
-
-          TARGET_PAGE="https://${TARGET_HOST}/"
-          SAVE_ENDPOINT="https://web.archive.org/save/${TARGET_PAGE}"
-          HISTORY_PAGE="https://web.archive.org/web/*/${TARGET_PAGE}"
-
-          echo "----------------------------------------"
-          echo "WAYBACK MACHINE AUTO-SNAPSHOT STARTING"
-          echo "Target host: ${TARGET_HOST}"
-          echo "Sending request to Save Page Now API..."
-          echo "----------------------------------------"
-
-          RESPONSE="$(
-            curl \
-              --silent \
-              --show-error \
-              --dump-header - \
-              --output /dev/null \
-              "$SAVE_ENDPOINT"
-          )"
-
-          echo "----------------------------------------"
-          echo "WAYBACK MACHINE RESPONSE HEADERS:"
-          printf '%s\n' "$RESPONSE"
-          echo "----------------------------------------"
-          echo "Snapshot request sent."
-          echo "History endpoint: $HISTORY_PAGE"
-          echo "----------------------------------------"
-
-  # ============================================================
-  # DEPLOY THE ARTIFACT CREATED BY THE BUILD JOB
-  # ============================================================
   deploy:
     needs: build
-
-    if: needs.build.outputs.should_deploy == 'true'
-
     runs-on: ubuntu-latest
-
     permissions:
       pages: write
       id-token: write
-
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
-      # --------------------------------------------------------
-      # This job cannot start until build has uploaded the
-      # artifact named github-pages.
-      # --------------------------------------------------------
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
@@ -457,6 +174,16 @@ jobs:
 
       - name: Report deployed URL
         shell: bash
+        run: echo "Deployed URL: ${{ steps.deployment.outputs.page_url }}"
+
+  wayback:
+    needs: deploy
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request Wayback Machine snapshot
+        continue-on-error: true
+        shell: bash
         run: |
-          echo "GitHub Pages deployment completed."
-          echo "Deployed URL: ${{ steps.deployment.outputs.page_url }}"
+          curl --silent --show-error --dump-header - --output /dev/null \
+            "https://web.archive.org/save/https://alaricholt677.github.io/"
